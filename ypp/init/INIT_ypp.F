@@ -215,6 +215,15 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
      l_wavefunction   =trim(rstr_piece(i1+1))=='w'
      l_sort           =trim(rstr_piece(i1+1))=='s'
      l_amplitude      =trim(rstr_piece(i1+1))=='a'
+ !
+ ! GPL_EXCLUDE_START
+ !
+!cmau
+     l_Rtimes         =trim(rstr_piece(i1+1))=='l'
+!cmau
+ !
+ ! GPL_EXCLUDE_END
+ !
 #if defined _YPP_ELPH
      l_gkkp           =trim(rstr_piece(i1+1))=='g'
 #endif
@@ -290,6 +299,9 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
      if (l_current)        call initactivate(1,'current')
      if (l_density)        call initactivate(1,'density')
      if (l_sort)           infile_editing=.false.
+!cmau
+   if (l_Rtimes)         call initactivate(1,'Rtimes')
+!cmau
    endif
    if ( trim(rstr_piece(i1)) == 'phonons'.or. trim(rstr_piece(i1)) == 'electrons') then
      if (l_dos)            call initactivate(1,'dos')
@@ -381,6 +393,15 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
 #endif
  l_free_hole=runlevel_is_on('freehole')
  l_amplitude=runlevel_is_on('amplitude')
+!
+ ! GPL_EXCLUDE_START 
+ !
+!cmau
+ l_Rtimes   =runlevel_is_on('Rtimes')
+!cmau
+ !
+ ! GPL_EXCLUDE_END
+ !
  l_exc_wf   =runlevel_is_on('wavefunction').and.runlevel_is_on('excitons')
  l_sp_wf    =runlevel_is_on('wavefunction').and.runlevel_is_on('electrons')
  l_density  =runlevel_is_on('density').and.runlevel_is_on('electrons')
@@ -515,6 +536,15 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
      call INIT_QP_ctl_switch('G')
      call initactivate(1,"DipWeight")
    endif
+ !
+ ! GPL_EXCLUDE_START
+ !
+!cmau
+  if (l_Rtimes) call initactivate(1,"NonPDirs")
+!cmau
+ !
+ ! GPL_EXCLUDE_END
+ !
    if (l_exc_wf.or.l_amplitude) call initactivate(1,"Degen_Step MinWeight")
    if (l_exc_wf.and..not.l_free_hole) call initactivate(1,"Cells Hole Dimension") 
    if (l_exc_wf.and.l_free_hole) call initactivate(1,"WFMult") 

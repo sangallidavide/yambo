@@ -32,7 +32,11 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use QP_CTL_m,      ONLY:QP_apply
  use electrons,     ONLY:levels,n_spin,n_sp_pol,spin,E_SOC_nbands
  use YPP,           ONLY:l_sort,l_exc_wf,l_spin,l_amplitude,&
-&                        excitons_sort_and_report
+!cmau
+!&                       excitons_sort_and_report
+!cmau
+&                         excitons_sort_and_report,l_Rtimes
+!cmau
  use IO_m,          ONLY:io_control,OP_RD_CL,DUMP,NONE,REP,VERIFY
  use BS,            ONLY:BS_H_dim,BS_K_dim,BS_bands,BS_q,&
 &                        BSS_eh_table,BS_mat,BS_K_coupling,BS_cpl_mode,&
@@ -116,7 +120,10 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  n_lambda = get_lambda()
  !
- l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin
+!cmau
+! l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin
+  l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin .or. l_Rtimes
+!cmau
 #if defined _YPP_ELPH
  l_flag=l_flag .or. l_eliashberg .or. l_gkkp
 #endif

@@ -30,7 +30,12 @@ subroutine excitons_sort_and_report(Xk,E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  use BS,            ONLY:BSS_description,BSS_n_descs,BSS_eh_table,BS_bands,BS_H_dim
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:d3k_factor,q0_def_norm,bz_samp
- use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species
+!cmau
+ use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
+&                   ,DL_vol,non_periodic_directions
+ use X_m,           ONLY:eps_2_alpha,l_1D,l_2D,l_0D,l_3D
+ use YPP,           ONLY:l_Rtimes
+!cmau
  use vec_operate,   ONLY:sort
  !
  implicit none 
@@ -47,6 +52,18 @@ subroutine excitons_sort_and_report(Xk,E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  integer            :: j1,j2,ia,is,i_mode,ikbz,ikibz,iv,ic,i_spin,n_elements
  integer            :: S_indx(BS_H_dim)
  real(SP)           :: Residuals(BS_H_dim),v2sort(BS_H_dim),Rmax,rv(10)
+ !
+ !  GPL_EXCLUDE_START
+ !
+ !
+!cmau
+ real(SP)           :: RT(BS_H_dim)
+ logical            :: write_rtimes
+!cmau
+ !
+ !  GPL_EXCLUDE_END
+ !
+
  character(schlen)  :: titles(7),ch_dummy(2)
  logical            :: write_widths,write_spin,write_soc_corr
  !
@@ -59,12 +76,25 @@ subroutine excitons_sort_and_report(Xk,E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  write_soc_corr= (E_SOC_nbands/=0)
  !
  if (     write_widths) call section('=','Reporting sorted Energies, Strengths and widths')
- if (.not.write_widths) call section('=','Reporting sorted Energies and Strengths')
+ if (.not.write_widths .and. .not. write_Rtimes) call section('=','Reporting sorted Energies and Strengths')
+ !
  !
  do i_mode=1,2
    !
    if (i_mode==1) ch_dummy(1)='exc_E_sorted'
    if (i_mode==2) ch_dummy(1)='exc_I_sorted'
+ !
+ ! GPL_EXCLUDE_START
+ !
+!cmau
+   if (write_Rtimes) then
+     if (i_mode==1) ch_dummy(1)='exc_E+Rtimes_sorted'
+     if (i_mode==2) ch_dummy(1)='exc_I+Rtimes_sorted'
+   endif
+!cmau 
+ !
+ ! GPL_EXCLUDE_END
+ !
    if (write_spin) then
      if (i_mode==1) ch_dummy(1)='exc_E+spin_sorted'
      if (i_mode==2) ch_dummy(1)='exc_I+spin_sorted'
@@ -107,6 +137,36 @@ subroutine excitons_sort_and_report(Xk,E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
    call msg('o sort','#','',INDENT=0)
    !
    Residuals(:) = BS_R(:)*conjg(BS_R(:))
+ !
+ ! GPL_EXCLUDE_START
+ !
+!cmau
+   if (write_Rtimes) then
+    if (trim(non_periodic_directions)/="none") then
+!
+    call section('=','Non periodic geometry')
+!========================================
+!
+    call check_periodic_directions()
+!
+    endif
+!cmau
+   RT(:)  = Residuals(:)*real(BS_E(:))
+   if (l_2D) &
+&  RT(:) = (eps_2_alpha/DL_vol)*Residuals(:)*8.*pi*real(BS_E(:))/(q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT)
+   write(6,*) 'l_2D' ,l_2D
+   write (6,*) 'q0_def_norm, eps_2_alpha,DL_vol, DL_vol/eps_2_alpha'
+   if (l_1D) RT(:) =  &
+&  RT(:)*real(BS_E(:))*2.*pi*eps_2_alpha/(DL_vol*q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT**2)
+   if (l_3D) RT(:) = RT(:)*real(BS_E(:))*4.*0.333/(q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT**3)
+   if (l_0D) RT(:) = RT(:)*real(BS_E(:))*4.*0.333/(q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT**3)
+   RT(:) = AU2SEC/RT(:)
+   write (6,*) eps_2_alpha,DL_vol
+   endif
+!cmau
+ !
+ ! GPL_EXCLUDE_END
+ !
    if (write_widths)  Residuals(:) = abs(BS_R(:))
    Residuals(:) = Residuals(:)*real(spin_occ,SP)/(2._SP*pi)**3*&
 &         d3k_factor*4._SP*pi/q0_def_norm**2*HA2EV

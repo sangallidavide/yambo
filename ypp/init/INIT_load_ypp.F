@@ -26,7 +26,10 @@ subroutine ypp_INIT_load(defs)
  use it_m,          ONLY:it,initdefs,E_unit,G_unit,V_general,initmode,&
 &                        Time_unit,Bfield_unit,V_real_time,T_unit
  use wave_func,     ONLY:wf_ng
- use D_lattice,     ONLY:Tel,Bose_Temp
+!cmau
+! use D_lattice,     ONLY:Tel,Bose_Temp
+  use D_lattice,     ONLY:Tel,Bose_Temp,non_periodic_directions
+!
  use electrons,     ONLY:n_spinor
  use interpolate,   ONLY:lpfac
  use YPP
@@ -72,6 +75,16 @@ subroutine ypp_INIT_load(defs)
  call it('r',defs,'electrons', '[R] Electrons (and holes)')
  call it('r',defs,'freehole',  '[R] Free hole position')
  call it('r',defs,'amplitude', '[R] Amplitude')
+ !
+ ! GPL_EXCLUDE_START
+ !
+!cmau
+  call it('r',defs,'Rtimes',  '  [R] Lifetimes')
+!cmau
+ !
+ ! GPL_EXCLUDE_END
+ !
+
  call it('r',defs,'plot',         '[R] Plot')
  call it('r',defs,'density',      '[R] Density')
  call it('r',defs,'current',      '[R] Current')
@@ -235,6 +248,7 @@ subroutine ypp_INIT_load(defs)
  call it(defs,'MinWeight', 'Print transitions with weight => MinWeight',min_weight,verb_level=V_general)
  call it(defs,'States','Index of the BS state(s)',state_ctl)
  call it(defs,'Cells', 'Number of cell repetitions in each direction (odd or 1)',ncell)
+ call it(defs,'NonPDirs','[X/BSS] Non periodic chartesian directions (X,Y,Z,XY...)',non_periodic_directions,verb_level=V_resp)
  call it(defs,'Hole', '[cc] Hole position in unit cell',r_hole)
  call it(defs,'WFMult', 'Multiplication factor to the excitonic wavefunction',WF_multiplier,verb_level=V_general)
  !

@@ -25,7 +25,7 @@ subroutine check_periodic_directions()
  !
  use pars,           ONLY:SP
  use com,            ONLY:msg,warning
- use X_m,            ONLY:eps_2_alpha,alpha_dim,eval_alpha
+ use X_m,            ONLY:eps_2_alpha,alpha_dim,eval_alpha,l_1D,l_2D,l_0D,l_3D
  use D_lattice,      ONLY:DL_vol,a,non_periodic_directions
  use vec_operate,    ONLY:v_norm
  !
@@ -35,7 +35,7 @@ subroutine check_periodic_directions()
  !
  integer  :: non_p_dir(3),i1,ia,i_check
  real(SP) :: non_p_dot_product(3),periodic_length,non_periodic_length
- logical  :: l_0D,l_1D,l_2D,l_3D
+!cmau logical  :: l_0D,l_1D,l_2D,l_3D
  !
  non_p_dir=0
  if (index(non_periodic_directions,'x')+index(non_periodic_directions,'X')/=0) non_p_dir(1)=1
