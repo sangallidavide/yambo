@@ -18,7 +18,7 @@ pcc         = @PCC@
 pccflags    = @PCCFLAGS@
 cpp         = @C_AS_CPP@
 cppflags    = @C_AS_CPP_FLAGS@ 
-fccpp       = @FCCPP@
+fpp         = @FPP@
 f90         = @F90@
 f90flags    = @FCFLAGS@ @FCMFLAG@ @OPENMPLIBS@
 f90uflags   = @FCUFLAGS@ @FCMFLAG@ @OPENMPLIBS@
@@ -34,6 +34,7 @@ package_bugreport = @PACKAGE_BUGREPORT@
 #
 prefix      = @prefix@
 exec_prefix = @exec_prefix@/bin
+topdir      = @abs_top_srcdir@
 srcdir      = @srcdir_path@
 libdir      = @srcdir_path@/lib
 libpath     = -L@srcdir_path@/lib @LDFLAGS@
@@ -54,3 +55,10 @@ liotk	    = @IOTK_LIBS@
 iotk_idir   = @iotk_idir@
 letsf	    = @ETSF_LIBS@
 etsf_idir   = @etsf_idir@
+#
+# VPATH
+#
+VPATH = $$topdir
+#
+#
+#

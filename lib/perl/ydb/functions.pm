@@ -1,9 +1,8 @@
-#! /bin/sh
 #
 #        Copyright (C) 2000-2016 the YAMBO team
 #              http://www.yambo-code.org
 #
-# Authors (see AUTHORS file for details): HM
+# Authors (see AUTHORS file for details): AM
 #
 # This file is distributed under the terms of the GNU
 # General Public License. You can redistribute it and/or
@@ -22,13 +21,49 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 # MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 #
-# Create git hooks to update yambo version and hash
-# 1. "pre-commit" --> yambo_versions_update.tcsh h
-cat <<EOF > .git/hooks/pre-commit
-#!/bin/bash
-sbin/yambo_versions_update.tcsh r
-git add config/configure.ac
-git add configure
-git add include/version.inc
-EOF
-chmod +x .git/hooks/pre-commit
+no warnings 'experimental::smartmatch';
+#
+sub have_ID
+#===========
+{
+ if (exists($RUN_description[@_]))
+ {
+   return @_
+ }
+ return 0;
+}
+sub have_material
+#=================
+{
+ $irun=0;
+ while ($irun<$runs) {
+  $irun++;
+  if ("$RUN_material[$irun]" =~ "$material") {
+   return $irun;
+  }
+ } 
+ return 0;
+}
+sub have_run
+#============
+{
+ $irun=0;
+ while ($irun<$runs) 
+  {
+   $n_keys=0;
+   $matches=0;
+   $irun++;
+   if ($key_words) {
+    for($ik = 1; $ik < 100; $ik++) {
+     if (exists($RUN_key[$irun][$ik])){
+      $n_keys++;
+      if ( "$RUN_key[$irun][$ik]" ~~ @keys) {$matches++};
+     }
+    }
+   }
+   if ($material and "$RUN_material[$irun]" =~ "$material" and $n_keys eq  $matches){return $irun;};
+   if ($ID_in and $ID[$irun] eq $ID_in) {return $irun;};
+ }
+ return 0;
+}
+1;

@@ -106,13 +106,15 @@ if test -d "$with_netcdf_path" || test -d "$with_netcdf_libdir" ; then
   #
   FCFLAGS="$IFLAG$try_incdir $save_fcflags"
   AC_COMPILE_IFELSE(AC_LANG_PROGRAM([], [use netcdf]),
-     [netcdf=yes 
+     [netcdf=yes
+      if test ! -d include ; then mkdir include ; fi
       for file in `find "$try_incdir" \( -name '*netcdf*' -o -name '*typesizes*' \) `; do
         cp $file include/ 
       done
       for file in `find "$try_incdir" \( -name '*NETCDF*' -o -name '*TYPESIZES*' \) `; do
         cp $file include/ 
       done
+      if test ! -d lib ; then mkdir lib ; fi
       for file in `find $try_libdir -name '*netcdf*.a'`; do
         cp $file lib/ 
       done
@@ -203,9 +205,9 @@ if test x"$enable_hdf5" = "xyes"; then
   if test -d "$with_hdf5_includedir" ; then try_incdir=$with_hdf5_includedir ; fi
   #
   try_hdf5_flags="-lhdf5_fortran -lhdf5_hl -lhdf5"
+  if test x"$with_hdf5_libs" != "x" ; then try_hdf5_flags="$with_hdf5_libs" ; fi
   #
   if test -d "$try_libdir" ; then try_hdf5_flags="-L$try_libdir $try_hdf5_flags" ; fi
-  if test x"$with_hdf5_libs" != "x" ; then try_hdf5_flags="$with_hdf5_libs" ; fi
   #
   HDF5_FLAGS="$try_hdf5_flags"
   #
@@ -246,8 +248,8 @@ fi
 #
 # NETCDF-HDF5 IO
 #
-if test x"$netcdf" = "xyes" && test x"hdf5" = "xyes" && test x"$enable_netcdf_hdf5" = "xyes" ; then
-    dnetcdf="${dnetcdf} -D_HDF5_IO"
+if test x"$netcdf" = "xyes" && test x"$hdf5" = "xyes" && test x"$enable_netcdf_hdf5" = "xyes" ; then
+    dnetcdf="${dnetcdf} -D_HDF5_IO";
 fi
 
 AC_SUBST(NCLIBS)

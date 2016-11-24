@@ -21,17 +21,7 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 # MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 #
-AC_INIT(Yambo, 4.0.2 r.13629 h.370950e , yambo@yambo-code.org)
-SVERSION="4"
-SPATCHLEVEL="0"
-SSUBLEVEL="2"
-SREVISION="13629"
-SHASH="370950e"
-AC_SUBST(SVERSION)
-AC_SUBST(SPATCHLEVEL)
-AC_SUBST(SSUBLEVEL)
-AC_SUBST(SREVISION)
-AC_SUBST(SHASH)
+m4_include([config/version.m4])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_SRCDIR([driver/driver.c])
 m4_include([config/acx_lapack.m4])
@@ -443,11 +433,30 @@ ACX_REPORT()
 # ============================================================================
 AC_CONFIG_FILES([config/setup config/Makefile config/report
                  src/wf_and_fft/sgfft.F lib/local/.objects
-                 sbin/make_makefile.sh sbin/objects_debug.sh
+                 sbin/make_makefile.sh sbin/objects_debug.sh sbin/ydb.pl
                  driver/codever.h driver/editor.h src/external_c/.objects])
 AC_OUTPUT
 chmod u+x sbin/*
 cp config/Makefile .
+#
+if test ! -d bin ; then mkdir bin ; fi ;
+if test ! -d include ; then mkdir include ; fi
+if test ! -d lib ; then mkdir lib ; fi
+#
+if [[ "$prefix" != "$srcdir" ]] && [[ "$srcdir" != "." ]] ; then
+ if test ! -d "$prefix/driver"     ; then mkdir "$prefix/driver"     ; fi
+ if test ! -d "$prefix/ypp"        ; then mkdir "$prefix/ypp"        ; fi
+ if test ! -d "$prefix/interfaces" ; then mkdir "$prefix/interfaces" ; fi
+ cd "$srcdir/driver/" ;
+ for file in `ls *.h` ; do
+  cp "$file" "$prefix/driver" ;
+ done ;
+ for file in `ls *.c` ; do
+  cp "$file" "$prefix/driver" ;
+ done ;
+ cd "$prefix" ;
+fi
+#
 if test "$mpibuild" = "no" ; then
  cat config/report | grep -v 'Parallel'
 else
