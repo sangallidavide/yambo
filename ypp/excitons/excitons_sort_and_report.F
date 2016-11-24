@@ -33,10 +33,12 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  use BS,            ONLY:BS_H_dim
  use BS_solvers,    ONLY:BSS_description,BSS_n_descs
  use com,           ONLY:msg,of_open_close
- use R_lattice,     ONLY:d3k_factor,q0_def_norm
+!cmau use R_lattice,     ONLY:d3k_factor,q0_def_norm
+ use R_lattice,     ONLY:d3k_factor,q0_def_norm,nkbz
 !cmau
  use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
 &                   ,DL_vol,non_periodic_directions
+!cmau
  use X_m,           ONLY:eps_2_alpha,l_1D,l_2D,l_0D,l_3D
  use YPP,           ONLY:l_Rtimes
 !cmau
@@ -156,13 +158,13 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
 !cmau
    RT(:)  = Residuals(:)*real(BS_E(:))
    if (l_2D) &
-&  RT(:) = (eps_2_alpha/DL_vol)*Residuals(:)*8.*pi*real(BS_E(:))/(q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT)
+&  RT(:) = (eps_2_alpha/DL_vol)*Residuals(:)*8.*pi*real(BS_E(:))/(q0_def_norm**2*real(nkbz)*SPEED_OF_LIGHT)
    write(6,*) 'l_2D' ,l_2D
    write (6,*) 'q0_def_norm, eps_2_alpha,DL_vol, DL_vol/eps_2_alpha'
    if (l_1D) RT(:) =  &
-&  RT(:)*real(BS_E(:))*2.*pi*eps_2_alpha/(DL_vol*q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT**2)
-   if (l_3D) RT(:) = RT(:)*real(BS_E(:))*4.*0.333/(q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT**3)
-   if (l_0D) RT(:) = RT(:)*real(BS_E(:))*4.*0.333/(q0_def_norm**2*real(Xk%nbz)*SPEED_OF_LIGHT**3)
+&  RT(:)*real(BS_E(:))*2.*pi*eps_2_alpha/(DL_vol*q0_def_norm**2*real(nkbz)*SPEED_OF_LIGHT**2)
+   if (l_3D) RT(:) = RT(:)*real(BS_E(:))*4.*0.333/(q0_def_norm**2*real(nkbz)*SPEED_OF_LIGHT**3)
+   if (l_0D) RT(:) = RT(:)*real(BS_E(:))*4.*0.333/(q0_def_norm**2*real(nkbz)*SPEED_OF_LIGHT**3)
    RT(:) = AU2SEC/RT(:)
    write (6,*) eps_2_alpha,DL_vol
    endif
