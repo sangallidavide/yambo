@@ -24,14 +24,22 @@
 subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  !
  use pars,          ONLY:SP,schlen,pi
- use units,         ONLY:HA2EV
+!cmau use units,         ONLY:HA2EV
+!cmau
+ use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
+!cmau
  use electrons,     ONLY:spin_occ,levels,spin,E_SOC_nbands
  use stderr,        ONLY:intc
  use BS,            ONLY:BS_H_dim
  use BS_solvers,    ONLY:BSS_description,BSS_n_descs
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:d3k_factor,q0_def_norm
- use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species
+!cmau
+ use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
+&                   ,DL_vol,non_periodic_directions
+ use X_m,           ONLY:eps_2_alpha,l_1D,l_2D,l_0D,l_3D
+ use YPP,           ONLY:l_Rtimes
+!cmau
  use vec_operate,   ONLY:sort
  !
  implicit none 

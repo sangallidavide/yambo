@@ -24,8 +24,9 @@
 subroutine ypp_INIT_load(defs)
  !
  use it_m,          ONLY:it,initdefs,E_unit,G_unit,V_general,initmode,&
-&                        Time_unit,Bfield_unit,V_real_time,T_unit
- use wave_func,     ONLY:wf_ng
+!cmau &                        Time_unit,Bfield_unit,V_real_time,T_unit
+&                        Time_unit,Bfield_unit,V_real_time,T_unit,V_resp
+use wave_func,     ONLY:wf_ng
 !cmau
 ! use D_lattice,     ONLY:Tel,Bose_Temp
   use D_lattice,     ONLY:Tel,Bose_Temp,non_periodic_directions
