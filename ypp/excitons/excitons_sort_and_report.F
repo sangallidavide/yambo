@@ -33,7 +33,6 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  use BS,            ONLY:BS_H_dim
  use BS_solvers,    ONLY:BSS_description,BSS_n_descs
  use com,           ONLY:msg,of_open_close
-!cmau use R_lattice,     ONLY:d3k_factor,q0_def_norm
  use R_lattice,     ONLY:d3k_factor,q0_def_norm,nkbz
 !cmau
  use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
@@ -82,6 +81,7 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  !
  if (     write_widths) call section('=','Reporting sorted Energies, Strengths and widths')
  if (.not.write_widths .and. .not. write_Rtimes) call section('=','Reporting sorted Energies and Strengths')
+ if (write_Rtimes) call section('=','Reporting sorted Energies and Strengths and Lifetimes')
  !
  !
  do i_mode=1,2
@@ -169,7 +169,7 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
    write (6,*) eps_2_alpha,DL_vol
    endif
 !cmau
- !
+!
  ! GPL_EXCLUDE_END
  !
    if (write_widths)  Residuals(:) = abs(BS_R(:))
@@ -192,6 +192,12 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
      rv(:3)=(/real(BS_E(j2),SP)*HA2EV,Residuals(j2),real(j2,SP)/)
      !
      n_elements=3
+!cmau
+    if (write_RTimes) then
+       n_elements=n_elements+1
+       rv(n_elements)=RT(j2)
+     endif
+!cmau
      if (write_widths) then
        n_elements=n_elements+1
        rv(n_elements)=abs(aimag(BS_E(j2)))*HA2EV*1000._SP
