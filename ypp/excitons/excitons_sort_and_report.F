@@ -78,6 +78,7 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
  write_spin    = present(S_sq)
  write_widths  = any(abs(aimag(BS_E))>1.E-5)
  write_soc_corr= (E_SOC_nbands/=0)
+ write_Rtimes = l_Rtimes
  !
  if (     write_widths) call section('=','Reporting sorted Energies, Strengths and widths')
  if (.not.write_widths .and. .not. write_Rtimes) call section('=','Reporting sorted Energies and Strengths')
