@@ -225,6 +225,13 @@ use wave_func,     ONLY:wf_ng
  call it('f',defs,'ExpandPts',    ' Expand the internal q/k points in the BZ') 
  call it('f',defs,'DipWeight',    ' Weight the contribution to the exciton WFs with the dipoles') 
  !
+ ! Exciton lifetimes
+ !
+ call it(defs,'NonPDirs','[EXC life] Non periodic chartesian directions (X,Y,Z,XY...)',non_periodic_directions)
+ call it(defs,'Texc'    ,'[EXC life] ',EXC_temp)
+ call it(defs,'Mexc'    ,'[EXC life] ',EXC_mass)
+ call it(defs,'PhiGrid' ,'[EXC life] ',EXC_Phi_Grid)
+ !
  ! WFs
  !
  call it(defs,'FFTGvecs','[FFT] Plane-waves',wf_ng,G_unit)
@@ -236,7 +243,6 @@ use wave_func,     ONLY:wf_ng
  call it(defs,'MinWeight', 'Print transitions with weight => MinWeight',min_weight,verb_level=V_general)
  call it(defs,'States','Index of the BS state(s)',state_ctl)
  call it(defs,'Cells', 'Number of cell repetitions in each direction (odd or 1)',ncell)
- call it(defs,'NonPDirs','[X/BSS] Non periodic chartesian directions (X,Y,Z,XY...)',non_periodic_directions,verb_level=V_resp)
  call it(defs,'Hole', '[cc] Hole position in unit cell',r_hole)
  call it(defs,'WFMult', 'Multiplication factor to the excitonic wavefunction',WF_multiplier,verb_level=V_general)
  !

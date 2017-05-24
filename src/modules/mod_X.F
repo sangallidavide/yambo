@@ -52,10 +52,6 @@ module X_m
  !
  logical                  :: Vnl_commutator_warning
  !
-!cmau
- ! Non Peridic  directions
- logical                  :: l_1D,l_2D,l_3D,l_0D
-!cmau
  ! Logical used to decid how to use the double grid in X_os
  ! and in particular in X_GreenF_analytical, when the DbGd is used
  !

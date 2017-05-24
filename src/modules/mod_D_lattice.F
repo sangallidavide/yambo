@@ -75,6 +75,11 @@ module D_lattice
  ! Gradients
  !
  integer, allocatable  :: R_m_R(:,:)
+ !
+ ! EXC lifetimes: Non Peridic  directions
+ !
+ logical               :: l_1D,l_2D,l_3D,l_0D
+ !
  complex, allocatable  :: Grad_R(:,:,:)
  !
  ! Periodic Table

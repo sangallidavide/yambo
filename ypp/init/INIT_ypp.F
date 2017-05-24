@@ -546,7 +546,7 @@ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_p
  ! GPL_EXCLUDE_START
  !
 !cmau
-  if (l_Rtimes) call initactivate(1,"NonPDirs")
+  if (l_Rtimes) call initactivate(1,"NonPDirs Texc Mexc PhiGrid")
 !cmau
  !
  ! GPL_EXCLUDE_END

@@ -31,11 +31,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use QP_CTL_m,      ONLY:QP_apply
  use electrons,     ONLY:levels,n_spin,n_sp_pol,spin,E_SOC_nbands
  use YPP,           ONLY:l_sort,l_exc_wf,l_spin,l_amplitude, &
-!cmau
-!&                       excitons_sort_and_report
-!cmau
 &                         excitons_sort_and_report,l_Rtimes
-!cmau
  use IO_m,          ONLY:io_control,OP_RD_CL,DUMP,NONE,REP,VERIFY
  use BS_solvers,    ONLY:BSS_eh_table,BSS_write_eig_2_db,io_BSS_diago,BS_mat
  use BS,            ONLY:BS_H_dim,BS_K_dim,BS_bands,BS_q,BS_K_coupling,BS_cpl_mode,&
@@ -160,11 +156,9 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  ! Sort energies and write to output
  !===================================
- if (l_sort) call excitons_sort_and_report(Xen,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
-!cmau
- if (l_sort .or.l_Rtimes) call excitons_sort_and_report(Xen,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
-!cmau
-
+ if (l_sort)   call excitons_sort_and_report(Xen,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
+ !
+ if (l_Rtimes) call excitons_lifetimes(Xen,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
  !
  if(.not.l_sort) then
    !
