@@ -143,6 +143,46 @@ subroutine excitons_sort_and_report(E,BS_R,BS_E,BS_E_SOC_corr,S_z,S_sq)
    call msg('o sort','#','',INDENT=0)
    !
    Residuals(:) = BS_R(:)*conjg(BS_R(:))
+
+   !
+   ! To Check <
+   !
+   Xbsk%ib=BS_bands
+   YAMBO_ALLOC(q_norm,(1))
+   YAMBO_ALLOC(bare_qpg,(1,1))
+   !
+   call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
+   call PARALLEL_global_indexes(Xen,Xk,Xq,"Response_G_space_Zero_Momentum",X=Xbsk)
+   !
+   io_DIP=.FALSE.
+   call DIPOLE_driver(Xen,Xk,Xbsk,Xbsk%q0)
+   !
+   BS_R_Mau=cZERO
+   !
+   do i_l=1,BS_H_dim
+     !
+     do neh = 1,BS_H_dim
+       !
+       i_kbz   = BSS_eh_table(neh,1)
+       i_kibz  = Xk%sstar(i_kbz,1)
+       i_v     = BSS_eh_table(neh,2)
+       i_c     = BSS_eh_table(neh,3)
+       i_spin  = spin(BSS_eh_table(neh,:))
+       !
+       f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
+       !
+       BS_R_Mau(:,i_l)=BS_R_Mau(i_l)-DIP_iR(:,ic,iv,ik_mem,i_sp_pol)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
+       !
+     enddo 
+     !
+     Residuals(:,i_l) = BS_R_Mau(:,i_l)*conjg(BS_R_Mau(:,i_l))
+     !
+   enddo
+   !
+   ! To Check >
+   !
+
+
  !
  ! GPL_EXCLUDE_START
  !

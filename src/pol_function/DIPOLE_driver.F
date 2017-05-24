@@ -234,7 +234,14 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  !
  ! Clean up
  !
+#if defined _YPP
+ if (.not.l_Rtimes) then 
+#endif
  call X_alloc('DIP_iR') 
+#if defined _YPP
+ endif
+#endif
+ !
 #if defined _PL
  if (.not.l_photolum) call X_alloc('DIP_P')
 #else
