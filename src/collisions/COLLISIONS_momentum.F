@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -30,17 +30,18 @@ subroutine COLLISIONS_momentum(E,k,q)
  use com,           ONLY:msg
  use LIVE_t,        ONLY:live_timing
  use electrons,     ONLY:levels
- use parallel_m,    ONLY:PP_redux_wait,PAR_IND_Q,PAR_COM_QP_A2A,PAR_nQ,PAR_COM_Q_index,PAR_COM_G_b_INDEX
- use collision,     ONLY:elemental_collision,elemental_collision_free,&
-&                        P_COLL_element,elemental_collision_alloc,&
-&                        elemental_collision_copy,COLL_bands,P_collisions
+ use parallel_m,    ONLY:PP_redux_wait,PAR_IND_Q,PAR_COM_QP_A2A,PAR_nQ,PAR_COM_Q_INDEX,PAR_COM_G_b_INDEX
+ use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc,&
+&                        elemental_collision_copy
+ use collision_ext, ONLY:P_COLL_element,COLL_bands,P_collisions
  use R_lattice,     ONLY:qindx_S,bz_samp
  use QP_m,          ONLY:QP_QED_ng
 #if defined _TIMING
  use timing_m,      ONLY:timing
 #endif
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
- use interfaces,    ONLY:WF_load,SCATTERING_GW_kinematics
+ use interfaces,    ONLY:WF_load
+ use COLL_interfaces, ONLY:SCATTERING_GW_kinematics
  !
  implicit none
  type(levels)             ::E       
@@ -85,9 +86,13 @@ subroutine COLLISIONS_momentum(E,k,q)
  call elemental_collision_alloc(I_grad_p,NG=QP_QED_ng,GRADIENT=.TRUE.,TITLE="COLL_P")
  !
  PAR_NC=P_collisions%PAR_N
- if (associated(P_collisions%IO_status)) then
+ if (allocated(P_collisions%IO_status)) then
    PAR_NC=count(P_collisions%IO_status==-1)
  endif
+ !
+ ! Write Database Header 
+ !
+ call COLLISIONS_linearize_and_IO("Momentum",0,P_collisions,P_COLL_element)
  !
  call live_timing("Collisions",PAR_NC*PAR_nQ)
  !
@@ -145,7 +150,7 @@ subroutine COLLISIONS_momentum(E,k,q)
    enddo Q_loop
    !
    call PP_redux_wait(P_COLL_element(1)%v3_r,COMM=PAR_COM_QP_A2A%COMM)
-   call PP_redux_wait(P_COLL_element(1)%v3_r,COMM=PAR_COM_Q_index%COMM)
+   call PP_redux_wait(P_COLL_element(1)%v3_r,COMM=PAR_COM_Q_INDEX%COMM)
    !
    call COLLISIONS_linearize_and_IO("Momentum",i_coll,P_collisions,P_COLL_element)
    !

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -35,26 +35,25 @@ subroutine RT_ELPH_initialize(E,k,q)
  use D_lattice,      ONLY:Bose_Temp
  use R_lattice,      ONLY:RL_vol,bz_samp,qindx_S,nXkibz
  use IO_m,           ONLY:io_control,REP,OP_RD_CL,VERIFY,NONE
- use ELPH,           ONLY:ph_freqs_sq,elph_gkkp,ph_modes,elph_nb,W_debye,elph_branches
+ use ELPH,           ONLY:ph_freqs_sq,elph_gkkp,ph_modes,elph_nb,W_debye,elph_branches,MAX_gkkp
  use functions,      ONLY:bose_f
- use memory_m,       ONLY:mem_est
  use vec_operate,    ONLY:degeneration_finder
  use parser_m,       ONLY:parser
  use R_lattice,      ONLY:RIM_n_rand_pts
  use parallel_m,     ONLY:PAR_Q_index,PAR_IND_Q,PAR_nQ,PAR_Xk_nibz,PAR_Xk_ibz_index,PAR_IND_Xk_ibz,&
-&                         PP_redux_wait,PAR_COM_Q_INDEX
+&                         PP_redux_wait,PAR_COM_Q_INDEX,PAR_COM_Xk_ibz_index
  !
- implicit none
+#include<memory.h>
  !
  type(levels)             :: E
  type(bz_samp),intent(in) :: k,q
  !
  ! Work Space
  !
- integer             ::iq,ID,io_err,ik,i_counter,alloc_err,iq_io,il,i_s,i_n,i_np,ik_bz,ik_mem,ik_m_q,&
+ integer             ::iq,ID,io_err,ik,i_counter,iq_io,il,i_s,i_n,i_np,ik_bz,ik_mem,ik_m_q,&
 &                      first_el(2,RT_bands(2)),n_of_el(2,RT_bands(2)),n_deg_grp(2),i1,i2,ik_store,io_REF
  real(SP)            ::RADIUS_sphere,ph_Esq_local(q%nbz,ph_modes),q_mod(q%nbz),q0_mod,&
-&                      q_weight_tmp(q%nbz,2),ph_mean_speed(3),ph_E
+&                      q_weight_tmp(q%nbz,2),ph_mean_speed(3),ph_E,MAX_gkkp_expanded_at_kpq(k%nibz,q%nbz)
  complex(SP)         ::gkkp_average
  integer, external   ::io_ELPH,io_RT_components
  logical             ::l_use_Debye_E,SETUP_failure
@@ -92,14 +91,14 @@ subroutine RT_ELPH_initialize(E,k,q)
  ! Allocation
  !============
  !
- allocate(elph_gkkp_expanded(PAR_Xk_nibz*PAR_nQ,ph_modes,elph_nb,elph_nb),stat=alloc_err)
- call mem_est("GKKP_expanded",(/size(elph_gkkp_expanded)/),(/2*SP/),errors=(/alloc_err/))
+ YAMBO_ALLOC(elph_gkkp_expanded,(PAR_Xk_nibz*PAR_nQ,ph_modes,elph_nb,elph_nb))
+ !
+ MAX_gkkp_expanded_at_kpq=0._SP
  !
  if (.not.l_RT_CCA_Kernel) then
-   allocate(THETA_matrix(2*q%nbz*ph_modes,RT_bands(2)-RT_bands(1)+1,RT_bands(2)-RT_bands(1)+1,nXkibz))
-   call mem_est("THETA_matrix",(/size(THETA_matrix)/),(/2*SP/))
+   YAMBO_ALLOC(THETA_matrix,(2*q%nbz*ph_modes,RT_bands(2)-RT_bands(1)+1,RT_bands(2)-RT_bands(1)+1,nXkibz))
    THETA_matrix=cZERO
-   allocate(THETA_matrix_index(q%nbz,ph_modes,2))
+   YAMBO_ALLOC(THETA_matrix_index,(q%nbz,ph_modes,2))
  endif
  !
  ! Degeneration Finder
@@ -177,6 +176,8 @@ subroutine RT_ELPH_initialize(E,k,q)
        enddo
      enddo
      !
+     MAX_gkkp_expanded_at_kpq(ik,iq)=maxval(abs(elph_gkkp_expanded(ik_store,:,:,:)))
+     !
    enddo
    !
  enddo
@@ -185,14 +186,19 @@ subroutine RT_ELPH_initialize(E,k,q)
  !
  call PP_redux_wait(ph_freqs_sq,COMM=PAR_COM_Q_INDEX%COMM)
  !
- if (any(ph_freqs_sq<0.)) call warning('Imaginary phonon frequencies found. Please check.')
+ call PP_redux_wait(MAX_gkkp_expanded_at_kpq,COMM=PAR_COM_Q_INDEX%COMM)
+ call PP_redux_wait(MAX_gkkp_expanded_at_kpq,COMM=PAR_COM_Xk_ibz_INDEX%COMM)
+ !
+ MAX_gkkp=maxval(MAX_gkkp_expanded_at_kpq)
+ !
+ if (any(ph_freqs_sq<0._SP)) call warning('Imaginary phonon frequencies found. Please check.')
  !
  ! Test of the effect of using a single optical mode
  !
  if (l_use_Debye_E) ph_freqs_sq=W_debye**2
  !
  ! q_weight_RT are written in section 2, thus here are not known
- ! since only sectin 1 of the REF DB is written
+ ! since only section 1 of the REF DB is written
  !
  if (.not.allocated(q_weight_RT)) then
    !
@@ -204,7 +210,7 @@ subroutine RT_ELPH_initialize(E,k,q)
    ! 1 - acustic phonons w_ph(i) ~ \alpha(i)*|q|
    ! 2 - optical phonons w_ph(i) ~ const(i)
    !
-   allocate(q_weight_RT(q%nbz,elph_branches(1):elph_branches(2),2))
+   YAMBO_ALLOC(q_weight_RT,(q%nbz,elph_branches(1):elph_branches(2),2))
    q0_mod=(3._SP*RL_vol/4._SP/4._SP/pi)**(1._SP/3._SP)
    i1=0
    ph_mean_speed=0._SP

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM CA
@@ -109,7 +109,11 @@ subroutine QP_DBs_initialize()
            endif
          endif
        enddo
-       if (i_c==1) allocate(QP_db_what(n_QP_dbs),QP_db(n_QP_dbs),QP_db_name(n_QP_dbs))
+       if (i_c==1) then
+         allocate(QP_db_what(n_QP_dbs))
+         allocate(QP_db(n_QP_dbs))
+        allocate(QP_db_name(n_QP_dbs))
+       endif
      enddo
      !
    endif

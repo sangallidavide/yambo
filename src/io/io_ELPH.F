@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -32,12 +32,11 @@ integer function io_ELPH(ID,what)
 &                         QP_PH_n_G_bands,W_debye,elph_DW,elph_nDBs,&
 &                         elph_use_q_grid,E_k_plus_q,ph_qpt,ph_kpt_bz,elph_nDBs_used,&
 &                         gsqF_fan,gsqF_dw ,gsqF_ca_corr ,gsqF_life_bose ,gsqF_life_f,&
-&                         pol_vector,elph_Ham_bands,elph_branches,elph_nk_bz,E_k_p_q
+&                         pol_vector,elph_Ham_bands,elph_branches,elph_nk_bz,E_k_p_q,elph_grids_are_expanded
  use stderr,         ONLY:intc
  use electrons,      ONLY:E_reset
  use R_lattice,      ONLY:nkbz,nqibz,q_pt
  use D_lattice,      ONLY:n_atoms_species
- use memory_m,       ONLY:mem_est
  use electrons,      ONLY:n_sp_pol
  use QP_m,           ONLY:QP_n_states,QP_nb,QP_nk,QP_table
  use matrix_operate, ONLY:mat_c2r,mat_r2c
@@ -48,7 +47,7 @@ integer function io_ELPH(ID,what)
  use timing_m,       ONLY:timing
 #endif
  !
- implicit none
+#include<memory.h>
  !
  integer      ::ID
  character(*) ::what
@@ -65,8 +64,11 @@ integer function io_ELPH(ID,what)
 #endif
  !
  if (what=='gkkp'.or.what=='no_gkkp') db_name='elph_gkkp'
- if (what=='gkkp_expanded')           db_name='elph_gkkp_expanded'
  if (what=='gFsq')                    db_name='elph_gFsq'
+ if (what=='gkkp_expanded') then
+   db_name='elph_gkkp_expanded'
+   elph_grids_are_expanded=.TRUE.
+ endif
  !
  io_ELPH=io_connect(desc=trim(db_name),type=2,ID=ID)
  if (io_ELPH/=0) goto 1
@@ -122,10 +124,8 @@ integer function io_ELPH(ID,what)
    ! ... allocation
    !
    if (read_is_on(ID).and..not.allocated(ph_qpt)) then
-     allocate(ph_qpt(elph_nDBs,3))
-     call mem_est("ph_qpt",(/size(ph_qpt)/),(/SP/))
-     allocate(ph_kpt_bz(elph_nk_bz,3))
-     call mem_est("ph_kpt_bz",(/size(ph_kpt_bz)/),(/SP/))
+     YAMBO_ALLOC(ph_qpt,(elph_nDBs,3))
+     YAMBO_ALLOC(ph_kpt_bz,(elph_nk_bz,3))
      ph_kpt_bz=0._SP
    endif
    !
@@ -217,7 +217,7 @@ integer function io_ELPH(ID,what)
  call io_bulk(ID,VAR="PH_FREQS"//trim(intc(iq)),VAR_SZ=(/ph_modes/))
  call io_bulk(ID,R1=ph_freqs_sq(iq,:))
  !
- allocate(pol_vec_disk(ph_modes,sum(n_atoms_species),2,3))
+ YAMBO_ALLOC(pol_vec_disk,(ph_modes,sum(n_atoms_species),2,3))
  !
  ! Polarization vectors
  ! 
@@ -238,7 +238,7 @@ integer function io_ELPH(ID,what)
    call mat_r2c(pol_vec_disk(:,:,:,3),pol_vector(:,:,3))
  endif
  !
- deallocate(pol_vec_disk)
+ YAMBO_FREE(pol_vec_disk)
  !
  if (what=='no_gkkp') goto 1
  ! 
@@ -251,13 +251,13 @@ integer function io_ELPH(ID,what)
    call E_reset(E_k_p_q)
    E_k_p_q%nb=elph_nb
    E_k_p_q%nk=nkbz
-   allocate(E_k_p_q%E(elph_nb,nkbz,1))
+   YAMBO_ALLOC(E_k_p_q%E,(elph_nb,nkbz,1))
    E_k_p_q%E=E_k_plus_q
  endif
  ! 
  ! ELPH_gkkp 
  !
- allocate(elph_gkkp_disk(elph_nb*elph_nb,ph_modes,2))
+ YAMBO_ALLOC(elph_gkkp_disk,(elph_nb*elph_nb,ph_modes,2))
  !
  call io_bulk(ID,VAR="ELPH_GKKP_Q"//trim(intc(iq)),&
 &                VAR_SZ=(/elph_nb*elph_nb,ph_modes,2,nkbz/) )
@@ -285,7 +285,7 @@ integer function io_ELPH(ID,what)
    !
  enddo
  !
- deallocate(elph_gkkp_disk)
+ YAMBO_FREE(elph_gkkp_disk)
  ! 
  ! ELPH_DW 
  !

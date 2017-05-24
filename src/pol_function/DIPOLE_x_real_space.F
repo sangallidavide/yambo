@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): DS
@@ -37,7 +37,7 @@ subroutine DIPOLE_x_real_space(Xen,Xk,X,idir_todo)
  use LIVE_t,             ONLY:live_timing
  use parallel_m,         ONLY:PAR_IND_DIPk_ibz,PAR_DIPk_ibz_index
  !
- implicit none
+#include<memory.h>
  !
  type(bz_samp), intent(in)    :: Xk
  type(levels),  intent(in)    :: Xen
@@ -144,7 +144,7 @@ subroutine DIPOLE_x_real_space(Xen,Xk,X,idir_todo)
  !
  call live_timing()
  !
- deallocate(x_cc)
+ YAMBO_FREE(x_cc)
  !
  call WF_free(WF)
  !

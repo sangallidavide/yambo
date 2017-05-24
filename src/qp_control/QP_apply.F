@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -49,10 +49,9 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  ! This convention about sign is imposed (when reading DB's made at finite Temperature)
  ! in QP_apply_global_stretch and  QP_apply_DB_interpolation
  !
- use pars,          ONLY:SP,schlen,IP
+ use pars,          ONLY:SP,schlen
  use drivers,       ONLY:l_sc_run
  use units,         ONLY:HA2EV
- use memory_m,      ONLY:mem_est
  use QP_m,          ONLY:QP_t,QP_reset,QP_ctl_E,QP_ctl_Wc,QP_ctl_Wv,QP_ctl_Z,&
 &                        QP_ctl_applied,QP_ctl_interp_neigh,QP_ctl_db,QP_ctl_Wc_E_ref,QP_ctl_Wv_E_ref
  use com,           ONLY:msg,depth
@@ -61,12 +60,12 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  use D_lattice,     ONLY:input_Tel_is_negative
  use R_lattice,     ONLY:bz_samp
  use parser_m,      ONLY:parser
- use global_XC,     ONLY:setup_global_XC,MORE_SCISSOR,MORE_SCIS_AND_STRE,MORE_STRETCH,&
-&                        K_kind,K_xc_functional,MORE_NONE,G_kind,G_xc_functional,&
-&                        X_kind,X_xc_functional,QP_DB_kind,SE_NONE
+ use global_XC,     ONLY:setup_global_XC,QP_MORE_SCISSOR,QP_MORE_SCIS_AND_STRE,QP_MORE_STRETCH,&
+&                        K_kind,K_xc_functional,QP_MORE_NONE,G_kind,G_xc_functional,&
+&                        X_kind,X_xc_functional,QP_DB_kind,QP_SE_NONE
  use QP_CTL_m,      ONLY:QP_ctl_t,reset_QP_ctl
  !
- implicit none
+#include<memory.h>
  !
  integer       ::band_range(2)
  type(levels)  ::en
@@ -82,7 +81,7 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  type(QP_t)       ::qp
  type(QP_ctl_t)   ::QP_ctl_from_DB(n_sp_pol),QP_ctl_input_or_impose(n_sp_pol)
  integer          ::DB_corrected(en%nb,en%nk,n_sp_pol),ik_bz,ik_ibz,ib,i1,&
-&                       ik_r,SE_MORE,i_spin,QP_load_DB_err,nbf_m_SAVE(2)
+&                       ik_r,QP_SE_MORE,i_spin,QP_load_DB_err,nbf_m_SAVE(2)
  character(schlen)::ch
  character(1)     ::what
  character(11)    ::spin_ch(2)
@@ -123,9 +122,8 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  ! Allocation of qp_done table to keep track of the corrections
  ! done
  !
- if (.not.associated(en%QP_corrected)) then
-   allocate(en%QP_corrected(en%nb,en%nk,n_sp_pol))
-   call mem_est("E-QP_corrected",(/size(en%QP_corrected)/),(/IP/))
+ if (.not.allocated(en%QP_corrected)) then
+   YAMBO_ALLOC(en%QP_corrected,(en%nb,en%nk,n_sp_pol))
    en%QP_corrected=0
  endif 
  !
@@ -165,7 +163,7 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
    !
    ! Update QP db kind in the global_XC kinds 
    !
-   if (QP_DB_kind/=SE_NONE.and.QP_load_DB_err>0) then
+   if (QP_DB_kind/=QP_SE_NONE.and.QP_load_DB_err>0) then
      if (Eid==1) X_kind=QP_DB_kind
      if (Eid==2) K_kind=QP_DB_kind
      if (Eid==3) G_kind=QP_DB_kind
@@ -181,14 +179,14 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
    !
    ! Then update scissor & stretching in the global_XC kinds 
    !
-   SE_MORE=MORE_NONE
-   if (any(QP_ctl_E(Eid,1,:)  /=0._SP)) SE_MORE=MORE_SCISSOR
-   if (any(QP_ctl_E(Eid,2:3,:)/=1._SP)) SE_MORE=MORE_STRETCH
-   if (any(QP_ctl_E(Eid,1,:)  /=0._SP).and.any(QP_ctl_E(Eid,2:3,:)/=1._SP)) SE_MORE=MORE_SCIS_AND_STRE
+   QP_SE_MORE=QP_MORE_NONE
+   if (any(QP_ctl_E(Eid,1,:)  /=0._SP)) QP_SE_MORE=QP_MORE_SCISSOR
+   if (any(QP_ctl_E(Eid,2:3,:)/=1._SP)) QP_SE_MORE=QP_MORE_STRETCH
+   if (any(QP_ctl_E(Eid,1,:)  /=0._SP).and.any(QP_ctl_E(Eid,2:3,:)/=1._SP)) QP_SE_MORE=QP_MORE_SCIS_AND_STRE
    !
-   if (SE_MORE>0.and.Eid==1) call setup_global_XC(what,X_kind,SE_MORE,X_xc_functional)
-   if (SE_MORE>0.and.Eid==2) call setup_global_XC(what,K_kind,SE_MORE,K_xc_functional)
-   if (SE_MORE>0.and.Eid==3) call setup_global_XC(what,G_kind,SE_MORE,G_xc_functional)
+   if (QP_SE_MORE>0.and.Eid==1) call setup_global_XC(what,X_kind,QP_SE_MORE,X_xc_functional)
+   if (QP_SE_MORE>0.and.Eid==2) call setup_global_XC(what,K_kind,QP_SE_MORE,K_xc_functional)
+   if (QP_SE_MORE>0.and.Eid==3) call setup_global_XC(what,G_kind,QP_SE_MORE,G_xc_functional)
    !
    QP_ctl_db(Eid)=trim(QP_ctl_from_DB(1)%db)
    !
@@ -238,9 +236,9 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  !
  ! Extend the QP corrections to the RIM energies
  !
- if (associated(en%E_DbGd).and.associated(en%Eo)) then
+ if (allocated(en%E_DbGd).and.allocated(en%Eo)) then
    !
-   allocate(DbGd_k_done(BZ_DbGd_tot_nkpts))
+   YAMBO_ALLOC(DbGd_k_done,(BZ_DbGd_tot_nkpts))
    DbGd_k_done=0
    !
    do ik_bz=1,k%nbz
@@ -260,7 +258,7 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
      !
    enddo
    !
-   deallocate(DbGd_k_done)
+   YAMBO_FREE(DbGd_k_done)
    !
  endif
  !
@@ -269,11 +267,11 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  !
  ! X/K -> Fermi Level Update
  !
- if ((Eid<3.and.associated(en%Eo).and..not.associated(en%GreenF)).or.associated(en%E_DbGd)) then
+ if ((Eid<3.and.allocated(en%Eo).and..not.allocated(en%GreenF)).or.allocated(en%E_DbGd)) then
    !
    if (input_Tel_is_negative) nbf_m_SAVE=(/en%nbf,en%nbm/)
    !
-   if (.not.associated(en%fo) .and. .not. l_sc_run) call OCCUPATIONS_Fermi(en,k,1)
+   if (.not.allocated(en%fo) .and. .not. l_sc_run) call OCCUPATIONS_Fermi(en,k,1)
    !
    if (input_Tel_is_negative) then
      en%nbf=nbf_m_SAVE(1)
@@ -285,7 +283,7 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
  ! G -> Fermi Level Update... but using the levels cooresponding to
  ! the K-points of the X grid !
  !
- if (Eid==3.and.associated(en%Eo).and..not.associated(en%GreenF).and..not.associated(en%E_DbGd)) then
+ if (Eid==3.and.allocated(en%Eo).and..not.allocated(en%GreenF).and..not.allocated(en%E_DbGd)) then
    !
    call E_duplicate(en,Fermi_en)
    !
@@ -299,7 +297,7 @@ subroutine QP_apply(band_range,en,k,object,msg_fmt,qp_impose,QP_ctl_impose)
    !
    call OCCUPATIONS_Extend(Fermi_en,en)
    !
-   nullify(Fermi_en%E)
+   YAMBO_FREE(Fermi_en%E)
    !
  endif
  !

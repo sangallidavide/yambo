@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): CH DS
@@ -73,6 +73,9 @@ integer function e2y_i(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_d
  call interface_presets(instr)
  call bz_samp_reset(k)
  call E_reset(en)
+#if defined _MEM_CHECK 
+ call MEM_defaults( )
+#endif
  !
  ! S/N
  !======

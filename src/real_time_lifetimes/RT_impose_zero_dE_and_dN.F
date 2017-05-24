@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM DS
@@ -23,10 +23,9 @@
 !
 subroutine RT_impose_zero_dE_and_dN(E,k,Hole_lifetime,Electron_lifetime,Scatt_kind)
  !
-#if defined _BLUEGENE || _PGI
- use ieee_arithmetic
-#endif
  use pars,           ONLY:SP,DP
+ use functions,      ONLY:NAN
+ use units,          ONLY:HA2EV
  use electrons,      ONLY:levels
  use R_lattice,      ONLY:bz_samp
  use real_time,      ONLY:DbGd_ibz_coo,l_RT_uses_E_DbGd,EE_prefactor,EP_prefactor,EP_abs_prefactor, &
@@ -61,10 +60,16 @@ subroutine RT_impose_zero_dE_and_dN(E,k,Hole_lifetime,Electron_lifetime,Scatt_ki
    l_n_carriers  =.false.
  endif
  !
- if(index(Scatt_kind,'elph')/=0.or.index(Scatt_kind,'radiative')/=0) then
+ if(index(Scatt_kind,'elph')/=0) then
    l_energy      =.false.
    l_n_electrons =l_RT_impose_N_dN
-   l_n_carriers  =l_RT_impose_N_dN
+   l_n_carriers  =l_RT_impose_N_dN .and. (E%E_ind_gap(1)>0.1/HA2EV)
+ endif
+ !
+ if(index(Scatt_kind,'radiative')/=0) then
+   l_energy      =.false.
+   l_n_electrons =l_RT_impose_N_dN
+   l_n_carriers  =.false.
  endif
  !
  if (trim(Scatt_kind)=="elel" )     iref=1
@@ -176,15 +181,9 @@ subroutine RT_impose_zero_dE_and_dN(E,k,Hole_lifetime,Electron_lifetime,Scatt_ki
  !
  do i1=1,2
    !
-#if defined _BLUEGENE || _PGI
-   if( ieee_is_nan(prefactor(i1)) .or. prefactor(i1)==prefactor(i1)+1._DP ) then
+   if( NAN(real(prefactor(i1),SP)) .or. prefactor(i1)==prefactor(i1)+1._DP ) then
      prefactor(i1)=0._DP
    endif
-#else
-   if( isnan(prefactor(i1)) .or. prefactor(i1)==prefactor(i1)+1._DP ) then
-     prefactor(i1)=0._DP
-   endif
-#endif
    !
    if ( abs(prefactor(i1))>cut_off ) prefactor(i1)=prefactor(i1)/abs(prefactor(i1))*cut_off
    !

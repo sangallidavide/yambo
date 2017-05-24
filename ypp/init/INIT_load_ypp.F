@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -34,16 +34,10 @@ use wave_func,     ONLY:wf_ng
  use electrons,     ONLY:n_spinor
  use interpolate,   ONLY:lpfac
  use YPP
-#if defined _YPP_SURF
- use bulkeps,              ONLY: init_bulk
- use convolute,            ONLY: init_convolute
- use eels_kinematics,      ONLY: init_kinematics
- use model_loss_function,  ONLY: init_loss_function
- use surface_geometry,     ONLY: init_surface
- use eels_detector,        ONLY: init_detector
-#endif
 #if defined _YPP_RT
- use YPP_real_time
+ use YPP_real_time,        ONLY:Eh_pumped_pair_BZ_reagions,RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,&
+&                               Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,Z_input,Eh_pumped_pair_energy,&
+&                               n_regions,Eh_pumped_pair_BZ_width
  use real_time,            ONLY:RT_bands
  use stderr,               ONLY:intc
 #endif
@@ -101,13 +95,6 @@ use wave_func,     ONLY:wf_ng
  call it('r',defs,'angular_m',    '[R] Canonical angular momentum')
  call it('r',defs,'position',     '[R] Average <r^n>, n given in the input')
 #endif
-#if defined _YPP_SURF
- call it('r',defs,'surf',    '[R] Surface spectroscopy postprocessor')
- call it('r',defs,'ras',     '[R] RAS spectra generator')
- call it('r',defs,'reels',   '[R] REELS spectra generator')
- call it('r',defs,'loc',     '[R] State localizer')
- call it('r',defs,'trans',   '[R] Transition analyzer')
-#endif
  call INIT_QP_ctl_load(defs,3)
  call it('r',defs,'spin',         '[R] Spin')
  call it('r',defs,'magnetization','[R] Magnetization')
@@ -139,10 +126,10 @@ use wave_func,     ONLY:wf_ng
  call it('r',defs,'RTlifetimes',  '[R] Analize time-dependent lifetimes')
  call it('r',defs,'RTdeltaRho',   '[R] Analize the density')
  !
- call it('r',defs,'RTfitbands',   '[R]  pp kind: fit on bands')
- call it('r',defs,'RTtime',       '[R]  pp kind: function of time')
- call it('r',defs,'RTenergy',     '[R]  pp kind: function of energy')
- call it('r',defs,'RTdos',        '[R]  pp kind: 2D DOS, function of time and energy')
+ call it('r',defs,'RTfitbands',   '[R] Post-Processing kind: fit on bands')
+ call it('r',defs,'RTtime',       '[R] Post-Processing kind: function of time')
+ call it('r',defs,'RTenergy',     '[R] Post-Processing kind: function of energy')
+ call it('r',defs,'RTdos',        '[R] Post-Processing kind: 2D DOS, function of time and energy')
  !
 #endif
  !
@@ -283,39 +270,6 @@ use wave_func,     ONLY:wf_ng
  call it(defs,'EE_Fermi','External Fermi Level (Eliashberg)',elph_Ef,E_unit)
  call it(defs,'PhStps', 'Energy steps',elph_steps)
  call it('f',defs,'GkkpExpand','Expand the gkkp in the whole BZ')
- !
-#endif
-#if defined _YPP_SURF
- !
- ! RAS/REELS
- !
- call it(defs,'XData',     'Filename of q[x] data',xdata)
- call it(defs,'YData',     'Filename of q[y] data',ydata)
- call it(defs,'ZData',     'Filename of q[z] data',zdata)
- call it(defs,'SrfShift',  'Shift of surface spectra',sshift,E_unit)
- call it(defs,'DataType',  'Form of epsilon/alpha data on input [eps/a_t/a_r][23/45]',datatype)
- call it(defs,'d_cell',    'Perpendicular component of cell',d_cellin)
- call init_bulk(defs)
- call init_convolute(defs)
- !
- ! Analysis
- !
- call it(defs,'NormDir',   'Index of surface normal (1/2/3)',normdir)
- call it(defs,'LowerLim',  'Lower limit of localization box (frac)',lowerlim)
- call it(defs,'UpperLim',  'Upper limit of localization box (frac)',upperlim)
- call it(defs,'NGLoc',     'G-vectors for localization sum',ngloc)
- call it(defs,'LbndRnge',  'Loc bands range',loc_bands)
- call it(defs,'KptRange',  'Loc kpts range',loc_kpts)
- call it('f',defs,'WrtLocDB','Create localization database')
- !
- call it(defs,'EcvMin',  'Lower limit of transition window',Ecv_min,E_unit)
- call it(defs,'EcvMax',  'Upper limit of transition window',Ecv_max,E_unit)
- call it(defs,'PolDir',  'Index of polarization direction',idir)
- call it(defs,'qdir'  ,  '[cc] X-polarization direction', qdir )
- call init_kinematics(defs)
- call init_loss_function(defs)
- call init_surface(defs)
- call init_detector(defs)
  !
 #endif
  !

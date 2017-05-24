@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM CA DS
@@ -151,7 +151,7 @@ subroutine RT_Integrator(dG_new,dG_old,A_out,A_in,T_step,E,k,q,Time)
      !
      if (l_NE_with_fields) then
        !
-       if (l_RT_induced_field) call RT_current_AND_polarization(E,dG,A_in) 
+       if (l_RT_induced_field) call RT_current_AND_polarization(k,E,dG,A_in) 
        !
        call RT_propagate_fields(E,A_out,T+dT,dT)
        !

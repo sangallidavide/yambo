@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -56,7 +56,7 @@ subroutine WF_spatial_inversion(en,Xk)
  !
  ! WF procedure
  !
- if (.not.associated(WF%c).or.WF%space/='R') return
+ if (.not.allocated(WF%c).or.WF%space/='R') return
  !
  ! When using wf's the space inv is tested using the first
  ! nsym/(i_time_rev+1) and all the nsym. If there is not

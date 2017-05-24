@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): CH
@@ -38,8 +38,6 @@
  use qexml_module
 #endif
  use pw_data,               only: n_spin_pw_, gamma_only_
- 
- use memory_m,              ONLY: mem_est
  implicit none
  !
  integer,  intent(in)   :: ikibz, ib_grp

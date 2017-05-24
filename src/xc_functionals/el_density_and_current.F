@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -111,7 +111,7 @@ subroutine el_density_and_current(E,k,rho,bands,J,force_spatial_inversion)
        !
        f_occ=E%f(ib,ik,i_sp_pol)
 #if defined _RT
-       if(l_real_time.and.associated(E%fo)) f_occ=E%fo(ib,ik,i_sp_pol) 
+       if(l_real_time.and.allocated(E%fo)) f_occ=E%fo(ib,ik,i_sp_pol) 
 #endif
 #if defined _YPP_RT
        if(present(bands)) then

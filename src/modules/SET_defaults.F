@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2016 the YAMBO team
+!        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -23,22 +23,17 @@
 !
 subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  !
- use drivers,    ONLY:infile_editing,l_acfdt,l_alda_fxc,l_bs_fxc,l_bse,l_bsk,l_bss,l_chi,l_cohsex,l_col_cut,l_elel_corr,&
-&                     l_elel_scatt,l_elph_corr,l_elph_Hamiltonian,l_elph_scatt,l_em1d,l_em1s,l_eval_collisions,l_gw0,&
-&                     l_HF_and_locXC,l_life,l_lrc_fxc,l_optics,l_ppa,l_rim,l_rpa_IP,l_rt_carriers_in_use,l_sc_coh,l_sc_exx,&
-&                     l_sc_fock,l_sc_hartree,l_sc_ip,l_sc_is_libDFT,l_sc_magnetic,l_sc_run,l_sc_sex,l_setup,l_td_hartree,&
-&                     l_td_hf,l_tddft,l_use_collisions,l_use_Hxc_collisions,l_W_eh,l_W_eh_cpl,l_W_eh_diag,list_dbs
  ! GPL_EXCLUDE_START
  use debug,      ONLY:dbg
  ! GPL_EXCLUDE_END
  use pars,       ONLY:SP,cZERO,schlen
  use units,      ONLY:HA2EV,FS2AUT
  use LOGO,       ONLY:ID_logo,ID_logo_stderr
- use X_m,        ONLY:current_iq,self_detect_E_range,half_X_mat_only,eps_2_alpha,l_drude,&
+ use X_m,        ONLY:current_iq,self_detect_E_range,X_FILL_UP_matrix_only,eps_2_alpha,l_drude,&
 &                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,skip_cond_sum_rule,&
 &                     eval_alpha,Vnl_commutator_warning,use_shifted_grids_approach,use_g_space_approach,&
 &                     q_plus_G_direction,Q_Shift_Order,n_X_descs,Dipole_Energy_treshold,Dipole_Energy_treshold_vv,&
-&                     l_X_terminator,X_terminator_E,global_gauge,use_covariant_approach,X_is_evaluated_for_all_Qs,&
+&                     l_X_terminator,X_terminator_E,global_gauge,use_covariant_approach,X_is_integrated,&
 &                     force_v_g_space_approach,use_real_space_approach,Dipole_approach,Chi_linalg_mode,&
 &                     X_use_lin_sys
  use QP_m,       ONLY:QP_dSc_steps,QP_n_W_freqs,QP_G_Zoom_treshold,&
@@ -86,15 +81,19 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  use ELPH,       ONLY:ph_modes,elph_nb,gsqF_energy_steps,eval_G_using_KK,&
 &                     elph_Ham_bands,elph_Ham_ik,elph_branches,RES_tresh,FAN_deltaE_treshold,DW_deltaE_treshold
 #endif
- use memory_m,   ONLY:mem_reset
  use zeros,      ONLY:zero_norm,k_iku_zero,k_rlu_zero,G_iku_zero,zero_dfl
  use xc_functionals,  ONLY:GS_xc_FUNCTIONAL,GS_xc_KIND,GS_exx_FRACTION,GS_exx_SCREENING 
+#if defined _PL
+ use PHOTOLUM,   ONLY:PL_weights
+#endif
 #if defined _SC 
  use SC,         ONLY:SC_iterations,SC_rho_threshold,SC_potential,OEP_approx,l_NSC_shot,&
 &                     compatible_SC_DB,SC_cycle_mixing,SC_fft_size,found_SC_DB,&
 &                     l_Mean_Potential,SC_up_W_iters,l_SC_diagonal,&
 &                     l_SC_nl_mix
- use collision,  ONLY:COLLISIONS_cutoff,COLLISIONS_naming
+#endif
+#if defined _SC || defined _RT || defined _QED
+ use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff
 #endif
 #if defined _RT || defined _YPP_RT
  use RT_control, ONLY:JPC_RT_IO_t,OUTPUT_RT_IO_t,GF_RT_IO_t,SAVE_G_history
@@ -105,6 +104,7 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
 &                     RT_eh_en,l_lftm_fit_stable,Nfitted_lifetimes,RT_Tfit_lifetimes,     &
 &                     RT_Efit_lifetimes,RT_Tfit_occupations,RT_Efit_occupations,          &
 &                     DbGd_EE_percent,RT_scatt_tresh,integrator_step,RT_nk,               &
+&                     RT_T_thermodynamics,RT_E_thermodynamics,RT_S_thermodynamics,        &
 &                     RT_ctl_db,RAD_prefactor
  use fields,     ONLY:Efield,Efield_reset,n_ext_fields_max,n_ext_fields,A_vecpot_reset,   &
 &                     A_vecpot,A_vecpot_previous,A_ind,A_ind_previous,A_ext
@@ -294,57 +294,7 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  pp_n_l_times_proj_max=0
  pp_kbv_dim=0
  !
- ! Drivers
- !
- list_dbs=.FALSE.
- infile_editing=.FALSE.
- l_setup=.FALSE.
- l_rim=.FALSE.
- l_col_cut=.FALSE.
- l_optics=.FALSE.
- l_HF_and_locXC=.FALSE.
- l_em1d=.FALSE.
- l_em1s=.FALSE.
- l_ppa=.FALSE.
- l_cohsex=.FALSE.
- l_gw0=.FALSE.
- l_life=.FALSE.
- l_chi=.FALSE.
- l_bse=.FALSE.
- l_bsk=.FALSE.
- l_bss=.FALSE.
- l_rpa_IP=.FALSE.
- l_td_hartree=.FALSE.
- l_tddft=.FALSE.
- l_alda_fxc=.FALSE.
- l_lrc_fxc=.FALSE.
- l_bs_fxc=.FALSE.
- l_td_hf=.FALSE.
- l_W_eh=.FALSE.
- l_W_eh_diag=.FALSE.
- l_W_eh_cpl=.FALSE.
- l_acfdt=.FALSE.
- l_elel_corr=.FALSE.
- l_elph_corr=.FALSE.
- l_elel_scatt=.FALSE.
- l_elph_scatt=.FALSE.
- l_use_collisions=.FALSE.
- l_use_Hxc_collisions=.FALSE.
- !
- l_rt_carriers_in_use=.FALSE.
- l_sc_run=.FALSE.
- l_sc_ip=.FALSE.
- l_sc_fock=.FALSE.
- l_sc_hartree=.FALSE.
- l_sc_coh=.FALSE.
- l_sc_sex=.FALSE.
- l_sc_exx=.FALSE.
- l_sc_is_libDFT=.FALSE.
- l_sc_magnetic=.FALSE.
- l_eval_collisions=.FALSE.
- l_elph_Hamiltonian=.FALSE.
- !
- !electrons
+ ! Electrons
  !
  n_spin=1
  n_sp_pol=1
@@ -360,10 +310,6 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  ! Magnetization
  !
  eval_magn=.FALSE.
- !
- !memory
- !
- call mem_reset()
  !
  !wave_func
  !
@@ -398,7 +344,7 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  current_iq=0
  X_DbGd_nkpts=0
  self_detect_E_range=.FALSE.
- half_X_mat_only=.FALSE.
+ X_FILL_UP_matrix_only=.FALSE.
  Dipole_Energy_treshold=1.E-5_SP/HA2EV
  Dipole_Energy_treshold_vv=1.E+5_SP/HA2EV
  Dipole_approach="G-space v"
@@ -415,12 +361,12 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  skip_cond_sum_rule=.FALSE.
  eval_alpha=.FALSE.
  Vnl_commutator_warning=.FALSE.
- X_is_evaluated_for_all_Qs=.FALSE.
+ X_is_integrated=.FALSE.
  q_plus_G_direction=0._SP
  Q_Shift_Order=1
  n_X_descs=0
  l_X_terminator=.FALSE.
- X_terminator_E=1.5_SP
+ X_terminator_E=40._SP/HA2EV
  !
  !QPm
  !
@@ -526,6 +472,10 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  GS_exx_FRACTION=0.0             ! no EXX part  
  GS_exx_SCREENING=0.0            ! no screening
  !
+#if defined _PL
+ PL_weights=(/1._SP,1._SP,1._SP/)
+#endif
+ !
 #if defined _ELPH 
  !
  ! ELPH
@@ -546,6 +496,10 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  !
  call COLLISIONS_naming( 0 , "all" )
  !
+ ! COLLISIONS I/O
+ !
+ COLLISIONS_cutoff=0.0005_SP
+ !
 #endif
  !
 #if defined _SC
@@ -564,10 +518,6 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  l_SC_diagonal=.FALSE.
  l_SC_nl_mix =.FALSE.
  l_NSC_shot  =.FALSE.
- !
- ! COLLISIONS I/O
- !
- COLLISIONS_cutoff=0.0005_SP
  !
 #endif
  !
@@ -626,6 +576,9 @@ subroutine SET_defaults(INSTR,IND,OD,JS,COM_DIR)
  RT_Efit_lifetimes=0._SP
  RT_Tfit_occupations=0._SP
  RT_Efit_occupations=0._SP
+ RT_T_thermodynamics=0._SP
+ RT_E_thermodynamics=0._SP
+ RT_S_thermodynamics=0._SP
  RAD_prefactor=0._SP
  EE_prefactor=0._SP
  EP_prefactor=0._SP
