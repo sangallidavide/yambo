@@ -111,10 +111,7 @@ module YPP
  logical      ::l_free_hole
  logical      ::l_angular_momentum
  logical      ::l_position
- !
- !cmau
-   logical      ::l_Rtimes
- !cmau
+ logical      ::l_Rtimes
  !
  integer      ::ncell(3)     
  real(SP)     ::r_hole(3)    
@@ -173,6 +170,13 @@ module YPP
  integer           :: normdir, ngloc
  integer           :: loc_bands(2)
  integer           :: loc_kpts(2)
+ !
+ !  Exciton lifetimes
+ !
+ real(SP)          :: EXC_temp
+ real(SP)          :: EXC_mass
+ integer           :: EXC_Phi_Grid
+ 
  !
  ! Transition Analysis
  !

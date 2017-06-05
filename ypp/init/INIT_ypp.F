@@ -224,9 +224,7 @@ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_p
  !
  ! GPL_EXCLUDE_START
  !
-!cmau
-     l_Rtimes         =trim(rstr_piece(i1+1))=='l'
-!cmau
+   l_Rtimes         =trim(rstr_piece(i1+1))=='l'
  !
  ! GPL_EXCLUDE_END
  !

@@ -21,26 +21,20 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_sort_and_report(Xen,Xk,Xq,BS_E,BS_E_SOC_corr)
+subroutine excitons_lifetimes(Xen,Xk,Xq,BS_E,lambda_s,n_lambda,BS_E_SOC_corr)
  !
  use pars,          ONLY:SP,schlen,pi
-!cmau use units,         ONLY:HA2EV
-!cmau
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
-!cmau
  use electrons,     ONLY:spin_occ,levels,spin,E_SOC_nbands
  use stderr,        ONLY:intc
  use BS,            ONLY:BS_H_dim
  use BS_solvers,    ONLY:BSS_description,BSS_n_descs
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:d3k_factor,q0_def_norm,nkbz
-!cmau
  use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
 &                   ,DL_vol,non_periodic_directions
-!cmau
  use X_m,           ONLY:eps_2_alpha,l_1D,l_2D,l_0D,l_3D
- use YPP,           ONLY:l_Rtimes
-!cmau
+ use YPP,           ONLY:l_Rtimes,EXC_temp,EXC_mass,EXC_Phi_Grid
  use vec_operate,   ONLY:sort
  !
  implicit none 
@@ -53,11 +47,28 @@ subroutine excitons_sort_and_report(Xen,Xk,Xq,BS_E,BS_E_SOC_corr)
  !
  ! Work Space
  !
- integer            :: j1,j2,ia,is,i_mode,ic,n_elements
- integer            :: S_indx(BS_H_dim)
+ integer            :: j1,j2,ia,is,i_mode,ic,n_elements,
+ integer            :: i_lambda,i_grid, i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin  
+ integer            :: S_indx(BS_H_dim),Phi_grid_size
  real(SP)           :: Residuals(BS_H_dim),v2sort(BS_H_dim),Rmax,rv(10)
  !
- real(SP)           :: phi(Phi_grid_size)
+ Phi_grid_size = EXC_Phi_Grid
+ real(SP),allocatable     :: phi(:),phi0(:)
+ complex(SP), allocatable ::  P_EXC_square(:), IR_EXC(:,:),P_EXC_group(:)
+ real(SP),allocatable     :: gamma_thermal(:)
+ real(SP)                 :: gamma_exp, gamma0_grp,f_cv
+ integer                  :: lambda_s(n_lambda)
+
+ logical  io_DIP
+ ! allocate 
+ YAMBO_ALLOC(P_EXC_square,(BS_H_dim))
+ YAMBO_ALLOC(iR_EXC,(3,BS_H_dim))
+ YAMBO_ALLOC(P_EXC_group,(BS_H_dim))
+ YAMBO_ALLOC(gamma_thermal,(Phi_grid_size))
+ YAMBO_ALLOC(phi,(Phi_grid_size))
+ YAMBO_ALLOC(phi0,(BS_H_dim))
+
+ !
  !
  ! Excitonc amplitude
  !
@@ -120,7 +131,7 @@ subroutine excitons_sort_and_report(Xen,Xk,Xq,BS_E,BS_E_SOC_corr)
        !
        f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:,i_l)=iR_EXC(i_l)-DIP_iR(:,ic,iv,ik_mem,i_sp_pol)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
+       iR_EXC(:,i_l)=iR_EXC(:,i_l)-DIP_iR(:,ic,iv,ik_mem,i_sp_pol)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
        !
      enddo
      !
@@ -129,13 +140,13 @@ subroutine excitons_sort_and_report(Xen,Xk,Xq,BS_E,BS_E_SOC_corr)
      ! Warning define N degenerate angles phi(n)
      phi0(i_l)=acos(iR_EXC(1,i_l))
      !
-     P_EXC_square(i_l) =( iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l))**2+ &
+     P_EXC_square(i_l) =(iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l))**2+ &
 &                         iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l))**2+ &
 &                         iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l))**2 ) * real(BS_E(i_l))**2
      !
      ! Second: compute the lifetime at q=0
      !==========================================
-     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*8.*pi/(real(nkbz)*SPEED_OF_LIGHT)
+     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*7.*pi/(real(nkbz)*SPEED_OF_LIGHT)
      if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
      if (l_3D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      if (l_0D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)

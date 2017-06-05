@@ -158,7 +158,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !===================================
  if (l_sort)   call excitons_sort_and_report(Xen,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
  !
- if (l_Rtimes) call excitons_lifetimes(Xen,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
+ if (l_Rtimes) call excitons_lifetimes(Xen,BS_E,lambda_s,n_lambda,BS_E_SOC_corr=BS_E_SOC_corr)
  !
  if(.not.l_sort) then
    !
