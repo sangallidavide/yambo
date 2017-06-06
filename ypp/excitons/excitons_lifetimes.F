@@ -35,7 +35,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
 &                   ,DL_vol,non_periodic_directions
  use X_m,           ONLY:X_t,DIP_IR,eps_2_alpha,l_1D,l_2D,l_0D,l_3D
  use YPP,           ONLY:l_Rtimes,EXC_temp,EXC_mass,EXC_Phi_Grid
-
+ use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:sort
  !
  implicit none 
@@ -47,7 +47,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  complex(SP)        :: BS_R(BS_H_dim),BS_E(BS_H_dim)
  real(SP),pointer   :: BS_E_SOC_corr(:,:)
  !
- character(schlen):: titles(7),ch_dummy(2)
+ character(schlen):: titles(7),ch_dummy
  !
  ! Work Space
  !
