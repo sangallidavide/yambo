@@ -21,62 +21,64 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Xen,Xk,Xq,BS_E,lambda_s,n_lambda,BS_E_SOC_corr)
+subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda,BS_E_SOC_corr)
  !
- use pars,          ONLY:SP,schlen,pi
+ use pars,          ONLY:SP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
  use electrons,     ONLY:spin_occ,levels,spin,E_SOC_nbands
- use stderr,        ONLY:intc
- use BS,            ONLY:BS_H_dim
- use BS_solvers,    ONLY:BSS_description,BSS_n_descs
+ use stderr,        ONLY:intc,real2c
+ use BS_solvers,    ONLY:BSS_description,BSS_n_descs,BSS_eh_table,BS_mat
+ use BS,            ONLY:BS_bands
  use com,           ONLY:msg,of_open_close
- use R_lattice,     ONLY:d3k_factor,q0_def_norm,nkbz
+ use R_lattice,     ONLY:d3k_factor,q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
 &                   ,DL_vol,non_periodic_directions
- use X_m,           ONLY:eps_2_alpha,l_1D,l_2D,l_0D,l_3D
+ use X_m,           ONLY:X_t,DIP_IR,eps_2_alpha,l_1D,l_2D,l_0D,l_3D
  use YPP,           ONLY:l_Rtimes,EXC_temp,EXC_mass,EXC_Phi_Grid
+
  use vec_operate,   ONLY:sort
  !
  implicit none 
+ integer            :: BS_H_dim
+ type(levels)       :: E,Xen
+ type(X_t)          :: Xbsk
+ type(bz_samp)      :: Xk,Xq
  !
- type(levels)       :: E
  complex(SP)        :: BS_R(BS_H_dim),BS_E(BS_H_dim)
  real(SP),pointer   :: BS_E_SOC_corr(:,:)
- real(SP),optional  :: S_z(BS_H_dim)
- real(SP),optional  :: S_sq(BS_H_dim)
+ !
+ character(schlen):: titles(7),ch_dummy(2)
  !
  ! Work Space
  !
- integer            :: j1,j2,ia,is,i_mode,ic,n_elements,
- integer            :: i_lambda,i_grid, i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin  
+ integer            :: j1,j2,ia,is,i_mode,iv,ic,n_elements,ik_mem
+ integer            :: i_lambda,i_grid,neh, i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin,i_sp_pol  
  integer            :: S_indx(BS_H_dim),Phi_grid_size
  real(SP)           :: Residuals(BS_H_dim),v2sort(BS_H_dim),Rmax,rv(10)
  !
- Phi_grid_size = EXC_Phi_Grid
- real(SP),allocatable     :: phi(:),phi0(:)
- complex(SP), allocatable ::  P_EXC_square(:), IR_EXC(:,:),P_EXC_group(:)
- real(SP),allocatable     :: gamma_thermal(:)
- real(SP)                 :: gamma_exp, gamma0_grp,f_cv
- integer                  :: lambda_s(n_lambda)
-
- logical  io_DIP
- ! allocate 
- YAMBO_ALLOC(P_EXC_square,(BS_H_dim))
- YAMBO_ALLOC(iR_EXC,(3,BS_H_dim))
- YAMBO_ALLOC(P_EXC_group,(BS_H_dim))
- YAMBO_ALLOC(gamma_thermal,(Phi_grid_size))
- YAMBO_ALLOC(phi,(Phi_grid_size))
- YAMBO_ALLOC(phi0,(BS_H_dim))
-
+ complex(SP)        :: P_EXC_square(BS_H_dim)
+ complex(SP)        :: IR_EXC(3,BS_H_dim)
+ complex(SP)        :: P_EXC_group(EXC_Phi_Grid)
+ real(SP)           :: gamma0(BS_H_dim)
+ real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha
+ integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
  !
+ logical            :: io_DIP
+ logical            :: write_soc_corr
+ !
+ real(SP)           :: phi(EXC_Phi_Grid)
+ real(SP)           :: phi0(BS_H_dim)
+ real(SP)           :: gamma_thermal(EXC_Phi_Grid)
  !
  ! Excitonc amplitude
  !
  character(3), parameter:: R_normalize="yes"
  !
- write_spin    = present(S_sq)
- write_widths  = any(abs(aimag(BS_E))>1.E-5)
+ !
+ !
  write_soc_corr= (E_SOC_nbands/=0)
+ !
+  Phi_Grid_size = EXC_Phi_Grid
  !
  call section('=','Computing Excitons radiative lifetimes')
  !
@@ -87,9 +89,7 @@ subroutine excitons_lifetimes(Xen,Xk,Xq,BS_E,lambda_s,n_lambda,BS_E_SOC_corr)
  enddo
  !
  Xbsk%ib=BS_bands
- YAMBO_ALLOC(q_norm,(1))
- YAMBO_ALLOC(bare_qpg,(1,1))
- !
+ ! 
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
  call PARALLEL_global_indexes(Xen,Xk,Xq,"Response_G_space_Zero_Momentum",X=Xbsk)
  !
