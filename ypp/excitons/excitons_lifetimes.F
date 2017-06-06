@@ -26,7 +26,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  use pars,          ONLY:SP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
  use electrons,     ONLY:spin_occ,levels,spin,E_SOC_nbands
- use stderr,        ONLY:intc,real2c
+ use stderr,        ONLY:intc,real2ch
  use BS_solvers,    ONLY:BSS_description,BSS_n_descs,BSS_eh_table,BS_mat
  use BS,            ONLY:BS_bands
  use com,           ONLY:msg,of_open_close
