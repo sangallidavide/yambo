@@ -131,14 +131,14 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        !
        f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:,i_l)=iR_EXC(:,i_l)-DIP_iR(:,ic,iv,ik_mem,i_sp_pol)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
+       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,ic,iv,ik_mem,i_sp_pol)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
        !
      enddo
      !
      ! Angle of the excitonic dipoles against the x direction
      !
      ! Warning define N degenerate angles phi(n)
-     phi0(i_l)=acos(iR_EXC(1,i_l))
+     phi0(i_l)=acos(real(iR_EXC(1,i_l)))
      !
      P_EXC_square(i_l) =(iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l))**2+ &
 &                         iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l))**2+ &
