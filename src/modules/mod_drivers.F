@@ -122,4 +122,6 @@ module drivers
  !
  logical :: l_slk_test           =.FALSE.
  !
+ !  excitons lifetimes
+ logical :: l_Rtimes
 end module drivers

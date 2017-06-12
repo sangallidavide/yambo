@@ -270,7 +270,7 @@ subroutine Dipole_transverse(Xen,Xk,X)
    enddo        ! sp_pol loop
    ! 
  enddo          ! k-points
- !
+
  call live_timing()
  !
  ! CLEAN

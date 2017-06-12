@@ -86,6 +86,9 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
 #if defined _TIMING
  use timing_m,       ONLY:timing
 #endif
+#if defined _YPP
+ use drivers,        ONLY:l_Rtimes
+#endif
  !
  implicit none
  !
@@ -235,6 +238,7 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  ! Clean up
  !
 #if defined _YPP
+ write(*,*) 'l_Rtimes',l_Rtimes
  if (.not.l_Rtimes) then 
 #endif
  call X_alloc('DIP_iR') 

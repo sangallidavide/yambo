@@ -127,9 +127,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    gamma_thermal(:)=0._SP
    gamma_exp =0._SP
    gamma0_grp=0._SP
+   write(*,*) "Is DIP_iR allocatef ?", allocated(DIP_iR)
+   write(*,*) "Dimension", size(DIP_iR)
+
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
-   write(*,*) 'i_l,i_l_grp',i_l,i_l_grp, BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)
      !
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
@@ -138,12 +140,14 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        i_v     = BSS_eh_table(neh,2)
        i_c     = BSS_eh_table(neh,3)
        i_spin  = spin(BSS_eh_table(neh,:))
+       write(*,*) 'i_kbz', i_kbz,i_kibz,i_v,i_c,i_spin,q0_def_norm,f_cv
        !
        f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
        iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kbz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
+       write(*,*) "My index=",i_c,i_v,i_kbz,i_spin
+       write(*,*) "Value=",DIP_iR(:,i_c,i_v,i_kbz,i_spin)
        !
-     write(*,*) 'i_kbz', i_kbz,i_kibz,i_v,i_c,i_spin,q0_def_norm,f_cv
      enddo
      !
      ! Angle of the excitonic dipoles against the x direction
