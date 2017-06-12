@@ -33,12 +33,16 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  use R_lattice,     ONLY:d3k_factor,q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
 &                   ,DL_vol,non_periodic_directions
- use X_m,           ONLY:X_t,DIP_IR,eps_2_alpha,l_1D,l_2D,l_0D,l_3D
+ use X_m,           ONLY:X_t,DIP_iR,eps_2_alpha,l_1D,l_2D,l_0D,l_3D
  use YPP,           ONLY:l_Rtimes,EXC_temp,EXC_mass,EXC_Phi_Grid
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:sort
+ use IO_m,          ONLY:io_DIP
  !
- implicit none 
+ ! implicit none 
+ !
+#include<memory.h>
+ !
  integer            :: BS_H_dim
  type(levels)       :: E,Xen
  type(X_t)          :: Xbsk
@@ -63,7 +67,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
  !
- logical            :: io_DIP
  logical            :: write_soc_corr
  !
  real(SP)           :: phi(EXC_Phi_Grid)
@@ -90,12 +93,18 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  !
  Xbsk%ib=BS_bands
  ! 
+ YAMBO_ALLOC(q_norm,(1))
+ YAMBO_ALLOC(bare_qpg,(1,1))
+ !
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
  call PARALLEL_global_indexes(Xen,Xk,Xq,"Response_G_space_Zero_Momentum",X=Xbsk)
  !
  io_DIP=.FALSE.
  call DIPOLE_driver(Xen,Xk,Xbsk,Xbsk%q0)
- !
+  !
+ YAMBO_FREE(q_norm)
+ YAMBO_FREE(bare_qpg)
+!
  iR_EXC=cZERO
  !
  do i_lambda=1,n_lambda
@@ -120,6 +129,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    gamma0_grp=0._SP
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
+   write(*,*) 'i_l,i_l_grp',i_l,i_l_grp, BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)
      !
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
@@ -131,8 +141,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        !
        f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,ic,iv,ik_mem,i_sp_pol)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
+       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kbz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
        !
+     write(*,*) 'i_kbz', i_kbz,i_kibz,i_v,i_c,i_spin,q0_def_norm,f_cv
      enddo
      !
      ! Angle of the excitonic dipoles against the x direction
@@ -144,9 +155,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
 &                         iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l))**2+ &
 &                         iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l))**2 ) * real(BS_E(i_l))**2
      !
+
+     write(*,*) 'P_EXC_square' , P_EXC_square(i_l)
      ! Second: compute the lifetime at q=0
      !==========================================
-     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*7.*pi/(real(nkbz)*SPEED_OF_LIGHT)
+     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*4.*pi/(real(nkbz)*SPEED_OF_LIGHT)
      if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
      if (l_3D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      if (l_0D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
@@ -164,6 +177,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
      !
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      !
+   write(*,*) 'i_l,gamma_exp' , i_l,gamma_exp, P_EXC_square(i_l)
    enddo
    !
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)
