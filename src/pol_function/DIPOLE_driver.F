@@ -87,7 +87,7 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  use timing_m,       ONLY:timing
 #endif
 #if defined _YPP
- use drivers,        ONLY:l_Rtimes
+ use YPP        ONLY:l_Rtimes
 #endif
  !
  implicit none
