@@ -61,7 +61,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  real(SP)           :: Residuals(BS_H_dim),v2sort(BS_H_dim),Rmax,rv(10)
  !
  complex(SP)        :: P_EXC_square(BS_H_dim)
- complex(SP)        :: IR_EXC(3,BS_H_dim)
+ complex(SP)        :: Ir_EXC(3,BS_H_dim)
  complex(SP)        :: P_EXC_group(EXC_Phi_Grid)
  real(SP)           :: gamma0(BS_H_dim)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha
@@ -105,7 +105,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  YAMBO_FREE(q_norm)
  YAMBO_FREE(bare_qpg)
 !
- iR_EXC=cZERO
  !
  do i_lambda=1,n_lambda
    !
@@ -131,8 +130,10 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    write(*,*) "Dimension", size(DIP_iR)
 
    !
+   iR_EXC =cZERO
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
      !
+    iR_EXC =cZERO
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
        i_kbz   = BSS_eh_table(neh,1)
@@ -140,14 +141,16 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        i_v     = BSS_eh_table(neh,2)
        i_c     = BSS_eh_table(neh,3)
        i_spin  = spin(BSS_eh_table(neh,:))
-       write(*,*) 'i_kbz', i_kbz,i_kibz,i_v,i_c,i_spin,q0_def_norm,f_cv
+       write(*,*) "My index=",i_c,i_v,i_kbz,i_spin,spin_occ,i_l
+       write(*,*) "Value=",DIP_iR(:,i_c,i_v,i_kbz,i_spin)
        !
        f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
        iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kbz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
-       write(*,*) "My index=",i_c,i_v,i_kbz,i_spin
-       write(*,*) "Value=",DIP_iR(:,i_c,i_v,i_kbz,i_spin)
        !
+        write(*,*) "Value1=", sqrt(f_cv), q0_def_norm
+        write(*,*) 'Value2=', BS_mat(neh,i_l)
+        write(*,*) 'Value3=', iR_EXC(:,i_l)
      enddo
      !
      ! Angle of the excitonic dipoles against the x direction
@@ -181,7 +184,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
      !
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      !
-   write(*,*) 'i_l,gamma_exp' , i_l,gamma_exp, P_EXC_square(i_l)
    enddo
    !
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)

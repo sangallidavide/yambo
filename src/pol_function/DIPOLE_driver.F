@@ -86,9 +86,8 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
 #if defined _TIMING
  use timing_m,       ONLY:timing
 #endif
-#if defined _YPP
- use YPP        ONLY:l_Rtimes
-#endif
+ use YPP,       ONLY:l_Rtimes
+
  !
  implicit none
  !
@@ -237,14 +236,18 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  !
  ! Clean up
  !
-#if defined _YPP
+ write(*,*) 'l_Rtimes',l_Rtimes
+ write(*,*) "Is DIP_iR allocatef ?", allocated(DIP_iR)
+ write(*,*) "Dimension", size(DIP_iR)
+
+!#if defined _YPP
  write(*,*) 'l_Rtimes',l_Rtimes
  if (.not.l_Rtimes) then 
-#endif
+!#endif
  call X_alloc('DIP_iR') 
-#if defined _YPP
+!#if defined _YPP
  endif
-#endif
+!#endif
  !
 #if defined _PL
  if (.not.l_photolum) call X_alloc('DIP_P')
