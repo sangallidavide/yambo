@@ -22,14 +22,15 @@
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
 subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
-!
-use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_pts,&
+ !
+ use drivers,        ONLY:l_exc_rad_life
+ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_pts,&
 &                         l_free_hole,l_fix_syms,l_excitons,l_exc_wf,&
 &                         l_amplitude,l_bands,l_bxsf,l_bz_grids,l_current,&
 &                         l_density,l_dos,l_electrons,l_q_grid,l_QP_DBs_create_and_modify,&
 &                         l_QP_DBs_merge,l_random_grid,l_shifted_grid,l_sort,l_sp_wf,l_spin,&
 &                         l_wannier,l_wavefunction,MAX_DbGd_DBs,n_DbGd_DBs,n_u_interp_pts,n_u_k_pts,n_u_q_pts,&
-&                         U_k_pts,U_interp_pts,U_q_pts,U_q_shifts,DbGd_DB1_paths,l_Rtimes
+&                         U_k_pts,U_interp_pts,U_q_pts,U_q_shifts,DbGd_DB1_paths
  use pars,           ONLY:pi,SP,schlen
  use D_lattice,      ONLY:i_time_rev
  use it_m,           ONLY:initdefs,initmode,ofiles_append,&
@@ -220,13 +221,13 @@ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_p
      l_wavefunction   =trim(rstr_piece(i1+1))=='w'
      l_sort           =trim(rstr_piece(i1+1))=='s'
      l_amplitude      =trim(rstr_piece(i1+1))=='a'
- !
- ! GPL_EXCLUDE_START
- !
-   l_Rtimes         =trim(rstr_piece(i1+1))=='l'
- !
- ! GPL_EXCLUDE_END
- !
+     !
+     ! GPL_EXCLUDE_START
+     !
+     l_exc_rad_life   =trim(rstr_piece(i1+1))=='l'
+     !
+     ! GPL_EXCLUDE_END
+     !
 #if defined _YPP_ELPH
      l_gkkp           =trim(rstr_piece(i1+1))=='g'
 #endif
@@ -302,9 +303,7 @@ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_p
      if (l_current)        call initactivate(1,'current')
      if (l_density)        call initactivate(1,'density')
      if (l_sort)           infile_editing=.false.
-!cmau
-   if (l_Rtimes)         call initactivate(1,'Rtimes')
-!cmau
+     if (l_exc_rad_life)   call initactivate(1,'ExcRadLife')
    endif
    if ( trim(rstr_piece(i1)) == 'phonons'.or. trim(rstr_piece(i1)) == 'electrons') then
      if (l_dos)            call initactivate(1,'dos')
@@ -396,12 +395,10 @@ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_p
 #endif
  l_free_hole=runlevel_is_on('freehole')
  l_amplitude=runlevel_is_on('amplitude')
-!
+ !
  ! GPL_EXCLUDE_START 
  !
-!cmau
- l_Rtimes   =runlevel_is_on('Rtimes')
-!cmau
+ l_exc_rad_life   =runlevel_is_on('ExcRadLife')
  !
  ! GPL_EXCLUDE_END
  !
@@ -539,15 +536,13 @@ use YPP,            ONLY:l_plot,l_map_WFs,l_map_kpts,l_mag,l_k_grid,l_high_sym_p
      call INIT_QP_ctl_switch('G')
      call initactivate(1,"DipWeight")
    endif
- !
- ! GPL_EXCLUDE_START
- !
-!cmau
-  if (l_Rtimes) call initactivate(1,"NonPDirs Texc Mexc PhiGrid")
-!cmau
- !
- ! GPL_EXCLUDE_END
- !
+   !
+   ! GPL_EXCLUDE_START
+   !
+   if (l_exc_rad_life) call initactivate(1,"NonPDirs Texc Mexc PhiGrid")
+   !
+   ! GPL_EXCLUDE_END
+   !
    if (l_exc_wf.or.l_amplitude) call initactivate(1,"Degen_Step MinWeight")
    if (l_exc_wf.and..not.l_free_hole) call initactivate(1,"Cells Hole Dimension") 
    if (l_exc_wf.and.l_free_hole) call initactivate(1,"WFMult") 

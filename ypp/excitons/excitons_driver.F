@@ -30,8 +30,9 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use X_m,           ONLY:X_t
  use QP_CTL_m,      ONLY:QP_apply
  use electrons,     ONLY:levels,n_spin,n_sp_pol,spin,E_SOC_nbands
+ use drivers,       ONLY:l_exc_rad_life
  use YPP,           ONLY:l_sort,l_exc_wf,l_spin,l_amplitude, &
-&                         excitons_sort_and_report,l_Rtimes
+&                         excitons_sort_and_report
  use IO_m,          ONLY:io_control,OP_RD_CL,DUMP,NONE,REP,VERIFY
  use BS_solvers,    ONLY:BSS_eh_table,BSS_write_eig_2_db,io_BSS_diago,BS_mat
  use BS,            ONLY:BS_H_dim,BS_K_dim,BS_bands,BS_q,BS_K_coupling,BS_cpl_mode,&
@@ -114,7 +115,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  n_lambda = get_lambda()
  !
-  l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin .or. l_Rtimes
+  l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin .or. l_exc_rad_life
 #if defined _YPP_ELPH
  l_flag=l_flag .or. l_eliashberg .or. l_gkkp
 #endif
@@ -201,8 +202,9 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  ! 
  ! Exciton's lifetimes from BSE
  !=======================================
- if (l_Rtimes) call excitons_lifetimes(Xbsk,Xen,Xk,q,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda,BS_E_SOC_corr)
- !! Exciton's WFs
+ if (l_exc_rad_life) call excitons_lifetimes(Xbsk,Xen,Xk,q,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda,BS_E_SOC_corr)
+ !
+ ! Exciton's WFs
  !=====================
  if (l_exc_wf)     call exciton_WFs(Xk,BS_E_degs,lambda_s,n_lambda)
  !

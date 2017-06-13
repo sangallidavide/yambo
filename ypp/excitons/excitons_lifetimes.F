@@ -34,7 +34,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  use D_lattice,     ONLY:n_atomic_species,n_atoms_species,atom_pos,Z_species &
 &                   ,DL_vol,non_periodic_directions
  use X_m,           ONLY:X_t,DIP_iR,eps_2_alpha,l_1D,l_2D,l_0D,l_3D
- use YPP,           ONLY:l_Rtimes,EXC_temp,EXC_mass,EXC_Phi_Grid
+ use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:sort
  use IO_m,          ONLY:io_DIP

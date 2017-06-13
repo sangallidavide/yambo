@@ -73,13 +73,10 @@ use wave_func,     ONLY:wf_ng
  !
  ! GPL_EXCLUDE_START
  !
-!cmau
-  call it('r',defs,'Rtimes',  '  [R] Lifetimes')
-!cmau
+  call it('r',defs,'ExcRadLife',  '[R] Exciton Radiative Lifetimes')
  !
  ! GPL_EXCLUDE_END
  !
-
  call it('r',defs,'plot',         '[R] Plot')
  call it('r',defs,'density',      '[R] Density')
  call it('r',defs,'current',      '[R] Current')

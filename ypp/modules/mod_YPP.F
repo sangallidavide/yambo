@@ -111,7 +111,6 @@ module YPP
  logical      ::l_free_hole
  logical      ::l_angular_momentum
  logical      ::l_position
- logical      ::l_Rtimes
  !
  integer      ::ncell(3)     
  real(SP)     ::r_hole(3)    

@@ -121,5 +121,6 @@ module drivers
  ! TESTING
  !
  logical :: l_slk_test           =.FALSE.
+ logical :: l_exc_rad_life       =.FALSE.
  !
 end module drivers

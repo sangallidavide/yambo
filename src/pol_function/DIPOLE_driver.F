@@ -51,7 +51,7 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  !
  ! being a derived structure it must be mapped in the calling routine.
  !
- use drivers,        ONLY:l_optics
+ use drivers,        ONLY:l_optics,l_exc_rad_life
 #if defined _PL
  use drivers,        ONLY:l_photolum
 #endif
@@ -86,8 +86,6 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
 #if defined _TIMING
  use timing_m,       ONLY:timing
 #endif
- use YPP,       ONLY:l_Rtimes
-
  !
  implicit none
  !
@@ -236,18 +234,11 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  !
  ! Clean up
  !
- write(*,*) 'l_Rtimes',l_Rtimes
+ write(*,*) 'l_exc_rad_life',l_exc_rad_life
  write(*,*) "Is DIP_iR allocatef ?", allocated(DIP_iR)
  write(*,*) "Dimension", size(DIP_iR)
-
-!#if defined _YPP
- write(*,*) 'l_Rtimes',l_Rtimes
- if (.not.l_Rtimes) then 
-!#endif
- call X_alloc('DIP_iR') 
-!#if defined _YPP
- endif
-!#endif
+ !
+ if (.not.l_exc_rad_life) call X_alloc('DIP_iR') 
  !
 #if defined _PL
  if (.not.l_photolum) call X_alloc('DIP_P')
