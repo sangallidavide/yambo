@@ -142,11 +142,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        i_c     = BSS_eh_table(neh,3)
        i_spin  = spin(BSS_eh_table(neh,:))
        write(*,*) "My index=",i_c,i_v,i_kbz,i_spin,spin_occ,i_l
-       write(*,*) "Value=",DIP_iR(:,i_c,i_v,i_kbz,i_spin)
+       write(*,*) "Value=",DIP_iR(:,i_c,i_v,i_kibz,i_spin)
        !
        f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kbz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
+       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)*q0_def_norm
        !
         write(*,*) "Value1=", sqrt(f_cv), q0_def_norm
         write(*,*) 'Value2=', BS_mat(neh,i_l)

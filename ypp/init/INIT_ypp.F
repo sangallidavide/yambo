@@ -43,13 +43,13 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  use electrons,      ONLY:n_spin,n_spinor,levels
  use parallel_m,     ONLY:master_cpu,PP_redux_wait
  use LIVE_t,         ONLY:what_is_running
+ use IO_m,           ONLY:OP_RD_CL,DUMP,io_control,NONE
 #if defined _YPP_SC
  use SC,             ONLY:SC_bands
 #endif
 #if defined _YPP_RT || defined _YPP_SC
  use QP_m,           ONLY:QP_nb
  use electrons,      ONLY:levels,E_reset
- use IO_m,           ONLY:OP_RD_CL,DUMP,io_control,NONE
 #endif
 #if defined _YPP_RT 
  use YPP_real_time,  ONLY:l_RealTime,l_RT_2D_dos,l_RT_abs,l_RT_bands,l_RT_DBs,l_RT_density,&
@@ -81,10 +81,8 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  integer, external::io_SC_components
  integer          ::io_SC_err,ID
 #endif
-#if defined _YPP_RT
  integer, external::io_RT_components,io_KB_pwscf,io_KB_abinit
  integer          ::io_RT_G_err,io_RT_JPSM_err,io_KB_pwscf_err,ID,io_KB_abinit_err
-#endif
  integer, external::parse_character_arrays
  !
  ! What is running ?
@@ -134,13 +132,13 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  io_RT_JPSM_err=io_RT_components('JPSM' ,ID)
  if (io_RT_JPSM_err==0) QP_nb=RT_bands(2)
  !
+#endif
+ !
  call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=ID)
  io_KB_pwscf_err=io_KB_pwscf(ID)
  ! 
  call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=ID)
  io_KB_abinit_err=io_KB_abinit(ID)
- !
-#endif
  !
  ! Defaults->Defs + Initialization
  !
