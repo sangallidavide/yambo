@@ -234,9 +234,6 @@ subroutine Dipole_driver(Xen,Xk,X,field_dir)
  !
  ! Clean up
  !
- write(*,*) 'l_exc_rad_life',l_exc_rad_life
- write(*,*) "Is DIP_iR allocatef ?", allocated(DIP_iR)
- write(*,*) "Dimension", size(DIP_iR)
  !
  if (.not.l_exc_rad_life) call X_alloc('DIP_iR') 
  !
