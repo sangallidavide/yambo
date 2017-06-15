@@ -64,14 +64,14 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  complex(SP)        :: Ir_EXC(3,BS_H_dim)
  complex(SP)        :: P_EXC_group(EXC_Phi_Grid)
  real(SP)           :: gamma0(BS_H_dim)
- real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha
+ real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
  !
  logical            :: write_soc_corr
  !
  real(SP)           :: phi(EXC_Phi_Grid)
  real(SP)           :: phi0(BS_H_dim)
- real(SP)           :: gamma_thermal(EXC_Phi_Grid)
+ real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  !
  ! Excitonc amplitude
  !
@@ -129,6 +129,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    gamma_thermal(:)=0._SP
    gamma_exp =0._SP
    gamma0_grp=0._SP
+   tau_thermal(:)=0._SP
+   tau_exp =0._SP
+   tau0_grp=0._SP
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
      !
@@ -180,12 +183,17 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      !
    enddo
+   tau0_grp= AU2SEC/gamma0_grp
+   tau_exp = AU2SEC/gamma_exp
    !
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)
    call msg('o exc_life',"# ","gamma exp  = "//trim(real2ch(gamma_exp)),INDENT=0)
-
+   !
+   call msg('o exc_life',"# ","tau zero = "//trim(real2ch(tau0_grp)),INDENT=0)
+   call msg('o exc_life',"# ","tau exp  = "//trim(real2ch(tau_exp)),INDENT=0)
    do i_grid=1,Phi_grid_size
-     call msg('o exc_life',' ',(/phi(i_grid),gamma_thermal(i_grid)/),INDENT=0,USE_TABS=.true.)
+    tau_thermal(i_grid)= AU2SEC/gamma_thermal(i_grid)
+     call msg('o exc_life',' ',(/phi(i_grid),gamma_thermal(i_grid),tau_thermal(i_grid)/),INDENT=0,USE_TABS=.true.)
    enddo
    !
  enddo
