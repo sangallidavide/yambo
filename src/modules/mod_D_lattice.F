@@ -76,7 +76,7 @@ module D_lattice
  !
  integer, allocatable  :: R_m_R(:,:)
  !
- ! EXC lifetimes: Non Peridic  directions
+ ! EXC lifetimes: Non Periodic  directions
  !
  logical               :: l_1D,l_2D,l_3D,l_0D
  !
