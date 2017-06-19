@@ -21,11 +21,11 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda,BS_E_SOC_corr)
+subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
  use pars,          ONLY:SP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
- use electrons,     ONLY:spin_occ,levels,spin,E_SOC_nbands
+ use electrons,     ONLY:spin_occ,levels,spin
  use stderr,        ONLY:intc,real2ch
  use BS_solvers,    ONLY:BSS_eh_table,BS_mat
  use BS,            ONLY:BS_bands
@@ -35,7 +35,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  use X_m,           ONLY:X_t,DIP_iR,eps_2_alpha
  use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid
  use interfaces,    ONLY:PARALLEL_global_indexes
- use vec_operate,   ONLY:sort
+ use vec_operate,   ONLY:v_norm
  use IO_m,          ONLY:io_DIP
  !
  ! implicit none 
@@ -48,7 +48,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  type(bz_samp)      :: Xk,Xq
  !
  complex(SP)        :: BS_E(BS_H_dim)
- real(SP),pointer   :: BS_E_SOC_corr(:,:)
  !
  character(schlen)  :: ch_dummy
  !
@@ -61,15 +60,13 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  complex(SP)        :: Ir_EXC(3,BS_H_dim)
  !
  real(SP)           :: P_EXC_square(BS_H_dim)
- !real(SP)           :: P_EXC_group(EXC_Phi_Grid)
  real(SP)           :: gamma0(BS_H_dim)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
  !
- logical            :: write_soc_corr
  !
- real(SP)           :: phi(EXC_Phi_Grid)
- real(SP)           :: phi0(BS_H_dim)
+ real(SP)           :: phi(EXC_Phi_Grid),exc_energy
+ real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  !
  ! Excitonc amplitude
@@ -78,7 +75,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  !
  !
  !
- write_soc_corr= (E_SOC_nbands/=0)
  !
   Phi_Grid_size = EXC_Phi_Grid
  !
@@ -86,7 +82,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  !
  if (trim(non_periodic_directions)/="none")  call check_periodic_directions()
  !
- write(*,*) 'l_2D', l_2D
  do i_grid=1,Phi_grid_size
    phi(i_grid)=2._SP*pi*real(i_grid-1,SP)/real(Phi_grid_size-1,SP)
  enddo
@@ -101,14 +96,19 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  !
  io_DIP=.FALSE.
  call DIPOLE_driver(Xen,Xk,Xbsk,Xbsk%q0)
-  !
+ !
  YAMBO_FREE(q_norm)
  YAMBO_FREE(bare_qpg)
-!
- iR_EXC = cZERO
-!
  !
  do i_lambda=1,n_lambda
+!
+   iR_EXC = cZERO
+   gamma_thermal(:)=0._SP
+   gamma_exp =0._SP
+   gamma0_grp=0._SP
+   tau_thermal(:)=0._SP
+   tau_exp =0._SP
+   tau0_grp=0._SP
    !
    i_l_grp=lambda_s(i_lambda)
    !
@@ -121,16 +121,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    ch_dummy='exc_lifetimes_at_'//trim(intc(i_l_grp))
    call of_open_close(ch_dummy,'ot')
    !
-   ! First compute the excionic dipoles
+   ! First compute the excitonic dipoles
    !==========================================
    !
-!   P_EXC_group(i_l_grp)=0._SP
-   gamma_thermal(:)=0._SP
-   gamma_exp =0._SP
-   gamma0_grp=0._SP
-   tau_thermal(:)=0._SP
-   tau_exp =0._SP
-   tau0_grp=0._SP
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
      !
@@ -142,34 +135,35 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        i_c     = BSS_eh_table(neh,3)
        i_spin  = spin(BSS_eh_table(neh,:))
        !
-       f_cv=      ( Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
+       f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)/q0_def_norm
+       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
      enddo
      !
      ! Angle of the excitonic dipoles against the x direction
      !
      ! Warning define N degenerate angles phi(n)
-     phi0(i_l)=acos(real(iR_EXC(1,i_l)))
+     vdummy(:) = real(iR_exc(:,i_l)) / v_norm(real(iR_exc(:,i_l)))
+     phi0(i_l)=acos(vdummy(1))
      !
-     P_EXC_square(i_l) =real((iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l))**2+ &
-&                       iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l))**2+ &
-&                       iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l))**2 )) * real(BS_E(i_l))**2
+     P_EXC_square(i_l) =(real(iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l)) + &
+&                 iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l)) + &
+&                 iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l)) )*real(BS_E(i_l))**2)*q0_def_norm**2
      !
      ! Second: compute the lifetime at q=0
      !==========================================
-     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*(P_EXC_square(i_l))*real(nkbz)*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT)
+     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*(P_EXC_square(i_l))*4.*pi &
+&                             *(real(BS_E(i_l))*SPEED_OF_LIGHT*real(1./nkbz))
      if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
      if (l_3D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      if (l_0D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      !
+     write(*,*) 'tau0', real(BS_E(i_l))*HA2EV, AU2SEC/gamma0(i_l)
      !
      ! Third: define temperature and angle dependent lifetime
      !=======================================================
      !
-      write(*,*) 'Value0', eps_2_alpha,DL_vol,nkbz,SPEED_OF_LIGHT 
-      write(*,*) 'Value1', P_EXC_square(i_l), gamma0(i_l) , BS_E(i_l)
      alpha=real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
      !
      gamma0_grp=gamma0_grp+gamma0(i_l)
@@ -179,15 +173,14 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
 &       gamma0(i_l)*alpha*(2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2)
      !
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
-     write(*,*) 'Value2', gamma0_grp, alpha,gamma_exp
      !
+   exc_energy = real(BS_E(i_l)*HA2EV)
+   write(10,*) exc_energy, AU2SEC/gamma0(i_l)
    enddo
-     do i_grid=1,Phi_grid_size
-       write(10,*) gamma_thermal(i_grid), phi(i_grid)
-     enddo
    tau0_grp= AU2SEC/gamma0_grp
    tau_exp = AU2SEC/gamma_exp
    !
+   call msg('o exc_life',"# ","exc. E = "//trim(real2ch(exc_energy)),INDENT=0)
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)
    call msg('o exc_life',"# ","gamma exp  = "//trim(real2ch(gamma_exp)),INDENT=0)
    !
