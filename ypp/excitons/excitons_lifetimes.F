@@ -127,6 +127,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
      !
+    iR_EXC = cZERO
+ 
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
        i_kbz   = BSS_eh_table(neh,1)
@@ -149,17 +151,17 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
      !
      P_EXC_square(i_l) =(real(iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l)) + &
 &                 iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l)) + &
-&                 iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l)) )*real(BS_E(i_l))**2)*q0_def_norm**2
+&                 iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l)) )*real(BS_E(i_l))**2)
      !
      ! Second: compute the lifetime at q=0
      !==========================================
      if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*(P_EXC_square(i_l))*4.*pi &
-&                             *(real(BS_E(i_l))*SPEED_OF_LIGHT*real(1./nkbz))
+&                             /(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
      if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
      if (l_3D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      if (l_0D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      !
-     write(*,*) 'tau0', real(BS_E(i_l))*HA2EV, AU2SEC/gamma0(i_l)
+     write(*,*) 'tau0', i_l,real(BS_E(i_l))*HA2EV, AU2SEC/gamma0(i_l)
      !
      ! Third: define temperature and angle dependent lifetime
      !=======================================================
