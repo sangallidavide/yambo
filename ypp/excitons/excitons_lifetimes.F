@@ -57,9 +57,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  integer            :: neh,i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin 
  integer            :: Phi_grid_size
  !
- complex(SP)        :: Ir_EXC(3,BS_H_dim)
+ complex(SP)        :: Ir_EXC(3)
  !
- real(SP)           :: P_EXC_square(BS_H_dim)
+ real(SP)           :: P_EXC_square
  real(SP)           :: gamma0(BS_H_dim)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
@@ -69,7 +69,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  !
- ! Excitonc amplitude
+ ! Excitonc times 
  !
  character(3), parameter:: R_normalize="yes"
  !
@@ -126,9 +126,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
    !
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
-     !
-    iR_EXC = cZERO
- 
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
        i_kbz   = BSS_eh_table(neh,1)
@@ -139,29 +136,28 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        !
        f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:,i_l)=iR_EXC(:,i_l) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)
+       iR_EXC(:)=iR_EXC(:) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
      enddo
      !
      ! Angle of the excitonic dipoles against the x direction
      !
      ! Warning define N degenerate angles phi(n)
-     vdummy(:) = real(iR_exc(:,i_l)) / v_norm(real(iR_exc(:,i_l)))
+     vdummy(:) = real(iR_exc(:)) / v_norm(real(iR_exc(:)))
      phi0(i_l)=acos(vdummy(1))
      !
-     P_EXC_square(i_l) =(real(iR_EXC(1,i_l)*conjg(iR_EXC(1,i_l)) + &
-&                 iR_EXC(2,i_l)*conjg(iR_EXC(2,i_l)) + &
-&                 iR_EXC(3,i_l)*conjg(iR_EXC(3,i_l)) )*real(BS_E(i_l))**2)
+     P_EXC_square =(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
+&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
+&                 iR_EXC(3)*conjg(iR_EXC(3)) )*real(BS_E(i_l))**2)
      !
      ! Second: compute the lifetime at q=0
      !==========================================
-     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*(P_EXC_square(i_l))*4.*pi &
+     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi &
 &                             /(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
-     if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square(i_l)*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
-     if (l_3D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
-     if (l_0D) gamma0(i_l) =                      P_EXC_square(i_l)*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
+     if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
+     if (l_3D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
+     if (l_0D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      !
-     write(*,*) 'tau0', i_l,real(BS_E(i_l))*HA2EV, AU2SEC/gamma0(i_l)
      !
      ! Third: define temperature and angle dependent lifetime
      !=======================================================
@@ -177,7 +173,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      !
    exc_energy = real(BS_E(i_l)*HA2EV)
-   write(10,*) exc_energy, AU2SEC/gamma0(i_l)
+   write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l), DL_vol,eps_2_alpha
    enddo
    tau0_grp= AU2SEC/gamma0_grp
    tau_exp = AU2SEC/gamma_exp
