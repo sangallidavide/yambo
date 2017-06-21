@@ -102,7 +102,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  !
  do i_lambda=1,n_lambda
 !
-   iR_EXC = cZERO
    gamma_thermal(:)=0._SP
    gamma_exp =0._SP
    gamma0_grp=0._SP
@@ -112,11 +111,15 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    !
    i_l_grp=lambda_s(i_lambda)
    !
+   if(i_lambda/=BS_E_degs(i_l_grp)) cycle
+   !
    n_lambda_deg=count(BS_E_degs==BS_E_degs(i_l_grp))
    !
    if (n_lambda_deg>1) call msg('s',':: State '//trim(intc(i_l_grp))//' Merged with states '//&
 &                                     trim(intc(BS_E_degs(i_l_grp)))//' -> '//&
 &                                     trim(intc(BS_E_degs(i_l_grp)+n_lambda_deg-1)))
+   !
+   write(*,*) ' '
    !
    ch_dummy='exc_lifetimes_at_'//trim(intc(i_l_grp))
    call of_open_close(ch_dummy,'ot')
@@ -126,6 +129,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    !
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
+     iR_EXC = cZERO
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
        i_kbz   = BSS_eh_table(neh,1)
@@ -138,10 +142,10 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
        !
        call GET_the_rotated_iR()
        !
-       iR_EXC(:)=iR_EXC(:) + rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
+       iR_EXC(:)=iR_EXC(:) - conjg(rotated_iR(:))*BS_mat(neh,i_l)!*sqrt(f_cv)
        !
      enddo
-      write(*,*) 'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
+      write(*,*) i_lambda,i_l,'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
      !
      ! Angle of the excitonic dipoles against the x direction
      !
@@ -201,21 +205,49 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      use D_lattice,      ONLY:i_time_rev,dl_sop,sop_inv,nsym
      use parallel_m,     ONLY:PAR_DIPk_ibz_index
      !
-     integer :: ik,is,ik_mem
+     implicit none
+     !
+     integer :: ik,is,ik_mem,i_dir
      logical :: t_rev
+     real(SP):: field_dir(3,3),field_dir_rot(3)
+     complex(SP):: iR(3)
      !
      ik=Xk%sstar(i_kbz,1)
-     is=Xk%sstar(i_kbz,2)
+     is=sop_inv(Xk%sstar(i_kbz,2))
      !
      if ( is<= nsym/(i_time_rev+1) ) t_rev=.false.
      if ( is > nsym/(i_time_rev+1) ) t_rev=.true.
      !
-     is = sop_inv( is )
-     !      
-     ik_mem    = PAR_DIPk_ibz_index(ik)
-     rotated_iR = matmul( dl_sop(:,:,is) , DIP_iR(:,i_c,i_v,ik_mem,i_spin) )
+     ik_mem    = ik !PAR_DIPk_ibz_index(ik)
+     iR=DIP_iR(:,i_c,i_v,ik_mem,i_spin) 
      !
-     if (t_rev) rotated_iR = conjg( rotated_iR )
+     ! OPTION 1
+     rotated_iR=iR
+     !write(*,*) i_c,i_v,DIP_iR(:,i_c,i_v,ik_mem,i_spin)
+     !return
+     !
+     ! OPTION 2
+     field_dir(:,1)=(/1._SP,0._SP,0._SP/)
+     field_dir(:,2)=(/0._SP,1._SP,0._SP/)
+     field_dir(:,3)=(/0._SP,0._SP,1._SP/)
+     !
+     do i_dir=1,3
+        !
+        field_dir_rot = matmul( dl_sop(:,:,is), field_dir(:,i_dir) )
+        !
+        if (.not.t_rev) rotated_iR(i_dir) = dot_product( field_dir_rot, iR )
+        if (     t_rev) rotated_iR(i_dir) = dot_product( iR, field_dir_rot ) 
+        !
+     enddo
+     !write(*,*) rotated_iR
+     return
+     !
+     ! OPTION 3
+     rotated_iR = matmul( dl_sop(:,:,is) , DIP_iR(:,i_c,i_v,ik_mem,i_spin) )
+     if (t_rev) rotated_iR = -conjg( rotated_iR )
+     !
+     !write(*,*) rotated_iR
+     !write(*,*) ' '
      !
    end subroutine
  !
