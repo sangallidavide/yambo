@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2017 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM DV
+! Authors (see AUTHORS file for details): MP DS
 !
 ! This file is distributed under the terms of the GNU
 ! General Public License. You can redistribute it and/or
@@ -69,12 +69,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  !
- ! Excitonc times 
- !
- character(3), parameter:: R_normalize="yes"
- !
- !
- !
  !
   Phi_Grid_size = EXC_Phi_Grid
  !
@@ -101,7 +95,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  YAMBO_FREE(bare_qpg)
  !
  do i_lambda=1,n_lambda
-!
+   !
    gamma_thermal(:)=0._SP
    gamma_exp =0._SP
    gamma0_grp=0._SP
@@ -127,7 +121,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    ! First compute the excitonic dipoles
    !==========================================
    !
-   !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
      iR_EXC = cZERO
      do neh = 1,BS_H_dim !(size BSE matrix, cvk)
@@ -142,10 +135,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
        !
        call GET_the_rotated_iR()
        !
-       iR_EXC(:)=iR_EXC(:) - conjg(rotated_iR(:))*BS_mat(neh,i_l)!*sqrt(f_cv)
+       iR_EXC(:)=iR_EXC(:) - rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
      enddo
-      write(*,*) i_lambda,i_l,'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
+     !
+     write(*,*) i_lambda,i_l,'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
      !
      ! Angle of the excitonic dipoles against the x direction
      !
@@ -159,9 +153,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      !
      ! Second: compute the lifetime at q=0
      !==========================================
-     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi &
-&                             /(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
-     if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
+     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
+     if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi    *real(nkbz)*SPEED_OF_LIGHT**2
      if (l_3D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      if (l_0D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      !
@@ -173,15 +166,16 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      !
      gamma0_grp=gamma0_grp+gamma0(i_l)
      !
-     !
      gamma_thermal(:)=gamma_thermal(:)+&
 &       gamma0(i_l)*alpha*(2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2)
      !
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      !
-   exc_energy = real(BS_E(i_l)*HA2EV)
-   write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l), DL_vol,eps_2_alpha
+     exc_energy = real(BS_E(i_l)*HA2EV)
+     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l), DL_vol,eps_2_alpha
+     !
    enddo
+   !
    tau0_grp= AU2SEC/gamma0_grp
    tau_exp = AU2SEC/gamma_exp
    !
@@ -218,15 +212,10 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      if ( is<= nsym/(i_time_rev+1) ) t_rev=.false.
      if ( is > nsym/(i_time_rev+1) ) t_rev=.true.
      !
-     ik_mem    = ik !PAR_DIPk_ibz_index(ik)
+     ik_mem    = PAR_DIPk_ibz_index(ik)
      iR=DIP_iR(:,i_c,i_v,ik_mem,i_spin) 
      !
      ! OPTION 1
-     rotated_iR=iR
-     !write(*,*) i_c,i_v,DIP_iR(:,i_c,i_v,ik_mem,i_spin)
-     !return
-     !
-     ! OPTION 2
      field_dir(:,1)=(/1._SP,0._SP,0._SP/)
      field_dir(:,2)=(/0._SP,1._SP,0._SP/)
      field_dir(:,3)=(/0._SP,0._SP,1._SP/)
@@ -239,16 +228,12 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
         if (     t_rev) rotated_iR(i_dir) = dot_product( iR, field_dir_rot ) 
         !
      enddo
-     !write(*,*) rotated_iR
-     return
      !
-     ! OPTION 3
-     rotated_iR = matmul( dl_sop(:,:,is) , DIP_iR(:,i_c,i_v,ik_mem,i_spin) )
-     if (t_rev) rotated_iR = -conjg( rotated_iR )
+     ! OPTION 2
+     !rotated_iR = matmul( dl_sop(:,:,is) , DIP_iR(:,i_c,i_v,ik_mem,i_spin) )
+     !if (t_rev) rotated_iR = -conjg( rotated_iR )
      !
-     !write(*,*) rotated_iR
-     !write(*,*) ' '
      !
-   end subroutine
- !
-end subroutine
+   end subroutine GET_the_rotated_iR
+   !
+end subroutine excitons_lifetimes
