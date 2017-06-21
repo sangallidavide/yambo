@@ -202,7 +202,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  ! 
  ! Exciton's lifetimes from BSE
  !=======================================
- if (l_exc_rad_life) call excitons_lifetimes(Xbsk,Xen,Xk,q,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda)
+ if (l_exc_rad_life) call excitons_lifetimes(Xbsk,Xen,Xk,q,BS_H_dim,BS_R_right,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
  ! Exciton's WFs
  !=====================

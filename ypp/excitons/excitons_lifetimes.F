@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_lambda)
+subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
  use pars,          ONLY:SP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
@@ -47,7 +47,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
  type(X_t)          :: Xbsk
  type(bz_samp)      :: Xk,Xq
  !
- complex(SP)        :: BS_E(BS_H_dim)
+ complex(SP)        :: BS_E(BS_H_dim), BS_R(BS_H_dim) 
  !
  character(schlen)  :: ch_dummy
  !
@@ -139,6 +139,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_E,BS_E_degs,lambda_s,n_
        iR_EXC(:)=iR_EXC(:) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
      enddo
+      write(*,*) 'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
      !
      ! Angle of the excitonic dipoles against the x direction
      !
