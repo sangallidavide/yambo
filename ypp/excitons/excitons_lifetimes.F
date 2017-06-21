@@ -57,7 +57,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  integer            :: neh,i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin 
  integer            :: Phi_grid_size
  !
- complex(SP)        :: Ir_EXC(3)
+ complex(SP)        :: Ir_EXC(3),rotated_iR(3)
  !
  real(SP)           :: P_EXC_square
  real(SP)           :: gamma0(BS_H_dim)
@@ -136,7 +136,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
        !
        f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       iR_EXC(:)=iR_EXC(:) + DIP_iR(:,i_c,i_v,i_kibz,i_spin)*BS_mat(neh,i_l)*sqrt(f_cv)
+       call GET_the_rotated_iR()
+       !
+       iR_EXC(:)=iR_EXC(:) + rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
      enddo
       write(*,*) 'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
@@ -191,5 +193,30 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    enddo
    !
  enddo
+ !
+ contains
+   !
+   subroutine GET_the_rotated_iR( )
+     !
+     use D_lattice,      ONLY:i_time_rev,dl_sop,sop_inv,nsym
+     use parallel_m,     ONLY:PAR_DIPk_ibz_index
+     !
+     integer :: ik,is,ik_mem
+     logical :: t_rev
+     !
+     ik=Xk%sstar(i_kbz,1)
+     is=Xk%sstar(i_kbz,2)
+     !
+     if ( is<= nsym/(i_time_rev+1) ) t_rev=.false.
+     if ( is > nsym/(i_time_rev+1) ) t_rev=.true.
+     !
+     is = sop_inv( is )
+     !      
+     ik_mem    = PAR_DIPk_ibz_index(ik)
+     rotated_iR = matmul( dl_sop(:,:,is) , DIP_iR(:,i_c,i_v,ik_mem,i_spin) )
+     !
+     if (t_rev) rotated_iR = conjg( rotated_iR )
+     !
+   end subroutine
  !
 end subroutine
