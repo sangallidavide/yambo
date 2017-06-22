@@ -139,17 +139,18 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
        !
      enddo
      !
-     write(*,*) i_lambda,i_l,'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l) 
-     !
      ! Angle of the excitonic dipoles against the x direction
      !
      ! Warning define N degenerate angles phi(n)
      vdummy(:) = real(iR_exc(:)) / v_norm(real(iR_exc(:)))
      phi0(i_l)=acos(vdummy(1))
      !
-     P_EXC_square =(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
-&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
-&                 iR_EXC(3)*conjg(iR_EXC(3)) )*real(BS_E(i_l))**2)
+!     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
+!&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
+!&                 iR_EXC(3)*conjg(iR_EXC(3)) ))
+
+      P_EXC_square =real(BS_E(i_l))**2*real(iR_EXC(1)*conjg(iR_EXC(1)))
+
      !
      ! Second: compute the lifetime at q=0
      !==========================================
@@ -172,7 +173,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      !
      exc_energy = real(BS_E(i_l)*HA2EV)
-     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l), DL_vol,eps_2_alpha
+     !
+     write(*,*) 'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l)
+     write(*,*) 'ir_EXC*q0_def_norm2e3', iR_EXC(2)*q0_def_norm, iR_EXC(3)*q0_def_norm
+     !
+     write(10,*) i_lambda,i_l_grp, i_l, exc_energy, P_EXC_square, AU2SEC/gamma0(i_l)
      !
    enddo
    !
