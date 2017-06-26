@@ -60,7 +60,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  complex(SP)        :: Ir_EXC(3),rotated_iR(3)
  !
  real(SP)           :: P_EXC_square
- real(SP)           :: gamma0(BS_H_dim)
+ real(SP)           :: gamma0(BS_H_dim),gamma0_proj(BS_H_dim)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
  !
@@ -149,12 +149,16 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
 !&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
 !&                 iR_EXC(3)*conjg(iR_EXC(3)) ))
 
-      P_EXC_square =real(BS_E(i_l))**2*real(iR_EXC(1)*conjg(iR_EXC(1)))
+      P_EXC_square =real(BS_E(i_l))**2*real(iR_EXC(2)*conjg(iR_EXC(2)))
 
      !
      ! Second: compute the lifetime at q=0
      !==========================================
-     if (l_2D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
+     if (l_2D) then 
+      gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
+      gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
+&       4.*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
+     endif 
      if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi    *real(nkbz)*SPEED_OF_LIGHT**2
      if (l_3D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      if (l_0D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
@@ -174,10 +178,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      !
      exc_energy = real(BS_E(i_l)*HA2EV)
      !
-     write(*,*) 'ir_EXC*q0_def_norm,BS_R', iR_EXC(1)*q0_def_norm, BS_R(i_l)
-     write(*,*) 'ir_EXC*q0_def_norm2e3', iR_EXC(2)*q0_def_norm, iR_EXC(3)*q0_def_norm
-     !
-     write(10,*) i_lambda,i_l_grp, i_l, exc_energy, P_EXC_square, AU2SEC/gamma0(i_l)
+     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l),AU2SEC/gamma0_proj(i_l)
      !
    enddo
    !
