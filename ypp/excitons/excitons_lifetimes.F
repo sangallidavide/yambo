@@ -145,11 +145,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      vdummy(:) = real(iR_exc(:)) / v_norm(real(iR_exc(:)))
      phi0(i_l)=acos(vdummy(1))
      !
-!     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
-!&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
-!&                 iR_EXC(3)*conjg(iR_EXC(3)) ))
+     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
+&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
+&                 iR_EXC(3)*conjg(iR_EXC(3)) ))
 
-      P_EXC_square =real(BS_E(i_l))**2*real(iR_EXC(2)*conjg(iR_EXC(2)))
+!test      P_EXC_square =real(BS_E(i_l))**2*real(iR_EXC(2)*conjg(iR_EXC(2)))
 
      !
      ! Second: compute the lifetime at q=0
@@ -158,16 +158,33 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
       gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
 &       4.*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
+       alpha=real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
+     gamma0_grp=gamma0_grp+gamma0(i_l)
+     !
+     gamma_thermal(:)=gamma_thermal(:)+&
+&       gamma0(i_l)*alpha*(2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2)
+     !
+     gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      endif 
-     if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi    *real(nkbz)*SPEED_OF_LIGHT**2
-     if (l_3D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
-     if (l_0D) gamma0(i_l) =                      P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
+     if (l_1D) gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
+       alpha=  4.*SQRT(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
+     if (l_3D) then
+      gamma0(i_l) =  (1./DL_vol)*P_EXC_square*16.*pi**1.5/((real(BS_E(i_l)))**2*real(nkbz)*SPEED_OF_LIGHT**3)
+      alpha=(real(BS_E(i_l))**2*HA2EV/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))**1.5
+      gamma0_grp=gamma0_grp+gamma0(i_l)
+     !
+     gamma_thermal(:)=gamma_thermal(:)+&
+&       gamma0(i_l)*alpha*sin(phi(:)+phi0(i_l))**2
+     !
+     gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
+
+     endif
+     if (l_0D) gamma0(i_l) =   P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      !
      !
      ! Third: define temperature and angle dependent lifetime
      !=======================================================
      !
-     alpha=real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
      !
      gamma0_grp=gamma0_grp+gamma0(i_l)
      !
