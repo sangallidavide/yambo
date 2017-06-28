@@ -61,13 +61,14 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  !
  real(SP)           :: P_EXC_square
  real(SP)           :: gamma0(BS_H_dim),gamma0_proj(BS_H_dim)
- real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,beta,tau_exp,tau0_grp
+ real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
  !
  !
  real(SP)           :: phi(EXC_Phi_Grid),exc_energy
  real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
+ real(SP)           :: alpha1(EXC_Phi_Grid)
  !
  !
   Phi_Grid_size = EXC_Phi_Grid
@@ -159,23 +160,23 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
       gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
 &       4.*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
       alpha=real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
-      beta = 2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2
+      alpha1(:)=2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2
      endif 
      if (l_1D) then 
       write(6,*) 'not yet implemented' 
       stop
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
-      alpha=  4.*SQRT(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
+      alpha= 4.*SQRT(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
      endif
      if (l_3D) then
       gamma0(i_l) =  (1./DL_vol)*P_EXC_square*16.*pi**1.5/((real(BS_E(i_l)))**2*real(nkbz)*SPEED_OF_LIGHT**3)
       alpha=(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))**1.5
-      beta = sin(phi(:)+phi0(i_l))**2!
+      alpha1(:)=sin(phi(:)+phi0(i_l))**2
      endif
      if (l_0D) gamma0(i_l) =   P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
      !
      gamma0_grp=gamma0_grp+gamma0(i_l)
-     gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*beta
+     gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*alpha1(:)
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
 !     exc_energy = real(BS_E(i_l)*HA2EV)
 !     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l),AU2SEC/gamma0_proj(i_l)
