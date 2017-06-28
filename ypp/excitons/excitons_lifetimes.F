@@ -150,9 +150,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
 &                 iR_EXC(2)*conjg(iR_EXC(2)) + &
 &                 iR_EXC(3)*conjg(iR_EXC(3)) ))
 
-!test      P_EXC_square =real(BS_E(i_l))**2*real(iR_EXC(2)*conjg(iR_EXC(2)))
-
-     !
      ! Second: compute the lifetime at q=0
      !==========================================
      if (l_2D) then 
@@ -178,8 +175,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      gamma0_grp=gamma0_grp+gamma0(i_l)
      gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*alpha1(:)
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
-!     exc_energy = real(BS_E(i_l)*HA2EV)
-!     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l),AU2SEC/gamma0_proj(i_l)
+     exc_energy = real(BS_E(i_l)*HA2EV)
+     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l),AU2SEC/gamma0_proj(i_l)
      !
    enddo
    !
