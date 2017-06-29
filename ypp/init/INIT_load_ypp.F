@@ -36,7 +36,7 @@ use wave_func,     ONLY:wf_ng
  use YPP
 #if defined _YPP_RT
  use YPP_real_time,        ONLY:Eh_pumped_pair_BZ_reagions,RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,&
-&                               Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,Z_input,Eh_pumped_pair_energy,&
+&                               Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,Eh_pumped_pair_energy,&
 &                               n_regions,Eh_pumped_pair_BZ_width
  use real_time,            ONLY:RT_bands
  use stderr,               ONLY:intc
@@ -152,10 +152,6 @@ use wave_func,     ONLY:wf_ng
  call it(defs,'WFReference', 'band and kpt index of reference WF for spin direction',WF_ref,verb_level=V_general)
  !
 #if defined _YPP_RT
- !
- ! QP DBs merge
- !
- call it(defs,'Z_input','input renormalization',Z_input)
  !
  ! RT DBs create
  !
