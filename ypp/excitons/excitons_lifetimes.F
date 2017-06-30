@@ -49,7 +49,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  !
  complex(SP)        :: BS_E(BS_H_dim), BS_R(BS_H_dim) 
  !
- character(schlen)  :: ch_dummy
+ character(schlen)  :: titles(7), ch_dummy
  !
  ! Work Space
  !
@@ -71,6 +71,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  real(SP)           :: alpha1(EXC_Phi_Grid)
  !
  !
+ titles(1)='phi [deg]'
+ titles(2)='Gamma_Therm'
+ titles(3)='Tau_Therm'
   Phi_Grid_size = EXC_Phi_Grid
  !
  call section('=','Computing Excitons radiative lifetimes')
@@ -114,7 +117,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
 &                                     trim(intc(BS_E_degs(i_l_grp)))//' -> '//&
 &                                     trim(intc(BS_E_degs(i_l_grp)+n_lambda_deg-1)))
    !
-   write(*,*) ' '
    !
    ch_dummy='exc_lifetimes_at_'//trim(intc(i_l_grp))
    call of_open_close(ch_dummy,'ot')
@@ -150,7 +152,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
 &                 iR_EXC(2)*conjg(iR_EXC(2)) + &
 &                 iR_EXC(3)*conjg(iR_EXC(3)) ))
 
-     ! Second: compute the lifetime at q=0
+     ! Second: compute the lifetime at q=0  and the prefactors for finite T
      !==========================================
      if (l_2D) then 
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
@@ -164,6 +166,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
       stop
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
       alpha= 4.*SQRT(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
+      alpha1(:)= 1.
      endif
      if (l_3D) then
       gamma0(i_l) =  (1./DL_vol)*P_EXC_square*16.*pi**1.5/((real(BS_E(i_l)))**2*real(nkbz)*SPEED_OF_LIGHT**3)
@@ -189,6 +192,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    !
    call msg('o exc_life',"# ","tau zero = "//trim(real2ch(tau0_grp)),INDENT=0)
    call msg('o exc_life',"# ","tau exp  = "//trim(real2ch(tau_exp)),INDENT=0)
+!
+   call msg('o exc_life','#',titles(:3),INDENT=0,USE_TABS=.true.)
+!
    do i_grid=1,Phi_grid_size
     tau_thermal(i_grid)= AU2SEC/gamma_thermal(i_grid)
      call msg('o exc_life',' ',(/phi(i_grid),gamma_thermal(i_grid),tau_thermal(i_grid)/),INDENT=0,USE_TABS=.true.)
