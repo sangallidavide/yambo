@@ -148,12 +148,12 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      vdummy(:) = real(iR_exc(:)) / v_norm(real(iR_exc(:)))
      phi0(i_l)=acos(vdummy(1))
      !
-     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
-&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
-&                 iR_EXC(3)*conjg(iR_EXC(3)) ))
+!     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
+!&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
+!&                 iR_EXC(3)*conjg(iR_EXC(3)) ))
 
-!     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1))  &
-!&                 ))
+     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1))  &
+&                 ))
 
 
      ! Second: compute the lifetime at q=0  and the prefactors for finite T
@@ -183,11 +183,14 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*alpha1(:)
      gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      exc_energy = real(BS_E(i_l)*HA2EV)
-      write (6,*) eps_2_alpha,DL_vol,q0_def_norm,nkbz
-     write(10,*) i_l, exc_energy, AU2SEC/gamma0(i_l),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
-     write(11,*) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))
+     write (6,*) eps_2_alpha,DL_vol,q0_def_norm,nkbz
+     write(10,111) i_l, exc_energy, 2.*gamma0(i_l),AU2SEC/(2.*gamma0(i_l)),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
+     write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
+&    real(iR_EXC(1)*conjg(iR_EXC(1)))
      !
    enddo
+ 111 format (i4,5d15.7)
+ 112 format (2i4,3d15.7)
    !
    tau0_grp= AU2SEC/gamma0_grp
    tau_exp = AU2SEC/gamma_exp
