@@ -221,9 +221,9 @@ use wave_func,     ONLY:wf_ng
  ! Exciton lifetimes
  !
  call it(defs,'NonPDirs','[EXC life] Non periodic chartesian directions (X,Y,Z,XY...)',non_periodic_directions)
- call it(defs,'Texc'    ,'[EXC life] ',EXC_temp,T_unit,verb_level=V_general)
- call it(defs,'Mexc'    ,'[EXC life] ',EXC_mass)
- call it(defs,'PhiGrid' ,'[EXC life] ',EXC_Phi_Grid)
+ call it(defs,'Texc'    ,'[EXC life] Temp',EXC_temp,T_unit)
+ call it(defs,'Mexc'    ,'[EXC life] Mass',EXC_mass)
+ call it(defs,'PhiGrid' ,'[EXC life] angle grid',EXC_Phi_Grid)
  !
  ! WFs
  !
