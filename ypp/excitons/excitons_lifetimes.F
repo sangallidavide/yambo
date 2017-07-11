@@ -209,6 +209,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      call msg('o exc_life',' ',(/phi(i_grid)*180._SP/PI,gamma_thermal(i_grid),tau_thermal(i_grid)/),INDENT=0,USE_TABS=.true.)
    enddo
    !
+  call of_open_close(ch_dummy)
+   !
  enddo
  !
  contains
