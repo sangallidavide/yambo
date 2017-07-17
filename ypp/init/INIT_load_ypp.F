@@ -224,6 +224,7 @@ use wave_func,     ONLY:wf_ng
  call it(defs,'Texc'    ,'[EXC life] Temp',EXC_temp,T_unit)
  call it(defs,'Mexc'    ,'[EXC life] Mass',EXC_mass)
  call it(defs,'PhiGrid' ,'[EXC life] angle grid',EXC_Phi_Grid)
+ call it(defs,'Excshift'  ,'[EXC life] Energy shift',EXC_shift,E_unit)
  !
  ! WFs
  !

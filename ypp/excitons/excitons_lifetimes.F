@@ -33,7 +33,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
  use X_m,           ONLY:X_t,DIP_iR,eps_2_alpha
- use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid
+ use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:v_norm
  use IO_m,          ONLY:io_DIP
@@ -137,6 +137,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
        f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
        call GET_the_rotated_iR()
+     
        !
        iR_EXC(:)=iR_EXC(:) - rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
@@ -162,7 +163,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
       gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
 &       8.*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
-      alpha=real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
+      alpha=(real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
       alpha1(:)=2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2
      endif 
      if (l_1D) then 
