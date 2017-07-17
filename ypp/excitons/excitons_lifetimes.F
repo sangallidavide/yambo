@@ -175,7 +175,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      endif
      if (l_3D) then
       gamma0(i_l) =  (1./DL_vol)*P_EXC_square*16.*pi**1.5/((real(BS_E(i_l)))**2*real(nkbz)*SPEED_OF_LIGHT**3)
-      alpha=(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))**1.5
+      alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))**1.5
       alpha1(:)=sin(phi(:)+phi0(i_l))**2
      endif
      if (l_0D) gamma0(i_l) =   P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
