@@ -170,7 +170,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
       write(6,*) 'not yet implemented' 
       stop
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
-      alpha= 4.*SQRT(real(BS_E(i_l))**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
+      alpha= 4.*SQRT((real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
       alpha1(:)= 1.
      endif
      if (l_3D) then
@@ -186,7 +186,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      if (l_0D) stop 
      if (l_2D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      if (l_3D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(2._SP/3._SP)
-     exc_energy = real(BS_E(i_l)*HA2EV)
+     exc_energy = (real(BS_E(i_l)-EXC_shift)*HA2EV)
      write (6,*) EXC_temp,EXC_mass,eps_2_alpha,DL_vol,q0_def_norm,nkbz
      write(10,111) i_l, exc_energy, 2.*gamma0(i_l),AU2SEC/(2.*gamma0(i_l)),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
      write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
