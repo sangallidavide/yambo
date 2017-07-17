@@ -177,6 +177,7 @@ module YPP
  real(SP)          :: EXC_temp
  real(SP)          :: EXC_mass
  real(SP)          :: EXC_shift
+ real(SP)          :: epsi0
  integer           :: EXC_Phi_Grid
  
  !

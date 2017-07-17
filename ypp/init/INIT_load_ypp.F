@@ -225,6 +225,7 @@ use wave_func,     ONLY:wf_ng
  call it(defs,'Mexc'    ,'[EXC life] Mass',EXC_mass)
  call it(defs,'PhiGrid' ,'[EXC life] angle grid',EXC_Phi_Grid)
  call it(defs,'Excshift'  ,'[EXC life] Energy shift',EXC_shift,E_unit)
+ call it(defs,'Epsi0'  ,'[EXC life] static dielectric constant',epsi0)
  !
  ! WFs
  !

@@ -535,7 +535,7 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
    !
    ! GPL_EXCLUDE_START
    !
-   if (l_exc_rad_life) call initactivate(1,"NonPDirs Texc Mexc PhiGrid Degen_Step Excshift")
+   if (l_exc_rad_life) call initactivate(1,"NonPDirs Texc Mexc PhiGrid Degen_Step Excshift Epsi0")
    !
    ! GPL_EXCLUDE_END
    !

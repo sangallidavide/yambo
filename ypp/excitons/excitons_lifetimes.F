@@ -33,7 +33,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
  use X_m,           ONLY:X_t,DIP_iR,eps_2_alpha
- use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift
+ use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:v_norm
  use IO_m,          ONLY:io_DIP
@@ -174,7 +174,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
       alpha1(:)= 1.
      endif
      if (l_3D) then
-      gamma0(i_l) =  (1./DL_vol)*P_EXC_square*16.*pi**1.5/((real(BS_E(i_l)))**2*real(nkbz)*SPEED_OF_LIGHT**3)
+      gamma0(i_l) =  (sqrt(epsi0)/DL_vol)*P_EXC_square*4.*pi**1.5/((real(BS_E(i_l)))**2*real(nkbz))
       alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2))**1.5
       alpha1(:)=sin(phi(:)+phi0(i_l))**2
      endif
@@ -182,7 +182,10 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      !
      gamma0_grp=gamma0_grp+gamma0(i_l)
      gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*alpha1(:)
-     gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
+     if (l_1D) stop
+     if (l_0D) stop 
+     if (l_2D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
+     if (l_3D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(2._SP/3._SP)
      exc_energy = real(BS_E(i_l)*HA2EV)
      write (6,*) EXC_temp,EXC_mass,eps_2_alpha,DL_vol,q0_def_norm,nkbz
      write(10,111) i_l, exc_energy, 2.*gamma0(i_l),AU2SEC/(2.*gamma0(i_l)),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
