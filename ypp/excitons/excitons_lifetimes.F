@@ -69,6 +69,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  real(SP)           :: alpha1(EXC_Phi_Grid)
+ real(SP)           :: num,den,tau_eff,gamma_eff,arg
  !
  !
  titles(1)='phi [deg]'
@@ -106,6 +107,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    tau_thermal(:)=0._SP
    tau_exp =0._SP
    tau0_grp=0._SP
+   num = 0._SP
+   den = 0._SP
    !
    i_l_grp=lambda_s(i_lambda)
    !
@@ -186,18 +189,23 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      if (l_0D) stop 
      if (l_2D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
      if (l_3D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(2._SP/3._SP)
-     exc_energy = (real(BS_E(i_l)-EXC_shift)*HA2EV)
-     write (6,*) EXC_temp,EXC_mass,eps_2_alpha,DL_vol,q0_def_norm,nkbz
-     write(10,111) i_l, exc_energy, 2.*gamma0(i_l),AU2SEC/(2.*gamma0(i_l)),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
-     write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
-&    real(iR_EXC(1)*conjg(iR_EXC(1)))
      !
+     exc_energy = (real(BS_E(i_l)-EXC_shift)*HA2EV)
+     tau0_grp= AU2SEC/gamma0_grp
+     tau_exp = AU2SEC/gamma_exp
+!
+     arg =real(BS_E(i_l)-BS_E(1))/EXC_temp
+     num = num + dexp(-arg)*gamma_exp
+     den = den + dexp(-arg)
+     gamma_eff = num/den
+     tau_eff = AU2SEC/gamma_eff
+     write (9,*) i_l, BS_E(1)*HA2EV,BS_E(i_l)*HA2EV,gamma_eff,tau_eff
+!     write(10,111) i_l, exc_energy, 2.*gamma0(i_l),AU2SEC/(2.*gamma0(i_l)),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
+!     write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
+!&    real(iR_EXC(1)*conjg(iR_EXC(1)))
    enddo
- 111 format (i4,5d15.7)
- 112 format (2i4,3d15.7)
-   !
-   tau0_grp= AU2SEC/gamma0_grp
-   tau_exp = AU2SEC/gamma_exp
+! 111 format (i4,5d15.7)
+! 112 format (2i4,3d15.7)
    !
    call msg('o exc_life',"# ","exc. E = "//trim(real2ch(exc_energy)),INDENT=0)
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)
@@ -205,6 +213,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    !
    call msg('o exc_life',"# ","tau zero = "//trim(real2ch(tau0_grp)),INDENT=0)
    call msg('o exc_life',"# ","tau exp  = "//trim(real2ch(tau_exp)),INDENT=0)
+   call msg('o exc_life',"# ","tau eff  = "//trim(real2ch(tau_eff)),INDENT=0)
 !
    call msg('o exc_life','#',titles(:3),INDENT=0,USE_TABS=.true.)
 !
