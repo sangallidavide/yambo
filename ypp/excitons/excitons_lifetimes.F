@@ -57,9 +57,9 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  integer            :: neh,i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin 
  integer            :: Phi_grid_size
  !
- complex(SP)        :: Ir_EXC(3),rotated_iR(3)
+ complex(SP)        :: Ir_EXC(3),rotated_iR(3),P_EXC(3)
  !
- real(SP)           :: P_EXC_square
+ real(SP)           :: P_EXC_square,Px_EXC_square,Py_EXC_square
  real(SP)           :: gamma0(BS_H_dim),gamma0_proj(BS_H_dim)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
  integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
@@ -109,6 +109,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    tau0_grp=0._SP
    num = 0._SP
    den = 0._SP
+   alpha = 0._SP
+   alpha1(:) = 0._SP
    !
    i_l_grp=lambda_s(i_lambda)
    !
@@ -124,7 +126,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
    ch_dummy='exc_lifetimes_at_'//trim(intc(i_l_grp))
    call of_open_close(ch_dummy,'ot')
    !
-   ! First compute the excitonic dipoles
+   ! First compute the excitonic dipoles <mu>  starting from indipendent-particle
+   ! ones
    !==========================================
    !
    do i_l=BS_E_degs(i_l_grp),BS_E_degs(i_l_grp)+n_lambda_deg-1
@@ -150,24 +153,36 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      !
      ! Warning define N degenerate angles phi(n)
      vdummy(:) = real(iR_exc(:)) / v_norm(real(iR_exc(:)))
+!     vdummy(:) = aimag(iR_exc(:)) / v_norm(aimag(iR_exc(:)))
      phi0(i_l)=acos(vdummy(1))
+!     phi0(i_l) = 0._SP
      !
+!  exciton dipole modulus square |P_S|^2 
+
      P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
 &                 iR_EXC(2)*conjg(iR_EXC(2)) + &
 &                 iR_EXC(3)*conjg(iR_EXC(3)) ))
-
 !     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1))  &
 !&                 ))
+!  exciton dipole P_Sx, P_Sy,P_Sz components
 
-
-     ! Second: compute the lifetime at q=0  and the prefactors for finite T
+      P_EXC(:) =BS_E(i_l)*iR_EXC(:)
+      Px_EXC_square = real(P_EXC(1)*conjg(P_EXC(1)))
+      Py_EXC_square = real(P_EXC(2)*conjg(P_EXC(2)))
+     ! compute the lifetime at q=0  gamma(0) and the prefactors for finite T
      !==========================================
      if (l_2D) then 
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/(real(BS_E(i_l))*SPEED_OF_LIGHT*real(nkbz))
       gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
-&       8.*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
-      alpha=(real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2)
-      alpha1(:)=2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2
+&       8._SP*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
+      alpha=(real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass*EXC_temp*SPEED_OF_LIGHT**2) 
+      alpha1(:)=2._SP*sin(phi(:)+phi0(i_l))**2+2._SP/3._SP*cos(phi(:)+phi0(i_l))**2 *  &
+&       (Px_EXC_square/P_EXC_square) + &
+&         2._SP*cos(phi(:)+phi0(i_l))**2+2._SP/3._SP*sin(phi(:)+phi0(i_l))**2 *& 
+&       (Py_EXC_square/P_EXC_square) + &
+&       - 4._SP/3._SP*cos(phi(:)+phi0(i_l))*sin(phi(:)+phi0(i_l))*  &
+&        (conjg(P_EXC(1))*P_EXC(2) + conjg(P_EXC(2))*P_EXC(1))/P_EXC_SQUARE
+      
      endif 
      if (l_1D) then 
       write(6,*) 'not yet implemented' 
@@ -185,6 +200,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      !
      gamma0_grp=gamma0_grp+gamma0(i_l)
      gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*alpha1(:)
+!     gamma_thermal(:)=gamma_thermal(:)+ alpha1(:)
      if (l_1D) stop
      if (l_0D) stop 
      if (l_2D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
@@ -200,11 +216,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      gamma_eff = num/den
      tau_eff = AU2SEC/gamma_eff
      write (9,*) i_l, BS_E(1)*HA2EV,BS_E(i_l)*HA2EV,gamma_eff,tau_eff
-!     write(10,111) i_l, exc_energy, 2.*gamma0(i_l),AU2SEC/(2.*gamma0(i_l)),gamma0_proj(i_l),AU2SEC/gamma0_proj(i_l)
+     write(10,111) i_l,phi0(i_l),exc_energy, alpha1(1),alpha1(5),alpha1(10),alpha1(20)
 !     write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
 !&    real(iR_EXC(1)*conjg(iR_EXC(1)))
    enddo
-! 111 format (i4,5d15.7)
+   111 format (i4, 6d15.7)
 ! 112 format (2i4,3d15.7)
    !
    call msg('o exc_life',"# ","exc. E = "//trim(real2ch(exc_energy)),INDENT=0)
