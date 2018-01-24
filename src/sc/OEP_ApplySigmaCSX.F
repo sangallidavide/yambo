@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2017 the YAMBO team
+!        Copyright (C) 2000-2018 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): MG
@@ -174,8 +174,8 @@ subroutine OEP_ApplySigmaCSX(X,Xw,E,k,q,U_csx)
          ifft=WF%index(iv1,ik,1)
          offt=WF%index(iv2,isc%os(2),1)
          rhotw_rs(:)=E%f(iv2,isc%os(2),1)/spin_occ
-         if (lostr)      rhotw_rs(1:fft_size)=rhotw_rs(:)*conjg(WF%c(fft_rot_r(1:fft_size,os),offt))
-         if (.not.lostr) rhotw_rs(1:fft_size)=rhotw_rs(:)*WF%c(fft_rot_r(1:fft_size,os),offt)
+         if (lostr)      rhotw_rs(1:fft_size)=rhotw_rs(:)*conjg(WF%c(fft_rot_r(1:fft_size,os),1,offt))
+         if (.not.lostr) rhotw_rs(1:fft_size)=rhotw_rs(:)*WF%c(fft_rot_r(1:fft_size,os),1,offt)
          local_u(:) =  u_rs(fft_rot_r(:,iqs))*rhotw_rs(:)
          U_csx(ik,iv1,:) = U_csx(ik,iv1,:)-local_u(:)
           call live_timing(steps=1)

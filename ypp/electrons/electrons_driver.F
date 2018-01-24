@@ -1,5 +1,5 @@
 ! 
-!        Copyright (C) 2000-2017 the YAMBO team
+!        Copyright (C) 2000-2018 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -47,10 +47,12 @@ subroutine electrons_driver(Xk,Xen,Xq)
  use R_lattice,      ONLY:qindx_S
 #endif
 #if defined _YPP_RT
+ use pars,           ONLY:cZERO
  use YPP_real_time,  ONLY:l_RT_bands
 #endif
 #if defined _YPP_ELPH
  use YPP_ELPH,       ONLY:elph_residual_treshold
+ use pars,           ONLY:cZERO
  use ELPH,           ONLY:elph_Ham_bands
  use com,            ONLY:jobstr,file_exists
  use R_lattice,      ONLY:nkibz
@@ -58,7 +60,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
 #if defined _YPP_MAGNETIC
  use YPP,            ONLY:l_angular_momentum,l_position
 #endif
- use interfaces,     ONLY:WF_load,el_density_and_current,PARALLEL_WF_index,PARALLEL_global_indexes,PARALLEL_WF_distribute
+ use interfaces,     ONLY:WF_load,WF_free,el_density_and_current,PARALLEL_WF_index,PARALLEL_global_indexes,PARALLEL_WF_distribute
  !
 #include<memory.h>
  !
@@ -68,7 +70,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
  ! Work Space
  !
  real(SP), allocatable :: el_den(:),el_cur(:,:)
- integer               :: i_qp,ik,ib,ibp,ir,i_wf,i_wfp,i_sp_pol,mag_i_dir,nb_to_load(2),nkpt_to_load(2),ik_ref
+ integer               :: i_qp,ik,i_sp_pol,ib,ibp,ir,i_wf,mag_i_dir,nb_to_load(2),nkpt_to_load(2),ik_ref
  logical               :: flag
  character(lchlen)     :: ch_ws(2)
 #if defined _YPP_ELPH
@@ -121,9 +123,11 @@ subroutine electrons_driver(Xk,Xen,Xq)
 #if defined _YPP_MAGNETIC
  if (.not.flag) flag=any((/l_angular_momentum,l_position/))
 #endif
+ !GPL_EXCLUDE_START
 #if defined _YPP_RT
  if (.not.flag) flag=l_RT_bands
 #endif
+ !GPL_EXCLUDE_END
 #if defined _YPP_SC
  if (.not.flag) flag=l_mean_potential
 #endif
@@ -260,7 +264,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
        !
        if  (polaronic_residual(i_st)<elph_residual_treshold/100.*maxval(polaronic_residual(:n_top_residuals))) cycle
        !
-       v2plot_c=cmplx(0.,SP)
+       v2plot_c=cZERO
        !
        db_name=trim(jobstr)//'/EIGENV_I'//trim(intc(top_residual(i_st)))//'_k'//trim(intc(ik))
        open(unit=100,file=trim(db_name),form='unformatted')
@@ -272,7 +276,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
            !
            i_wf=WF%index(ib,ik,1)
            !
-           forall(ir=1:fft_size) v2plot_c(ir)=v2plot_c(ir)+WF%c(ir,i_wf)
+           forall(ir=1:fft_size) v2plot_c(ir)=v2plot_c(ir)+WF%c(ir,1,i_wf)
            !
          else
            !
@@ -370,7 +374,6 @@ subroutine electrons_driver(Xk,Xen,Xq)
      if (.not.l_mean_potential) then
 #endif
        i_wf=WF%index(ib,ik,i_sp_pol)
-       if (n_spinor==2) i_wfp=WF%index(ib,ik,2)
 #if defined _YPP_SC
      endif
 #endif
@@ -385,8 +388,8 @@ subroutine electrons_driver(Xk,Xen,Xq)
 #if defined _YPP_SC
      if (.not.l_mean_potential) then 
 #endif
-       forall(ir=1:fft_size) v2plot(ir)=real( WF%c(ir,i_wf)*conjg( WF%c(ir,i_wf) ) )
-       if (n_spinor==2) forall(ir=1:fft_size) v2plot(ir)=v2plot(ir) + real( WF%c(ir,i_wfp)*conjg( WF%c(ir,i_wfp) ) )
+       forall(ir=1:fft_size) v2plot(ir)=real( WF%c(ir,1,i_wf)*conjg( WF%c(ir,1,i_wf) ) )
+       if (n_spinor==2) forall(ir=1:fft_size) v2plot(ir)=v2plot(ir) + real( WF%c(ir,2,i_wf)*conjg( WF%c(ir,2,i_wf) ) )
 #if defined _YPP_SC
      endif
 #endif

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2017 the YAMBO team
+!        Copyright (C) 2000-2018 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -201,7 +201,7 @@ subroutine bz_samp_indexes(k,Xk,q)
    !
  else
    !
-   call msg('nrsn','[RL indx] X grid is not uniform.  Gamma point only.')
+   call msg('nrsn','[RL indx] X grid is not uniform. Gamma point only.')
    call q_shadows(.true.)
    gamma_point_only=.true.
    bse_scattering=.false.
@@ -286,7 +286,7 @@ subroutine bz_samp_indexes(k,Xk,q)
  ! qindx_C(ikbz,iqbz,1)=okbz
  ! qindx_C(ikbz,iqbz,2)=iGo
  !
- do ikbz=1,Xk%nbz
+ do ikbz=1,k%nbz
    !
    ikibz=k%sstar(ikbz,1)
    iks  =k%sstar(ikbz,2)
@@ -312,7 +312,18 @@ subroutine bz_samp_indexes(k,Xk,q)
      if (coll_scattering) qindx_C(ikbz,iqbz,2)=G_index(v1)
    enddo
    !
-   if (any(qindx_S(ikibz,:,:)==0)) call error(' Null transition detected [qindx_S]')
+   if (any(qindx_S(ikibz,:,:)==0)) then
+     !
+     call warning(' Null transition detected [qindx_S]. Gamma point only.')
+     call q_shadows(.true.)
+     !
+     Xk_grid_is_uniform=.false.
+     bse_scattering=.false.
+     gamma_point_only=.true.
+     !
+     exit
+     !
+   endif
    !
    call live_timing(steps=1)
    !
@@ -430,7 +441,6 @@ subroutine bz_samp_indexes(k,Xk,q)
        nqibz=1
        q%nibz=1
        q%nbz=1
-       return
      endif
      !
      if (.not.allocated(q_pt)) then
@@ -447,10 +457,12 @@ subroutine bz_samp_indexes(k,Xk,q)
      endif
      !
      if (force_gamma_only) then
-       q%pt=0.
-       q_pt=0.
+       YAMBO_ALLOC(q%pt,(q%nibz,3))
+       YAMBO_ALLOC(q_sstar,(q%nbz,2))
+       q%pt=0._SP
+       q_pt=0._SP
        k_pt=k%pt
-       q_sstar=1
+       if(allocated(q_sstar)) q_sstar=1
        q_norm=q0_def_norm
      else
        q_pt=q%pt

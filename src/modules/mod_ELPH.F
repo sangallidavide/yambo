@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2017 the YAMBO team
+!        Copyright (C) 2000-2018 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -102,8 +102,8 @@ module ELPH
        case ('gkkp')
          !
          if (.not.allocated(elph_gkkp)) then
-           YAMBO_ALLOC(elph_gkkp,(nkbz,ph_modes,elph_nb,elph_nb))
-           YAMBO_ALLOC(elph_DW,(nkbz,ph_modes,elph_nb,elph_nb))
+           YAMBO_ALLOC(elph_gkkp,(ph_modes,elph_nb,elph_nb,nkbz))
+           YAMBO_ALLOC(elph_DW,(ph_modes,elph_nb,elph_nb,nkbz))
            YAMBO_ALLOC(f_k_plus_q,(elph_nb,nkbz,1))
          endif
          !

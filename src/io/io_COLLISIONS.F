@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2017 the YAMBO team
+!        Copyright (C) 2000-2018 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM CA DS
@@ -209,7 +209,7 @@ integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
  !
  if (IO_mode(ID)==VERIFY.and.allocated(COLL%IO_status)) then
    !
-   COLL%IO_status=1
+   COLL%IO_status=-1
    do i_coll_loop=1,COLL%N
      if (.not.COLL%PAR_IND%element_1D(i_coll_loop)) cycle
      io_extension(ID)=io_raw_extension(ID)
