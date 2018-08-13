@@ -102,7 +102,7 @@ module interfaces
      logical,  optional, intent(in) ::force_spatial_inversion
    end subroutine el_density_and_current
    !
-   subroutine el_density_of_states(Xk,Xen,dos_E,dos_broadening,dos_bands,dos_value,&
+   subroutine el_density_of_states(Xk,Xen,dos_E,DOS_broadening,DOS_bands,dos_value,&
 &                                  USE_the_DbGd,USE_Eo,WF_fac)
      use pars,           ONLY:SP
      use electrons,      ONLY:levels
@@ -111,17 +111,16 @@ module interfaces
      implicit none
      type(bz_samp), intent(in)  :: Xk
      type(levels),  intent(in)  :: Xen
-     real(SP),      intent(in)  :: dos_E,dos_broadening
-     integer,       intent(in)  :: dos_bands(2)
+     real(SP),      intent(in)  :: dos_E,DOS_broadening
+     integer,       intent(in)  :: DOS_bands(2)
      real(SP),      intent(out) :: dos_value(n_spin)
      logical,  optional, intent(in) :: USE_Eo
      logical,  optional, intent(in) :: USE_the_DbGd
-     real(SP), optional, intent(in) :: WF_fac(dos_bands(1):dos_bands(2),Xk%nibz,2)
+     real(SP), optional, intent(in) :: WF_fac(DOS_bands(1):DOS_bands(2),Xk%nibz,2)
    end subroutine el_density_of_states
    !
 #if defined _SLEPC
-   subroutine MATRIX_slepc(A,n_eig,E_real,E_cmpl,V_right,V_left,target_energy,&
-&                          extraction,slepc_ncv,slepc_tol)
+   subroutine MATRIX_slepc(A,n_eig,target_energy,extraction,slepc_ncv,slepc_tol,V_right,V_left,E_real,E_cmpl)
      !
      use pars,           ONLY:SP,schlen
 #include <petsc/finclude/petscsys.h>
@@ -129,14 +128,17 @@ module interfaces
      !
      Mat                         :: A            ! matrix to diagonalize of stype from slepc
      integer                     :: n_eig        ! number of eigenvalues to compute
-     complex(SP),  optional      :: V_right(:,:) ! right eigenvalues
+     !real(SP),                   :: target_energy! energy near where to find the eigenvalues
+     !real(SP),                   :: slepc_tol    ! tolerance of the iterative solver
+     character(schlen)           :: extraction   ! extraction method for the eigenvalues
+     ! integer,optional            :: slepc_ncv    ! dimension of the subspace
+     PetscReal                   :: target_energy
+     PetscReal                   :: slepc_tol
+     PetscFortranInt             :: slepc_ncv
+     complex(SP)                 :: V_right(:,:) ! right eigenvalues
      complex(SP),  optional      :: V_left(:,:)  ! left eigenvalues
      complex(SP),  optional      :: E_cmpl(:)    ! complex eigenvalues
      real(SP),     optional      :: E_real(:)    ! real eigenvalues
-     real(SP),     optional      :: target_energy! energy near where to find the eigenvalues
-     real(SP),     optional      :: slepc_tol    ! tolerance of the iterative solver
-     character(schlen), optional :: extraction   ! extraction method for the eigenvalues
-     integer,optional            :: slepc_ncv    ! dimension of the subspace
      !
    end subroutine
 #endif
@@ -281,6 +283,17 @@ module interfaces
      real(SP)    ,optional:: PRE_FAC(N)
      integer     ,optional:: MAP(N)
    end subroutine QP_DBs_merge
+   !
+   integer function io_DB1_selective_scan(what,DB1_path,E,k,db1_alat,db1_a)
+     use pars,       ONLY:SP
+     use electrons,  ONLY:levels
+     use R_lattice,  ONLY:bz_samp
+     type(levels)      :: E
+     type(bz_samp)     :: k
+     character(*)      :: DB1_path,what
+     real(SP),optional :: db1_a(3,3)
+     real(SP),optional :: db1_alat(3) 
+   end function
    !
  end interface
  !

@@ -69,9 +69,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  use xc_functionals, ONLY:V_xc,XC_LDA_C_PZ,XC_potential_driver
  use global_XC,      ONLY:WF_kind,WF_xc_functional 
  use collision_ext,  ONLY:COLLISIONS_have_HARTREE
-#if defined _TIMING
  use timing_m,       ONLY:timing
-#endif
  !
  implicit none
  !
@@ -87,9 +85,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  real(SP),    allocatable :: delta_rho(:),delta_magn(:,:),E_new
  complex(SP), allocatable :: V_scf(:),V_scf_grad(:,:),V_xc_mat(:,:,:)
  !
-#if defined _TIMING
  call timing('RT Hamiltonian',OPR='start')
-#endif
  !
  ! Contribution from \delta\Sigma_coherent
  !=========================================
@@ -141,6 +137,8 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
      V_xc_sc=V_xc-REF_V_xc_sc
    endif
    !
+   ! GPL_EXCLUDE_START
+   !
    ! Update of SOC term
    !
    if(n_spinor==2 .and. l_update_SOC ) then
@@ -158,6 +156,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
      deallocate(V_scf)
    endif
    !
+   ! GPL_EXCLUDE_END
    !
    ! Add H_nl_sc to Ho_plus_Sigma 
    !---------------------------------
@@ -169,7 +168,9 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
        if (n_spinor==2 ) then
          if(eval_HARTREE)  call V_real_space_to_H(ik,1,V_hartree_sc,H_nl_sc,WF,'def')
          if(eval_DFT)      call V_real_space_to_H(ik,1,V_xc_sc     ,H_nl_sc,WF,'xc ')
+         ! GPL_EXCLUDE_START
          if(l_update_SOC)  call Vgrad_real_space_to_H(ik,V_scf_grad,H_nl_sc,WF)
+         ! GPL_EXCLUDE_END
        endif
        forall(ik_RT=RT_ibz_coo(ik,1):RT_ibz_coo(ik,2)) Ho_plus_Sigma(:,:,ik_RT,1)=H_nl_sc
      enddo
@@ -247,6 +248,8 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  !=========
  call PP_redux_wait(Ho_plus_Sigma)
  !
+ ! GPL_EXCLUDE_START
+ !
  ! The Energies (only) update
  !==========================
  if (l_update_QP_Energies) then
@@ -273,8 +276,8 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
    call PP_redux_wait(RT_E_and_k%En) !,COMM=PAR_COM_Xk_ibz_INDEX%COMM)
  endif
  !
-#if defined _TIMING
+ ! GPL_EXCLUDE_END
+ !
  call timing('RT Hamiltonian',OPR='stop')
-#endif
  !
 end subroutine RT_Hamiltonian

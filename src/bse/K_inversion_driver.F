@@ -40,12 +40,10 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  use interfaces,     ONLY:PARALLEL_index,PARALLEL_live_message,MATRIX_duplicate
  use IO_m,           ONLY:io_control,REP,NONE,OP_WR_CL
  use matrix,         ONLY:MATRIX_reset
+ use timing_m,       ONLY:timing
 #if defined _SCALAPACK
  use interfaces,     ONLY:MATRIX_transfer
  use parallel_m,     ONLY:linear_algebra_is_parallel
-#endif
-#if defined _TIMING
- use timing_m,       ONLY:timing
 #endif
 #if defined _RT
  use RT_control,     ONLY:NEQ_Residuals,NEQ_Kernel
@@ -90,9 +88,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  integer           :: i_err,ID,Lo_dim,Lo_n_loop
  integer, external :: io_BSS_invert
  !
-#if defined _TIMING
  call timing('Inversion Solver',OPR='start')
-#endif
  !
  ! Sectioning
  !============
@@ -150,7 +146,8 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  !
  ! Kernel and/or BSS components loading
  !======================================
- call K_components_folded_in_serial_arrays(iq,"INV")
+ call K_components_folded_in_serial_arrays(iq)
+ call K_stored_in_a_big_matrix(iq,"INV")
  !
  if (K_slk%kind=="SLK") then
    !
@@ -449,9 +446,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
      call MATRIX_duplicate( "free", M_out=K_inv_slk )
 #endif
      !
-#if defined _TIMING
      call timing('Inversion Solver',OPR='stop')
-#endif
    end subroutine
    !
    subroutine LOCAL_TYP_clean(TYP)

@@ -101,7 +101,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
  call msg('s',':: I/O...')
  call io_control(ACTION=OP_WR_CL,COM=NONE,SEC=(/1,2/),ID=ID)
  io_err=io_DB1(E_new,k,ID)
- call msg('l','done')
+ call msg('s','done')
  !
  ng_closed=ng_closed_save
  wf_nb_io=wf_nb_io_save
@@ -315,7 +315,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
      !
    enddo
    !
-   call msg('l','done')
+   call msg('s','done')
    !
  end select
  ! 
@@ -372,7 +372,7 @@ subroutine map_energies(E,E_new,k,kpoints_map)
  YAMBO_ALLOC(E_new%E,(E%nb,k%nibz,n_sp_pol))
  !
  do ik=1,k%nibz
-   E_new%E(:,ik,:)=E%E(:,kpoints_map(1,ik),:)
+   E_new%E(:,ik,:)=E%E(:,kpoints_map(1,ik),:)+E%E_Fermi
  enddo
  !
 end subroutine map_energies

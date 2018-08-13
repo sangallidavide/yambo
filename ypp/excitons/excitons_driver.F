@@ -23,7 +23,7 @@
 !
 subroutine excitons_driver(k,Xk,en,Xen,q)
  !
- use pars,          ONLY:SP,pi
+ use pars,          ONLY:SP,pi,schlen,lchlen
  use R_lattice,     ONLY:bz_samp
  use com,           ONLY:error
  use stderr,        ONLY:intc
@@ -31,10 +31,9 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use QP_CTL_m,      ONLY:QP_apply
  use electrons,     ONLY:levels,n_spin,n_sp_pol,spin,E_SOC_nbands
  use drivers,       ONLY:l_exc_rad_life
- use YPP,           ONLY:l_sort,l_exc_wf,l_spin,l_amplitude, &
-&                         excitons_sort_and_report
- use IO_m,          ONLY:io_control,OP_RD_CL,DUMP,NONE,REP,VERIFY
- use BS_solvers,    ONLY:BSS_eh_table,BSS_write_eig_2_db,io_BSS_diago,BS_mat,BSS_n_eig
+ use YPP,           ONLY:l_sort,l_exc_wf,l_spin,l_amplitude,excitons_sort_and_report
+ use IO_m,          ONLY:io_control,io_connect,OP_RD_CL,DUMP,NONE,REP,VERIFY
+ use BS_solvers,    ONLY:BSS_eh_table,BSS_write_eig_2_db,io_BSS_diago,BS_mat,BSS_n_eig,variables_BS
  use BS,            ONLY:BS_H_dim,BS_K_dim,BS_bands,BS_q,BS_K_coupling,BS_cpl_mode,&
 &                        BS_cpl_K_exchange,BS_cpl_K_corr
 #if defined _YPP_ELPH
@@ -74,6 +73,8 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  complex(SP), pointer     ::BS_R_kerr(:)       => null()
  !
  integer                  ::iq,neh
+ character(schlen)        ::db_name
+ character(lchlen)        ::local_description(100)
  !
  call section('*','Excitonic Properties')
  !
@@ -91,8 +92,11 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  ! Here I read information from the BS database
  !
+ iq = 1
  call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,SEC=(/1/),ID=io_ID)
- io_err=io_BS(1,Xbsk,io_ID) 
+ write (db_name,'(a,i2.2)') 'BS_diago_Q',iq
+ io_err=io_connect(desc=trim(db_name),type=2,ID=io_ID)
+ io_err=variables_BS(io_ID,local_description,X=Xbsk)
  !
  if (io_err/=0) call error(' ndb.BS not found or not compatible with ypp input')
  !
@@ -115,7 +119,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  n_lambda = get_lambda()
  !
-  l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin .or. l_exc_rad_life
+ l_flag=l_sort .or. (l_exc_wf.and.n_lambda>0) .or. (l_amplitude.and.n_lambda>0) .or. l_spin .or. l_exc_rad_life
 #if defined _YPP_ELPH
  l_flag=l_flag .or. l_eliashberg .or. l_gkkp
 #endif
@@ -142,20 +146,20 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  ! Here I read energies and residuum
  !
  call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,SEC=(/1/),ID=io_ID)
- io_err=io_BSS_diago(iq,io_ID,BS_H_dim,BSS_n_eig,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,BS_R_kerr,BS_R_PL)
+ io_err=io_BSS_diago(iq,io_ID,BS_H_dim,BSS_n_eig,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,BS_R_kerr,BS_R_PL,Xbsk)
  !
  if (io_err/=0) call error(' ndb.BSS_diago not found')
  !
  do i_sec=1,2
    call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/i_sec/),ID=io_ID)
-   io_err=io_BSS_diago(iq,io_ID,BS_H_dim,BSS_n_eig,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,BS_R_kerr,BS_R_PL)
+   io_err=io_BSS_diago(iq,io_ID,BS_H_dim,BSS_n_eig,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,BS_R_kerr,BS_R_PL,Xbsk)
    if (io_err/=0) call error(' ndb.BSS_diago, SEC '//trim(intc(i_sec))//', not compatible with ypp input')
  enddo
 
  !
  ! Sort energies and write to output
  !===================================
- if (l_sort)   call excitons_sort_and_report(Xen,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
+ if (l_sort) call excitons_sort_and_report(Xen,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
  !
  if(.not.l_sort) then
    !
@@ -175,7 +179,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
    YAMBO_ALLOC(BS_mat,(BS_H_dim,BSS_n_eig))
    !
    call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/3/),ID=io_ID)
-   io_err=io_BSS_diago(iq,io_ID,BS_H_dim,BSS_n_eig,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,BS_R_kerr,BS_R_PL)
+   io_err=io_BSS_diago(iq,io_ID,BS_H_dim,BSS_n_eig,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,BS_R_kerr,BS_R_PL,Xbsk)
    if (io_err/=0) call error(' ndb.BSS_diago, SEC 3, not compatible with ypp input')
    !
    ! Create the anti-resonant part of the eh_table
@@ -200,7 +204,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  ! Exciton's Amplitude
  !=====================
  if (l_amplitude)  call excitons_amplitudes(Xk,Xen,BS_E_degs,lambda_s,n_lambda)
- ! 
+ !
  ! Exciton's lifetimes from BSE
  !=======================================
  if (l_exc_rad_life) call excitons_lifetimes(Xbsk,Xen,Xk,q,BS_H_dim,BS_R_right,BS_E,BS_E_degs,lambda_s,n_lambda)

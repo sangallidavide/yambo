@@ -27,7 +27,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  use pars,         ONLY:IP,SP,schlen,pi,cZERO,cI
  use LOGO,         ONLY:pickup_a_random
- use drivers,      ONLY:l_bs_fxc,l_col_cut,l_td_hf,l_bss
+ use drivers,      ONLY:l_bs_fxc,l_td_hf,l_bss
  use frequency,    ONLY:w_samp
  use electrons,    ONLY:levels,spin_occ,spin,n_spin
  use FFT_m,        ONLY:fft_size
@@ -46,21 +46,18 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
 &                       BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                       BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
 &                       BS_oscillators_free,WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
-&                       BS_K_has_been_calculated_loaded,BS_nT_grps,BS_blks_free,l_BSE_minimize_memory
+&                       BS_K_has_been_calculated_loaded,BS_nT_grps,BS_blks_free,&
+&                       l_BSE_minimize_memory, l_restart_bse
  use collision_el, ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use IO_m,         ONLY:io_control,OP_RD_CL,REP,VERIFY,NONE,OP_RD,&
-&                       RD,RD_CL,RD_CL_IF_END,OP_WR_CL,OP_APP_WR_CL,DUMP,&
+&                       RD,RD_CL,RD_CL_IF_END,OP_WR_CL,OP_WR,OP_APP_WR_CL,DUMP,&
 &                       deliver_IO_error_message
  use TDDFT,         ONLY:FXC_K_diagonal,FXC,FXC_n_g_corr,io_BS_Fxc
  use xc_functionals,ONLY:F_xc,XC_potential_driver
  use wrapper_omp,   ONLY:V_dot_V_omp,Vstar_dot_V_omp,M_by_V_omp
  use global_XC,     ONLY:WF_kind,WF_xc_functional
  use wave_func,     ONLY:WF
-#if defined _TIMING
  use timing_m,      ONLY:timing
-#endif
- !
- ! GPL_EXCLUDE_START
  !
 #if defined _KERR
  use KERR,           ONLY:BSS_KERR_free
@@ -68,8 +65,6 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
 #if defined _PL
  use PHOTOLUM,       ONLY:BSS_PL_free
 #endif
- !
- ! GPL_EXCLUDE_END
  !
 #include<memory.h>
  type(levels)  ::Ken 
@@ -121,9 +116,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  call k_build_up_BZ_tables(Xk)
  !
-#if defined _TIMING
  call timing('X T_space Kernel',OPR='start')
-#endif
  !
  ! Titles
  !========
@@ -152,6 +145,24 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  call section('=',trim(section_title))
  !
+ ! Exchange
+ !==========
+ !
+ load_O_X=BS_res_K_exchange.or.l_bs_fxc
+ !
+ if (load_O_X) call msg('r','[BSE] Exchange components :',BS_n_g_exch)
+ !
+ ! PP/Epsm1S DBs
+ !
+ W_is_em1s=X%whoami==2
+ W_is_pp  =X%whoami==4
+ !
+ ! Oscillators Setup
+ !===================
+ O_ng=maxval(G_m_G)
+ !
+ if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) call fft_check_size(1,O_ng,BS_n_g_exch)
+ !
  ! GPL_EXCLUDE_START
  !
  if (l_bs_fxc)      call section('=','Bethe-Salpeter Kernel -> xc-kernel')
@@ -169,6 +180,8 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
    !
    ! GPL_EXCLUDE_END
    !
+#if defined _PAR_IO
+#else
    call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1/),ID=ID)
    io_BS_err=io_BS(iq,X,ID)
    !
@@ -180,6 +193,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        io_BS_err=io_BS(iq,X,ID)
      enddo
    endif
+#endif
    !
    if (io_BS_err==0) return
    !
@@ -189,18 +203,6 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  ! GPL_EXCLUDE_END
  !
- !
- ! Exchange
- !==========
- !
- load_O_X=BS_res_K_exchange.or.l_bs_fxc
- !
- if (load_O_X) call msg('r','[BSE] Exchange components :',BS_n_g_exch)
- !
- ! PP/Epsm1S DBs
- !
- W_is_em1s=X%whoami==2
- W_is_pp  =X%whoami==4
  ! 
  if (BS_res_K_corr.and..not.l_td_hf) then
    !
@@ -220,16 +222,12 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
      n_BS_blks=0
      call BS_blks_free()
      !
-     ! GPL_EXCLUDE_START
-     !
 #if defined _PL
      call BSS_PL_free( )
 #endif
 #if defined _KERR
      call BSS_KERR_free( )
 #endif
-     !
-     ! GPL_EXCLUDE_END
      !
    endif
    !
@@ -256,12 +254,6 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
    FXC=cZERO
    !
  endif
- !
- ! Oscillators Setup
- !===================
- O_ng=maxval(G_m_G)
- !
- if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) call fft_check_size(1,O_ng,BS_n_g_exch)
  !
  ! Wave Functions
  !================
@@ -386,8 +378,13 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  ! BS DB description section I/O
  !===============================
  !
+#if defined _PAR_IO
+ call io_control(ACTION=OP_WR,COM=REP,ID=ID)
+ call io_BS_PAR_init(iq,X,ID)
+#else
  call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1/),ID=ID)
  io_BS_err=io_BS(iq,X,ID)
+#endif
  !
  call section('=','Kernel loop')
  !==============================
@@ -413,6 +410,15 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  endif
  !
  do i_block=1,n_BS_blks
+   !
+   ! Read BS_blk to check if the transition was already computed
+   !
+#ifdef _PAR_IO
+   if (l_restart_bse) then
+     call io_BS_PAR_read_block(iq,i_block,ID)
+     if (all(BS_blk(i_block)%done=="t")) cycle
+   endif
+#endif
    !
    i_Tgrp_k=BS_blk(i_block)%iT_k
    i_Tgrp_p=BS_blk(i_block)%iT_p
@@ -455,6 +461,9 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
      !
      do i_Tp=1,BS_T_grp(i_Tgrp_p)%size
        !
+       ! skip this block if already done
+       if (BS_blk(i_block)%done(i_Tk,i_Tp)=="t") cycle
+       !
        sqrt_f_itp=sqrt(BS_T_grp(i_Tgrp_p)%f(i_Tp))
        !
        i_p_bz  = BS_T_grp(i_Tgrp_p)%table(i_Tp,1)
@@ -488,25 +497,16 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
            !
            ! :::EXCHANGE    (resonant):::
            !=============================
-           if (l_col_cut) then
-             H_x=Vstar_dot_V_omp(BS_n_g_exch, BS_T_grp(i_Tgrp_p)%O_x(:,i_Tp),&
-&                                             BS_T_grp(i_Tgrp_k)%O_x(:,i_Tk)/bare_qpg(iq,:BS_n_g_exch)**2)
-           else
-             H_x=Vstar_dot_V_omp(BS_n_g_exch, BS_T_grp(i_Tgrp_p)%O_x(:,i_Tp), BS_T_grp(i_Tgrp_k)%O_x(:,i_Tk))
-           endif
+           H_x=Vstar_dot_V_omp(BS_n_g_exch, BS_T_grp(i_Tgrp_p)%O_x(:,i_Tp),&
+&                                           BS_T_grp(i_Tgrp_k)%O_x(:,i_Tk)/bare_qpg(iq,:BS_n_g_exch)**2)
          endif
        else 
          if (BS_cpl_K_exchange) then
            !
            ! :::EXCHANGE    (coupling):::
            !=============================
-           if (l_col_cut) then
-             H_x=V_dot_V_omp(BS_n_g_exch, BS_T_grp(i_Tgrp_p)%O_x( minus_G(1:BS_n_g_exch),i_Tp),&
-&                        BS_T_grp(i_Tgrp_k)%O_x(:,i_Tk)/bare_qpg(iq,:BS_n_g_exch)**2)
-           else
-             H_x=V_dot_V_omp(BS_n_g_exch, BS_T_grp(i_Tgrp_p)%O_x( minus_G(1:BS_n_g_exch),i_Tp),&
-&                        BS_T_grp(i_Tgrp_k)%O_x(:,i_Tk))
-           endif
+           H_x=V_dot_V_omp(BS_n_g_exch, BS_T_grp(i_Tgrp_p)%O_x( minus_G(1:BS_n_g_exch),i_Tp),&
+&                                       BS_T_grp(i_Tgrp_k)%O_x(:,i_Tk)/bare_qpg(iq,:BS_n_g_exch)**2)
          endif
        endif
        !
@@ -636,6 +636,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        !
        if (BS_blk(i_block)%mode=="R") BS_blk(i_block)%mat(i_Tk,i_Tp)=   sqrt_f_itk*(H_x*Co-H_c)*sqrt_f_itp
        if (BS_blk(i_block)%mode=="A") BS_blk(i_block)%mat(i_Tk,i_Tp)=cI*sqrt_f_itk*(H_x*Co-H_c)*sqrt_f_itp
+       BS_blk(i_block)%done(i_Tk,i_Tp)="t"
        !
      enddo 
      !
@@ -647,12 +648,20 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
      call BS_oscillators_free(i_Tgrp_k,0)
    endif
    !
+#if defined _PAR_IO
+   call io_BS_PAR_write_block(iq,i_block,ID)
+#else
    call io_control(ACTION=OP_APP_WR_CL,COM=REP,SEC=(/i_block+1/),ID=ID)
    io_BS_err=io_BS(iq,X,ID)
+#endif
    !
    call live_timing(steps=BS_Block_size(i_block))
    !
  enddo
+ !
+#if defined _PAR_IO
+ call  io_BS_PAR_free(ID)
+#endif
  !
  if (BS_LiveTiming_steps>0) call live_timing( )
  !
@@ -694,8 +703,6 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  call elemental_collision_free(K_CORR_collision)
  call elemental_collision_free(K_EXCH_collision)
  !
-#if defined _TIMING
  call timing('X T_space Kernel',OPR='stop')
-#endif
  !
 end subroutine
