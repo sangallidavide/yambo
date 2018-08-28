@@ -87,8 +87,11 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  integer, external::io_SC_components
  integer          ::io_SC_err,ID
 #endif
- integer, external::io_RT_components,io_KB_pwscf,io_KB_abinit
- integer          ::io_RT_G_err,io_RT_JPSM_err,io_KB_pwscf_err,io_KB_abinit_err,ID
+ integer, external::io_KB_pwscf,io_KB_abinit
+ integer          ::io_KB_pwscf_err,io_KB_abinit_err,ID
+#if defined _YPP_RT
+ integer, external::io_KB_pwscf,io_KB_abinit
+ integer          ::io_RT_G_err,io_RT_JPSM_err
 #endif
 #if defined _YPP_NL
  integer, external::io_NL

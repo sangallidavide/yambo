@@ -23,7 +23,7 @@
 !
 subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
- use pars,          ONLY:SP,schlen,pi,cZERO
+ use pars,          ONLY:SP,DP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
  use electrons,     ONLY:spin_occ,levels,spin
  use stderr,        ONLY:intc,real2ch
@@ -69,7 +69,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  real(SP)           :: alpha1(EXC_Phi_Grid)
- real(SP)           :: num,den,tau_eff,gamma_eff,arg
+ real(SP)           :: num,den,tau_eff,gamma_eff
+ real(DP)           :: arg
  !
  !
  titles(1)='phi [deg]'
