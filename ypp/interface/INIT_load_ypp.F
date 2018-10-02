@@ -239,10 +239,10 @@ subroutine ypp_INIT_load(defs)
  !
  call it(defs,'NonPDirs','[EXC life] Non periodic chartesian directions (X,Y,Z,XY...)',non_periodic_directions)
  call it(defs,'Texc'    ,'[EXC life] Temp',EXC_temp,T_unit)
- call it(defs,'Mexc'    ,'[EXC life] Mass',EXC_mass)
+ call it(defs,'Mexc'    ,'[EXC life] Mass (M_XY, M_ZZ)',EXC_mass)
+ call it(defs,'Epsi0'    ,'[EXC life] static dielectric matrix (eps_XX | eps_YY | eps_ZZ)',epsi0)
  call it(defs,'PhiGrid' ,'[EXC life] angle grid',EXC_Phi_Grid)
  call it(defs,'Excshift'  ,'[EXC life] Energy shift',EXC_shift,E_unit)
- call it(defs,'Epsi0'  ,'[EXC life] static dielectric constant',epsi0)
  !
  ! WFs
  !

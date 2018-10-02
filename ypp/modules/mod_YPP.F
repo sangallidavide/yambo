@@ -196,9 +196,9 @@ module YPP
  !  Exciton lifetimes
  !
  real(SP)          :: EXC_temp
- real(SP)          :: EXC_mass
+ real(SP)          :: EXC_mass(2)
  real(SP)          :: EXC_shift
- real(SP)          :: epsi0
+ real(SP)          :: epsi0(3)
  integer           :: EXC_Phi_Grid
  
  !
