@@ -21,14 +21,14 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
+subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
  use pars,          ONLY:SP,DP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
  use electrons,     ONLY:spin_occ,levels,spin
  use stderr,        ONLY:intc,real2ch
- use BS_solvers,    ONLY:BSS_eh_table,BS_mat
- use BS,            ONLY:BS_bands
+ use BS_solvers,    ONLY:BSS_eh_table,BS_mat,BSS_n_eig
+ use BS,            ONLY:BS_bands,BS_H_dim
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
@@ -42,12 +42,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  !
 #include<memory.h>
  !
- integer            :: BS_H_dim
  type(levels)       :: Xen
  type(X_t)          :: Xbsk
  type(bz_samp)      :: Xk,Xq
  !
- complex(SP)        :: BS_E(BS_H_dim), BS_R(BS_H_dim) 
+ complex(SP)        :: BS_E(BSS_n_eig), BS_R(BSS_n_eig) 
  !
  character(schlen)  :: titles(7), ch_dummy
  !
@@ -60,13 +59,13 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
  complex(SP)        :: Ir_EXC(3),rotated_iR(3),P_EXC(3)
  !
  real(SP)           :: P_EXC_square,Px_EXC_square,Py_EXC_square
- real(SP)           :: gamma0(BS_H_dim),gamma0_proj(BS_H_dim)
+ real(SP)           :: gamma0(BSS_n_eig),gamma0_proj(BSS_n_eig)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
- integer            :: BS_E_degs(BS_H_dim),lambda_s(n_lambda),n_lambda
+ integer            :: BS_E_degs(BSS_n_eig),lambda_s(n_lambda),n_lambda
  !
  !
  real(SP)           :: phi(EXC_Phi_Grid),exc_energy
- real(SP)           :: phi0(BS_H_dim),vdummy(3),tau0
+ real(SP)           :: phi0(BSS_n_eig),vdummy(3),tau0
  real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
  real(SP)           :: alpha1(EXC_Phi_Grid)
  real(SP)           :: num,den,tau_eff,gamma_eff
@@ -217,11 +216,11 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_H_dim,BS_R,BS_E,BS_E_degs,lambda
      gamma_eff = num/den
      tau_eff = AU2SEC/gamma_eff
      write (9,*) i_l, BS_E(1)*HA2EV,BS_E(i_l)*HA2EV,gamma_eff,tau_eff
-     write(10,111) i_l,phi0(i_l),exc_energy, alpha1(1),alpha1(5),alpha1(10),alpha1(20)
+!     write(10,111) i_l,phi0(i_l),exc_energy, alpha1(1),alpha1(5),alpha1(10),alpha1(20)
 !     write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
 !&    real(iR_EXC(1)*conjg(iR_EXC(1)))
    enddo
-   111 format (i4, 6d15.7)
+!   111 format (i4, 6d15.7)
 ! 112 format (2i4,3d15.7)
    !
    call msg('o exc_life',"# ","exc. E = "//trim(real2ch(exc_energy)),INDENT=0)
