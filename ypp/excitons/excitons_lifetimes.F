@@ -155,14 +155,10 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
        f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
        call GET_the_rotated_iR()
-     
        !
        iR_EXC(:)=iR_EXC(:) - rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
-       
        !
-     
      enddo
-     
  !    do neh = 1,BS_H_dim !(size BSE matrix, cvk)
        !
  !      i_kbz   = BSS_eh_table(neh,1)
@@ -182,18 +178,15 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
        !
 
  !    enddo
-
-
-     OPEN(UNIT=10, FILE='dipole', STATUS='UNKNOWN', ACCESS='APPEND') 
-     WRITE(10,*) "i_l_grp=",i_l_grp, "BS_E_degs(i_l_grp)", BS_E_degs(i_l_grp)
-     WRITE(10,*) iR_EXC(1)
-     WRITE(10,*) iR_EXC(2)
-     WRITE(10,*) iR_EXC(3)
+     !OPEN(UNIT=10, FILE='dipole', STATUS='UNKNOWN', ACCESS='APPEND') 
+     !WRITE(10,*) "i_l_grp=",i_l_grp, "BS_E_degs(i_l_grp)", BS_E_degs(i_l_grp)
+     !WRITE(10,*) iR_EXC(1)
+     !WRITE(10,*) iR_EXC(2)
+     !WRITE(10,*) iR_EXC(3)
      !WRITE(10,*) iR_EXC_TRY(1)
      !WRITE(10,*) iR_EXC_TRY(2)
      !WRITE(10,*) iR_EXC_TRY(3)
-
-     close(10)
+     !close(10)
      
     
      
@@ -237,7 +230,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
       
      ! compute the lifetime at q=0  gamma(0) and the prefactors for finite T
      !==========================================
-     if (l_2D) then 
+     if (l_2D) then
+      P_EXC_square = Px_EXC_square + Py_EXC_square 
       gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/((real(BS_E(i_l))-EXC_shift)*SPEED_OF_LIGHT*real(nkbz))
       gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
 &       8._SP*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
