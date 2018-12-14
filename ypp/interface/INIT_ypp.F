@@ -81,7 +81,7 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  logical          ::l_init_QP,l_flag
  type(initdefs)   ::defs
  integer, external::io_RIM,io_COL_CUT
- integer          ::i1,i2,ID,io_err
+ integer          ::i1,i2,io_err
  character(schlen)::rstr_piece(60) 
  !
 #if defined _YPP_SC
