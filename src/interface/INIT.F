@@ -56,9 +56,9 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
  use QP_m,           ONLY:QP_t,QP_ng_Sx,QP_ng_Sc,QP_ng_SH,QP_solver,QP_state,QP_reset,&
 &                         QP_table,COHSEX_use_empties
  use X_m,            ONLY:X_t,X_duplicate,X_reset,Chi_mode
- use stderr,         ONLY:log_as_a_file,logfile,intc,STRING_add,STRING_remove,STRING_match
+ use stderr,         ONLY:write_to_log,log_as_a_file,logfile,intc,STRING_add,STRING_remove,STRING_match
  use R_lattice,      ONLY:ng_closed,q0_def_norm,bz_samp,nqibz,bz_samp_reset 
- use wave_func,      ONLY:io_WF
+ use wave_func,      ONLY:wf_ng,io_WF
  use IO_m,           ONLY:io_control,OP_RD_CL,DUMP,NONE,mk_dir
  use TDDFT,          ONLY:io_BS_Fxc
  use BS,             ONLY:BS_bands,BS_n_g_exch,BS_n_g_W,&
@@ -69,6 +69,9 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
 #endif
 #if defined _SC
  use SC,             ONLY:SC_ng_Sx,SC_X_bands,SC_X_size
+#endif
+#if defined _NL
+ use nl_optics,      ONLY:NL_ng
 #endif
 #if defined _SC || defined _RT
  use collision_ext,  ONLY:COH_collisions,HXC_collisions,P_collisions,GW_NEQ_collisions
@@ -82,7 +85,7 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
  use magnetic,       ONLY:MAG_hamiltonian_type,MAG_pauli,MAG_landau
 #endif
 #if defined _OPENMP
- use openmp,         ONLY:n_threads,n_threads_X,n_threads_DIP,n_threads_SE,n_threads_RT,n_threads_K
+ use openmp,         ONLY:n_threads,n_threads_X,n_threads_DIP,n_threads_SE,n_threads_RT,n_threads_K,n_threads_NL
 #endif
  !
 #include<memory.h>
@@ -221,6 +224,7 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
    if (log_as_a_file) write (logfile,'(2a)') trim(com_path),'/l_dbs'
    live_timing_is_on=.false.
    write_to_report=.false.
+   write_to_log=.true.
  endif
  !
  ! Dump the input file
@@ -277,6 +281,9 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
  QP_ng_Sc=ng_closed
  QP_ng_SH=ng_closed
  BS_n_g_exch=ng_closed
+#if defined _NL
+ NL_ng      =wf_ng
+#endif
  !
  ! kindx
  !
@@ -571,7 +578,7 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
  !
  !Col CUTOFF 
  !
- if (l_col_cut) call initactivate(1,'CUTGeo CUTBox CUTRadius CUTCylLen CUTCol_test')
+ if (l_col_cut) call initactivate(1,'CUTGeo CUTBox CUTRadius CUTCylLen CUTwsGvec CUTCol_test')
  !
  !XX
  !
@@ -606,7 +613,9 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
  !
  if ((l_optics.and.l_chi).or.(l_em1d.and..not.l_life.and..not.l_ppa.and..not.l_gw0)) then
    !
-   call X_activate('Xd',(/'NGsBlk','QpntsR','BndsRn',&
+   if (.not.l_rpa_IP) call X_activate('Xd',(/'NGsBlk'/))
+   !
+   call X_activate('Xd',(/'QpntsR','BndsRn',&
 &                  'GrFnTp','EnRnge','DmRnge','DmERef','CGrdSp','ETStps','EMStps',&
 &                  'DrudeW','EhEngy','LongDr'/))
    call initactivate(1,'DrClassic')
@@ -966,9 +975,9 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
  !
 #if defined _NL
  if (l_nl_optics) then
-   call initactivate(1,'FFTGvecs NLBands NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
-   call initactivate(1,'NLEnRange NLEnSteps NLDamping UseDipoles FrSndOrd InducedField') 
-   call initactivate(1,'ExtF_Dir ExtF_FrStep ExtF_Int ExtF_Damp ExtF_kind ExtF_Tstart')
+   call initactivate(1,'FFTGvecs NLBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
+   call initactivate(1,'NLEnRange NLEnSteps NLDamping UseDipoles FrSndOrd EvalCurrent InducedField NLGvecs') 
+   call initactivate(1,'ExtF_Dir ExtF_FrStep ExtF_Int ExtF_Width ExtF_kind ExtF_Tstart')
    call init_QP_ctl_switch('G')
  endif
 #endif
@@ -1297,12 +1306,16 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
      endif
      if (l_HF_and_locXC.or.l_gw0.or.l_cohsex.or.l_sc_run) n_threads_SE=0
      if (l_real_time)                                     n_threads_RT=0
+     if (l_nl_optics)                                     n_threads_NL=0
 #endif
-#if defined _OPENMP && defined _SC && !defined _RT
+#if defined _OPENMP && defined _SC && !defined _RT && !defined _NL
      if (l_eval_collisions)    n_threads_SE=0
 #endif
 #if defined _OPENMP && defined _SC && defined _RT
      if (l_eval_collisions)    n_threads_RT=0
+#endif
+#if defined _OPENMP && defined _SC && defined _NL
+     if (l_eval_collisions)    n_threads_NL=0
 #endif
      !
    end subroutine before_infile_write_setup 
@@ -1515,7 +1528,7 @@ integer function INIT(en,q,k,X,Xw,instr,lnstr,CLOSE_Gs,FINALIZE)
            Chi_mode='HARTREE'
            !
            if(l_bse)  then
-             if(trim(rstr_piece(i1+1))  == 'hartree')  BSK_mode='Hartree'
+             if(trim(rstr_piece(i1+1))  == 'hartree')  BSK_mode='HARTREE'
              if(trim(rstr_piece(i1+1))  == 'hf')       BSK_mode='HF'
              if( trim(rstr_piece(i1+1)) == 'alda')     BSK_mode='ALDA'
              if(trim(rstr_piece(i1+1))  == 'sex')      BSK_mode='SEX'
