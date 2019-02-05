@@ -32,7 +32,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
- use X_m,           ONLY:X_t,DIP_iR,eps_2_alpha
+ use X_m,           ONLY:X_t,eps_2_alpha
+ use DIPOLES,       ONLY:DIP_iR
  use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:v_norm
