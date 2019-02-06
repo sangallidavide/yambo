@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
+subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
  !
  use drivers,        ONLY:l_exc_rad_life
  use units,          ONLY:FS2AUT
@@ -47,6 +47,7 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  use IO_m,           ONLY:OP_RD_CL,DUMP,io_control,NONE,rm_file
  use parser_m,       ONLY:PARSER_array
  use IO_m,           ONLY:rm_file,OP_RD_CL,DUMP,io_control,NONE
+ use DIPOLES,        ONLY:DIPOLE_t
 #if defined _YPP_SC
  use SC,             ONLY:SC_bands
 #endif
@@ -72,6 +73,7 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
 #include<memory.h>
  !
  type(levels)     ::E
+ type(DIPOLE_t)   ::Dip
  integer          ::lnstr
  character(lnstr) ::instr
  logical          ::FINALIZE
@@ -89,6 +91,8 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  integer, external::io_SC_components
  integer          ::io_SC_err
 #endif
+ integer, external::io_DIPOLES
+ integer          ::io_DIPOLES_err
  integer, external::io_KB_pwscf,io_KB_abinit
  integer          ::io_KB_pwscf_err,io_KB_abinit_err,ID
 #if defined _YPP_RT
@@ -153,6 +157,11 @@ subroutine INIT_ypp(E,instr,lnstr,FINALIZE)
  if (io_RT_OBS_err==0) QP_nb=RT_bands(2)
  !
 #endif
+ !
+ ! Diples
+ !
+ call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=ID)
+ io_err=io_DIPOLES(Dip,ID)
  !
  call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=ID)
  io_KB_pwscf_err=io_KB_pwscf(ID)

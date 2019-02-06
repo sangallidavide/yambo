@@ -24,7 +24,7 @@
 subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  !
  use pars,       ONLY:SP,cI,cZERO
- use com,        ONLY:msg,error
+ use com,        ONLY:msg,error,warning
  use IO_m,       ONLY:io_DIP
  use R_lattice,  ONLY:bz_samp
  use electrons,  ONLY:levels,n_sp_pol
@@ -86,7 +86,10 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
    endif
  endif
  !
- if (check.or.io_err/=0) return
+ if (check.or.io_err/=0) then
+   if (io_err/=0) call warning(" DIPOLES database not correct")
+   return
+ endif
  !
  if(reading) IO_ACTION=OP_RD_CL
  if(writing) IO_ACTION=OP_APP_CL

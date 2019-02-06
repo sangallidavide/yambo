@@ -21,13 +21,14 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_driver(k,Xk,en,Xen,q)
+subroutine excitons_driver(k,Xk,en,Xen,q,Dip)
  !
  use pars,          ONLY:SP,pi,schlen,lchlen
  use R_lattice,     ONLY:bz_samp
  use com,           ONLY:error
  use stderr,        ONLY:intc
  use X_m,           ONLY:X_t
+ use DIPOLES,       ONLY:DIPOLE_t
  use QP_CTL_m,      ONLY:QP_apply
  use electrons,     ONLY:levels,n_spin,n_sp_pol,spin,E_SOC_nbands
  use drivers,       ONLY:l_exc_rad_life
@@ -47,6 +48,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  type(bz_samp) ::Xk,k,q
  type(levels)  ::Xen,en
+ type(DIPOLE_t)::Dip
  !
  ! Work Space
  !
@@ -195,7 +197,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  ! Exciton's lifetimes from BSE
  !=======================================
- if (l_exc_rad_life) call excitons_lifetimes(Xbsk,Xen,Xk,q,BS_R_right,BS_E,BS_E_degs,lambda_s,n_lambda)
+ if (l_exc_rad_life) call excitons_lifetimes(Dip,Xen,Xk,q,BS_R_right,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
  ! Exciton's WFs
  !=====================

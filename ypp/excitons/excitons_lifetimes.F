@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
+subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
  !
  use pars,          ONLY:SP,DP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
@@ -32,8 +32,8 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
- use X_m,           ONLY:X_t,eps_2_alpha
- use DIPOLES,       ONLY:DIP_iR
+ use X_m,           ONLY:eps_2_alpha
+ use DIPOLES,       ONLY:DIPOLE_t,DIP_iR
  use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:v_norm
@@ -46,7 +46,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
 #include<memory.h>
  !
  type(levels)       :: Xen
- type(X_t)          :: Xbsk
+ type(DIPOLE_t)     :: Dip
  type(bz_samp)      :: Xk,Xq
  !
  complex(SP)        :: BS_E(BSS_n_eig), BS_R(BSS_n_eig) 
@@ -55,7 +55,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
  !
  ! Work Space
  !
- integer            :: i_lambda,i_grid
+ integer            :: i_lambda,i_grid,io_err
  integer            :: neh,i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin 
  integer            :: Phi_grid_size
  !
@@ -84,6 +84,13 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
  real(SP)           :: integral
  integer            :: i_trap
  !
+ call DIPOLE_dimensions(Xen,Dip,BS_bands,(/0.,0.,0./))
+ !
+ call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
+ call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=Dip)
+ !
+ call DIPOLE_IO(Xk,Xen,Dip,'read ',io_err,'DIP')
+ !
  titles(1)='phi [deg]'
  titles(2)='Gamma_Therm'
  titles(3)='Tau_Therm'
@@ -96,20 +103,6 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
  do i_grid=1,Phi_grid_size
    phi(i_grid)=2._SP*pi*real(i_grid-1,SP)/real(Phi_grid_size-1,SP)
  enddo
- !
- Xbsk%ib=BS_bands
- ! 
- YAMBO_ALLOC(q_norm,(1))
- YAMBO_ALLOC(bare_qpg,(1,1))
- !
- call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
- call PARALLEL_global_indexes(Xen,Xk,Xq,"Response_G_space_Zero_Momentum",X=Xbsk)
- !
- io_DIP=.FALSE.
- call DIPOLE_driver(Xen,Xk,Xbsk,Xbsk%q0)
- !
- YAMBO_FREE(q_norm)
- YAMBO_FREE(bare_qpg)
  !
  do i_lambda=1,n_lambda
    !
@@ -394,7 +387,7 @@ subroutine excitons_lifetimes(Xbsk,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lamb
      if ( is > nsym/(i_time_rev+1) ) t_rev=.true.
      !
      ik_mem    = PAR_DIPk_ibz_index(ik)
-     iR=DIP_iR(:,i_c,i_v,ik_mem,i_spin) 
+     iR(:)=DIP_iR(:,i_c,i_v,ik_mem,i_spin)
      !
      ! OPTION 1
      field_dir(:,1)=(/1._SP,0._SP,0._SP/)

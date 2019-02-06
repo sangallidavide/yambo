@@ -29,6 +29,7 @@ integer function ypp_driver(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,
  use R_lattice,           ONLY:bz_samp,bz_samp_reset,nkibz,ng_vec,&
 &                              nXkibz,nqibz,k_pt,q_pt
  use D_lattice,           ONLY:input_GS_Tel,alat,nsym
+ use DIPOLES,             ONLY:DIPOLE_t
  use IO_m,                ONLY:io_control,OP_RD_CL,NONE,DUMP,mk_dir
  use com,                 ONLY:msg,more_io_path,com_path
  use it_m,                ONLY:it_reset,infile
@@ -47,6 +48,7 @@ integer function ypp_driver(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,
  !
  type(levels)                 :: en,Xen,Ken
  type(bz_samp)                :: k,Xk,q
+ type(DIPOLE_t)               :: Dip
  integer,          intent(in) :: lnstr,iind,iod,ijs,np,pid,icd
  integer,       intent(inout) :: iinf
  character(lnstr), intent(in) :: instr
@@ -123,7 +125,7 @@ integer function ypp_driver(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,
  !
  ! INPUT FILE parsing
  !
- call INIT_ypp(en,instr,lnstr,.false.)
+ call INIT_ypp(en,Dip,instr,lnstr,.false.)
  if (infile_editing) then
    iinf=1
    call ypp_finalize(" ")
@@ -225,7 +227,7 @@ integer function ypp_driver(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,
 #if defined _YPP_RT
  l_flag=l_flag.or.l_RT_abs
 #endif
- if (l_flag) call excitons_driver(k,Xk,en,Xen,q)
+ if (l_flag) call excitons_driver(k,Xk,en,Xen,q,Dip)
  !
  l_flag=l_electrons
 #if defined _YPP_ELPH && !defined _YPP_RT
@@ -254,7 +256,7 @@ integer function ypp_driver(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,
  !
  call CLOSE_the_run(.TRUE.,.FALSE.,.FALSE.)
  !
- call INIT_ypp(en,instr,lnstr,.TRUE.)
+ call INIT_ypp(en,Dip,instr,lnstr,.TRUE.)
  !
  return
  !
@@ -267,7 +269,7 @@ contains
       if (len_trim(STRING)==0) call section('X','Game Over')
       call msg("nln"," ")
     endif
-    call INIT_ypp(en,instr,lnstr,.TRUE.)
+    call INIT_ypp(en,Dip,instr,lnstr,.TRUE.)
   end subroutine
   !
 end function ypp_driver
