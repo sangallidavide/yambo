@@ -39,8 +39,8 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
 &                         nrnlvls,rnlvls,runlevel_is_on,&
 &                         infile_verbosity,V_general,V_qp,V_all,V_real_time,V_nl_optics
  use drivers,        ONLY:infile_editing
- use com,            ONLY:file_exists,write_to_report,repfile,write_the_logo
- use stderr,         ONLY:STRING_split,write_to_log  
+ use com,            ONLY:file_exists,write_to_report,repfile,write_the_logo,rename_file
+ use stderr,         ONLY:STRING_split,write_to_log,log_as_a_file,logfile
  use electrons,      ONLY:n_spin,n_spinor,levels
  use parallel_m,     ONLY:master_cpu,PP_redux_wait
  use LIVE_t,         ONLY:what_is_running,live_timing_is_on
@@ -49,6 +49,7 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
  use IO_m,           ONLY:rm_file,OP_RD_CL,DUMP,io_control,NONE
  use DIPOLES,        ONLY:DIPOLE_t
 #if defined _YPP_SC
+ use YPP,            ONLY:l_mean_potential
  use SC,             ONLY:SC_bands
 #endif
 #if defined _YPP_RT || defined _YPP_SC
@@ -60,7 +61,6 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
 &                         l_RT_energy,l_RT_lifetimes,l_RT_occupations,l_RT_time,l_RT_X,l_RTpump_Fermi,&
 &                         l_RTpump_energy,l_RTpump_kspace,Eh_pumped_pair_n_BZ_regions,Eh_pumped_pair_BZ_regions,&
 &                         l_NL_X,l_NL_exc,RT_conf
- use stderr,         ONLY:intc
  use real_time,      ONLY:RT_bands
 #endif
 #if defined _YPP_NL 
@@ -82,8 +82,8 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
  !
  logical          ::l_init_QP,l_flag
  type(initdefs)   ::defs
- integer, external::io_RIM,io_COL_CUT
- integer          ::i1,i2,io_err
+ integer, external::io_RIM,io_COL_CUT,io_ATMPROJ_pwscf
+ integer          ::i1,i2,ID,io_err
  character(schlen)::rstr_piece(60) 
  !
 #if defined _YPP_SC
@@ -94,7 +94,7 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
  integer, external::io_DIPOLES
  integer          ::io_DIPOLES_err
  integer, external::io_KB_pwscf,io_KB_abinit
- integer          ::io_KB_pwscf_err,io_KB_abinit_err,ID
+ integer          ::io_KB_pwscf_err,io_KB_abinit_err
 #if defined _YPP_RT
  integer, external::io_RT_components,io_KB_pwscf,io_KB_abinit
  integer          ::io_RT_G_err,io_RT_OBS_err,io_KB_pwscf_err,io_KB_abinit_err
@@ -179,6 +179,11 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
  endif
  !
 #endif
+ !
+ ! ATOMIC PROJETIONS pwscf
+ !
+ call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=ID)
+ io_err=io_ATMPROJ_pwscf(ID)
  !
  ! rim
  !
@@ -592,6 +597,7 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
    if (l_dos) then
      call initactivate(1,"DOSERange DOSESteps DOS_broad DOS_bands DOSUsesOcc")
      call initactivate(1,"INTERP_mode INTERP_Grid INTERP_Shell_Fac")
+     call initactivate(1,"Proj_DOS PDOS_atoms PDOS_kinds PDOS_wfcs PDOS_l PDOS_j PDOS_m")
    endif
  endif
 #if defined _YPP_RT
@@ -628,9 +634,10 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
    l_flag=l_RT_time.and.l_RT_occupations
    if (l_flag)           call initactivate(1,"OCCgroup")
    if (l_RT_occupations) call initactivate(1,"IncludeEQocc SkipFermiFIT")
-   if (l_RT_density)     call initactivate(1,"LoadGhistory")
+   if (l_RT_density)     call initactivate(1,"LoadGhistory IncludeEQocc")
    if (l_RT_dos)  then
-     call initactivate(1,"DOSERange DOSESteps DOS_broad SeparateEH IncludeEQocc")
+     call initactivate(1,"DOSERange DOSESteps DOS_broad SeparateEH IncludeEQocc NoOcc")
+     call initactivate(1,"Proj_DOS PDOS_atoms PDOS_kinds PDOS_wfcs PDOS_l PDOS_j PDOS_m")
      call initactivate(1,"INTERP_Grid INTERP_Shell_Fac")
      call INIT_QP_ctl_switch('G')
    endif
@@ -663,8 +670,10 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
    if (l_current) call initactivate(1,'CurrentDir')
  endif
  !
+ if (l_spin.and..not.l_excitons) call initactivate(1,"FFTGvecs")
+ !
  if (l_excitons) then
-   call initactivate(1,"States")
+   call initactivate(1,"States En_treshold Res_treshold")
    if (l_amplitude) then
      call INIT_QP_ctl_switch('G')
      call initactivate(1,"DipWeight")
@@ -676,10 +685,10 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
    !
    ! GPL_EXCLUDE_END
    !
-   if (l_exc_wf.or.l_amplitude) call initactivate(1,"Degen_Step MinWeight")
+   if (l_exc_wf.or.l_amplitude) call initactivate(1,"Degen_Step Weight_treshold")
    if (l_exc_wf.and..not.l_free_hole) call initactivate(1,"Cells Hole Dimension") 
    if (l_exc_wf.and.l_free_hole) call initactivate(1,"WFMult") 
-   if (l_spin) call initactivate(1,"Degen_Step FFTGvecs")
+   if (l_spin) call initactivate(1,"Degen_Step")
 #if defined _YPP_ELPH
    if (l_eliashberg)  call initactivate(1,"Degen_Step") 
 #endif
@@ -763,6 +772,10 @@ subroutine INIT_ypp(E,Dip,instr,lnstr,FINALIZE)
  ! LOG/REP files
  !
  call INIT_report_and_log_files()
+ !
+ if (log_as_a_file) call rename_file(logfile)
+ !
+ call rename_file(repfile)
  !
  live_timing_is_on =master_cpu
  write_to_report   =master_cpu

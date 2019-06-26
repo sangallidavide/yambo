@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambda)
+subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  !
  use pars,          ONLY:SP,DP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
@@ -34,7 +34,8 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambd
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
  use X_m,           ONLY:eps_2_alpha
  use DIPOLES,       ONLY:DIPOLE_t,DIP_iR
- use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0
+ use YPP,           ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0,&
+&                        EXCITONS_user_indexes,EXCITONS_n_user_states
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:v_norm
  use IO_m,          ONLY:io_DIP
@@ -50,10 +51,11 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambd
  type(bz_samp)      :: Xk,Xq
  !
  complex(SP)        :: BS_E(BSS_n_eig), BS_R(BSS_n_eig) 
- !
- character(schlen)  :: titles(7), ch_dummy
+ integer            :: BS_E_degs(BSS_n_eig)
  !
  ! Work Space
+ !
+ character(schlen)  :: titles(7), ch_dummy
  !
  integer            :: i_lambda,i_grid,io_err
  integer            :: neh,i_l,i_l_grp,n_lambda_deg,i_v,i_c,i_kbz,i_kibz,i_spin 
@@ -64,7 +66,6 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambd
  real(SP)           :: P_EXC_square,Px_EXC_square,Py_EXC_square,Pz_EXC_square
  real(SP)           :: gamma0(BSS_n_eig),gamma0_proj(BSS_n_eig)
  real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
- integer            :: BS_E_degs(BSS_n_eig),lambda_s(n_lambda),n_lambda
  !
  !
  real(SP)           :: phi(EXC_Phi_Grid),exc_energy
@@ -104,7 +105,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambd
    phi(i_grid)=2._SP*pi*real(i_grid-1,SP)/real(Phi_grid_size-1,SP)
  enddo
  !
- do i_lambda=1,n_lambda
+ do i_lambda=1,EXCITONS_n_user_states
    !
    gamma_thermal(:)=0._SP
    gamma_exp =0._SP
@@ -117,7 +118,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambd
    alpha = 0._SP
    alpha1(:) = 0._SP
    !
-   i_l_grp=lambda_s(i_lambda)
+   i_l_grp=EXCITONS_user_indexes(i_lambda)
    !
    if(i_lambda/=BS_E_degs(i_l_grp)) cycle
    !
@@ -390,6 +391,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs,lambda_s,n_lambd
      iR(:)=DIP_iR(:,i_c,i_v,ik_mem,i_spin)
      !
      ! OPTION 1
+     !
      field_dir(:,1)=(/1._SP,0._SP,0._SP/)
      field_dir(:,2)=(/0._SP,1._SP,0._SP/)
      field_dir(:,3)=(/0._SP,0._SP,1._SP/)
