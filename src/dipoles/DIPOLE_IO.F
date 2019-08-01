@@ -68,6 +68,7 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
    call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1/),MODE=VERIFY,ID=ID)
    io_err=io_DIPOLES(Dip,ID)
    if(use_covariant_approach) then
+     call msg('s','[DIP] Writing Overlaps header ')
      call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1/),MODE=VERIFY,ID=ID_S)
      io_err=io_Overlaps(Dip,ID_S)
    endif
@@ -80,6 +81,7 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
    call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1/),MODE=VERIFY,ID=ID)
    io_err=io_DIPOLES(Dip,ID)
    if(use_covariant_approach) then
+     call msg('s','[DIP] Checking overlaps header ')
      call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1/),MODE=VERIFY,ID=ID_S)
      io_err=io_err+io_Overlaps(Dip,ID_S)
    endif
