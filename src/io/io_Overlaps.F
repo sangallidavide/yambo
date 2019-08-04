@@ -29,9 +29,11 @@ integer function io_Overlaps(Dip,ID)
  use IO_m,          ONLY:io_connect,io_disconnect,io_sec,frag_DIP,&
 &                        io_bulk,read_is_on,io_header,io_extension,&
 &                        RD_CL_IF_END,RD_CL,io_action,&
-&                        IO_NOT_ALLOWED,io_DIP,io_fragment
+&                        IO_NOT_ALLOWED,io_DIP,io_fragment,&
+&                        netcdf_call,io_unit,write_is_on
  use parallel_m,    ONLY:PAR_DIPk_bz_index,PAR_DIPk_nbz,PAR_IND_DIPk_bz
  use timing_m,      ONLY:timing
+ use netcdf,        ONLY:nf90_sync
  !
  implicit none
  type(DIPOLE_t) :: Dip
@@ -39,7 +41,7 @@ integer function io_Overlaps(Dip,ID)
  !
  ! Work Space
  !
- integer :: ik,ik_mem,i_fragment,ixyz,i_sp_pol,shift(2),io_err
+ integer :: ik,ik_mem,i_fragment,ixyz,i_sp_pol,shift(2),io_err,stat
  integer, external    :: variables_DIPOLES
  character(schlen)    :: VAR_name
  !
@@ -63,6 +65,11 @@ integer function io_Overlaps(Dip,ID)
    !
    io_Overlaps=variables_DIPOLES(Dip,ID)
    if (io_Overlaps/=0) goto 1
+   !
+   if (write_is_on(ID)) then
+     stat = nf90_sync(io_unit(ID))
+     call netcdf_call(stat,ID)
+   endif
    !
  endif
  !
