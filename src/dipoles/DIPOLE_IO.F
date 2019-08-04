@@ -86,9 +86,11 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  endif
  !
  if (check.or.io_err/=0) then
-   if (io_err/=0) call warning(" DIPOLES database not correct")
+   if (io_err/=0) call warning(" DIPOLES database not correct or not present")
    return
  endif
+ !
+ if(writing) call PP_redux_wait(COMM=PAR_K_scheme%comm_world)
  !
  if(writing) call fix_velocity(Dip,-1)
  !
