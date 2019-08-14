@@ -27,10 +27,9 @@ integer function io_DIPOLES(Dip,ID)
  use DIPOLES,       ONLY:DIPOLE_t,DIP_iR,DIP_P,DIP_v,DIP_alloc
  use electrons,     ONLY:n_spin
  use R_lattice,     ONLY:nXkibz
- use IO_m,          ONLY:io_connect,io_disconnect,io_sec,frag_DIP,io_DIP,io_unit,    &
-&                        io_bulk,read_is_on,io_header,io_extension,write_is_on,      &
-&                        IO_NOT_ALLOWED,io_fragment,manage_OP_IF_START_and_CL_IF_END,&
-&                        netcdf_call
+ use IO_m,          ONLY:io_connect,io_disconnect,io_sec,frag_DIP,io_DIP,&
+&                        io_bulk,read_is_on,io_header,io_extension,&
+&                        IO_NOT_ALLOWED,io_fragment,manage_OP_IF_START_and_CL_IF_END
 #if defined _RT
  use DIPOLES,       ONLY:DIP_spin,DIP_orbital,DIP_P_spinor
  use electrons,     ONLY:n_spinor
@@ -41,7 +40,6 @@ integer function io_DIPOLES(Dip,ID)
 #endif
  use parallel_m,    ONLY:PAR_K_scheme
  use timing_m,      ONLY:timing
- use netcdf,        ONLY:nf90_sync
  !
  implicit none
  !
@@ -50,7 +48,7 @@ integer function io_DIPOLES(Dip,ID)
  !
  ! Work Space
  !
- integer :: stat,ik,ik_mem,i_fragment,i_sp_pol,DIP_size(4),DIP_ipos(4)
+ integer :: ik,ik_mem,i_fragment,i_sp_pol,DIP_size(4),DIP_ipos(4)
 #if defined _RT || defined _SC
  logical :: l_real_time_magn_dipoles
  integer :: P2_size(3),P2_ipos(3),Pspinor_size(6),Pspinor_ipos(6)
@@ -78,11 +76,6 @@ integer function io_DIPOLES(Dip,ID)
    !
    io_DIPOLES=variables_DIPOLES(Dip,ID)
    if (io_DIPOLES/=0) goto 1
-   !
-   if (write_is_on(ID)) then
-     stat = nf90_sync(io_unit(ID))
-     call netcdf_call(stat,ID)
-   endif
    !
  endif
  !
