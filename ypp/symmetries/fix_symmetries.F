@@ -24,11 +24,11 @@
 subroutine fix_symmetries(old_nsym,old_dl_sop,old_sop_inv,S_contains_TR,action_kind)
  !
  use pars,                ONLY:SP
- use com,                 ONLY:msg,warning
+ use com,                 ONLY:msg
  use parser_m,            ONLY:parser
  use matrix_operate,      ONLY:m3det
  use stderr,              ONLY:intc,set_real_printed_length
- use YPP,                 ONLY:E_field,B_theta,B_psi,B_field
+ use YPPm,                ONLY:E_field,B_theta,B_psi,B_field
  use electrons,           ONLY:n_spinor,Spin_magn
  use R_lattice,           ONLY:rl_sop
  use vec_operate,         ONLY:v_norm

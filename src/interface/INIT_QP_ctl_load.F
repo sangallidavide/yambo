@@ -23,7 +23,8 @@
 !
 subroutine INIT_QP_ctl_load(defs,ID)
  !
- use it_m,          ONLY:it,initdefs,V_qp,E_unit
+ use it_tools,      ONLY:it
+ use it_m,          ONLY:initdefs,V_qp,E_unit
  use QP_CTL_m,      ONLY:QP_ctl_db,QP_ctl_interp_neigh,QP_ctl_user
  !
  implicit none
@@ -97,13 +98,6 @@ subroutine INIT_QP_ctl_load(defs,ID)
 &          '[EXTQP '//trim(description_ch(ID))//'] W dos pre-factor '//&
 &          trim(spin_description_ch(i_f))//' (valence)',&
 &          QP_ctl_user(ID,i_f)%Wv_dos,E_unit,verb_level=V_qp)
-   !
-   ! Back Compataibility with master input fields (temporary)
-   !
-   QP_ctl_user(ID,i_f)%Wv_dos=QP_ctl_user(ID,i_f)%Wv(2)
-   QP_ctl_user(ID,i_f)%Wv(3)=QP_ctl_user(ID,i_f)%Wv(3)
-   QP_ctl_user(ID,i_f)%Wc_dos=QP_ctl_user(ID,i_f)%Wc(2)
-   QP_ctl_user(ID,i_f)%Wc(3)=QP_ctl_user(ID,i_f)%Wc(3)
    !
  enddo
  !

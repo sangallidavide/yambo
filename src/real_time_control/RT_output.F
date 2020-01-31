@@ -25,7 +25,7 @@ subroutine RT_output(what,VALUES,TIME,E)
  ! 
  use units,          ONLY:HA2EV,HA2KEL,SPEED_OF_LIGHT,AU2KWCMm2,PS2AUT,AU2VMm1
  use pars,           ONLY:SP,schlen
- use com,            ONLY:msg,of_open_close,warning
+ use com,            ONLY:msg,of_open_close
  use drivers,        ONLY:l_elph_scatt,l_elel_scatt,l_elphoton_scatt,l_use_Hxc_collisions
  use QP_m,           ONLY:Time_of
  use fields,         ONLY:A_tot,A_ind,A_ext
@@ -40,7 +40,7 @@ subroutine RT_output(what,VALUES,TIME,E)
 &                         EE_prefactor,EP_prefactor,EP_abs_prefactor,RAD_prefactor,    &
 &                         RT_Tfit_lifetimes
  use timing_m,       ONLY:timing
- use LIVE_t,         ONLY:what_is_running
+ use C_driver,       ONLY:code_bin
  use functions,      ONLY:NAN
  !
  implicit none
@@ -68,7 +68,7 @@ subroutine RT_output(what,VALUES,TIME,E)
    if (file_is_todo(i_f)) cycle
    do i_o=1,n_orders
      if (file_is_todo(i_f)) cycle
-     if (index(what_is_running,'YPP')>0) then
+     if (index(code_bin,'ypp')>0) then
        file_is_todo(i_f) = index(RT_o_file_short(i_f),"YPP-"//trim(orders(i_o)))==1
      else
        file_is_todo(i_f) = index(RT_o_file_short(i_f),trim(orders(i_o)))==1

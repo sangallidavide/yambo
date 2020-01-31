@@ -40,7 +40,7 @@ module stderr
  !
  ! Slash
  !
-#if defined _aix || defined _XLF
+#if defined _aix || defined _XLF || defined _PGI
  character(2), parameter :: slash="\\"
 #else 
  character(1), parameter :: slash="\"
@@ -306,7 +306,7 @@ module stderr
      !
      ! Work Space
      !
-     integer  :: MXexp,MNexp,MDexp,iexp,MXval,i1
+     integer  :: MXexp,MNexp,MDexp,iexp,MXval,i1,G_shift
      real(SP) :: MX,MN,abs_r_v
      !
      if (present(i_v)) then
@@ -328,6 +328,7 @@ module stderr
        MNexp=int(log10(MN))
        iexp=max(iabs(MXexp),iabs(MNexp))
        MDexp=int(log10(MX/MN))
+       if (any((/r_v<0./))) iexp=iexp+1
        if (size(r_v)==1.and.r_v(1)==0.) then
          iexp=0
          MDexp=0
@@ -345,11 +346,16 @@ module stderr
          ! depending on the compiler 1.E9 is written  as 0.1E10. Therefore I need to uses
          ! a reference iexp=8 to distinguish the two possible formats.
          !
-         if (iexp< 9) write (gen_fmt,'(2(a,i2.2),a)')  'G',g_format_length,'.',g_format_length-5,'E1'
+         if (iexp< 9)  G_shift=5   !G9.4E1  g_format_length-5: 5 because of '-1.','E0'
+         if (iexp>=9)  G_shift=6   !G9.3E2  g_format_length-6: 6 because of '-1.','E00'
+         if (iexp>=99) G_shift=7   !G9.2E3  g_format_length-7: 7 because of '-1.','E000'
          !
-         !  g_format_length-6: 6 because of '-1.','E00'
+         ! Jan 2020. AM. In the case of -9.9999 Intel puts a too large decimal amount. Tentative fix follows:
+         if (any((/r_v<0./))) G_shift=G_shift+1
          !
-         if (iexp> 8) write (gen_fmt,'(2(a,i2.2),a)')  'G',g_format_length,'.',g_format_length-6,''
+         if (iexp< 9)  write (gen_fmt,'(2(a,i2.2),a)')  'G',g_format_length,'.',g_format_length-G_shift,'E1'
+         if (iexp>=9)  write (gen_fmt,'(2(a,i2.2),a)')  'G',g_format_length,'.',g_format_length-G_shift,'E2'
+         if (iexp>=99) write (gen_fmt,'(2(a,i2.2),a)')  'G',g_format_length,'.',g_format_length-G_shift,'E3' 
          !
        endif
        !
@@ -358,6 +364,10 @@ module stderr
   end function
   !
   subroutine STRING_to_LOWER(strIn)
+    !
+    ! Adapted from http://www.star.le.ac.uk/~cgp/fortran.html (25 May 2012)
+    ! Original author: Clive Page
+    !
     character(len=*), intent(inout) :: strIn
     integer :: i,j
     do i = 1, len(strIn)
@@ -368,6 +378,10 @@ module stderr
   end subroutine
   !
   subroutine STRING_to_UPPER(strIn)
+    !
+    ! Adapted from http://www.star.le.ac.uk/~cgp/fortran.html (25 May 2012)
+    ! Original author: Clive Page
+    !
     character(len=*), intent(inout) :: strIn
     integer :: i,j
     do i = 1, len(strIn)
@@ -376,6 +390,29 @@ module stderr
       strIn(i:i) = achar(j)
     enddo
   end subroutine
+  !
+  logical function STRING_same(strIn,MATCH)
+    !
+    ! Adapted from http://www.star.le.ac.uk/~cgp/fortran.html (25 May 2012)
+    ! Original author: Clive Page
+    !
+    character(len=*), intent(in) :: strIn
+    character(len=*), intent(in) :: MATCH
+    !
+    character(len=len(strIn)) :: str_
+    character(len=len(MATCH)) :: MATCH_
+    integer :: i,j
+    !
+    STRING_same=.FALSE.
+    !
+    str_  =trim(strIN)
+    MATCH_=trim(MATCH)
+    call STRING_to_UPPER(str_)
+    call STRING_to_UPPER(MATCH_)
+    !
+    STRING_same=trim(str_)==trim(MATCH_)
+    !
+  end function STRING_same
   !
   logical function STRING_match(strIn,MATCH)
     !
@@ -391,21 +428,12 @@ module stderr
     !
     STRING_match=.FALSE.
     !
-    if (len(strIn)/=len(MATCH)) return
+    str_  =trim(strIN)
+    MATCH_=trim(MATCH)
+    call STRING_to_UPPER(str_)
+    call STRING_to_UPPER(MATCH_)
     !
-    do i = 1, len(strIn)
-      !
-      j = iachar(strIn(i:i))
-      if (j>= iachar("a") .and. j<=iachar("z") ) j=j-32
-      str_(i:i) = achar(j)
-      !
-      j = iachar(MATCH(i:i))
-      if (j>= iachar("a") .and. j<=iachar("z") ) j=j-32
-      MATCH_(i:i) = achar(j)
-      !
-    end do
-    !
-    STRING_match=trim(str_)==trim(MATCH_)
+    STRING_match=index(str_,trim(MATCH_))>0
     !
   end function STRING_match
   !

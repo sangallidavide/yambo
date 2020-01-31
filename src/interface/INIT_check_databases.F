@@ -25,22 +25,20 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
 &                          io_X_err,io_BS_err,io_BS_Fxc_err,io_QINDX_err,io_ELPH_err,io_SC_E_err)
  !
  use electrons,      ONLY:levels,n_spinor
+ use C_driver,       ONLY:code_branch
  use drivers,        ONLY:infile_editing
  use X_m,            ONLY:X_t,X_duplicate
  use DIPOLES,        ONLY:DIPOLE_t
  use frequency,      ONLY:w_samp,W_duplicate
- use BS,             ONLY:BS_n_g_exch
+ use BS,             ONLY:BS_n_g_exch,BS_q
  use R_lattice,      ONLY:ng_closed,nqibz,bz_samp
  use QP_m,           ONLY:QP_t,QP_ng_Sx,QP_ng_Sc,QP_ng_SH,QP_ng_Vxc
  use wave_func,      ONLY:io_WF
  use TDDFT,          ONLY:io_BS_Fxc
- use it_m,           ONLY:switch_off_runlevel,initactivate
- use IO_m,           ONLY:io_control,OP_RD_CL,DUMP,NONE,mk_dir
- use com,            ONLY:com_path,more_io_path,core_io_path
+ use it_tools,       ONLY:switch_off_runlevel,initactivate
+ use IO_m,           ONLY:io_control,OP_RD_CL,DUMP,NONE,mk_dir,NONE
+ use com,            ONLY:com_path
  use parallel_m,     ONLY:ncpu
-#if defined _NL
- use wave_func,      ONLY:wf_ng
-#endif
 #if defined _SC || defined _RT
  use collision_ext,  ONLY:COH_collisions,HXC_collisions,P_collisions,GW_NEQ_collisions
  use COLL_interfaces,ONLY:io_COLLISIONS
@@ -66,7 +64,7 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
  !
  integer, external :: io_X,io_DIPOLES,io_GROT,io_QINDX,io_RIM,&
 &                     io_HF_and_locXC,io_QP_and_GF,io_BS,io_DB1,io_KB_abinit,io_KB_pwscf,&
-&                     io_COL_CUT,io_Double_Grid,io_E_SOC_map,io_ATMPROJ_pwscf
+&                     io_COL_CUT,io_E_SOC_map,io_ATMPROJ_pwscf
  !
  logical           :: OSTNTS_Vnl_included
  !
@@ -105,10 +103,7 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
    INIT =-1
    return
  else
-   call mk_dir(more_io_path)
    call mk_dir(com_path)
-   call mk_dir(trim(core_io_path)//"/SAVE")
-   call mk_dir(trim(more_io_path)//"/SAVE")
    if (INIT==0.and.ncpu>1) call mk_dir(trim(com_path)//"/LOG")
  endif
  !
@@ -160,11 +155,6 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
  !
  call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=io_ID)
  io_err=io_COL_CUT(io_ID) 
- !
- ! E_rim
- !
- call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=io_ID)
- io_err=io_Double_Grid(en,k,io_ID)
  !
  ! E SOC perturbative
  ! 
@@ -229,6 +219,8 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
  ! When no setup has been done nqibz=0
  !
  if (nqibz>0) then
+   !
+   if (trim(code_branch)=="devel-cumulant") BS_q=(/1,nqibz/)
    !
    do i1=1,4 ! Xx Xs Xd Xp
      !

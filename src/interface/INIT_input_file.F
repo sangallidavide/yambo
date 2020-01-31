@@ -26,7 +26,7 @@ subroutine INIT_input_file()
  use pars,           ONLY:lchlen
  use drivers,        ONLY:infile_editing
  use it_m,           ONLY:infile
- use com,            ONLY:com_path,jobstr,filename
+ use com,            ONLY:com_path,jobstr
  use IO_m,           ONLY:mk_dir,cp_file
  !
  implicit none
@@ -34,13 +34,15 @@ subroutine INIT_input_file()
  character(lchlen) :: infile_copy
  integer           :: io_err
  !
+ character(lchlen), external :: filename
+ !
  if (len_trim(com_path)==0) return
  if (infile_editing) return
  if (trim(com_path)==".") return
  !
  call mk_dir(com_path)
- infile_copy=trim(com_path)//"/"//trim(filename(infile))//".in"
- if (trim(jobstr)/='') infile_copy=trim(com_path)//"/"//trim(filename(infile))//"_"//trim(jobstr)//".in"
+ infile_copy=trim(com_path)//"/"//trim(filename(infile))
+ if (trim(jobstr)/='') infile_copy=trim(com_path)//"/"//trim(filename(infile))//"_"//trim(jobstr)
  call cp_file(trim(infile),trim(infile_copy),io_err)
  infile=infile_copy 
  !

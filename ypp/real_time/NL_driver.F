@@ -23,18 +23,18 @@
 !
 subroutine NL_driver(en,k)
  !
- use YPP_real_time,  ONLY:X_order,RT_conf,RT_time,Probe_Keyword,Pol,&
+ use YPP_real_time,  ONLY:X_order,RT_conf,RT_time,Pol,&
 &                         l_skip_OBS_IO
- use pars,           ONLY:SP,pi,cZERO,lchlen
+ use pars,           ONLY:SP,pi,lchlen
  use units,          ONLY:HA2EV,AUT2FS
  use R_lattice,      ONLY:bz_samp
  use electrons,      ONLY:levels
  use parser_m,       ONLY:parser
- use nl_optics,      ONLY:n_frequencies,NL_P_t,NL_damping
+ use nl_optics,      ONLY:n_frequencies,NL_P_t
  use fields,         ONLY:Efield,EtoT,Divide_by_Field,ext_field,Efield_duplicate,Efield_strength
  use IO_m,           ONLY:OP_RD_CL,DUMP,io_control,NONE
- use com,            ONLY:msg,error,warning
- use real_time,      ONLY:NE_steps,RT_step,NE_time,NE_steps
+ use com,            ONLY:msg
+ use real_time,      ONLY:NE_steps,RT_step,NE_steps
  use stderr,         ONLY:intc,real2ch
  use RT_control,     ONLY:OBS_RT_IO_t
  use LIVE_t,         ONLY:live_timing
@@ -47,8 +47,8 @@ subroutine NL_driver(en,k)
  ! Working Space
  !
  integer, external::io_NL
- integer  :: io_NonLinear,ID,i_Probe
- integer  :: i_f,i_d,i_order,i_t_field_range(2)!,i_t_start,i_t_end,it
+ integer  :: io_Nonlinear,ID,i_Probe
+ integer  :: i_f,i_d,i_order
  real(SP) :: W_step,T_period,time_range_save(2)
  real(SP),    allocatable  :: RT_P_probe(:,:,:),Harmonic_Frequency(:,:),Probe_frequency(:)
  complex(SP), allocatable  :: X_effective(:,:,:),Susceptibility(:,:,:)
@@ -208,7 +208,7 @@ subroutine NL_driver(en,k)
     !
     YAMBO_ALLOC(Pol%F_t,(RT_conf%T_n_steps,3))
     Pol%F_t(:,:) =RT_P_probe(:,i_Probe,:)
-    if(trim(RT_conf%damping) /= "NONE") call RT_damp_it(RT_conf%damping,RT_conf%damp_factor,Pol%F_t,3)
+    call RT_damp_it(RT_conf%damping,RT_conf%damp_factor,Pol%F_t,3)
     call RT_X_LRR_real_field(en)
     YAMBO_FREE(Pol%F_t)
      !
