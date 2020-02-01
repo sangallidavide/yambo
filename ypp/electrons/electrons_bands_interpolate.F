@@ -24,7 +24,7 @@
 subroutine electrons_bands_interpolate(Xen,Xk,BANDS_range,ID_bands,CIRCUIT_E,GRID_E,CIRCUIT_dE)
  !
  use pars,           ONLY:SP
- use YPP,            ONLY:BANDS_steps,INTERP_grid,CIRCUIT_k,BANDS_from_db,&
+ use YPPm,           ONLY:BANDS_steps,INTERP_grid,CIRCUIT_k,BANDS_from_db,&
 &                         CIRCUIT_E_db
  use electrons,      ONLY:levels,n_sp_pol
  use R_lattice,      ONLY:bz_samp

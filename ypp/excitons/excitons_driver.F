@@ -31,7 +31,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q,Dip)
  use DIPOLES,       ONLY:DIPOLE_t
  use electrons,     ONLY:levels,spin
  use YPP_interfaces,ONLY:excitons_sort_and_report
- use YPPm,           ONLY:l_sort,l_exc_wf,l_spin,l_amplitude,EXCITONS_user_indexes,BSiq, &
+ use YPPm,          ONLY:l_sort,l_exc_wf,l_spin,l_amplitude,EXCITONS_user_indexes,BSiq, &
 &                        BS_R_right,BS_E,BS_E_SOC_corr
  use BS_solvers,    ONLY:BSS_n_eig
  use BS,            ONLY:BS_H_dim,&
@@ -140,7 +140,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q,Dip)
      !
      use pars,   ONLY:schlen
      use stderr, ONLY:STRING_split,intc
-     use YPP,    ONLY:state_ctl,EXCITONS_user_indexes,EXCITONS_n_user_states,EXCITON_E_treshold,EXCITON_Res_treshold
+     use YPPm,   ONLY:state_ctl,EXCITONS_user_indexes,EXCITONS_n_user_states,EXCITON_E_treshold,EXCITON_Res_treshold
      use com,    ONLY:msg
      !
      implicit none
@@ -211,7 +211,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q,Dip)
    !
    subroutine ADD_me_to_the_list(i_state,TMP_index)
      !
-     use YPP,   ONLY:EXCITONS_n_user_states
+     use YPPm,  ONLY:EXCITONS_n_user_states
      !
      integer i_st_p,i_state,TMP_index(BSS_n_eig)
      !

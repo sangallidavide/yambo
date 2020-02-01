@@ -817,7 +817,7 @@ subroutine INIT_ypp(E,Dip,instr,FINALIZE)
    !
    subroutine before_infile_write_setup 
      !
-     use YPP,           ONLY:DOS_bands,SOC_bands_to_map,wannier_bands
+     use YPPm,           ONLY:DOS_bands,SOC_bands_to_map,wannier_bands
      use electrons,      ONLY:n_bands
      !
      ! After DB reading/stdin logicals I propose here values for the input file

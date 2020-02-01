@@ -29,7 +29,7 @@ subroutine electrons_WFs(Xen)
  use FFT_m,          ONLY:fft_size,fft_dim
  use electrons,      ONLY:levels,n_spinor,spin,n_sp_pol
  use QP_m,           ONLY:QP_table,QP_n_states
- use YPP,            ONLY:v2plot,output_fname,plot_dim,use_xcrysden,&
+ use YPPm,           ONLY:v2plot,output_fname,plot_dim,use_xcrysden,&
 &                         use_gnuplot,use_cube,nr,l_sp_wf,deg_energy,l_norm_to_one,&
 &                         plot_title
  use com,            ONLY:msg,of_open_close
