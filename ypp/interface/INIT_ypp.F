@@ -49,7 +49,7 @@ subroutine INIT_ypp(E,Dip,instr,FINALIZE)
  use IO_m,           ONLY:rm_file,OP_RD_CL,DUMP,io_control,NONE
  use DIPOLES,        ONLY:DIPOLE_t
 #if defined _YPP_SC
- use YPP,           ONLY:l_mean_potential
+ use YPPm,           ONLY:l_mean_potential
  use SC,             ONLY:SC_bands
 #endif
 #if defined _YPP_RT || defined _YPP_SC
