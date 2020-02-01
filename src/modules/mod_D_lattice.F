@@ -93,7 +93,6 @@ module D_lattice
  !
  ! EXC lifetimes: Non Periodic  directions
  !
- logical               :: l_1D,l_2D,l_3D,l_0D
  !
  complex, allocatable  :: Grad_R(:,:,:)
  !

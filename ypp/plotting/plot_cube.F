@@ -27,7 +27,7 @@ subroutine plot_cube()
  use FFT_m,       ONLY:fft_dim 
  use C_driver,    ONLY:code_version
  use com,         ONLY:msg
- use YPPm,        ONLY:nr,v2plot,ncell,r_hole,l_free_hole,&
+ use YPPm,         ONLY:nr,v2plot,ncell,r_hole,l_free_hole,&
 &                      l_norm_to_one,WF_multiplier,l_exc_wf,plot_title,output_string
  use D_lattice,   ONLY:n_atomic_species,n_atoms_species,a,atom_pos,Z_species,n_atoms
  use LIVE_t,      ONLY:live_timing

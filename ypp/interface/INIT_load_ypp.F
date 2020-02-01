@@ -39,14 +39,14 @@ subroutine INIT_ypp_load(defs)
                          SOC_bands_buffer,SOC_bands_to_map,SOC_split,state_ctl,w90_fname,wannier_bands,&
 &                        WF_multiplier,WF_ref,what_to_write,BSiq,epsi0,EXC_mass,EXC_Phi_Grid,EXC_shift,EXC_temp
 #if defined _YPP_RT
- use YPPm,          ONLY:Nel_fac
+ use YPP,          ONLY:Nel_fac
  use YPP_real_time, ONLY:RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,&
 &                        Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,Eh_pumped_pair_energy,&
 &                        Eh_pumped_pair_BZ_width,Eh_mu,Eh_temp,h_mu_autotune_thr
  use real_time,     ONLY:RT_bands
 #endif
 #if defined _YPP_SC
- use YPPm,          ONLY:V_value
+ use YPP,          ONLY:V_value
 #endif
 #if defined _YPP_ELPH
  use YPP_ELPH,      ONLY:elph_dbs_path,elph_Ef,elph_gamma_broad,elph_residual_treshold,elph_steps,&

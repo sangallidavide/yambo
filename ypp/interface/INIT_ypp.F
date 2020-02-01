@@ -49,7 +49,7 @@ subroutine INIT_ypp(E,Dip,instr,FINALIZE)
  use IO_m,           ONLY:rm_file,OP_RD_CL,DUMP,io_control,NONE
  use DIPOLES,        ONLY:DIPOLE_t
 #if defined _YPP_SC
- use YPPm,           ONLY:l_mean_potential
+ use YPP,           ONLY:l_mean_potential
  use SC,             ONLY:SC_bands
 #endif
 #if defined _YPP_RT || defined _YPP_SC
@@ -75,7 +75,7 @@ subroutine INIT_ypp(E,Dip,instr,FINALIZE)
  !
  type(levels)     ::E
  type(DIPOLE_t)   ::Dip
- character(lnstr) ::instr
+ character(*) ::instr
  logical          ::FINALIZE
  !
  ! Work Space
@@ -817,7 +817,7 @@ subroutine INIT_ypp(E,Dip,instr,FINALIZE)
    !
    subroutine before_infile_write_setup 
      !
-     use YPPm,           ONLY:DOS_bands,SOC_bands_to_map,wannier_bands
+     use YPP,           ONLY:DOS_bands,SOC_bands_to_map,wannier_bands
      use electrons,      ONLY:n_bands
      !
      ! After DB reading/stdin logicals I propose here values for the input file

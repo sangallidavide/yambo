@@ -30,7 +30,7 @@ subroutine plot_interpolated_values(Xk,Xen,Ef,LOCAL_k,IDs,dims,nquantities,nfile
  use vec_operate,    ONLY:v_norm,iku_v_norm
  use R_lattice,      ONLY:bz_samp
  use stderr,         ONLY:intc,set_real_printed_length
- use YPPm,           ONLY:coo_out,K_transform,CIRCUIT_E_db,CIRCUIT_k_label
+ use YPPm,            ONLY:coo_out,K_transform,CIRCUIT_E_db,CIRCUIT_k_label
  use interpolate,    ONLY:INTERP_obj
  !
 #include<memory.h>
