@@ -30,7 +30,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  use BS_solvers,    ONLY:BSS_eh_table,BS_mat,BSS_n_eig
  use BS,            ONLY:BS_bands,BS_H_dim
  use com,           ONLY:msg,of_open_close
- use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm,bare_qpg
+ use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
  use X_m,           ONLY:eps_2_alpha
  use DIPOLES,       ONLY:DIPOLE_t,DIP_iR

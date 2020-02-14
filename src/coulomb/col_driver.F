@@ -55,7 +55,7 @@ subroutine col_driver(bare_NG,q)
  use R_lattice,     ONLY:d3q_factor,RIM_is_diagonal,RIM_qpg,bare_qpg,&
 &                        nqibz,g_vec,q_pt,nqbz,RIM_ng,RIM_n_rand_pts,&
 &                        bz_samp,q_norm,cutoff_presets, &
-&                        bare_qpg_d
+&                        bare_qpg_d,q0_def_norm
  use wave_func,     ONLY:wf_ng
  use IO_m,          ONLY:io_control,OP_RD_CL,OP_WR_CL,REP,VERIFY
 #include<memory.h>
@@ -158,6 +158,12 @@ subroutine col_driver(bare_NG,q)
  endif
  !
  call cutoff_driver(q)
+ !
+ ! DS: 2020/02/14. I moved the next lines here from DIPOLE_dimension
+ !                 To check if they are needed at all
+ !
+ if (     l_col_cut) q_norm(1)    =q0_def_norm
+ if (.not.l_col_cut) bare_qpg(1,1)=q0_def_norm
  !
  ! copy again,
  ! bare_qpg is modified by cutff_driver
