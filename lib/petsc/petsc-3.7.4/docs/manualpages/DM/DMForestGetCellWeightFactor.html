@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML3.2 EN">
+<HTML>
+<HEAD> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/DM/DMForestGetCellWeightFactor.html" />
+<META NAME="GENERATOR" CONTENT="DOCTEXT">
+<TITLE>DMForestGetCellWeightFactor</TITLE>
+</HEAD>
+<BODY BGCOLOR="FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 docs/manualpages/DM/DMForestGetCellWeightFactor.html "><small>Report Typos and Errors</small></a></div>
+<A NAME="DMForestGetCellWeightFactor"><H1>DMForestGetCellWeightFactor</H1></A>
+Get the factor by which the level of refinement changes the cell weight (see <A HREF="../DM/DMForestSetCellWeights.html#DMForestSetCellWeights">DMForestSetCellWeights</A>()) when calculating partitions.  The final weight of a cell will be (cellWeight) * (weightFactor^refinementLevel).  A factor of 1 indicates that the weight of a cell does not depend on its level; a factor of 2, for example, might be appropriate for sub-cycling time-stepping methods, when the computation associated with a cell is multiplied by a factor of 2 for each additional level of refinement. 
+<H3><FONT COLOR="#CC3333">Synopsis</FONT></H3>
+<PRE>
+#include "petscdmforest.h" 
+#include "petscdm.h" 
+PetscErrorCode DMForestGetCellWeightFactor(DM dm, PetscReal *weightsFactor)
+</PRE>
+Not collective
+<P>
+<H3><FONT COLOR="#CC3333">Input Parameter</FONT></H3>
+<DT><B>dm </B> -the forest
+<br>
+<P>
+<H3><FONT COLOR="#CC3333">Output Parameter</FONT></H3>
+<DT><B>weightsFactors </B> -default 1.
+<br>
+<P>
+
+<P>
+<H3><FONT COLOR="#CC3333">See Also</FONT></H3>
+ <A HREF="../DM/DMForestSetCellWeightFactor.html#DMForestSetCellWeightFactor">DMForestSetCellWeightFactor</A>(), <A HREF="../DM/DMForestSetCellWeights.html#DMForestSetCellWeights">DMForestSetCellWeights</A>()
+<BR><P><B><P><B><FONT COLOR="#CC3333">Level:</FONT></B>advanced
+<BR><FONT COLOR="#CC3333">Location:</FONT></B><A HREF="../../../src/dm/impls/forest/forest.c.html#DMForestGetCellWeightFactor">src/dm/impls/forest/forest.c</A>
+<BR><A HREF="./index.html">Index of all DM routines</A>
+<BR><A HREF="../../index.html">Table of Contents for all manual pages</A>
+<BR><A HREF="../singleindex.html">Index of all manual pages</A>
+</BODY></HTML>

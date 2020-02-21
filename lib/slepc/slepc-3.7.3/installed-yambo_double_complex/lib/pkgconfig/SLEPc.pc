@@ -1,0 +1,6 @@
+Name: SLEPc, the Scalable Library for Eigenvalue Problem Computations
+Description: A parallel library to compute eigenvalues and eigenvectors of large, sparse matrices with iterative methods. It is based on PETSc.
+Version: 3.7.3
+Requires: PETSc = 3.7.4
+Cflags: -I/home/maurizia/D_PGM/D_exc/yambo-libs/gfortran/mpifort/double/include
+Libs: -L/home/maurizia/D_PGM/D_exc/yambo-libs/gfortran/mpifort/double/lib -lslepc

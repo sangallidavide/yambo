@@ -1,0 +1,466 @@
+<center><a href="lsqr.c">Actual source code: lsqr.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/src/ksp/ksp/impls/lsqr/lsqr.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-10-03T02:51:12+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 src/ksp/ksp/impls/lsqr/lsqr.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80">
+<a name="line2">  2: </a><font color="#B22222">/* lourens.vanzanen@shell.com contributed the standard error estimates of the solution, Jul 25, 2006 */</font>
+<a name="line3">  3: </a><font color="#B22222">/* Bas van't Hof contributed the preconditioned aspects Feb 10, 2010 */</font>
+
+<a name="line5">  5: </a><strong><font color="#228B22">#define SWAP(a,b,c) { c = a; a = b; b = c; }</font></strong>
+
+<a name="line7">  7: </a><font color="#A020F0">#include &lt;petsc/private/kspimpl.h&gt;</font>
+<a name="line8">  8: </a><font color="#A020F0">#include &lt;../src/ksp/ksp/impls/lsqr/lsqr.h&gt;</font>
+
+<a name="line10"> 10: </a><font color="#4169E1">typedef</font> <font color="#4169E1">struct</font> {
+<a name="line11"> 11: </a>  <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>  nwork_n,nwork_m;
+<a name="line12"> 12: </a>  <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>       *vwork_m;   <font color="#B22222">/* work vectors of length m, where the system is size m x n */</font>
+<a name="line13"> 13: </a>  <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>       *vwork_n;   <font color="#B22222">/* work vectors of length n */</font>
+<a name="line14"> 14: </a>  <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>       se;         <font color="#B22222">/* Optional standard error vector */</font>
+<a name="line15"> 15: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a> se_flg;     <font color="#B22222">/* flag for -ksp_lsqr_set_standard_error */</font>
+<a name="line16"> 16: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> arnorm;     <font color="#B22222">/* Norm of the vector A.r */</font>
+<a name="line17"> 17: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> anorm;      <font color="#B22222">/* Frobenius norm of the matrix A */</font>
+<a name="line18"> 18: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> rhs_norm;   <font color="#B22222">/* Norm of the right hand side */</font>
+<a name="line19"> 19: </a>} KSP_LSQR;
+
+<a name="line23"> 23: </a><strong><font color="#4169E1"><a name="VecSquare"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  VecSquare(<a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> v)</font></strong>
+<a name="line24"> 24: </a>{
+<a name="line26"> 26: </a>  <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>    *x;
+<a name="line27"> 27: </a>  <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       i, n;
+
+<a name="line30"> 30: </a>  <a href="../../../../../docs/manualpages/Vec/VecGetLocalSize.html#VecGetLocalSize">VecGetLocalSize</a>(v, &amp;n);
+<a name="line31"> 31: </a>  <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(v, &amp;x);
+<a name="line32"> 32: </a>  <font color="#4169E1">for</font> (i = 0; i &lt; n; i++) x[i] *= PetscConj(x[i]);
+<a name="line33"> 33: </a>  <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(v, &amp;x);
+<a name="line34"> 34: </a>  <font color="#4169E1">return</font>(0);
+<a name="line35"> 35: </a>}
+
+<a name="line39"> 39: </a><strong><font color="#4169E1"><a name="KSPSetUp_LSQR"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> KSPSetUp_LSQR(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp)</font></strong>
+<a name="line40"> 40: </a>{
+<a name="line42"> 42: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+<a name="line43"> 43: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      nopreconditioner;
+
+<a name="line46"> 46: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp-&gt;pc,<a href="../../../../../docs/manualpages/PC/PCNONE.html#PCNONE">PCNONE</a>,&amp;nopreconditioner);
+<a name="line47"> 47: </a>  <font color="#B22222">/*  nopreconditioner =<a href="../../../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>; */</font>
+
+<a name="line49"> 49: </a>  lsqr-&gt;nwork_m = 2;
+<a name="line50"> 50: </a>  <font color="#4169E1">if</font> (lsqr-&gt;vwork_m) {
+<a name="line51"> 51: </a>    <a href="../../../../../docs/manualpages/Vec/VecDestroyVecs.html#VecDestroyVecs">VecDestroyVecs</a>(lsqr-&gt;nwork_m,&amp;lsqr-&gt;vwork_m);
+<a name="line52"> 52: </a>  }
+<a name="line53"> 53: </a>  <font color="#4169E1">if</font> (nopreconditioner) lsqr-&gt;nwork_n = 4;
+<a name="line54"> 54: </a>  <font color="#4169E1">else</font> lsqr-&gt;nwork_n = 5;
+
+<a name="line56"> 56: </a>  <font color="#4169E1">if</font> (lsqr-&gt;vwork_n) {
+<a name="line57"> 57: </a>    <a href="../../../../../docs/manualpages/Vec/VecDestroyVecs.html#VecDestroyVecs">VecDestroyVecs</a>(lsqr-&gt;nwork_n,&amp;lsqr-&gt;vwork_n);
+<a name="line58"> 58: </a>  }
+<a name="line59"> 59: </a>  <a href="../../../../../docs/manualpages/KSP/KSPCreateVecs.html#KSPCreateVecs">KSPCreateVecs</a>(ksp,lsqr-&gt;nwork_n,&amp;lsqr-&gt;vwork_n,lsqr-&gt;nwork_m,&amp;lsqr-&gt;vwork_m);
+<a name="line60"> 60: </a>  <font color="#4169E1">if</font> (lsqr-&gt;se_flg &amp;&amp; !lsqr-&gt;se) {
+<a name="line61"> 61: </a>    <font color="#B22222">/* lsqr-&gt;se is not set by user, get it from pmat */</font>
+<a name="line62"> 62: </a>    <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> *se;
+<a name="line63"> 63: </a>    <a href="../../../../../docs/manualpages/KSP/KSPCreateVecs.html#KSPCreateVecs">KSPCreateVecs</a>(ksp,1,&amp;se,0,NULL);
+<a name="line64"> 64: </a>    lsqr-&gt;se = *se;
+<a name="line65"> 65: </a>    <a href="../../../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(se);
+<a name="line66"> 66: </a>  }
+<a name="line67"> 67: </a>  <font color="#4169E1">return</font>(0);
+<a name="line68"> 68: </a>}
+
+<a name="line72"> 72: </a><strong><font color="#4169E1"><a name="KSPSolve_LSQR"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> KSPSolve_LSQR(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp)</font></strong>
+<a name="line73"> 73: </a>{
+<a name="line75"> 75: </a>  <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       i,size1,size2;
+<a name="line76"> 76: </a>  <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>    rho,rhobar,phi,phibar,theta,c,s,tmp,tau;
+<a name="line77"> 77: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>      beta,alpha,rnorm;
+<a name="line78"> 78: </a>  <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>            X,B,V,V1,U,U1,TMP,W,W2,SE,Z = NULL;
+<a name="line79"> 79: </a>  <a href="../../../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>            Amat,Pmat;
+<a name="line80"> 80: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+<a name="line81"> 81: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      diagonalscale,nopreconditioner;
+
+<a name="line84"> 84: </a>  <a href="../../../../../docs/manualpages/PC/PCGetDiagonalScale.html#PCGetDiagonalScale">PCGetDiagonalScale</a>(ksp-&gt;pc,&amp;diagonalscale);
+<a name="line85"> 85: </a>  <font color="#4169E1">if</font> (diagonalscale) <a href="../../../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp),PETSC_ERR_SUP,<font color="#666666">"Krylov method %s does not support diagonal scaling"</font>,((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp)-&gt;type_name);
+
+<a name="line87"> 87: </a>  <a href="../../../../../docs/manualpages/PC/PCGetOperators.html#PCGetOperators">PCGetOperators</a>(ksp-&gt;pc,&amp;Amat,&amp;Pmat);
+<a name="line88"> 88: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp-&gt;pc,<a href="../../../../../docs/manualpages/PC/PCNONE.html#PCNONE">PCNONE</a>,&amp;nopreconditioner);
+
+<a name="line90"> 90: </a>  <font color="#B22222">/*  nopreconditioner =<a href="../../../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>; */</font>
+<a name="line91"> 91: </a>  <font color="#B22222">/* Calculate norm of right hand side */</font>
+<a name="line92"> 92: </a>  <a href="../../../../../docs/manualpages/Vec/VecNorm.html#VecNorm">VecNorm</a>(ksp-&gt;vec_rhs,<a href="../../../../../docs/manualpages/Vec/NORM_2.html#NORM_2">NORM_2</a>,&amp;lsqr-&gt;rhs_norm);
+
+<a name="line94"> 94: </a>  <font color="#B22222">/* mark norm of matrix with negative number to indicate it has not yet been computed */</font>
+<a name="line95"> 95: </a>  lsqr-&gt;anorm = -1.0;
+
+<a name="line97"> 97: </a>  <font color="#B22222">/* vectors of length m, where system size is mxn */</font>
+<a name="line98"> 98: </a>  B  = ksp-&gt;vec_rhs;
+<a name="line99"> 99: </a>  U  = lsqr-&gt;vwork_m[0];
+<a name="line100">100: </a>  U1 = lsqr-&gt;vwork_m[1];
+
+<a name="line102">102: </a>  <font color="#B22222">/* vectors of length n */</font>
+<a name="line103">103: </a>  X  = ksp-&gt;vec_sol;
+<a name="line104">104: </a>  W  = lsqr-&gt;vwork_n[0];
+<a name="line105">105: </a>  V  = lsqr-&gt;vwork_n[1];
+<a name="line106">106: </a>  V1 = lsqr-&gt;vwork_n[2];
+<a name="line107">107: </a>  W2 = lsqr-&gt;vwork_n[3];
+<a name="line108">108: </a>  <font color="#4169E1">if</font> (!nopreconditioner) Z = lsqr-&gt;vwork_n[4];
+
+<a name="line110">110: </a>  <font color="#B22222">/* standard error vector */</font>
+<a name="line111">111: </a>  SE = lsqr-&gt;se;
+<a name="line112">112: </a>  <font color="#4169E1">if</font> (SE) {
+<a name="line113">113: </a>    <a href="../../../../../docs/manualpages/Vec/VecGetSize.html#VecGetSize">VecGetSize</a>(SE,&amp;size1);
+<a name="line114">114: </a>    <a href="../../../../../docs/manualpages/Vec/VecGetSize.html#VecGetSize">VecGetSize</a>(X,&amp;size2);
+<a name="line115">115: </a>    <font color="#4169E1">if</font> (size1 != size2) <a href="../../../../../docs/manualpages/Sys/SETERRQ2.html#SETERRQ2">SETERRQ2</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_SIZ,<font color="#666666">"Standard error vector (size %d) does not match solution vector (size %d)"</font>,size1,size2);
+<a name="line116">116: </a>    <a href="../../../../../docs/manualpages/Vec/VecSet.html#VecSet">VecSet</a>(SE,0.0);
+<a name="line117">117: </a>  }
+
+<a name="line119">119: </a>  <font color="#B22222">/* Compute initial residual, temporarily use work vector u */</font>
+<a name="line120">120: </a>  <font color="#4169E1">if</font> (!ksp-&gt;guess_zero) {
+<a name="line121">121: </a>    KSP_MatMult(ksp,Amat,X,U);       <font color="#B22222">/*   u &lt;- b - Ax     */</font>
+<a name="line122">122: </a>    <a href="../../../../../docs/manualpages/Vec/VecAYPX.html#VecAYPX">VecAYPX</a>(U,-1.0,B);
+<a name="line123">123: </a>  } <font color="#4169E1">else</font> {
+<a name="line124">124: </a>    <a href="../../../../../docs/manualpages/Vec/VecCopy.html#VecCopy">VecCopy</a>(B,U);            <font color="#B22222">/*   u &lt;- b (x is 0) */</font>
+<a name="line125">125: </a>  }
+
+<a name="line127">127: </a>  <font color="#B22222">/* Test for nothing to do */</font>
+<a name="line128">128: </a>  <a href="../../../../../docs/manualpages/Vec/VecNorm.html#VecNorm">VecNorm</a>(U,<a href="../../../../../docs/manualpages/Vec/NORM_2.html#NORM_2">NORM_2</a>,&amp;rnorm);
+<a name="line129">129: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectSAWsTakeAccess.html#PetscObjectSAWsTakeAccess">PetscObjectSAWsTakeAccess</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp);
+<a name="line130">130: </a>  ksp-&gt;its   = 0;
+<a name="line131">131: </a>  ksp-&gt;rnorm = rnorm;
+<a name="line132">132: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectSAWsGrantAccess.html#PetscObjectSAWsGrantAccess">PetscObjectSAWsGrantAccess</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp);
+<a name="line133">133: </a>  KSPLogResidualHistory(ksp,rnorm);
+<a name="line134">134: </a>  <a href="../../../../../docs/manualpages/KSP/KSPMonitor.html#KSPMonitor">KSPMonitor</a>(ksp,0,rnorm);
+<a name="line135">135: </a>  (*ksp-&gt;converged)(ksp,0,rnorm,&amp;ksp-&gt;reason,ksp-&gt;cnvP);
+<a name="line136">136: </a>  <font color="#4169E1">if</font> (ksp-&gt;reason) <font color="#4169E1">return</font>(0);
+
+<a name="line138">138: </a>  beta = rnorm;
+<a name="line139">139: </a>  <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(U,1.0/beta);
+<a name="line140">140: </a>  KSP_MatMultTranspose(ksp,Amat,U,V);
+<a name="line141">141: </a>  <font color="#4169E1">if</font> (nopreconditioner) {
+<a name="line142">142: </a>    <a href="../../../../../docs/manualpages/Vec/VecNorm.html#VecNorm">VecNorm</a>(V,<a href="../../../../../docs/manualpages/Vec/NORM_2.html#NORM_2">NORM_2</a>,&amp;alpha);
+<a name="line143">143: </a>  } <font color="#4169E1">else</font> {
+<a name="line144">144: </a>    <a href="../../../../../docs/manualpages/PC/PCApply.html#PCApply">PCApply</a>(ksp-&gt;pc,V,Z);
+<a name="line145">145: </a>    <a href="../../../../../docs/manualpages/Vec/VecDotRealPart.html#VecDotRealPart">VecDotRealPart</a>(V,Z,&amp;alpha);
+<a name="line146">146: </a>    <font color="#4169E1">if</font> (alpha &lt;= 0.0) {
+<a name="line147">147: </a>      ksp-&gt;reason = <a href="../../../../../docs/manualpages/KSP/KSP_DIVERGED_BREAKDOWN.html#KSP_DIVERGED_BREAKDOWN">KSP_DIVERGED_BREAKDOWN</a>;
+<a name="line148">148: </a>      <font color="#4169E1">return</font>(0);
+<a name="line149">149: </a>    }
+<a name="line150">150: </a>    alpha = PetscSqrtReal(alpha);
+<a name="line151">151: </a>    <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(Z,1.0/alpha);
+<a name="line152">152: </a>  }
+<a name="line153">153: </a>  <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(V,1.0/alpha);
+
+<a name="line155">155: </a>  <font color="#4169E1">if</font> (nopreconditioner) {
+<a name="line156">156: </a>    <a href="../../../../../docs/manualpages/Vec/VecCopy.html#VecCopy">VecCopy</a>(V,W);
+<a name="line157">157: </a>  } <font color="#4169E1">else</font> {
+<a name="line158">158: </a>    <a href="../../../../../docs/manualpages/Vec/VecCopy.html#VecCopy">VecCopy</a>(Z,W);
+<a name="line159">159: </a>  }
+
+<a name="line161">161: </a>  lsqr-&gt;arnorm = alpha * beta;
+<a name="line162">162: </a>  phibar       = beta;
+<a name="line163">163: </a>  rhobar       = alpha;
+<a name="line164">164: </a>  i            = 0;
+<a name="line165">165: </a>  <font color="#4169E1">do</font> {
+<a name="line166">166: </a>    <font color="#4169E1">if</font> (nopreconditioner) {
+<a name="line167">167: </a>      KSP_MatMult(ksp,Amat,V,U1);
+<a name="line168">168: </a>    } <font color="#4169E1">else</font> {
+<a name="line169">169: </a>      KSP_MatMult(ksp,Amat,Z,U1);
+<a name="line170">170: </a>    }
+<a name="line171">171: </a>    <a href="../../../../../docs/manualpages/Vec/VecAXPY.html#VecAXPY">VecAXPY</a>(U1,-alpha,U);
+<a name="line172">172: </a>    <a href="../../../../../docs/manualpages/Vec/VecNorm.html#VecNorm">VecNorm</a>(U1,<a href="../../../../../docs/manualpages/Vec/NORM_2.html#NORM_2">NORM_2</a>,&amp;beta);
+<a name="line173">173: </a>    <font color="#4169E1">if</font> (beta &gt; 0.0) {
+<a name="line174">174: </a>      <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(U1,1.0/beta); <font color="#B22222">/* beta*U1 = Amat*V - alpha*U */</font>
+<a name="line175">175: </a>    }
+
+<a name="line177">177: </a>    KSP_MatMultTranspose(ksp,Amat,U1,V1);
+<a name="line178">178: </a>    <a href="../../../../../docs/manualpages/Vec/VecAXPY.html#VecAXPY">VecAXPY</a>(V1,-beta,V);
+<a name="line179">179: </a>    <font color="#4169E1">if</font> (nopreconditioner) {
+<a name="line180">180: </a>      <a href="../../../../../docs/manualpages/Vec/VecNorm.html#VecNorm">VecNorm</a>(V1,<a href="../../../../../docs/manualpages/Vec/NORM_2.html#NORM_2">NORM_2</a>,&amp;alpha);
+<a name="line181">181: </a>    } <font color="#4169E1">else</font> {
+<a name="line182">182: </a>      <a href="../../../../../docs/manualpages/PC/PCApply.html#PCApply">PCApply</a>(ksp-&gt;pc,V1,Z);
+<a name="line183">183: </a>      <a href="../../../../../docs/manualpages/Vec/VecDotRealPart.html#VecDotRealPart">VecDotRealPart</a>(V1,Z,&amp;alpha);
+<a name="line184">184: </a>      <font color="#4169E1">if</font> (alpha &lt;= 0.0) {
+<a name="line185">185: </a>        ksp-&gt;reason = <a href="../../../../../docs/manualpages/KSP/KSP_DIVERGED_BREAKDOWN.html#KSP_DIVERGED_BREAKDOWN">KSP_DIVERGED_BREAKDOWN</a>;
+<a name="line186">186: </a>        <font color="#4169E1">break</font>;
+<a name="line187">187: </a>      }
+<a name="line188">188: </a>      alpha = PetscSqrtReal(alpha);
+<a name="line189">189: </a>      <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(Z,1.0/alpha);
+<a name="line190">190: </a>    }
+<a name="line191">191: </a>    <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(V1,1.0/alpha); <font color="#B22222">/* alpha*V1 = Amat^T*U1 - beta*V */</font>
+<a name="line192">192: </a>    rho    = PetscSqrtScalar(rhobar*rhobar + beta*beta);
+<a name="line193">193: </a>    c      = rhobar / rho;
+<a name="line194">194: </a>    s      = beta / rho;
+<a name="line195">195: </a>    theta  = s * alpha;
+<a name="line196">196: </a>    rhobar = -c * alpha;
+<a name="line197">197: </a>    phi    = c * phibar;
+<a name="line198">198: </a>    phibar = s * phibar;
+<a name="line199">199: </a>    tau    = s * phi;
+
+<a name="line201">201: </a>    <a href="../../../../../docs/manualpages/Vec/VecAXPY.html#VecAXPY">VecAXPY</a>(X,phi/rho,W);  <font color="#B22222">/*    x &lt;- x + (phi/rho) w   */</font>
+
+<a name="line203">203: </a>    <font color="#4169E1">if</font> (SE) {
+<a name="line204">204: </a>      <a href="../../../../../docs/manualpages/Vec/VecCopy.html#VecCopy">VecCopy</a>(W,W2);
+<a name="line205">205: </a>      VecSquare(W2);
+<a name="line206">206: </a>      <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(W2,1.0/(rho*rho));
+<a name="line207">207: </a>      <a href="../../../../../docs/manualpages/Vec/VecAXPY.html#VecAXPY">VecAXPY</a>(SE, 1.0, W2); <font color="#B22222">/* SE &lt;- SE + (w^2/rho^2) */</font>
+<a name="line208">208: </a>    }
+<a name="line209">209: </a>    <font color="#4169E1">if</font> (nopreconditioner) {
+<a name="line210">210: </a>      <a href="../../../../../docs/manualpages/Vec/VecAYPX.html#VecAYPX">VecAYPX</a>(W,-theta/rho,V1);  <font color="#B22222">/* w &lt;- v - (theta/rho) w */</font>
+<a name="line211">211: </a>    } <font color="#4169E1">else</font> {
+<a name="line212">212: </a>      <a href="../../../../../docs/manualpages/Vec/VecAYPX.html#VecAYPX">VecAYPX</a>(W,-theta/rho,Z);   <font color="#B22222">/* w &lt;- z - (theta/rho) w */</font>
+<a name="line213">213: </a>    }
+
+<a name="line215">215: </a>    lsqr-&gt;arnorm = alpha*PetscAbsScalar(tau);
+<a name="line216">216: </a>    rnorm        = PetscRealPart(phibar);
+
+<a name="line218">218: </a>    <a href="../../../../../docs/manualpages/Sys/PetscObjectSAWsTakeAccess.html#PetscObjectSAWsTakeAccess">PetscObjectSAWsTakeAccess</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp);
+<a name="line219">219: </a>    ksp-&gt;its++;
+<a name="line220">220: </a>    ksp-&gt;rnorm = rnorm;
+<a name="line221">221: </a>    <a href="../../../../../docs/manualpages/Sys/PetscObjectSAWsGrantAccess.html#PetscObjectSAWsGrantAccess">PetscObjectSAWsGrantAccess</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp);
+<a name="line222">222: </a>    KSPLogResidualHistory(ksp,rnorm);
+<a name="line223">223: </a>    <a href="../../../../../docs/manualpages/KSP/KSPMonitor.html#KSPMonitor">KSPMonitor</a>(ksp,i+1,rnorm);
+<a name="line224">224: </a>    (*ksp-&gt;converged)(ksp,i+1,rnorm,&amp;ksp-&gt;reason,ksp-&gt;cnvP);
+<a name="line225">225: </a>    <font color="#4169E1">if</font> (ksp-&gt;reason) <font color="#4169E1">break</font>;
+<a name="line226">226: </a>    SWAP(U1,U,TMP);
+<a name="line227">227: </a>    SWAP(V1,V,TMP);
+
+<a name="line229">229: </a>    i++;
+<a name="line230">230: </a>  } <font color="#4169E1">while</font> (i&lt;ksp-&gt;max_it);
+<a name="line231">231: </a>  <font color="#4169E1">if</font> (i &gt;= ksp-&gt;max_it &amp;&amp; !ksp-&gt;reason) ksp-&gt;reason = <a href="../../../../../docs/manualpages/KSP/KSP_DIVERGED_ITS.html#KSP_DIVERGED_ITS">KSP_DIVERGED_ITS</a>;
+
+<a name="line233">233: </a>  <font color="#B22222">/* Finish off the standard error estimates */</font>
+<a name="line234">234: </a>  <font color="#4169E1">if</font> (SE) {
+<a name="line235">235: </a>    tmp  = 1.0;
+<a name="line236">236: </a>    <a href="../../../../../docs/manualpages/Mat/MatGetSize.html#MatGetSize">MatGetSize</a>(Amat,&amp;size1,&amp;size2);
+<a name="line237">237: </a>    <font color="#4169E1">if</font> (size1 &gt; size2) tmp = size1 - size2;
+<a name="line238">238: </a>    tmp  = rnorm / PetscSqrtScalar(tmp);
+<a name="line239">239: </a>    <a href="../../../../../docs/manualpages/Vec/VecSqrtAbs.html#VecSqrtAbs">VecSqrtAbs</a>(SE);
+<a name="line240">240: </a>    <a href="../../../../../docs/manualpages/Vec/VecScale.html#VecScale">VecScale</a>(SE,tmp);
+<a name="line241">241: </a>  }
+<a name="line242">242: </a>  <font color="#4169E1">return</font>(0);
+<a name="line243">243: </a>}
+
+
+<a name="line248">248: </a><strong><font color="#4169E1"><a name="KSPDestroy_LSQR"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> KSPDestroy_LSQR(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp)</font></strong>
+<a name="line249">249: </a>{
+<a name="line250">250: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line254">254: </a>  <font color="#B22222">/* Free work vectors */</font>
+<a name="line255">255: </a>  <font color="#4169E1">if</font> (lsqr-&gt;vwork_n) {
+<a name="line256">256: </a>    <a href="../../../../../docs/manualpages/Vec/VecDestroyVecs.html#VecDestroyVecs">VecDestroyVecs</a>(lsqr-&gt;nwork_n,&amp;lsqr-&gt;vwork_n);
+<a name="line257">257: </a>  }
+<a name="line258">258: </a>  <font color="#4169E1">if</font> (lsqr-&gt;vwork_m) {
+<a name="line259">259: </a>    <a href="../../../../../docs/manualpages/Vec/VecDestroyVecs.html#VecDestroyVecs">VecDestroyVecs</a>(lsqr-&gt;nwork_m,&amp;lsqr-&gt;vwork_m);
+<a name="line260">260: </a>  }
+<a name="line261">261: </a>  <font color="#4169E1">if</font> (lsqr-&gt;se_flg) {
+<a name="line262">262: </a>    <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;lsqr-&gt;se);
+<a name="line263">263: </a>  }
+<a name="line264">264: </a>  <a href="../../../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(ksp-&gt;data);
+<a name="line265">265: </a>  <font color="#4169E1">return</font>(0);
+<a name="line266">266: </a>}
+
+<a name="line270">270: </a><strong><font color="#4169E1"><a name="KSPLSQRSetStandardErrorVec"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  KSPLSQRSetStandardErrorVec(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp, <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> se)</font></strong>
+<a name="line271">271: </a>{
+<a name="line272">272: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line276">276: </a>  <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;lsqr-&gt;se);
+<a name="line277">277: </a>  lsqr-&gt;se = se;
+<a name="line278">278: </a>  <font color="#4169E1">return</font>(0);
+<a name="line279">279: </a>}
+
+<a name="line283">283: </a><strong><font color="#4169E1"><a name="KSPLSQRGetStandardErrorVec"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  KSPLSQRGetStandardErrorVec(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp,<a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> *se)</font></strong>
+<a name="line284">284: </a>{
+<a name="line285">285: </a>  KSP_LSQR *lsqr = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line288">288: </a>  *se = lsqr-&gt;se;
+<a name="line289">289: </a>  <font color="#4169E1">return</font>(0);
+<a name="line290">290: </a>}
+
+<a name="line294">294: </a><strong><font color="#4169E1"><a name="KSPLSQRGetArnorm"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  KSPLSQRGetArnorm(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *arnorm, <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *rhs_norm, <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *anorm)</font></strong>
+<a name="line295">295: </a>{
+<a name="line296">296: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line300">300: </a>  *arnorm = lsqr-&gt;arnorm;
+<a name="line301">301: </a>  <font color="#4169E1">if</font> (anorm) {
+<a name="line302">302: </a>    <font color="#4169E1">if</font> (lsqr-&gt;anorm &lt; 0.0) {
+<a name="line303">303: </a>      <a href="../../../../../docs/manualpages/PC/PC.html#PC">PC</a>  pc;
+<a name="line304">304: </a>      <a href="../../../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a> Amat;
+<a name="line305">305: </a>      <a href="../../../../../docs/manualpages/KSP/KSPGetPC.html#KSPGetPC">KSPGetPC</a>(ksp,&amp;pc);
+<a name="line306">306: </a>      <a href="../../../../../docs/manualpages/PC/PCGetOperators.html#PCGetOperators">PCGetOperators</a>(pc,&amp;Amat,NULL);
+<a name="line307">307: </a>      <a href="../../../../../docs/manualpages/Mat/MatNorm.html#MatNorm">MatNorm</a>(Amat,<a href="../../../../../docs/manualpages/Vec/NORM_FROBENIUS.html#NORM_FROBENIUS">NORM_FROBENIUS</a>,&amp;lsqr-&gt;anorm);
+<a name="line308">308: </a>    }
+<a name="line309">309: </a>    *anorm = lsqr-&gt;anorm;
+<a name="line310">310: </a>  }
+<a name="line311">311: </a>  <font color="#4169E1">if</font> (rhs_norm) *rhs_norm = lsqr-&gt;rhs_norm;
+<a name="line312">312: </a>  <font color="#4169E1">return</font>(0);
+<a name="line313">313: </a>}
+
+<a name="line317">317: </a><font color="#B22222">/*@C</font>
+<a name="line318">318: </a><font color="#B22222">   <a href="../../../../../docs/manualpages/KSP/KSPLSQRMonitorDefault.html#KSPLSQRMonitorDefault">KSPLSQRMonitorDefault</a> - Print the residual norm at each iteration of the LSQR method and the norm of the residual of the normal equations A'*A x = A' b</font>
+
+<a name="line320">320: </a><font color="#B22222">   Collective on <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a></font>
+
+<a name="line322">322: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line323">323: </a><font color="#B22222">+  ksp   - iterative context</font>
+<a name="line324">324: </a><font color="#B22222">.  n     - iteration number</font>
+<a name="line325">325: </a><font color="#B22222">.  rnorm - 2-norm (preconditioned) residual value (may be estimated).</font>
+<a name="line326">326: </a><font color="#B22222">-  dummy - viewer and format context</font>
+
+<a name="line328">328: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line330">330: </a><font color="#B22222">.keywords: <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a>, default, monitor, residual</font>
+
+<a name="line332">332: </a><font color="#B22222">.seealso: <a href="../../../../../docs/manualpages/KSP/KSPMonitorSet.html#KSPMonitorSet">KSPMonitorSet</a>(), <a href="../../../../../docs/manualpages/KSP/KSPMonitorTrueResidualNorm.html#KSPMonitorTrueResidualNorm">KSPMonitorTrueResidualNorm</a>(), <a href="../../../../../docs/manualpages/KSP/KSPMonitorLGResidualNormCreate.html#KSPMonitorLGResidualNormCreate">KSPMonitorLGResidualNormCreate</a>(), <a href="../../../../../docs/manualpages/KSP/KSPMonitorDefault.html#KSPMonitorDefault">KSPMonitorDefault</a>()</font>
+<a name="line333">333: </a><font color="#B22222">@*/</font>
+<a name="line334">334: </a><strong><font color="#4169E1"><a name="KSPLSQRMonitorDefault"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../../../docs/manualpages/KSP/KSPLSQRMonitorDefault.html#KSPLSQRMonitorDefault">KSPLSQRMonitorDefault</a>(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp,<a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> n,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> rnorm,PetscViewerAndFormat *dummy)</font></strong>
+<a name="line335">335: </a>{
+<a name="line337">337: </a>  <a href="../../../../../docs/manualpages/Viewer/PetscViewer.html#PetscViewer">PetscViewer</a>    viewer = dummy-&gt;viewer;
+<a name="line338">338: </a>  KSP_LSQR       *lsqr  = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line341">341: </a>  <a href="../../../../../docs/manualpages/Viewer/PetscViewerPushFormat.html#PetscViewerPushFormat">PetscViewerPushFormat</a>(viewer,dummy-&gt;format);
+<a name="line342">342: </a>  <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIAddTab.html#PetscViewerASCIIAddTab">PetscViewerASCIIAddTab</a>(viewer,((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp)-&gt;tablevel);
+<a name="line343">343: </a>  <font color="#4169E1">if</font> (((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp)-&gt;prefix) {
+<a name="line344">344: </a>    <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Residual norm and norm of normal equations for %s solve.\n"</font>,((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp)-&gt;prefix);
+<a name="line345">345: </a>  }
+<a name="line346">346: </a>  <font color="#4169E1">if</font> (!n) {
+<a name="line347">347: </a>    <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"%3D <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> Residual norm %14.12e\n"</font>,n,rnorm);
+<a name="line348">348: </a>  } <font color="#4169E1">else</font> {
+<a name="line349">349: </a>    <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"%3D <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> Residual norm %14.12e Residual norm normal equations %14.12e\n"</font>,n,rnorm,lsqr-&gt;arnorm);
+<a name="line350">350: </a>  }
+<a name="line351">351: </a>  <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIISubtractTab.html#PetscViewerASCIISubtractTab">PetscViewerASCIISubtractTab</a>(viewer,((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)ksp)-&gt;tablevel);
+<a name="line352">352: </a>  <a href="../../../../../docs/manualpages/Viewer/PetscViewerPopFormat.html#PetscViewerPopFormat">PetscViewerPopFormat</a>(viewer);
+<a name="line353">353: </a>  <font color="#4169E1">return</font>(0);
+<a name="line354">354: </a>}
+
+<a name="line358">358: </a><strong><font color="#4169E1"><a name="KSPSetFromOptions_LSQR"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> KSPSetFromOptions_LSQR(PetscOptionItems *PetscOptionsObject,<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp)</font></strong>
+<a name="line359">359: </a>{
+<a name="line361">361: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line364">364: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsHead.html#PetscOptionsHead">PetscOptionsHead</a>(PetscOptionsObject,<font color="#666666">"<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> LSQR Options"</font>);
+<a name="line365">365: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsName.html#PetscOptionsName">PetscOptionsName</a>(<font color="#666666">"-ksp_lsqr_set_standard_error"</font>,<font color="#666666">"Set Standard Error Estimates of Solution"</font>,<font color="#666666">"KSPLSQRSetStandardErrorVec"</font>,&amp;lsqr-&gt;se_flg);
+<a name="line366">366: </a>  <a href="../../../../../docs/manualpages/KSP/KSPMonitorSetFromOptions.html#KSPMonitorSetFromOptions">KSPMonitorSetFromOptions</a>(ksp,<font color="#666666">"-ksp_lsqr_monitor"</font>,<font color="#666666">"Monitor residual norm and norm of residual of normal equations"</font>,<font color="#666666">"<a href="../../../../../docs/manualpages/KSP/KSPMonitorSet.html#KSPMonitorSet">KSPMonitorSet</a>"</font>,<a href="../../../../../docs/manualpages/KSP/KSPLSQRMonitorDefault.html#KSPLSQRMonitorDefault">KSPLSQRMonitorDefault</a>);
+<a name="line367">367: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsTail.html#PetscOptionsTail">PetscOptionsTail</a>();
+<a name="line368">368: </a>  <font color="#4169E1">return</font>(0);
+<a name="line369">369: </a>}
+
+<a name="line373">373: </a><strong><font color="#4169E1"><a name="KSPView_LSQR"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> KSPView_LSQR(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp,<a href="../../../../../docs/manualpages/Viewer/PetscViewer.html#PetscViewer">PetscViewer</a> viewer)</font></strong>
+<a name="line374">374: </a>{
+<a name="line375">375: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+<a name="line377">377: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      iascii;
+
+<a name="line380">380: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)viewer,PETSCVIEWERASCII,&amp;iascii);
+<a name="line381">381: </a>  <font color="#4169E1">if</font> (iascii) {
+<a name="line382">382: </a>    <font color="#4169E1">if</font> (lsqr-&gt;se) {
+<a name="line383">383: </a>      <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> rnorm;
+<a name="line384">384: </a>      KSPLSQRGetStandardErrorVec(ksp,&amp;lsqr-&gt;se);
+<a name="line385">385: </a>      <a href="../../../../../docs/manualpages/Vec/VecNorm.html#VecNorm">VecNorm</a>(lsqr-&gt;se,<a href="../../../../../docs/manualpages/Vec/NORM_2.html#NORM_2">NORM_2</a>,&amp;rnorm);
+<a name="line386">386: </a>      <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Norm of Standard Error %g, Iterations %D\n"</font>,(double)rnorm,ksp-&gt;its);
+<a name="line387">387: </a>    }
+<a name="line388">388: </a>  }
+<a name="line389">389: </a>  <font color="#4169E1">return</font>(0);
+<a name="line390">390: </a>}
+
+<a name="line394">394: </a><font color="#B22222">/*@C</font>
+<a name="line395">395: </a><font color="#B22222">   <a href="../../../../../docs/manualpages/KSP/KSPLSQRDefaultConverged.html#KSPLSQRDefaultConverged">KSPLSQRDefaultConverged</a> - Determines convergence of the LSQR Krylov method. This calls <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefault.html#KSPConvergedDefault">KSPConvergedDefault</a>() and if that does not determine convergence then checks</font>
+<a name="line396">396: </a><font color="#B22222">      convergence for the least squares problem.</font>
+
+<a name="line398">398: </a><font color="#B22222">   Collective on <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a></font>
+
+<a name="line400">400: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line401">401: </a><font color="#B22222">+  ksp   - iterative context</font>
+<a name="line402">402: </a><font color="#B22222">.  n     - iteration number</font>
+<a name="line403">403: </a><font color="#B22222">.  rnorm - 2-norm residual value (may be estimated)</font>
+<a name="line404">404: </a><font color="#B22222">-  ctx - convergence context which must be created by <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefaultCreate.html#KSPConvergedDefaultCreate">KSPConvergedDefaultCreate</a>()</font>
+
+<a name="line406">406: </a><font color="#B22222">   reason is set to:</font>
+<a name="line407">407: </a><font color="#B22222">+   positive - if the iteration has converged;</font>
+<a name="line408">408: </a><font color="#B22222">.   negative - if residual norm exceeds divergence threshold;</font>
+<a name="line409">409: </a><font color="#B22222">-   0 - otherwise.</font>
+
+<a name="line411">411: </a><font color="#B22222">   Notes:</font>
+<a name="line412">412: </a><font color="#B22222">      Possible convergence for the least squares problem (which is based on the residual of the normal equations) are KSP_CONVERGED_RTOL_NORMAL norm and KSP_CONVERGED_ATOL_NORMAL.</font>
+
+<a name="line414">414: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line416">416: </a><font color="#B22222">.keywords: <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a>, default, convergence, residual</font>
+
+<a name="line418">418: </a><font color="#B22222">.seealso: <a href="../../../../../docs/manualpages/KSP/KSPSetConvergenceTest.html#KSPSetConvergenceTest">KSPSetConvergenceTest</a>(), <a href="../../../../../docs/manualpages/KSP/KSPSetTolerances.html#KSPSetTolerances">KSPSetTolerances</a>(), <a href="../../../../../docs/manualpages/KSP/KSPConvergedSkip.html#KSPConvergedSkip">KSPConvergedSkip</a>(), <a href="../../../../../docs/manualpages/KSP/KSPConvergedReason.html#KSPConvergedReason">KSPConvergedReason</a>, <a href="../../../../../docs/manualpages/KSP/KSPGetConvergedReason.html#KSPGetConvergedReason">KSPGetConvergedReason</a>(),</font>
+<a name="line419">419: </a><font color="#B22222">          <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefaultSetUIRNorm.html#KSPConvergedDefaultSetUIRNorm">KSPConvergedDefaultSetUIRNorm</a>(), <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefaultSetUMIRNorm.html#KSPConvergedDefaultSetUMIRNorm">KSPConvergedDefaultSetUMIRNorm</a>(), <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefaultCreate.html#KSPConvergedDefaultCreate">KSPConvergedDefaultCreate</a>(), <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefaultDestroy.html#KSPConvergedDefaultDestroy">KSPConvergedDefaultDestroy</a>(), <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefault.html#KSPConvergedDefault">KSPConvergedDefault</a>()</font>
+<a name="line420">420: </a><font color="#B22222">@*/</font>
+<a name="line421">421: </a><strong><font color="#4169E1"><a name="KSPLSQRDefaultConverged"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../../../docs/manualpages/KSP/KSPLSQRDefaultConverged.html#KSPLSQRDefaultConverged">KSPLSQRDefaultConverged</a>(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp,<a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> n,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> rnorm,<a href="../../../../../docs/manualpages/KSP/KSPConvergedReason.html#KSPConvergedReason">KSPConvergedReason</a> *reason,void *ctx)</font></strong>
+<a name="line422">422: </a>{
+<a name="line424">424: </a>  KSP_LSQR       *lsqr = (KSP_LSQR*)ksp-&gt;data;
+
+<a name="line427">427: </a>  <a href="../../../../../docs/manualpages/KSP/KSPConvergedDefault.html#KSPConvergedDefault">KSPConvergedDefault</a>(ksp,n,rnorm,reason,ctx);
+<a name="line428">428: </a>  <font color="#4169E1">if</font> (!n || *reason) <font color="#4169E1">return</font>(0);
+<a name="line429">429: </a>  <font color="#4169E1">if</font> (lsqr-&gt;arnorm/lsqr-&gt;rhs_norm &lt; ksp-&gt;rtol) *reason = KSP_CONVERGED_RTOL_NORMAL;
+<a name="line430">430: </a>  <font color="#4169E1">if</font> (lsqr-&gt;arnorm &lt; ksp-&gt;abstol) *reason = KSP_CONVERGED_ATOL_NORMAL;
+<a name="line431">431: </a>  <font color="#4169E1">return</font>(0);
+<a name="line432">432: </a>}
+
+<a name="line434">434: </a><font color="#B22222">/*MC</font>
+<a name="line435">435: </a><font color="#B22222">     <a href="../../../../../docs/manualpages/KSP/KSPLSQR.html#KSPLSQR">KSPLSQR</a> - This implements LSQR</font>
+
+<a name="line437">437: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line438">438: </a><font color="#B22222">+   -ksp_lsqr_set_standard_error  - Set Standard Error Estimates of Solution see KSPLSQRSetStandardErrorVec()</font>
+<a name="line439">439: </a><font color="#B22222">.   -ksp_lsqr_monitor - Monitor residual norm and norm of residual of normal equations</font>
+<a name="line440">440: </a><font color="#B22222">-   see <a href="../../../../../docs/manualpages/KSP/KSPSolve.html#KSPSolve">KSPSolve</a>()</font>
+
+<a name="line442">442: </a><font color="#B22222">   Level: beginner</font>
+
+<a name="line444">444: </a><font color="#B22222">   Notes:</font>
+<a name="line445">445: </a><font color="#B22222">     Supports non-square (rectangular) matrices.</font>
+
+<a name="line447">447: </a><font color="#B22222">     This varient, when applied with no preconditioning is identical to the original algorithm in exact arithematic; however, in practice, with no preconditioning</font>
+<a name="line448">448: </a><font color="#B22222">     due to inexact arithematic, it can converge differently. Hence when no preconditioner is used (<a href="../../../../../docs/manualpages/PC/PCType.html#PCType">PCType</a> <a href="../../../../../docs/manualpages/PC/PCNONE.html#PCNONE">PCNONE</a>) it automatically reverts to the original algorithm.</font>
+
+<a name="line450">450: </a><font color="#B22222">     With the PETSc built-in preconditioners, such as ICC, one should call <a href="../../../../../docs/manualpages/KSP/KSPSetOperators.html#KSPSetOperators">KSPSetOperators</a>(ksp,A,A'*A)) since the preconditioner needs to work</font>
+<a name="line451">451: </a><font color="#B22222">     for the normal equations A'*A.</font>
+
+<a name="line453">453: </a><font color="#B22222">     Supports only left preconditioning.</font>
+
+<a name="line455">455: </a><font color="#B22222">   References:</font>
+<a name="line456">456: </a><font color="#B22222">.  1. - The original unpreconditioned algorithm can be found in Paige and Saunders, ACM Transactions on Mathematical Software, Vol 8, 1982.</font>
+
+<a name="line458">458: </a><font color="#B22222">     In exact arithmetic the LSQR method (with no preconditioning) is identical to the <a href="../../../../../docs/manualpages/KSP/KSPCG.html#KSPCG">KSPCG</a> algorithm applied to the normal equations.</font>
+<a name="line459">459: </a><font color="#B22222">     The preconditioned varient was implemented by Bas van't Hof and is essentially a left preconditioning for the Normal Equations. It appears the implementation with preconditioner</font>
+<a name="line460">460: </a><font color="#B22222">     track the true norm of the residual and uses that in the convergence test.</font>
+
+<a name="line462">462: </a><font color="#B22222">   Developer Notes: How is this related to the <a href="../../../../../docs/manualpages/KSP/KSPCGNE.html#KSPCGNE">KSPCGNE</a> implementation? One difference is that <a href="../../../../../docs/manualpages/KSP/KSPCGNE.html#KSPCGNE">KSPCGNE</a> applies</font>
+<a name="line463">463: </a><font color="#B22222">            the preconditioner transpose times the preconditioner,  so one does not need to pass A'*A as the third argument to <a href="../../../../../docs/manualpages/KSP/KSPSetOperators.html#KSPSetOperators">KSPSetOperators</a>().</font>
+
+
+<a name="line466">466: </a><font color="#B22222">   For least squares problems without a zero to A*x = b, there are additional convergence tests for the residual of the normal equations, A'*(b - Ax), see <a href="../../../../../docs/manualpages/KSP/KSPLSQRDefaultConverged.html#KSPLSQRDefaultConverged">KSPLSQRDefaultConverged</a>()</font>
+
+<a name="line468">468: </a><font color="#B22222">.seealso:  <a href="../../../../../docs/manualpages/KSP/KSPCreate.html#KSPCreate">KSPCreate</a>(), <a href="../../../../../docs/manualpages/KSP/KSPSetType.html#KSPSetType">KSPSetType</a>(), <a href="../../../../../docs/manualpages/KSP/KSPType.html#KSPType">KSPType</a> (for list of available types), <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a>, <a href="../../../../../docs/manualpages/KSP/KSPLSQRDefaultConverged.html#KSPLSQRDefaultConverged">KSPLSQRDefaultConverged</a>()</font>
+
+<a name="line470">470: </a><font color="#B22222">M*/</font>
+<a name="line473">473: </a><strong><font color="#4169E1"><a name="KSPCreate_LSQR"></a>PETSC_EXTERN <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> KSPCreate_LSQR(<a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a> ksp)</font></strong>
+<a name="line474">474: </a>{
+<a name="line475">475: </a>  KSP_LSQR       *lsqr;
+
+<a name="line479">479: </a>  <a href="../../../../../docs/manualpages/Sys/PetscNewLog.html#PetscNewLog">PetscNewLog</a>(ksp,&amp;lsqr);
+<a name="line480">480: </a>  lsqr-&gt;se     = NULL;
+<a name="line481">481: </a>  lsqr-&gt;se_flg = <a href="../../../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+<a name="line482">482: </a>  lsqr-&gt;arnorm = 0.0;
+<a name="line483">483: </a>  ksp-&gt;data    = (void*)lsqr;
+<a name="line484">484: </a>  <a href="../../../../../docs/manualpages/KSP/KSPSetSupportedNorm.html#KSPSetSupportedNorm">KSPSetSupportedNorm</a>(ksp,<a href="../../../../../docs/manualpages/KSP/KSP_NORM_UNPRECONDITIONED.html#KSP_NORM_UNPRECONDITIONED">KSP_NORM_UNPRECONDITIONED</a>,PC_LEFT,3);
+
+<a name="line486">486: </a>  ksp-&gt;ops-&gt;setup          = KSPSetUp_LSQR;
+<a name="line487">487: </a>  ksp-&gt;ops-&gt;solve          = KSPSolve_LSQR;
+<a name="line488">488: </a>  ksp-&gt;ops-&gt;destroy        = KSPDestroy_LSQR;
+<a name="line489">489: </a>  ksp-&gt;ops-&gt;buildsolution  = KSPBuildSolutionDefault;
+<a name="line490">490: </a>  ksp-&gt;ops-&gt;buildresidual  = KSPBuildResidualDefault;
+<a name="line491">491: </a>  ksp-&gt;ops-&gt;setfromoptions = KSPSetFromOptions_LSQR;
+<a name="line492">492: </a>  ksp-&gt;ops-&gt;view           = KSPView_LSQR;
+<a name="line493">493: </a>  ksp-&gt;converged           = <a href="../../../../../docs/manualpages/KSP/KSPLSQRDefaultConverged.html#KSPLSQRDefaultConverged">KSPLSQRDefaultConverged</a>;
+<a name="line494">494: </a>  <font color="#4169E1">return</font>(0);
+<a name="line495">495: </a>}
+
+
+</pre>
+</body>
+
+</html>

@@ -64,26 +64,26 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  complex(SP)        :: Ir_EXC(3),rotated_iR(3),P_EXC(3)
  !
  real(SP)           :: P_EXC_square,Px_EXC_square,Py_EXC_square,Pz_EXC_square
- real(SP)           :: gamma0(BSS_n_eig),gamma0_proj(BSS_n_eig)
- real(SP)           :: gamma_exp, gamma0_grp,f_cv,alpha,tau_exp,tau0_grp
+ real(SP)           :: gamma0(BSS_n_eig)
+ real(SP)           :: gammaT_aver, gamma0_grp,f_cv,alpha,tauT_aver,tau0_grp
  !
  !
- real(SP)           :: phi(EXC_Phi_Grid),exc_energy
- real(SP)           :: phi0(BSS_n_eig),vdummy(3),tau0
- real(SP)           :: gamma_thermal(EXC_Phi_Grid),tau_thermal(EXC_Phi_Grid)
- real(SP)           :: alpha1(EXC_Phi_Grid)
+ real(SP)           :: exc_energy
+ real(SP)           :: tau0
  real(SP)           :: num,den,tau_eff,gamma_eff
  real(DP)           :: arg
  !
  !HYC add 
  integer :: ik_mem
- complex(SP):: iR(3) , iR_EXC_TRY(3)
+ complex(SP)        :: iR_EXC_TRY(3)
  !
  !VAJ add - trapezoidal integration
  integer, parameter :: n_trap=1000
  real(SP)           :: u_trap,du_trap,end_trap,start_trap,integrand,A,B,C,D,E,F
  real(SP)           :: integral
  integer            :: i_trap
+ !
+ logical            :: is_cut(3)
  !
  call DIPOLE_dimensions(Xen,Dip,BS_bands,(/0.,0.,0./))
  !
@@ -92,31 +92,33 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  !
  call DIPOLE_IO(Xk,Xen,Dip,'read ',io_err,'DIP')
  !
- titles(1)='phi [deg]'
- titles(2)='Gamma_Therm'
- titles(3)='Tau_Therm'
-  Phi_Grid_size = EXC_Phi_Grid
+ ! check dimensionality of the system
+ is_cut(1) = .false.
+ is_cut(2) = .false.
+ is_cut(3) = .false.
+ !
+ if (index(non_periodic_directions,'x')+index(non_periodic_directions,'X')/=0) is_cut(1)=.true.
+ if (index(non_periodic_directions,'y')+index(non_periodic_directions,'Y')/=0) is_cut(2)=.true.
+ if (index(non_periodic_directions,'z')+index(non_periodic_directions,'Z')/=0) is_cut(3)=.true.
+ call check_periodic_directions(is_cut)
  !
  call section('=','Computing Excitons radiative lifetimes')
  !
- if (trim(non_periodic_directions)/="none")  call check_periodic_directions()
  !
- do i_grid=1,Phi_grid_size
-   phi(i_grid)=2._SP*pi*real(i_grid-1,SP)/real(Phi_grid_size-1,SP)
- enddo
+  titles(1)='E [eV]'
+  titles(2)='Tau0(s)'
+  titles(3)='tauT_aver(s)'
+  titles(4)='tau_eff(s)'
  !
  do i_lambda=1,EXCITONS_n_user_states
    !
-   gamma_thermal(:)=0._SP
-   gamma_exp =0._SP
+   gammaT_aver =0._SP
    gamma0_grp=0._SP
-   tau_thermal(:)=0._SP
-   tau_exp =0._SP
+   tauT_aver =0._SP
    tau0_grp=0._SP
    num = 0._SP
    den = 0._SP
    alpha = 0._SP
-   alpha1(:) = 0._SP
    !
    i_l_grp=EXCITONS_user_indexes(i_lambda)
    !
@@ -154,215 +156,62 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
        iR_EXC(:)=iR_EXC(:) - rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
      enddo
- !    do neh = 1,BS_H_dim !(size BSE matrix, cvk)
-       !
- !      i_kbz   = BSS_eh_table(neh,1)
- !      i_kibz  = Xk%sstar(i_kbz,1)
- !      i_v     = BSS_eh_table(neh,2)
- !      i_c     = BSS_eh_table(neh,3)
- !      i_spin  = spin(BSS_eh_table(neh,:))
-       !
- !      f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
-       !
-       !call GET_the_rotated_iR()
- !      ik_mem    = PAR_DIPk_ibz_index(i_kibz)
- !      iR=DIP_iR(:,i_c,i_v,ik_mem,i_spin)
-       !
- !      iR_EXC_TRY(:)=iR_EXC_TRY(:) - iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
-
-       !
-
- !    enddo
-     !OPEN(UNIT=10, FILE='dipole', STATUS='UNKNOWN', ACCESS='APPEND') 
-     !WRITE(10,*) "i_l_grp=",i_l_grp, "BS_E_degs(i_l_grp)", BS_E_degs(i_l_grp)
-     !WRITE(10,*) iR_EXC(1)
-     !WRITE(10,*) iR_EXC(2)
-     !WRITE(10,*) iR_EXC(3)
-     !WRITE(10,*) iR_EXC_TRY(1)
-     !WRITE(10,*) iR_EXC_TRY(2)
-     !WRITE(10,*) iR_EXC_TRY(3)
-     !close(10)
-     
-    
-     
      !
-     ! Angle of the excitonic dipoles against the x direction
-     !
-     ! Warning define N degenerate angles phi(n)
-     vdummy(:) = real(iR_exc(:)) / v_norm(real(iR_exc(:)))
-!     vdummy(:) = aimag(iR_exc(:)) / v_norm(aimag(iR_exc(:)))
-     phi0(i_l)=acos(vdummy(1))
-!     phi0(i_l) = 0._SP
-     !
-!  exciton dipole modulus square |P_S|^2 
-!        P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
-!&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
-!&                 0 ))
-!VAJ add
-        P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
-&                 iR_EXC(2)*conjg(iR_EXC(2)) + &
-                  iR_EXC(3)*conjg(iR_EXC(3)) ))
-
-
-!     P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1))  &
-!&                 ))
-!  exciton dipole P_Sx, P_Sy,P_Sz components
-
-      P_EXC(:) =BS_E(i_l)*iR_EXC(:)
-      Px_EXC_square = real(P_EXC(1)*conjg(P_EXC(1)))
-      Py_EXC_square = real(P_EXC(2)*conjg(P_EXC(2)))
-      Pz_EXC_square = real(P_EXC(3)*conjg(P_EXC(3))) !VAJ add
-     
-     OPEN(UNIT=10, FILE='momentum', STATUS='UNKNOWN', ACCESS='APPEND') 
-     WRITE(10,*) "i_l_grp=",i_l_grp, "BS_E_degs(i_l_grp)", BS_E_degs(i_l_grp)
-     WRITE(10,*) P_EXC(1), Px_EXC_square
-     WRITE(10,*) P_EXC(2), Py_EXC_square
-     WRITE(10,*) P_EXC(3), Pz_EXC_square
-     WRITE(10,*) 'epsi0', epsi0
-     WRITE(10,*) 'EXC_mass', EXC_mass
-
-     close(10)
-      
+     P_EXC(:) =BS_E(i_l)*iR_EXC(:)
+     Px_EXC_square = real(P_EXC(1)*conjg(P_EXC(1)))
+     Py_EXC_square = real(P_EXC(2)*conjg(P_EXC(2)))
+     Pz_EXC_square = real(P_EXC(3)*conjg(P_EXC(3))) 
+!          P_EXC_square =real(BS_E(i_l))**2*(real(iR_EXC(1)*conjg(iR_EXC(1)) + &
+!&              iR_EXC(2)*conjg(iR_EXC(2)) + &
+!               iR_EXC(3)*conjg(iR_EXC(3)) ))
+     ! 
      ! compute the lifetime at q=0  gamma(0) and the prefactors for finite T
      !==========================================
+     if (l_0D) then
+      P_EXC_square=Px_EXC_square + Py_EXC_square + Pz_EXC_square
+      gamma0(i_l) =  4._SP*P_EXC_square*((real(BS_E(i_l))-EXC_shift)/(3._SP*real(nkbz)*SPEED_OF_LIGHT**3))
+     endif
+     if (l_1D) then
+     P_EXC_square = Px_EXC_square
+      gamma0(i_l) = (eps_2_alpha/DL_vol*real(nkbz))*P_EXC_square*4.*pi*SPEED_OF_LIGHT**2
+      alpha= 4._SP*(real(BS_E(i_l))-EXC_shift)/(3._SP*SPEED_OF_LIGHT*sqrt(2._SP*EXC_mass(1)*EXC_temp*PI))
+     endif
      if (l_2D) then
-      P_EXC_square = Px_EXC_square + Py_EXC_square 
-      gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*4.*pi/((real(BS_E(i_l))-EXC_shift)*SPEED_OF_LIGHT*real(nkbz))
-      gamma0_proj(i_l) = (eps_2_alpha/DL_vol)*real(BS_R(i_l)*conjg(BS_R(i_l)))* &
-&       8._SP*pi*real(BS_E(i_l))/(q0_def_norm**2*SPEED_OF_LIGHT*real(nkbz))
-      alpha=(real(BS_E(i_l))-EXC_shift)**2/(2._SP*(EXC_mass(1))*EXC_temp*SPEED_OF_LIGHT**2) 
-      alpha1(:)=2._SP*sin(phi(:))**2+2._SP/3._SP*cos(phi(:))**2 *  &
-&       (Px_EXC_square/P_EXC_square) + &
-&         2._SP*cos(phi(:))**2+2._SP/3._SP*sin(phi(:))**2 *& 
-&       (Py_EXC_square/P_EXC_square) + &
-&       (-4._SP)/3._SP*cos(phi(:))*sin(phi(:))*  &
-&        (conjg(P_EXC(1))*P_EXC(2) + conjg(P_EXC(2))*P_EXC(1))/P_EXC_SQUARE
-      OPEN(UNIT=10, FILE='dipole', STATUS='UNKNOWN', ACCESS='APPEND')
-      WRITE(10,*) 'gamma0', gamma0(i_l)
-      WRITE(10,*) 'E^2/2McKbT', alpha
-      WRITE(10,*) 'unit AU to Sec', AU2SEC
-      close(10)
-      
-      OPEN(UNIT=7777, FILE='thermal_time', STATUS='UNKNOWN', ACCESS='APPEND')
-      WRITE(7777,*) 'exciton number', i_l_grp
-      WRITE(7777,*) 'energy(shifted)', (real(BS_E(i_l))-EXC_shift)*HA2EV
-      WRITE(7777,*) 'energy(not shifted)', (real(BS_E(i_l)))*HA2EV
-      WRITE(7777,*) 'temperature', EXC_temp
-      WRITE(7777,*) 'gamma0', gamma0(i_l)/AU2SEC
-      WRITE(7777,*) 'gamma_therm', gamma0(i_l)*alpha*(4._SP/3._SP)/AU2SEC
-      WRITE(7777,*) 'tau0', (gamma0(i_l)/AU2SEC)**(-1)
-      WRITE(7777,*) 'tau_therm', (gamma0(i_l)*alpha*(4._SP/3._SP)/AU2SEC)**(-1)
-      WRITE(7777,*) '  '
-      close(7777) 
+     P_EXC_square = Px_EXC_square + Py_EXC_square 
+      gamma0(i_l) = 4.*pi*P_EXC_square*eps_2_alpha/((DL_VOL*real(BS_E(i_l))-EXC_shift)*SPEED_OF_LIGHT*real(nkbz))
+      alpha=4.*(real(BS_E(i_l))-EXC_shift)**2/(3._SP*2._SP*(EXC_mass(1))*EXC_temp*SPEED_OF_LIGHT**2) 
      endif 
-     if (l_1D) then 
-      write(6,*) 'not yet implemented' 
-      stop
-      gamma0(i_l) = (eps_2_alpha/DL_vol)*P_EXC_square*2.*pi*real(nkbz)*SPEED_OF_LIGHT**2
-      alpha= 4.*SQRT((real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass(1)*EXC_temp*SPEED_OF_LIGHT**2))/3./SQRT(PI)
-      alpha1(:)= 1.
-     endif
      if (l_3D) then
-      ! VAJ: check dielectric symmetry for isotropic system
-      !if ((epsi0(1).eq.epsi0(2)).and.(epsi0(1).eq.epsi0(3))) then
-      !   gamma0(i_l) =  (sqrt(epsi0(1))/DL_vol)*P_EXC_square*(8./3.)*sqrt(pi)/((real(BS_E(i_l))-EXC_shift)**2*real(nkbz))
-      !   alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*EXC_mass(1)*EXC_temp*SPEED_OF_LIGHT**2))**1.5
-      !   alpha1(:)=sin(phi(:)+phi0(i_l))**2
-      !endif
-      ! VAJ: check dielectric symmetry for unaxial system
-      !if ((epsi0(1).eq.epsi0(2)).and.(epsi0(1).ne.epsi0(3))) then
-         ! VAJ: Trapezoidal integration loop for P bar squared
-         !end_trap = 1.
-         !start_trap = -1.
-         !A = 0.5*Px_EXC_square*epsi0(3)**2 + &
-         !    0.5*Py_EXC_square*epsi0(3)**2 - &
-         !        Pz_EXC_square*epsi0(1)**2
-         !B = Pz_EXC_square*epsi0(1)**2
-         !C = epsi0(1)
-         !D = epsi0(3) - epsi0(1)
-         !E = epsi0(1)**2
-         !F = epsi0(3)**2 - epsi0(1)**2
-         !integral = 0.0
-         !do i_trap=0,n_trap
-         !   u_trap = (i_trap*(end_trap-start_trap))/n_trap + start_trap
-         !   integrand = (A*u_trap**2+B)/(sqrt(C+D*u_trap**2)*(E+F*u_trap**2))
-         !   if ((i_trap.eq.0).or.(i_trap.eq.n_trap)) then
-         !      integral = integral + integrand
-         !   else
-         !      integral = integral+2.*integrand
-         !   endif
-         !enddo
-         !du_trap = (end_trap-start_trap)/n_trap
-         !integral = sqrt(epsi0(3))*integral*du_trap/2.
-         !gamma0(i_l) =  2.*(sqrt(pi*epsi0(1))/DL_vol)/((real(BS_E(i_l))-EXC_shift)**2*real(nkbz))*&
-         !               (Px_EXC_square+Py_EXC_square+integral)
-         gamma0(i_l) =  4.*pi*(sqrt(pi*epsi0(1))/DL_vol)/((real(BS_E(i_l))-EXC_shift)**2*real(nkbz))*&
-                        ((2./3.*epsi0(3)/epsi0(1)+2)*(Px_EXC_square+Py_EXC_square)+8./3.*Pz_EXC_square)
-         alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*(EXC_mass(1)**2*EXC_mass(2))**(1./3.)*EXC_temp*SPEED_OF_LIGHT**2))**1.5
-
-         OPEN(UNIT=10, FILE='momentum', STATUS='UNKNOWN', ACCESS='APPEND')
-         WRITE(10,*) 'gamma0',gamma0(i_l)
-         WRITE(10,*) 'BvK SC volume',DL_vol*real(nkbz)
-         WRITE(10,*) '(E^2/2Mc^2KbT)^(3/2)', alpha
-         WRITE(10,*) 'unit AU to Sec', AU2SEC
-         WRITE(10,*) 'eps2alpha', eps_2_alpha
-         WRITE(10,*) 'epsi0', epsi0
-         close(10)
-     ! endif
-      OPEN(UNIT=7777, FILE='thermal_time', STATUS='UNKNOWN', ACCESS='APPEND')
-      WRITE(7777,*) 'exciton number', i_l_grp
-      WRITE(7777,*) 'energy(shifted)', (real(BS_E(i_l))-EXC_shift)*HA2EV, 'eV'
-      WRITE(7777,*) 'energy(not shifted)', (real(BS_E(i_l)))*HA2EV, 'eV'
-      WRITE(7777,*) 'temperature', EXC_temp*HA2EV, 'eV'
-      WRITE(7777,*) 'gamma0', gamma0(i_l)/AU2SEC, 's^-1'
-      WRITE(7777,*) 'gamma_therm', gamma0(i_l)*alpha/AU2SEC, 's^-1'
-      WRITE(7777,*) 'tau0', (gamma0(i_l)/AU2SEC)**(-1), 's'
-      WRITE(7777,*) 'tau_therm', (gamma0(i_l)*alpha/AU2SEC)**(-1), 's'
-      WRITE(7777,*) '  '
-      close(7777)
+      P_EXC_square = Px_EXC_square + Py_EXC_square + Pz_EXC_square
+       gamma0(i_l) =  4.*pi*(sqrt(pi*epsi0(1))/DL_vol)/((real(BS_E(i_l))-EXC_shift)**2*real(nkbz))*&
+       ((2._SP/3._SP*epsi0(3)/epsi0(1)+2._SP)*(Px_EXC_square+Py_EXC_square)+8./3.*Pz_EXC_square)
+      alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*(EXC_mass(1)**2*EXC_mass(2))**(1./3.)&
+              *EXC_temp*SPEED_OF_LIGHT**2))**1.5
      endif
-     if (l_0D) gamma0(i_l) =   P_EXC_square*4.*0.333/(real(nkbz)*SPEED_OF_LIGHT**3)
-     !
      gamma0_grp=gamma0_grp+gamma0(i_l)
-     gamma_thermal(:)=gamma_thermal(:)+ gamma0(i_l)*alpha*alpha1(:)
-!     gamma_thermal(:)=gamma_thermal(:)+ alpha1(:)
-     if (l_1D) stop
-     if (l_0D) stop 
-     if (l_2D) gamma_exp=gamma_exp+gamma0(i_l)*alpha*(4._SP/3._SP)
-     if (l_3D) gamma_exp=gamma_exp+gamma0(i_l)*alpha ! *(2._SP/3._SP)
+     if (l_1D) gammaT_aver=gammaT_aver+gamma0(i_l)*alpha
+     if (l_0D) gammaT_aver=gamma0(i_l) 
+     if (l_2D) gammaT_aver=gammaT_aver+gamma0(i_l)*alpha
+     if (l_3D) gammaT_aver=gammaT_aver+gamma0(i_l)*alpha
      !
      exc_energy = (real(BS_E(i_l)-EXC_shift)*HA2EV)
      tau0_grp= AU2SEC/gamma0_grp
-     tau_exp = AU2SEC/gamma_exp
+     tauT_aver = AU2SEC/gammaT_aver
 !
      arg =real(BS_E(i_l)-BS_E(1))/EXC_temp
-     num = num + dexp(-arg)*gamma_exp
+     num = num + dexp(-arg)*gammaT_aver
      den = den + dexp(-arg)
      gamma_eff = num/den
      tau_eff = AU2SEC/gamma_eff
-     write (9,*) i_l, BS_E(1)*HA2EV,BS_E(i_l)*HA2EV,gamma_eff,tau_eff
-     write(10,111) i_l,phi0(i_l),exc_energy, alpha1(1),alpha1(5),alpha1(10),alpha1(20)
-!     write(11,112) i_l,i_spin,exc_energy,real(BS_R(i_l)*conjg(BS_R(i_l)))/q0_def_norm**2, &
-!&    real(iR_EXC(1)*conjg(iR_EXC(1)))
    enddo
    111 format (i4, 6d15.7)
-! 112 format (2i4,3d15.7)
    !
-   call msg('o exc_life',"# ","exc. E = "//trim(real2ch(exc_energy)),INDENT=0)
+   call msg('o exc_life',"# ","exc. E(eV) = "//trim(real2ch(exc_energy)),INDENT=0)
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)
-   call msg('o exc_life',"# ","gamma exp  = "//trim(real2ch(gamma_exp)),INDENT=0)
-   !
-   call msg('o exc_life',"# ","tau zero = "//trim(real2ch(tau0_grp)),INDENT=0)
-   call msg('o exc_life',"# ","tau exp  = "//trim(real2ch(tau_exp)),INDENT=0)
-   call msg('o exc_life',"# ","tau eff  = "//trim(real2ch(tau_eff)),INDENT=0)
+   call msg('o exc_life',"# ","gammaT aver  = "//trim(real2ch(gammaT_aver)),INDENT=0)
 !
-   call msg('o exc_life','#',titles(:3),INDENT=0,USE_TABS=.true.)
-!
-   do i_grid=1,Phi_grid_size
-    tau_thermal(i_grid)= AU2SEC/gamma_thermal(i_grid)
-     call msg('o exc_life',' ',(/phi(i_grid)*180._SP/PI,gamma_thermal(i_grid),tau_thermal(i_grid)/),INDENT=0,USE_TABS=.true.)
-   enddo
-   !
+   call msg('o exc_life','#',titles(:4),INDENT=0,USE_TABS=.true.) 
+   call msg('o exc_life',' ',(/exc_energy,tau0_grp,tauT_aver,tau_eff/),INDENT=0,USE_TABS=.true.)
   call of_open_close(ch_dummy)
    !
  enddo

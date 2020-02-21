@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML3.2 EN">
+<HTML>
+<HEAD> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/DM/DMForestGetBaseDM.html" />
+<META NAME="GENERATOR" CONTENT="DOCTEXT">
+<TITLE>DMForestGetBaseDM</TITLE>
+</HEAD>
+<BODY BGCOLOR="FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 docs/manualpages/DM/DMForestGetBaseDM.html "><small>Report Typos and Errors</small></a></div>
+<A NAME="DMForestGetBaseDM"><H1>DMForestGetBaseDM</H1></A>
+Get the base <A HREF="../DM/DM.html#DM">DM</A> of a DMForest forest.  The forest will be hierarchically refined from the base, and all refinements/coarsenings of the forest will share its base.  In general, two forest must share a bse to be comparable, to do things like construct interpolators. 
+<H3><FONT COLOR="#CC3333">Synopsis</FONT></H3>
+<PRE>
+#include "petscdmforest.h" 
+#include "petscdm.h" 
+PetscErrorCode DMForestGetBaseDM(DM dm, DM *base)
+</PRE>
+Not collective
+<P>
+<H3><FONT COLOR="#CC3333">Input Parameter</FONT></H3>
+<DT><B>dm </B> -the forest
+<br>
+<P>
+<H3><FONT COLOR="#CC3333">Output Parameter</FONT></H3>
+<DT><B>base </B> -the base <A HREF="../DM/DM.html#DM">DM</A> of the forest
+<br>
+<P>
+
+<P>
+<H3><FONT COLOR="#CC3333">See Also</FONT></H3>
+); <A HREF="../DM/DMForestSetBaseDM.html#DMForestSetBaseDM">DMForestSetBaseDM</A>()
+<BR><P><B><P><B><FONT COLOR="#CC3333">Level:</FONT></B>intermediate
+<BR><FONT COLOR="#CC3333">Location:</FONT></B><A HREF="../../../src/dm/impls/forest/forest.c.html#DMForestGetBaseDM">src/dm/impls/forest/forest.c</A>
+<BR><A HREF="./index.html">Index of all DM routines</A>
+<BR><A HREF="../../index.html">Table of Contents for all manual pages</A>
+<BR><A HREF="../singleindex.html">Index of all manual pages</A>
+</BODY></HTML>

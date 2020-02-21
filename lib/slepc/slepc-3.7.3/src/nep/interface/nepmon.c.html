@@ -1,0 +1,401 @@
+<center><a href="nepmon.c">Actual source code: nepmon.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://slepc.upv.es/documentation/current/src/nep/interface/nepmon.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-09-29T11:12:47+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>slepc-3.7.3 2016-09-29</b></div>
+   <div id="bugreport" align=right><a href="mailto:slepc-maint@upv.es?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: slepc-3.7.3 v3.7.3 src/nep/interface/nepmon.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80"><a name="line1">  1: </a><font color="#B22222">/*</font>
+<a name="line2">  2: </a><font color="#B22222">      <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> routines related to monitors.</font>
+
+<a name="line4">  4: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line5">  5: </a><font color="#B22222">   SLEPc - Scalable Library for Eigenvalue Problem Computations</font>
+<a name="line6">  6: </a><font color="#B22222">   Copyright (c) 2002-2016, Universitat Politecnica de Valencia, Spain</font>
+
+<a name="line8">  8: </a><font color="#B22222">   This file is part of SLEPc.</font>
+
+<a name="line10"> 10: </a><font color="#B22222">   SLEPc is free software: you can redistribute it and/or modify it under  the</font>
+<a name="line11"> 11: </a><font color="#B22222">   terms of version 3 of the GNU Lesser General Public License as published by</font>
+<a name="line12"> 12: </a><font color="#B22222">   the Free Software Foundation.</font>
+
+<a name="line14"> 14: </a><font color="#B22222">   SLEPc  is  distributed in the hope that it will be useful, but WITHOUT  ANY</font>
+<a name="line15"> 15: </a><font color="#B22222">   WARRANTY;  without even the implied warranty of MERCHANTABILITY or  FITNESS</font>
+<a name="line16"> 16: </a><font color="#B22222">   FOR  A  PARTICULAR PURPOSE. See the GNU Lesser General Public  License  for</font>
+<a name="line17"> 17: </a><font color="#B22222">   more details.</font>
+
+<a name="line19"> 19: </a><font color="#B22222">   You  should have received a copy of the GNU Lesser General  Public  License</font>
+<a name="line20"> 20: </a><font color="#B22222">   along with SLEPc. If not, see &lt;http://www.gnu.org/licenses/&gt;.</font>
+<a name="line21"> 21: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line22"> 22: </a><font color="#B22222">*/</font>
+
+<a name="line24"> 24: </a><font color="#A020F0">#include &lt;slepc/private/nepimpl.h&gt;      </font><font color="#B22222">/*I "slepcnep.h" I*/</font><font color="#A020F0"></font>
+<a name="line25"> 25: </a><font color="#A020F0">#include &lt;petscdraw.h&gt;</font>
+
+<a name="line29"> 29: </a><font color="#B22222">/*</font>
+<a name="line30"> 30: </a><font color="#B22222">   Runs the user provided monitor routines, if any.</font>
+<a name="line31"> 31: </a><font color="#B22222">*/</font>
+<a name="line32"> 32: </a><strong><font color="#4169E1"><a name="NEPMonitor"></a>PetscErrorCode NEPMonitor(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscInt it,PetscInt nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal *errest,PetscInt nest)</font></strong>
+<a name="line33"> 33: </a>{
+<a name="line35"> 35: </a>  PetscInt       i,n = nep-&gt;numbermonitors;
+
+<a name="line38"> 38: </a>  <font color="#4169E1">for</font> (i=0;i&lt;n;i++) {
+<a name="line39"> 39: </a>    (*nep-&gt;monitor[i])(nep,it,nconv,eigr,eigi,errest,nest,nep-&gt;monitorcontext[i]);
+<a name="line40"> 40: </a>  }
+<a name="line41"> 41: </a>  <font color="#4169E1">return</font>(0);
+<a name="line42"> 42: </a>}
+
+<a name="line46"> 46: </a><font color="#B22222">/*@C</font>
+<a name="line47"> 47: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a> - Sets an ADDITIONAL function to be called at every</font>
+<a name="line48"> 48: </a><font color="#B22222">   iteration to monitor the error estimates for each requested eigenpair.</font>
+
+<a name="line50"> 50: </a><font color="#B22222">   Logically Collective on <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a></font>
+
+<a name="line52"> 52: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line53"> 53: </a><font color="#B22222">+  nep     - eigensolver context obtained from <a href="../../../docs/manualpages/NEP/NEPCreate.html#NEPCreate">NEPCreate</a>()</font>
+<a name="line54"> 54: </a><font color="#B22222">.  monitor - pointer to function (if this is NULL, it turns off monitoring)</font>
+<a name="line55"> 55: </a><font color="#B22222">.  mctx    - [optional] context for private data for the</font>
+<a name="line56"> 56: </a><font color="#B22222">             monitor routine (use NULL if no context is desired)</font>
+<a name="line57"> 57: </a><font color="#B22222">-  monitordestroy - [optional] routine that frees monitor context</font>
+<a name="line58"> 58: </a><font color="#B22222">             (may be NULL)</font>
+
+<a name="line60"> 60: </a><font color="#B22222">   Calling Sequence of monitor:</font>
+<a name="line61"> 61: </a><font color="#B22222">$   monitor(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,int its,int nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal* errest,int nest,void *mctx)</font>
+
+<a name="line63"> 63: </a><font color="#B22222">+  nep    - nonlinear eigensolver context obtained from <a href="../../../docs/manualpages/NEP/NEPCreate.html#NEPCreate">NEPCreate</a>()</font>
+<a name="line64"> 64: </a><font color="#B22222">.  its    - iteration number</font>
+<a name="line65"> 65: </a><font color="#B22222">.  nconv  - number of converged eigenpairs</font>
+<a name="line66"> 66: </a><font color="#B22222">.  eigr   - real part of the eigenvalues</font>
+<a name="line67"> 67: </a><font color="#B22222">.  eigi   - imaginary part of the eigenvalues</font>
+<a name="line68"> 68: </a><font color="#B22222">.  errest - error estimates for each eigenpair</font>
+<a name="line69"> 69: </a><font color="#B22222">.  nest   - number of error estimates</font>
+<a name="line70"> 70: </a><font color="#B22222">-  mctx   - optional monitoring context, as set by <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>()</font>
+
+<a name="line72"> 72: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line73"> 73: </a><font color="#B22222">+    -nep_monitor        - print only the first error estimate</font>
+<a name="line74"> 74: </a><font color="#B22222">.    -nep_monitor_all    - print error estimates at each iteration</font>
+<a name="line75"> 75: </a><font color="#B22222">.    -nep_monitor_conv   - print the eigenvalue approximations only when</font>
+<a name="line76"> 76: </a><font color="#B22222">      convergence has been reached</font>
+<a name="line77"> 77: </a><font color="#B22222">.    -nep_monitor_lg     - sets line graph monitor for the first unconverged</font>
+<a name="line78"> 78: </a><font color="#B22222">      approximate eigenvalue</font>
+<a name="line79"> 79: </a><font color="#B22222">.    -nep_monitor_lg_all - sets line graph monitor for all unconverged</font>
+<a name="line80"> 80: </a><font color="#B22222">      approximate eigenvalues</font>
+<a name="line81"> 81: </a><font color="#B22222">-    -nep_monitor_cancel - cancels all monitors that have been hardwired into</font>
+<a name="line82"> 82: </a><font color="#B22222">      a code by calls to <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(), but does not cancel those set via</font>
+<a name="line83"> 83: </a><font color="#B22222">      the options database.</font>
+
+<a name="line85"> 85: </a><font color="#B22222">   Notes:</font>
+<a name="line86"> 86: </a><font color="#B22222">   Several different monitoring routines may be set by calling</font>
+<a name="line87"> 87: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>() multiple times; all will be called in the</font>
+<a name="line88"> 88: </a><font color="#B22222">   order in which they were set.</font>
+
+<a name="line90"> 90: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line92"> 92: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorFirst.html#NEPMonitorFirst">NEPMonitorFirst</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorAll.html#NEPMonitorAll">NEPMonitorAll</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorCancel.html#NEPMonitorCancel">NEPMonitorCancel</a>()</font>
+<a name="line93"> 93: </a><font color="#B22222">@*/</font>
+<a name="line94"> 94: </a><strong><font color="#4169E1"><a name="NEPMonitorSet"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscErrorCode (*monitor)(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a>,PetscInt,PetscInt,PetscScalar*,PetscScalar*,PetscReal*,PetscInt,void*),void *mctx,PetscErrorCode (*monitordestroy)(void**))</font></strong>
+<a name="line95"> 95: </a>{
+<a name="line98"> 98: </a>  <font color="#4169E1">if</font> (nep-&gt;numbermonitors &gt;= MAXNEPMONITORS) SETERRQ(PetscObjectComm((PetscObject)nep),PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Too many <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> monitors set"</font>);
+<a name="line99"> 99: </a>  nep-&gt;monitor[nep-&gt;numbermonitors]           = monitor;
+<a name="line100">100: </a>  nep-&gt;monitorcontext[nep-&gt;numbermonitors]    = (void*)mctx;
+<a name="line101">101: </a>  nep-&gt;monitordestroy[nep-&gt;numbermonitors++]  = monitordestroy;
+<a name="line102">102: </a>  <font color="#4169E1">return</font>(0);
+<a name="line103">103: </a>}
+
+<a name="line107">107: </a><font color="#B22222">/*@</font>
+<a name="line108">108: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorCancel.html#NEPMonitorCancel">NEPMonitorCancel</a> - Clears all monitors for a <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> object.</font>
+
+<a name="line110">110: </a><font color="#B22222">   Logically Collective on <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a></font>
+
+<a name="line112">112: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line113">113: </a><font color="#B22222">.  nep - eigensolver context obtained from <a href="../../../docs/manualpages/NEP/NEPCreate.html#NEPCreate">NEPCreate</a>()</font>
+
+<a name="line115">115: </a><font color="#B22222">   Options Database Key:</font>
+<a name="line116">116: </a><font color="#B22222">.    -nep_monitor_cancel - Cancels all monitors that have been hardwired</font>
+<a name="line117">117: </a><font color="#B22222">      into a code by calls to <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(),</font>
+<a name="line118">118: </a><font color="#B22222">      but does not cancel those set via the options database.</font>
+
+<a name="line120">120: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line122">122: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>()</font>
+<a name="line123">123: </a><font color="#B22222">@*/</font>
+<a name="line124">124: </a><strong><font color="#4169E1"><a name="NEPMonitorCancel"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPMonitorCancel.html#NEPMonitorCancel">NEPMonitorCancel</a>(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep)</font></strong>
+<a name="line125">125: </a>{
+<a name="line127">127: </a>  PetscInt       i;
+
+<a name="line131">131: </a>  <font color="#4169E1">for</font> (i=0; i&lt;nep-&gt;numbermonitors; i++) {
+<a name="line132">132: </a>    <font color="#4169E1">if</font> (nep-&gt;monitordestroy[i]) {
+<a name="line133">133: </a>      (*nep-&gt;monitordestroy[i])(&amp;nep-&gt;monitorcontext[i]);
+<a name="line134">134: </a>    }
+<a name="line135">135: </a>  }
+<a name="line136">136: </a>  nep-&gt;numbermonitors = 0;
+<a name="line137">137: </a>  <font color="#4169E1">return</font>(0);
+<a name="line138">138: </a>}
+
+<a name="line142">142: </a><font color="#B22222">/*@C</font>
+<a name="line143">143: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPGetMonitorContext.html#NEPGetMonitorContext">NEPGetMonitorContext</a> - Gets the monitor context, as set by</font>
+<a name="line144">144: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>() for the FIRST monitor only.</font>
+
+<a name="line146">146: </a><font color="#B22222">   Not Collective</font>
+
+<a name="line148">148: </a><font color="#B22222">   Input Parameter:</font>
+<a name="line149">149: </a><font color="#B22222">.  nep - eigensolver context obtained from <a href="../../../docs/manualpages/NEP/NEPCreate.html#NEPCreate">NEPCreate</a>()</font>
+
+<a name="line151">151: </a><font color="#B22222">   Output Parameter:</font>
+<a name="line152">152: </a><font color="#B22222">.  ctx - monitor context</font>
+
+<a name="line154">154: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line156">156: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(), NEPDefaultMonitor()</font>
+<a name="line157">157: </a><font color="#B22222">@*/</font>
+<a name="line158">158: </a><strong><font color="#4169E1"><a name="NEPGetMonitorContext"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPGetMonitorContext.html#NEPGetMonitorContext">NEPGetMonitorContext</a>(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,void **ctx)</font></strong>
+<a name="line159">159: </a>{
+<a name="line162">162: </a>  *ctx = nep-&gt;monitorcontext[0];
+<a name="line163">163: </a>  <font color="#4169E1">return</font>(0);
+<a name="line164">164: </a>}
+
+<a name="line168">168: </a><font color="#B22222">/*@C</font>
+<a name="line169">169: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorAll.html#NEPMonitorAll">NEPMonitorAll</a> - Print the current approximate values and</font>
+<a name="line170">170: </a><font color="#B22222">   error estimates at each iteration of the nonlinear eigensolver.</font>
+
+<a name="line172">172: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a></font>
+
+<a name="line174">174: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line175">175: </a><font color="#B22222">+  nep    - nonlinear eigensolver context</font>
+<a name="line176">176: </a><font color="#B22222">.  its    - iteration number</font>
+<a name="line177">177: </a><font color="#B22222">.  nconv  - number of converged eigenpairs so far</font>
+<a name="line178">178: </a><font color="#B22222">.  eigr   - real part of the eigenvalues</font>
+<a name="line179">179: </a><font color="#B22222">.  eigi   - imaginary part of the eigenvalues</font>
+<a name="line180">180: </a><font color="#B22222">.  errest - error estimates</font>
+<a name="line181">181: </a><font color="#B22222">.  nest   - number of error estimates to display</font>
+<a name="line182">182: </a><font color="#B22222">-  vf     - viewer and format for monitoring</font>
+
+<a name="line184">184: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line186">186: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorFirst.html#NEPMonitorFirst">NEPMonitorFirst</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorConverged.html#NEPMonitorConverged">NEPMonitorConverged</a>()</font>
+<a name="line187">187: </a><font color="#B22222">@*/</font>
+<a name="line188">188: </a><strong><font color="#4169E1"><a name="NEPMonitorAll"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPMonitorAll.html#NEPMonitorAll">NEPMonitorAll</a>(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscInt its,PetscInt nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal *errest,PetscInt nest,PetscViewerAndFormat *vf)</font></strong>
+<a name="line189">189: </a>{
+<a name="line191">191: </a>  PetscInt       i;
+<a name="line192">192: </a>  PetscViewer    viewer;
+
+<a name="line197">197: </a>  viewer = vf-&gt;viewer;
+<a name="line199">199: </a>  PetscViewerPushFormat(viewer,vf-&gt;format);
+<a name="line200">200: </a>  PetscViewerASCIIAddTab(viewer,((PetscObject)nep)-&gt;tablevel);
+<a name="line201">201: </a>  <font color="#4169E1">if</font> (its==1 &amp;&amp; ((PetscObject)nep)-&gt;prefix) {
+<a name="line202">202: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Eigenvalue approximations and residual norms for %s solve.\n"</font>,((PetscObject)nep)-&gt;prefix);
+<a name="line203">203: </a>  }
+<a name="line204">204: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"%3D <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nconv=%D Values (Errors)"</font>,its,nconv);
+<a name="line205">205: </a>  PetscViewerASCIIUseTabs(viewer,PETSC_FALSE);
+<a name="line206">206: </a>  <font color="#4169E1">for</font> (i=0;i&lt;nest;i++) {
+<a name="line207">207: </a><font color="#A020F0">#if defined(PETSC_USE_COMPLEX)</font>
+<a name="line208">208: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" %g%+gi"</font>,(double)PetscRealPart(eigr[i]),(double)PetscImaginaryPart(eigr[i]));
+<a name="line209">209: </a><font color="#A020F0">#else</font>
+<a name="line210">210: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" %g"</font>,(double)eigr[i]);
+<a name="line211">211: </a>    <font color="#4169E1">if</font> (eigi[i]!=0.0) { PetscViewerASCIIPrintf(viewer,<font color="#666666">"%+gi"</font>,(double)eigi[i]); }
+<a name="line212">212: </a><font color="#A020F0">#endif</font>
+<a name="line213">213: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" (%10.8e)"</font>,(double)errest[i]);
+<a name="line214">214: </a>  }
+<a name="line215">215: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"\n"</font>);
+<a name="line216">216: </a>  PetscViewerASCIIUseTabs(viewer,PETSC_TRUE);
+<a name="line217">217: </a>  PetscViewerASCIISubtractTab(viewer,((PetscObject)nep)-&gt;tablevel);
+<a name="line218">218: </a>  PetscViewerPopFormat(viewer);
+<a name="line219">219: </a>  <font color="#4169E1">return</font>(0);
+<a name="line220">220: </a>}
+
+<a name="line224">224: </a><font color="#B22222">/*@C</font>
+<a name="line225">225: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorFirst.html#NEPMonitorFirst">NEPMonitorFirst</a> - Print the first unconverged approximate value and</font>
+<a name="line226">226: </a><font color="#B22222">   error estimate at each iteration of the nonlinear eigensolver.</font>
+
+<a name="line228">228: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a></font>
+
+<a name="line230">230: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line231">231: </a><font color="#B22222">+  nep    - nonlinear eigensolver context</font>
+<a name="line232">232: </a><font color="#B22222">.  its    - iteration number</font>
+<a name="line233">233: </a><font color="#B22222">.  nconv  - number of converged eigenpairs so far</font>
+<a name="line234">234: </a><font color="#B22222">.  eigr   - real part of the eigenvalues</font>
+<a name="line235">235: </a><font color="#B22222">.  eigi   - imaginary part of the eigenvalues</font>
+<a name="line236">236: </a><font color="#B22222">.  errest - error estimates</font>
+<a name="line237">237: </a><font color="#B22222">.  nest   - number of error estimates to display</font>
+<a name="line238">238: </a><font color="#B22222">-  vf     - viewer and format for monitoring</font>
+
+<a name="line240">240: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line242">242: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorAll.html#NEPMonitorAll">NEPMonitorAll</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorConverged.html#NEPMonitorConverged">NEPMonitorConverged</a>()</font>
+<a name="line243">243: </a><font color="#B22222">@*/</font>
+<a name="line244">244: </a><strong><font color="#4169E1"><a name="NEPMonitorFirst"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPMonitorFirst.html#NEPMonitorFirst">NEPMonitorFirst</a>(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscInt its,PetscInt nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal *errest,PetscInt nest,PetscViewerAndFormat *vf)</font></strong>
+<a name="line245">245: </a>{
+<a name="line247">247: </a>  PetscViewer    viewer;
+
+<a name="line252">252: </a>  viewer = vf-&gt;viewer;
+<a name="line254">254: </a>  <font color="#4169E1">if</font> (its==1 &amp;&amp; ((PetscObject)nep)-&gt;prefix) {
+<a name="line255">255: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Eigenvalue approximations and residual norms for %s solve.\n"</font>,((PetscObject)nep)-&gt;prefix);
+<a name="line256">256: </a>  }
+<a name="line257">257: </a>  <font color="#4169E1">if</font> (nconv&lt;nest) {
+<a name="line258">258: </a>    PetscViewerPushFormat(viewer,vf-&gt;format);
+<a name="line259">259: </a>    PetscViewerASCIIAddTab(viewer,((PetscObject)nep)-&gt;tablevel);
+<a name="line260">260: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"%3D <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nconv=%D first unconverged value (error)"</font>,its,nconv);
+<a name="line261">261: </a>    PetscViewerASCIIUseTabs(viewer,PETSC_FALSE);
+<a name="line262">262: </a><font color="#A020F0">#if defined(PETSC_USE_COMPLEX)</font>
+<a name="line263">263: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" %g%+gi"</font>,(double)PetscRealPart(eigr[nconv]),(double)PetscImaginaryPart(eigr[nconv]));
+<a name="line264">264: </a><font color="#A020F0">#else</font>
+<a name="line265">265: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" %g"</font>,(double)eigr[nconv]);
+<a name="line266">266: </a>    <font color="#4169E1">if</font> (eigi[nconv]!=0.0) { PetscViewerASCIIPrintf(viewer,<font color="#666666">"%+gi"</font>,(double)eigi[nconv]); }
+<a name="line267">267: </a><font color="#A020F0">#endif</font>
+<a name="line268">268: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" (%10.8e)\n"</font>,(double)errest[nconv]);
+<a name="line269">269: </a>    PetscViewerASCIIUseTabs(viewer,PETSC_TRUE);
+<a name="line270">270: </a>    PetscViewerASCIISubtractTab(viewer,((PetscObject)nep)-&gt;tablevel);
+<a name="line271">271: </a>    PetscViewerPopFormat(viewer);
+<a name="line272">272: </a>  }
+<a name="line273">273: </a>  <font color="#4169E1">return</font>(0);
+<a name="line274">274: </a>}
+
+<a name="line278">278: </a><font color="#B22222">/*@C</font>
+<a name="line279">279: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorConverged.html#NEPMonitorConverged">NEPMonitorConverged</a> - Print the approximate values and</font>
+<a name="line280">280: </a><font color="#B22222">   error estimates as they converge.</font>
+
+<a name="line282">282: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a></font>
+
+<a name="line284">284: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line285">285: </a><font color="#B22222">+  nep    - nonlinear eigensolver context</font>
+<a name="line286">286: </a><font color="#B22222">.  its    - iteration number</font>
+<a name="line287">287: </a><font color="#B22222">.  nconv  - number of converged eigenpairs so far</font>
+<a name="line288">288: </a><font color="#B22222">.  eigr   - real part of the eigenvalues</font>
+<a name="line289">289: </a><font color="#B22222">.  eigi   - imaginary part of the eigenvalues</font>
+<a name="line290">290: </a><font color="#B22222">.  errest - error estimates</font>
+<a name="line291">291: </a><font color="#B22222">.  nest   - number of error estimates to display</font>
+<a name="line292">292: </a><font color="#B22222">-  ctx    - monitor context</font>
+
+<a name="line294">294: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line296">296: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorFirst.html#NEPMonitorFirst">NEPMonitorFirst</a>(), <a href="../../../docs/manualpages/NEP/NEPMonitorAll.html#NEPMonitorAll">NEPMonitorAll</a>()</font>
+<a name="line297">297: </a><font color="#B22222">@*/</font>
+<a name="line298">298: </a><strong><font color="#4169E1"><a name="NEPMonitorConverged"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPMonitorConverged.html#NEPMonitorConverged">NEPMonitorConverged</a>(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscInt its,PetscInt nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal *errest,PetscInt nest,SlepcConvMonitor ctx)</font></strong>
+<a name="line299">299: </a>{
+<a name="line301">301: </a>  PetscInt       i;
+<a name="line302">302: </a>  PetscViewer    viewer;
+
+<a name="line307">307: </a>  viewer = ctx-&gt;viewer;
+<a name="line309">309: </a>  <font color="#4169E1">if</font> (its==1 &amp;&amp; ((PetscObject)nep)-&gt;prefix) {
+<a name="line310">310: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Convergence history for %s solve.\n"</font>,((PetscObject)nep)-&gt;prefix);
+<a name="line311">311: </a>  }
+<a name="line312">312: </a>  <font color="#4169E1">if</font> (its==1) ctx-&gt;oldnconv = 0;
+<a name="line313">313: </a>  <font color="#4169E1">if</font> (ctx-&gt;oldnconv!=nconv) {
+<a name="line314">314: </a>    PetscViewerPushFormat(viewer,ctx-&gt;format);
+<a name="line315">315: </a>    PetscViewerASCIIAddTab(viewer,((PetscObject)nep)-&gt;tablevel);
+<a name="line316">316: </a>    <font color="#4169E1">for</font> (i=ctx-&gt;oldnconv;i&lt;nconv;i++) {
+<a name="line317">317: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"%3D <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> converged value (error) #%D"</font>,its,i);
+<a name="line318">318: </a>      PetscViewerASCIIUseTabs(viewer,PETSC_FALSE);
+<a name="line319">319: </a><font color="#A020F0">#if defined(PETSC_USE_COMPLEX)</font>
+<a name="line320">320: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">" %g%+gi"</font>,(double)PetscRealPart(eigr[i]),(double)PetscImaginaryPart(eigr[i]));
+<a name="line321">321: </a><font color="#A020F0">#else</font>
+<a name="line322">322: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">" %g"</font>,(double)eigr[i]);
+<a name="line323">323: </a>      <font color="#4169E1">if</font> (eigi[i]!=0.0) { PetscViewerASCIIPrintf(viewer,<font color="#666666">"%+gi"</font>,(double)eigi[i]); }
+<a name="line324">324: </a><font color="#A020F0">#endif</font>
+<a name="line325">325: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">" (%10.8e)\n"</font>,(double)errest[i]);
+<a name="line326">326: </a>      PetscViewerASCIIUseTabs(viewer,PETSC_TRUE);
+<a name="line327">327: </a>    }
+<a name="line328">328: </a>    PetscViewerASCIISubtractTab(viewer,((PetscObject)nep)-&gt;tablevel);
+<a name="line329">329: </a>    PetscViewerPopFormat(viewer);
+<a name="line330">330: </a>    ctx-&gt;oldnconv = nconv;
+<a name="line331">331: </a>  }
+<a name="line332">332: </a>  <font color="#4169E1">return</font>(0);
+<a name="line333">333: </a>}
+
+<a name="line337">337: </a><font color="#B22222">/*@C</font>
+<a name="line338">338: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEPMonitorLGCreate.html#NEPMonitorLGCreate">NEPMonitorLGCreate</a> - Creates a line graph context for use with</font>
+<a name="line339">339: </a><font color="#B22222">   <a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> to monitor convergence.</font>
+
+<a name="line341">341: </a><font color="#B22222">   Collective on MPI_Comm</font>
+
+<a name="line343">343: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line344">344: </a><font color="#B22222">+  comm - communicator context</font>
+<a name="line345">345: </a><font color="#B22222">.  host - the X display to open, or null for the local machine</font>
+<a name="line346">346: </a><font color="#B22222">.  label - the title to put in the title bar</font>
+<a name="line347">347: </a><font color="#B22222">.  x, y - the screen coordinates of the upper left coordinate of</font>
+<a name="line348">348: </a><font color="#B22222">          the window</font>
+<a name="line349">349: </a><font color="#B22222">-  m, n - the screen width and height in pixels</font>
+
+<a name="line351">351: </a><font color="#B22222">   Output Parameter:</font>
+<a name="line352">352: </a><font color="#B22222">.  lgctx - the drawing context</font>
+
+<a name="line354">354: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line355">355: </a><font color="#B22222">+  -nep_monitor_lg - Sets line graph monitor for the first residual</font>
+<a name="line356">356: </a><font color="#B22222">-  -nep_monitor_lg_all - Sets line graph monitor for all residuals</font>
+
+<a name="line358">358: </a><font color="#B22222">   Notes:</font>
+<a name="line359">359: </a><font color="#B22222">   Use PetscDrawLGDestroy() to destroy this line graph.</font>
+
+<a name="line361">361: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line363">363: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/NEP/NEPMonitorSet.html#NEPMonitorSet">NEPMonitorSet</a>()</font>
+<a name="line364">364: </a><font color="#B22222">@*/</font>
+<a name="line365">365: </a><strong><font color="#4169E1"><a name="NEPMonitorLGCreate"></a>PetscErrorCode <a href="../../../docs/manualpages/NEP/NEPMonitorLGCreate.html#NEPMonitorLGCreate">NEPMonitorLGCreate</a>(MPI_Comm comm,const char host[],const char label[],int x,int y,int m,int n,PetscDrawLG *lgctx)</font></strong>
+<a name="line366">366: </a>{
+<a name="line367">367: </a>  PetscDraw      draw;
+<a name="line368">368: </a>  PetscDrawLG    lg;
+
+<a name="line372">372: </a>  PetscDrawCreate(comm,host,label,x,y,m,n,&amp;draw);
+<a name="line373">373: </a>  PetscDrawSetFromOptions(draw);
+<a name="line374">374: </a>  PetscDrawLGCreate(draw,1,&amp;lg);
+<a name="line375">375: </a>  PetscDrawLGSetFromOptions(lg);
+<a name="line376">376: </a>  PetscDrawDestroy(&amp;draw);
+<a name="line377">377: </a>  *lgctx = lg;
+<a name="line378">378: </a>  <font color="#4169E1">return</font>(0);
+<a name="line379">379: </a>}
+
+<a name="line383">383: </a><strong><font color="#4169E1"><a name="NEPMonitorLG"></a>PetscErrorCode NEPMonitorLG(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscInt its,PetscInt nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal *errest,PetscInt nest,void *ctx)</font></strong>
+<a name="line384">384: </a>{
+<a name="line385">385: </a>  PetscDrawLG    lg = (PetscDrawLG)ctx;
+<a name="line386">386: </a>  PetscReal      x,y;
+
+<a name="line391">391: </a>  <font color="#4169E1">if</font> (its==1) {
+<a name="line392">392: </a>    PetscDrawLGReset(lg);
+<a name="line393">393: </a>    PetscDrawLGSetDimension(lg,1);
+<a name="line394">394: </a>    PetscDrawLGSetLimits(lg,1,1.0,PetscLog10Real(nep-&gt;tol)-2,0.0);
+<a name="line395">395: </a>  }
+<a name="line396">396: </a>  x = (PetscReal)its;
+<a name="line397">397: </a>  <font color="#4169E1">if</font> (errest[nconv] &gt; 0.0) y = PetscLog10Real(errest[nconv]);
+<a name="line398">398: </a>  <font color="#4169E1">else</font> y = 0.0;
+<a name="line399">399: </a>  PetscDrawLGAddPoint(lg,&amp;x,&amp;y);
+<a name="line400">400: </a>  <font color="#4169E1">if</font> (its &lt;= 20 || !(its % 5) || nep-&gt;reason) {
+<a name="line401">401: </a>    PetscDrawLGDraw(lg);
+<a name="line402">402: </a>    PetscDrawLGSave(lg);
+<a name="line403">403: </a>  }
+<a name="line404">404: </a>  <font color="#4169E1">return</font>(0);
+<a name="line405">405: </a>}
+
+<a name="line409">409: </a><strong><font color="#4169E1"><a name="NEPMonitorLGAll"></a>PetscErrorCode NEPMonitorLGAll(<a href="../../../docs/manualpages/NEP/NEP.html#NEP">NEP</a> nep,PetscInt its,PetscInt nconv,PetscScalar *eigr,PetscScalar *eigi,PetscReal *errest,PetscInt nest,void *ctx)</font></strong>
+<a name="line410">410: </a>{
+<a name="line411">411: </a>  PetscDrawLG    lg = (PetscDrawLG)ctx;
+<a name="line412">412: </a>  PetscInt       i,n = PetscMin(nep-&gt;nev,255);
+<a name="line413">413: </a>  PetscReal      *x,*y;
+
+<a name="line418">418: </a>  <font color="#4169E1">if</font> (its==1) {
+<a name="line419">419: </a>    PetscDrawLGReset(lg);
+<a name="line420">420: </a>    PetscDrawLGSetDimension(lg,n);
+<a name="line421">421: </a>    PetscDrawLGSetLimits(lg,1,1.0,PetscLog10Real(nep-&gt;tol)-2,0.0);
+<a name="line422">422: </a>  }
+<a name="line423">423: </a>  PetscMalloc2(n,&amp;x,n,&amp;y);
+<a name="line424">424: </a>  <font color="#4169E1">for</font> (i=0;i&lt;n;i++) {
+<a name="line425">425: </a>    x[i] = (PetscReal)its;
+<a name="line426">426: </a>    <font color="#4169E1">if</font> (i &lt; nest &amp;&amp; errest[i] &gt; 0.0) y[i] = PetscLog10Real(errest[i]);
+<a name="line427">427: </a>    <font color="#4169E1">else</font> y[i] = 0.0;
+<a name="line428">428: </a>  }
+<a name="line429">429: </a>  PetscDrawLGAddPoint(lg,x,y);
+<a name="line430">430: </a>  <font color="#4169E1">if</font> (its &lt;= 20 || !(its % 5) || nep-&gt;reason) {
+<a name="line431">431: </a>    PetscDrawLGDraw(lg);
+<a name="line432">432: </a>    PetscDrawLGSave(lg);
+<a name="line433">433: </a>  }
+<a name="line434">434: </a>  PetscFree2(x,y);
+<a name="line435">435: </a>  <font color="#4169E1">return</font>(0);
+<a name="line436">436: </a>}
+
+</pre>
+</body>
+
+</html>

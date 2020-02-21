@@ -1,0 +1,220 @@
+<center><a href="adaptbasic.c">Actual source code: adaptbasic.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/src/ts/adapt/impls/basic/adaptbasic.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-10-03T02:59:05+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 src/ts/adapt/impls/basic/adaptbasic.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80"><a name="line1">  1: </a><font color="#A020F0">#include &lt;petsc/private/tsimpl.h&gt; </font><font color="#B22222">/*I "petscts.h" I*/</font><font color="#A020F0"></font>
+
+<a name="line3">  3: </a><font color="#4169E1">typedef</font> <font color="#4169E1">struct</font> {
+<a name="line4">  4: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a> always_accept;
+<a name="line5">  5: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> clip[2];            <font color="#B22222">/* admissible decrease/increase factors */</font>
+<a name="line6">  6: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> safety;             <font color="#B22222">/* safety factor relative to target error */</font>
+<a name="line7">  7: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> reject_safety;      <font color="#B22222">/* extra safety factor if the last step was rejected */</font>
+<a name="line8">  8: </a>  <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>       Y;
+<a name="line9">  9: </a>} TSAdapt_Basic;
+
+<a name="line13"> 13: </a><strong><font color="#4169E1"><a name="TSAdaptChoose_Basic"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> TSAdaptChoose_Basic(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt,<a href="../../../../../docs/manualpages/TS/TS.html#TS">TS</a> ts,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> h,<a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> *next_sc,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *next_h,<a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a> *accept,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *wlte)</font></strong>
+<a name="line14"> 14: </a>{
+<a name="line15"> 15: </a>  TSAdapt_Basic  *basic = (TSAdapt_Basic*)adapt-&gt;data;
+<a name="line16"> 16: </a>  <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       order  = <a href="../../../../../docs/manualpages/Sys/PETSC_DECIDE.html#PETSC_DECIDE">PETSC_DECIDE</a>;
+<a name="line17"> 17: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>      enorm  = -1;
+<a name="line18"> 18: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>      safety = basic-&gt;safety;
+<a name="line19"> 19: </a>  <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>      hfac_lte,h_lte;
+
+<a name="line23"> 23: </a>  *next_sc = 0; <font color="#B22222">/* Reuse the same order scheme */</font>
+
+<a name="line25"> 25: </a>  <font color="#4169E1">if</font> (ts-&gt;ops-&gt;evaluatewlte) {
+<a name="line26"> 26: </a>    <a href="../../../../../docs/manualpages/TS/TSEvaluateWLTE.html#TSEvaluateWLTE">TSEvaluateWLTE</a>(ts,adapt-&gt;wnormtype,&amp;order,&amp;enorm);
+<a name="line27"> 27: </a>    <font color="#4169E1">if</font> (enorm &gt;= 0 &amp;&amp; order &lt; 1) <a href="../../../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)adapt),PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Computed error order %D must be positive"</font>,order);
+<a name="line28"> 28: </a>  } <font color="#4169E1">else</font> <font color="#4169E1">if</font> (ts-&gt;ops-&gt;evaluatestep) {
+<a name="line29"> 29: </a>    <font color="#4169E1">if</font> (adapt-&gt;candidates.n &lt; 1) <a href="../../../../../docs/manualpages/Sys/SETERRQ.html#SETERRQ">SETERRQ</a>(<a href="../../../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)adapt),PETSC_ERR_ARG_WRONGSTATE,<font color="#666666">"No candidate has been registered"</font>);
+<a name="line30"> 30: </a>    <font color="#4169E1">if</font> (!adapt-&gt;candidates.inuse_set) <a href="../../../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)adapt),PETSC_ERR_ARG_WRONGSTATE,<font color="#666666">"The current in-use scheme is not among the %D candidates"</font>,adapt-&gt;candidates.n);
+<a name="line31"> 31: </a>    <font color="#4169E1">if</font> (!basic-&gt;Y) {<a href="../../../../../docs/manualpages/Vec/VecDuplicate.html#VecDuplicate">VecDuplicate</a>(ts-&gt;vec_sol,&amp;basic-&gt;Y);}
+<a name="line32"> 32: </a>    order = adapt-&gt;candidates.order[0];
+<a name="line33"> 33: </a>    <a href="../../../../../docs/manualpages/TS/TSEvaluateStep.html#TSEvaluateStep">TSEvaluateStep</a>(ts,order-1,basic-&gt;Y,NULL);
+<a name="line34"> 34: </a>    <a href="../../../../../docs/manualpages/TS/TSErrorWeightedNorm.html#TSErrorWeightedNorm">TSErrorWeightedNorm</a>(ts,ts-&gt;vec_sol,basic-&gt;Y,adapt-&gt;wnormtype,&amp;enorm);
+<a name="line35"> 35: </a>  }
+
+<a name="line37"> 37: </a>  <font color="#4169E1">if</font> (enorm &lt; 0) {
+<a name="line38"> 38: </a>    *accept  = <a href="../../../../../docs/manualpages/Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</a>;
+<a name="line39"> 39: </a>    *next_h  = h;            <font color="#B22222">/* Reuse the old step */</font>
+<a name="line40"> 40: </a>    *wlte    = -1;           <font color="#B22222">/* Weighted local truncation error was not evaluated */</font>
+<a name="line41"> 41: </a>    <font color="#4169E1">return</font>(0);
+<a name="line42"> 42: </a>  }
+
+<a name="line44"> 44: </a>  <font color="#B22222">/* Determine whether the step is accepted of rejected */</font>
+<a name="line45"> 45: </a>  <font color="#4169E1">if</font> (enorm &gt; 1) {
+<a name="line46"> 46: </a>    <font color="#4169E1">if</font> (!*accept) safety *= basic-&gt;reject_safety; <font color="#B22222">/* The last attempt also failed, shorten more aggressively */</font>
+<a name="line47"> 47: </a>    <font color="#4169E1">if</font> (h &lt; (1 + PETSC_SQRT_MACHINE_EPSILON)*adapt-&gt;dt_min) {
+<a name="line48"> 48: </a>      PetscInfo2(adapt,<font color="#666666">"Estimated scaled local truncation error %g, accepting because step size %g is at minimum\n"</font>,(double)enorm,(double)h);
+<a name="line49"> 49: </a>      *accept = <a href="../../../../../docs/manualpages/Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</a>;
+<a name="line50"> 50: </a>    } <font color="#4169E1">else</font> <font color="#4169E1">if</font> (basic-&gt;always_accept) {
+<a name="line51"> 51: </a>      PetscInfo2(adapt,<font color="#666666">"Estimated scaled local truncation error %g, accepting step of size %g because always_accept is set\n"</font>,(double)enorm,(double)h);
+<a name="line52"> 52: </a>      *accept = <a href="../../../../../docs/manualpages/Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</a>;
+<a name="line53"> 53: </a>    } <font color="#4169E1">else</font> {
+<a name="line54"> 54: </a>      PetscInfo2(adapt,<font color="#666666">"Estimated scaled local truncation error %g, rejecting step of size %g\n"</font>,(double)enorm,(double)h);
+<a name="line55"> 55: </a>      *accept = <a href="../../../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+<a name="line56"> 56: </a>    }
+<a name="line57"> 57: </a>  } <font color="#4169E1">else</font> {
+<a name="line58"> 58: </a>    PetscInfo2(adapt,<font color="#666666">"Estimated scaled local truncation error %g, accepting step of size %g\n"</font>,(double)enorm,(double)h);
+<a name="line59"> 59: </a>    *accept = <a href="../../../../../docs/manualpages/Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</a>;
+<a name="line60"> 60: </a>  }
+
+<a name="line62"> 62: </a>  <font color="#B22222">/* The optimal new step based purely on local truncation error for this step. */</font>
+<a name="line63"> 63: </a>  <font color="#4169E1">if</font> (enorm &gt; 0)
+<a name="line64"> 64: </a>    hfac_lte = safety * PetscPowReal(enorm,((<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>)-1)/order);
+<a name="line65"> 65: </a>  <font color="#4169E1">else</font>
+<a name="line66"> 66: </a>    hfac_lte = safety * PETSC_INFINITY;
+<a name="line67"> 67: </a>  h_lte = h * <a href="../../../../../docs/manualpages/Sys/PetscClipInterval.html#PetscClipInterval">PetscClipInterval</a>(hfac_lte,basic-&gt;clip[0],basic-&gt;clip[1]);
+
+<a name="line69"> 69: </a>  *next_h = <a href="../../../../../docs/manualpages/Sys/PetscClipInterval.html#PetscClipInterval">PetscClipInterval</a>(h_lte,adapt-&gt;dt_min,adapt-&gt;dt_max);
+<a name="line70"> 70: </a>  *wlte   = enorm;
+<a name="line71"> 71: </a>  <font color="#4169E1">return</font>(0);
+<a name="line72"> 72: </a>}
+
+<a name="line76"> 76: </a><strong><font color="#4169E1"><a name="TSAdaptReset_Basic"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> TSAdaptReset_Basic(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt)</font></strong>
+<a name="line77"> 77: </a>{
+<a name="line78"> 78: </a>  TSAdapt_Basic  *basic = (TSAdapt_Basic*)adapt-&gt;data;
+
+<a name="line82"> 82: </a>  <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;basic-&gt;Y);
+<a name="line83"> 83: </a>  <font color="#4169E1">return</font>(0);
+<a name="line84"> 84: </a>}
+
+<a name="line88"> 88: </a><strong><font color="#4169E1"><a name="TSAdaptDestroy_Basic"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> TSAdaptDestroy_Basic(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt)</font></strong>
+<a name="line89"> 89: </a>{
+
+<a name="line93"> 93: </a>  TSAdaptReset_Basic(adapt);
+<a name="line94"> 94: </a>  <a href="../../../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(adapt-&gt;data);
+<a name="line95"> 95: </a>  <font color="#4169E1">return</font>(0);
+<a name="line96"> 96: </a>}
+
+<a name="line100">100: </a><strong><font color="#4169E1"><a name="TSAdaptSetFromOptions_Basic"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> TSAdaptSetFromOptions_Basic(PetscOptionItems *PetscOptionsObject,<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt)</font></strong>
+<a name="line101">101: </a>{
+<a name="line102">102: </a>  TSAdapt_Basic  *basic = (TSAdapt_Basic*)adapt-&gt;data;
+<a name="line104">104: </a>  <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       two;
+<a name="line105">105: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      set;
+
+<a name="line108">108: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsHead.html#PetscOptionsHead">PetscOptionsHead</a>(PetscOptionsObject,<font color="#666666">"Basic adaptive controller options"</font>);
+<a name="line109">109: </a>  two  = 2;
+<a name="line110">110: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsRealArray.html#PetscOptionsRealArray">PetscOptionsRealArray</a>(<font color="#666666">"-ts_adapt_basic_clip"</font>,<font color="#666666">"Admissible decrease/increase factor in step size"</font>,<font color="#666666">"<a href="../../../../../docs/manualpages/TS/TSAdaptBasicSetClip.html#TSAdaptBasicSetClip">TSAdaptBasicSetClip</a>"</font>,basic-&gt;clip,&amp;two,&amp;set);
+<a name="line111">111: </a>  <font color="#4169E1">if</font> (set &amp;&amp; (two != 2)) <a href="../../../../../docs/manualpages/Sys/SETERRQ.html#SETERRQ">SETERRQ</a>(<a href="../../../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)adapt),PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Must give exactly two values to -ts_adapt_basic_clip"</font>);
+<a name="line112">112: </a>  <font color="#4169E1">if</font> (set) {<a href="../../../../../docs/manualpages/TS/TSAdaptBasicSetClip.html#TSAdaptBasicSetClip">TSAdaptBasicSetClip</a>(adapt,basic-&gt;clip[0],basic-&gt;clip[1]);}
+<a name="line113">113: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsReal.html#PetscOptionsReal">PetscOptionsReal</a>(<font color="#666666">"-ts_adapt_basic_safety"</font>,<font color="#666666">"Safety factor relative to target error"</font>,<font color="#666666">""</font>,basic-&gt;safety,&amp;basic-&gt;safety,NULL);
+<a name="line114">114: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsReal.html#PetscOptionsReal">PetscOptionsReal</a>(<font color="#666666">"-ts_adapt_basic_reject_safety"</font>,<font color="#666666">"Extra safety factor to apply if the last step was rejected"</font>,<font color="#666666">""</font>,basic-&gt;reject_safety,&amp;basic-&gt;reject_safety,NULL);
+<a name="line115">115: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsBool.html#PetscOptionsBool">PetscOptionsBool</a>(<font color="#666666">"-ts_adapt_basic_always_accept"</font>,<font color="#666666">"Always accept the step regardless of whether local truncation error meets goal"</font>,<font color="#666666">""</font>,basic-&gt;always_accept,&amp;basic-&gt;always_accept,NULL);
+<a name="line116">116: </a>  <a href="../../../../../docs/manualpages/Sys/PetscOptionsTail.html#PetscOptionsTail">PetscOptionsTail</a>();
+<a name="line117">117: </a>  <font color="#4169E1">return</font>(0);
+<a name="line118">118: </a>}
+
+<a name="line122">122: </a><strong><font color="#4169E1"><a name="TSAdaptView_Basic"></a>static <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> TSAdaptView_Basic(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt,<a href="../../../../../docs/manualpages/Viewer/PetscViewer.html#PetscViewer">PetscViewer</a> viewer)</font></strong>
+<a name="line123">123: </a>{
+<a name="line124">124: </a>  TSAdapt_Basic  *basic = (TSAdapt_Basic*)adapt-&gt;data;
+<a name="line126">126: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      iascii;
+
+<a name="line129">129: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)viewer,PETSCVIEWERASCII,&amp;iascii);
+<a name="line130">130: </a>  <font color="#4169E1">if</font> (iascii) {
+<a name="line131">131: </a>    <font color="#4169E1">if</font> (basic-&gt;always_accept) {<a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Basic: always accepting steps\n"</font>);}
+<a name="line132">132: </a>    <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Basic: clip fastest decrease %g, fastest increase %g\n"</font>,(double)basic-&gt;clip[0],(double)basic-&gt;clip[1]);
+<a name="line133">133: </a>    <a href="../../../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Basic: safety factor %g, extra factor after step rejection %g\n"</font>,(double)basic-&gt;safety,(double)basic-&gt;reject_safety);
+<a name="line134">134: </a>  }
+<a name="line135">135: </a>  <font color="#4169E1">return</font>(0);
+<a name="line136">136: </a>}
+
+<a name="line140">140: </a><font color="#B22222">/*MC</font>
+<a name="line141">141: </a><font color="#B22222">   <a href="../../../../../docs/manualpages/TS/TSADAPTBASIC.html#TSADAPTBASIC">TSADAPTBASIC</a> - Basic adaptive controller for time stepping</font>
+
+<a name="line143">143: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line145">145: </a><font color="#B22222">.seealso: <a href="../../../../../docs/manualpages/TS/TS.html#TS">TS</a>, <a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a>, TSSetAdapt()</font>
+<a name="line146">146: </a><font color="#B22222">M*/</font>
+<a name="line147">147: </a><strong><font color="#4169E1"><a name="TSAdaptCreate_Basic"></a>PETSC_EXTERN <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> TSAdaptCreate_Basic(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt)</font></strong>
+<a name="line148">148: </a>{
+<a name="line150">150: </a>  TSAdapt_Basic  *a;
+
+<a name="line153">153: </a>  <a href="../../../../../docs/manualpages/Sys/PetscNewLog.html#PetscNewLog">PetscNewLog</a>(adapt,&amp;a);
+<a name="line154">154: </a>  adapt-&gt;data                = (void*)a;
+<a name="line155">155: </a>  adapt-&gt;ops-&gt;choose         = TSAdaptChoose_Basic;
+<a name="line156">156: </a>  adapt-&gt;ops-&gt;setfromoptions = TSAdaptSetFromOptions_Basic;
+<a name="line157">157: </a>  adapt-&gt;ops-&gt;destroy        = TSAdaptDestroy_Basic;
+<a name="line158">158: </a>  adapt-&gt;ops-&gt;view           = TSAdaptView_Basic;
+
+<a name="line160">160: </a>  a-&gt;clip[0]       = 0.1;
+<a name="line161">161: </a>  a-&gt;clip[1]       = 10.;
+<a name="line162">162: </a>  a-&gt;safety        = 0.9;
+<a name="line163">163: </a>  a-&gt;reject_safety = 0.5;
+<a name="line164">164: </a>  a-&gt;always_accept = <a href="../../../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+<a name="line165">165: </a>  <font color="#4169E1">return</font>(0);
+<a name="line166">166: </a>}
+
+<a name="line170">170: </a><font color="#B22222">/*@</font>
+<a name="line171">171: </a><font color="#B22222">   <a href="../../../../../docs/manualpages/TS/TSAdaptBasicSetClip.html#TSAdaptBasicSetClip">TSAdaptBasicSetClip</a> - Sets the admissible decrease/increase factor in step size</font>
+
+<a name="line173">173: </a><font color="#B22222">   Collective on <a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a></font>
+
+<a name="line175">175: </a><font color="#B22222">   Input Arguments:</font>
+<a name="line176">176: </a><font color="#B22222">+  adapt - adaptive controller context</font>
+<a name="line177">177: </a><font color="#B22222">.  low - admissible decrease factor</font>
+<a name="line178">178: </a><font color="#B22222">+  high - admissible increase factor</font>
+
+<a name="line180">180: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line182">182: </a><font color="#B22222">.seealso: <a href="../../../../../docs/manualpages/TS/TSAdaptChoose.html#TSAdaptChoose">TSAdaptChoose</a>()</font>
+<a name="line183">183: </a><font color="#B22222">@*/</font>
+<a name="line184">184: </a><strong><font color="#4169E1"><a name="TSAdaptBasicSetClip"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> <a href="../../../../../docs/manualpages/TS/TSAdaptBasicSetClip.html#TSAdaptBasicSetClip">TSAdaptBasicSetClip</a>(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> low,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> high)</font></strong>
+<a name="line185">185: </a>{
+<a name="line186">186: </a>  TSAdapt_Basic  *basic = (TSAdapt_Basic*)adapt-&gt;data;
+<a name="line187">187: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      isbasic;
+
+<a name="line192">192: </a>  <font color="#4169E1">if</font> (low  != <a href="../../../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a> &amp;&amp; low  &lt; 0) <a href="../../../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Decrease factor %g must be non negative"</font>,(double)low);
+<a name="line193">193: </a>  <font color="#4169E1">if</font> (low  != <a href="../../../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a> &amp;&amp; low  &gt; 1) <a href="../../../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Decrease factor %g must be less than one"</font>,(double)low);
+<a name="line194">194: </a>  <font color="#4169E1">if</font> (high != <a href="../../../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a> &amp;&amp; high &lt; 1) <a href="../../../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Increase factor %g must be geather than one"</font>,(double)high);
+<a name="line195">195: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)adapt,<a href="../../../../../docs/manualpages/TS/TSADAPTBASIC.html#TSADAPTBASIC">TSADAPTBASIC</a>,&amp;isbasic);
+<a name="line196">196: </a>  <font color="#4169E1">if</font> (isbasic) {
+<a name="line197">197: </a>    <font color="#4169E1">if</font> (low  != <a href="../../../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a>) basic-&gt;clip[0] = low;
+<a name="line198">198: </a>    <font color="#4169E1">if</font> (high != <a href="../../../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a>) basic-&gt;clip[1] = high;
+<a name="line199">199: </a>  }
+<a name="line200">200: </a>  <font color="#4169E1">return</font>(0);
+<a name="line201">201: </a>}
+
+<a name="line205">205: </a><font color="#B22222">/*@</font>
+<a name="line206">206: </a><font color="#B22222">   <a href="../../../../../docs/manualpages/TS/TSAdaptBasicGetClip.html#TSAdaptBasicGetClip">TSAdaptBasicGetClip</a> - Gets the admissible decrease/increase factor in step size</font>
+
+<a name="line208">208: </a><font color="#B22222">   Collective on <a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a></font>
+
+<a name="line210">210: </a><font color="#B22222">   Input Arguments:</font>
+<a name="line211">211: </a><font color="#B22222">.  adapt - adaptive controller context</font>
+
+<a name="line213">213: </a><font color="#B22222">   Ouput Arguments:</font>
+<a name="line214">214: </a><font color="#B22222">+  low - optional, admissible decrease factor</font>
+<a name="line215">215: </a><font color="#B22222">-  high - optional, admissible increase factor</font>
+
+<a name="line217">217: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line219">219: </a><font color="#B22222">.seealso: <a href="../../../../../docs/manualpages/TS/TSAdaptChoose.html#TSAdaptChoose">TSAdaptChoose</a>()</font>
+<a name="line220">220: </a><font color="#B22222">@*/</font>
+<a name="line221">221: </a><strong><font color="#4169E1"><a name="TSAdaptBasicGetClip"></a><a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> <a href="../../../../../docs/manualpages/TS/TSAdaptBasicGetClip.html#TSAdaptBasicGetClip">TSAdaptBasicGetClip</a>(<a href="../../../../../docs/manualpages/TS/TSAdapt.html#TSAdapt">TSAdapt</a> adapt,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *low,<a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> *high)</font></strong>
+<a name="line222">222: </a>{
+<a name="line223">223: </a>  TSAdapt_Basic  *basic = (TSAdapt_Basic*)adapt-&gt;data;
+<a name="line224">224: </a>  <a href="../../../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      isbasic;
+
+<a name="line231">231: </a>  <a href="../../../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)adapt,<a href="../../../../../docs/manualpages/TS/TSADAPTBASIC.html#TSADAPTBASIC">TSADAPTBASIC</a>,&amp;isbasic);
+<a name="line232">232: </a>  <font color="#4169E1">if</font> (isbasic) {
+<a name="line233">233: </a>    <font color="#4169E1">if</font> (low)  *low  = basic-&gt;clip[0];
+<a name="line234">234: </a>    <font color="#4169E1">if</font> (high) *high = basic-&gt;clip[1];
+<a name="line235">235: </a>  } <font color="#4169E1">else</font> {
+<a name="line236">236: </a>    <font color="#4169E1">if</font> (low)  *low  = 0;
+<a name="line237">237: </a>    <font color="#4169E1">if</font> (high) *high = PETSC_MAX_REAL;
+<a name="line238">238: </a>  }
+<a name="line239">239: </a>  <font color="#4169E1">return</font>(0);
+<a name="line240">240: </a>}
+</pre>
+</body>
+
+</html>

@@ -1,0 +1,411 @@
+<center><a href="toyf.F">Actual source code: toyf.F</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/src/tao/constrained/examples/tutorials/toyf.F.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-10-03T03:00:01+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 src/tao/constrained/examples/tutorials/toyf.F.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80"><a name="line1">  1: </a>! Program usage: mpiexec -n 1 toyf[-help] [all TAO options]
+
+<a name="line3">  3: </a>!
+<a name="line4">  4: </a>!min f=(x1-x2)^2 + (x2-2)^2 -2*x1-2*x2
+<a name="line5">  5: </a>!s.t.     x1^2 + x2 = 2
+<a name="line6">  6: </a>!      0 &lt;= x1^2 - x2 &lt;= 1
+<a name="line7">  7: </a>!      -1 &lt;= x1,x2 &lt;= 2
+<a name="line8">  8: </a>!----------------------------------------------------------------------
+
+<a name="line10"> 10: </a>      program toyf
+<a name="line11"> 11: </a>      implicit none
+<a name="line12"> 12: </a> #include <A href="toyf.h.html">toyf.h</A>
+
+<a name="line14"> 14: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>       ierr
+<a name="line15"> 15: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a>                  tao
+<a name="line16"> 16: </a>      TaoConvergedReason   reason
+<a name="line17"> 17: </a>      <a href="../../../../../docs/manualpages/KSP/KSP.html#KSP">KSP</a>                  ksp
+<a name="line18"> 18: </a>      <a href="../../../../../docs/manualpages/PC/PC.html#PC">PC</a>                   pc
+<a name="line19"> 19: </a>      external FormFunctionGradient,FormHessian
+<a name="line20"> 20: </a>      external FormInequalityConstraints,FormEqualityConstraints
+<a name="line21"> 21: </a>      external FormInequalityJacobian,FormEqualityJacobian
+
+
+<a name="line24"> 24: </a>      call <a href="../../../../../docs/manualpages/Sys/PetscInitialize.html#PetscInitialize">PetscInitialize</a>(PETSC_NULL_CHARACTER,ierr)
+
+<a name="line26"> 26: </a>      call <a href="../../../../../docs/manualpages/Sys/PetscPrintf.html#PetscPrintf">PetscPrintf</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,                                 &amp;
+<a name="line27"> 27: </a>     &amp;           '\n---- TOY Problem -----\n',                          &amp;
+<a name="line28"> 28: </a>     &amp;           ierr)
+<a name="line29"> 29: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line31"> 31: </a>      call <a href="../../../../../docs/manualpages/Sys/PetscPrintf.html#PetscPrintf">PetscPrintf</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,'Solution should be f(1,1)=-2\n',&amp;
+<a name="line32"> 32: </a>     &amp;     ierr)
+<a name="line33"> 33: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line35"> 35: </a>      call InitializeProblem(ierr)
+<a name="line36"> 36: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line38"> 38: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoCreate.html#TaoCreate">TaoCreate</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,tao,ierr)
+<a name="line39"> 39: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line41"> 41: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetType.html#TaoSetType">TaoSetType</a>(tao,<a href="../../../../../docs/manualpages/Tao/TAOIPM.html#TAOIPM">TAOIPM</a>,ierr)
+<a name="line42"> 42: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line44"> 44: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetInitialVector.html#TaoSetInitialVector">TaoSetInitialVector</a>(tao,x0,ierr)
+<a name="line45"> 45: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line47"> 47: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetVariableBounds.html#TaoSetVariableBounds">TaoSetVariableBounds</a>(tao,xl,xu,ierr)
+<a name="line48"> 48: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line50"> 50: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetObjectiveAndGradientRoutine.html#TaoSetObjectiveAndGradientRoutine">TaoSetObjectiveAndGradientRoutine</a>(tao,FormFunctionGradient,   &amp;
+<a name="line51"> 51: </a>     &amp;     PETSC_NULL_OBJECT,ierr)
+<a name="line52"> 52: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line54"> 54: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetEqualityConstraintsRoutine.html#TaoSetEqualityConstraintsRoutine">TaoSetEqualityConstraintsRoutine</a>(tao,ce,                      &amp;
+<a name="line55"> 55: </a>     &amp;     FormEqualityConstraints,PETSC_NULL_OBJECT,ierr)
+<a name="line56"> 56: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line58"> 58: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetInequalityConstraintsRoutine.html#TaoSetInequalityConstraintsRoutine">TaoSetInequalityConstraintsRoutine</a>(tao,ci,                      &amp;
+<a name="line59"> 59: </a>     &amp;     FormInequalityConstraints,PETSC_NULL_OBJECT,ierr)
+<a name="line60"> 60: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line62"> 62: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetJacobianEqualityRoutine.html#TaoSetJacobianEqualityRoutine">TaoSetJacobianEqualityRoutine</a>(tao,Ae,Ae,FormEqualityJacobian, &amp;
+<a name="line63"> 63: </a>     &amp;      PETSC_NULL_OBJECT,ierr)
+<a name="line64"> 64: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line66"> 66: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetJacobianInequalityRoutine.html#TaoSetJacobianInequalityRoutine">TaoSetJacobianInequalityRoutine</a>(tao,Ai,Ai,                    &amp;
+<a name="line67"> 67: </a>     &amp;     FormInequalityJacobian,PETSC_NULL_OBJECT,ierr)
+<a name="line68"> 68: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line70"> 70: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetHessianRoutine.html#TaoSetHessianRoutine">TaoSetHessianRoutine</a>(tao,Hess,Hess,FormHessian,               &amp;
+<a name="line71"> 71: </a>     &amp;     PETSC_NULL_OBJECT,ierr)
+<a name="line72"> 72: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line74"> 74: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetTolerances.html#TaoSetTolerances">TaoSetTolerances</a>(tao,0,0,0,ierr)
+<a name="line75"> 75: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line77"> 77: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetFromOptions.html#TaoSetFromOptions">TaoSetFromOptions</a>(tao,ierr)
+<a name="line78"> 78: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line80"> 80: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoGetKSP.html#TaoGetKSP">TaoGetKSP</a>(tao,ksp,ierr)
+<a name="line81"> 81: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line83"> 83: </a>      call <a href="../../../../../docs/manualpages/KSP/KSPGetPC.html#KSPGetPC">KSPGetPC</a>(ksp,pc,ierr)
+<a name="line84"> 84: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line86"> 86: </a>!      call <a href="../../../../../docs/manualpages/PC/PCFactorSetMatSolverPackage.html#PCFactorSetMatSolverPackage">PCFactorSetMatSolverPackage</a>(pc,<a href="../../../../../docs/manualpages/Mat/MATSOLVERSUPERLU.html#MATSOLVERSUPERLU">MATSOLVERSUPERLU</a>)
+<a name="line87"> 87: </a>!      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line89"> 89: </a>      call <a href="../../../../../docs/manualpages/Sys/PetscOptionsSetValue.html#PetscOptionsSetValue">PetscOptionsSetValue</a>(PETSC_NULL_OBJECT,                      &amp;
+<a name="line90"> 90: </a>     &amp;              '-pc_factor_mat_solver_package','superlu',ierr)
+<a name="line91"> 91: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line93"> 93: </a>      call <a href="../../../../../docs/manualpages/PC/PCSetType.html#PCSetType">PCSetType</a>(pc,<a href="../../../../../docs/manualpages/PC/PCLU.html#PCLU">PCLU</a>,ierr)
+<a name="line94"> 94: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line96"> 96: </a>      call <a href="../../../../../docs/manualpages/KSP/KSPSetType.html#KSPSetType">KSPSetType</a>(ksp,<a href="../../../../../docs/manualpages/KSP/KSPPREONLY.html#KSPPREONLY">KSPPREONLY</a>,ierr)
+<a name="line97"> 97: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line99"> 99: </a>      call <a href="../../../../../docs/manualpages/KSP/KSPSetFromOptions.html#KSPSetFromOptions">KSPSetFromOptions</a>(ksp,ierr)
+<a name="line100">100: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line102">102: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSetTolerances.html#TaoSetTolerances">TaoSetTolerances</a>(tao,0.0d0,0.0d0,0.0d0,ierr)
+<a name="line103">103: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line105">105: </a>      ! Solve
+<a name="line106">106: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoSolve.html#TaoSolve">TaoSolve</a>(tao,ierr)
+<a name="line107">107: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line109">109: </a>      ! Finalize Memory
+<a name="line110">110: </a>      call DestroyProblem(ierr)
+<a name="line111">111: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line113">113: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoDestroy.html#TaoDestroy">TaoDestroy</a>(tao,ierr)
+<a name="line114">114: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line116">116: </a>      call <a href="../../../../../docs/manualpages/Sys/PetscFinalize.html#PetscFinalize">PetscFinalize</a>(ierr)
+
+<a name="line118">118: </a>      stop
+<a name="line119">119: </a>      end program toyf
+
+
+<a name="line122">122: </a>      subroutine InitializeProblem(ierr)
+<a name="line123">123: </a>      implicit none
+<a name="line124">124: </a> #include <A href="toyf.h.html">toyf.h</A>
+<a name="line125">125: </a>      <a href="../../../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> zero,minus1,two
+<a name="line126">126: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> ierr
+<a name="line127">127: </a>      n = 2
+<a name="line128">128: </a>      zero =0.0d0
+<a name="line129">129: </a>      minus1=-1.0d0
+<a name="line130">130: </a>      two=2.0d0
+
+<a name="line132">132: </a>      call <a href="../../../../../docs/manualpages/Vec/VecCreateSeq.html#VecCreateSeq">VecCreateSeq</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,n,x0,ierr)
+<a name="line133">133: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line134">134: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDuplicate.html#VecDuplicate">VecDuplicate</a>(x0,xl,ierr)
+<a name="line135">135: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line136">136: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDuplicate.html#VecDuplicate">VecDuplicate</a>(x0,xu,ierr)
+<a name="line137">137: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line138">138: </a>      call <a href="../../../../../docs/manualpages/Vec/VecSet.html#VecSet">VecSet</a>(x0,zero,ierr)
+<a name="line139">139: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line140">140: </a>      call <a href="../../../../../docs/manualpages/Vec/VecSet.html#VecSet">VecSet</a>(xl,minus1,ierr)
+<a name="line141">141: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line142">142: </a>      call <a href="../../../../../docs/manualpages/Vec/VecSet.html#VecSet">VecSet</a>(xu,two,ierr)
+<a name="line143">143: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line145">145: </a>      ne = 1
+<a name="line146">146: </a>      call <a href="../../../../../docs/manualpages/Vec/VecCreateSeq.html#VecCreateSeq">VecCreateSeq</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,ne,ce,ierr)
+<a name="line147">147: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line149">149: </a>      ni = 2
+<a name="line150">150: </a>      call <a href="../../../../../docs/manualpages/Vec/VecCreateSeq.html#VecCreateSeq">VecCreateSeq</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,ni,ci,ierr)
+<a name="line151">151: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line153">153: </a>      call <a href="../../../../../docs/manualpages/Mat/MatCreateSeqAIJ.html#MatCreateSeqAIJ">MatCreateSeqAIJ</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,ne,n,n,PETSC_NULL_INTEGER,Ae,&amp;
+<a name="line154">154: </a>     &amp;     ierr)
+<a name="line155">155: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line156">156: </a>      call <a href="../../../../../docs/manualpages/Mat/MatCreateSeqAIJ.html#MatCreateSeqAIJ">MatCreateSeqAIJ</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,ni,n,n,PETSC_NULL_INTEGER,Ai,&amp;
+<a name="line157">157: </a>     &amp;     ierr)
+<a name="line158">158: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line159">159: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetFromOptions.html#MatSetFromOptions">MatSetFromOptions</a>(Ae,ierr)
+<a name="line160">160: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line161">161: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetFromOptions.html#MatSetFromOptions">MatSetFromOptions</a>(Ai,ierr)
+<a name="line162">162: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+
+<a name="line165">165: </a>      call <a href="../../../../../docs/manualpages/Mat/MatCreateSeqAIJ.html#MatCreateSeqAIJ">MatCreateSeqAIJ</a>(<a href="../../../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,n,n,1,PETSC_NULL_INTEGER,Hess&amp;
+<a name="line166">166: </a>     &amp;     ,ierr)
+<a name="line167">167: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line168">168: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetFromOptions.html#MatSetFromOptions">MatSetFromOptions</a>(Hess,ierr)
+<a name="line169">169: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line170">170: </a>      0
+<a name="line171">171: </a>      end subroutine InitializeProblem
+
+
+<a name="line174">174: </a>      subroutine DestroyProblem(ierr)
+<a name="line175">175: </a>      implicit none
+<a name="line176">176: </a> #include <A href="toyf.h.html">toyf.h</A>
+
+<a name="line178">178: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> ierr
+
+<a name="line180">180: </a>      call <a href="../../../../../docs/manualpages/Mat/MatDestroy.html#MatDestroy">MatDestroy</a>(Ae,ierr)
+<a name="line181">181: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line182">182: </a>      call <a href="../../../../../docs/manualpages/Mat/MatDestroy.html#MatDestroy">MatDestroy</a>(Ai,ierr)
+<a name="line183">183: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line184">184: </a>      call <a href="../../../../../docs/manualpages/Mat/MatDestroy.html#MatDestroy">MatDestroy</a>(Hess,ierr)
+<a name="line185">185: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line187">187: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(x0,ierr)
+<a name="line188">188: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line189">189: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(ce,ierr)
+<a name="line190">190: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line191">191: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(ci,ierr)
+<a name="line192">192: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line193">193: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(xl,ierr)
+<a name="line194">194: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line195">195: </a>      call <a href="../../../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(xu,ierr)
+<a name="line196">196: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line197">197: </a>      0
+<a name="line198">198: </a>      end subroutine DestroyProblem
+
+<a name="line200">200: </a>      subroutine FormFunctionGradient(tao, X, f, G, dummy, ierr)
+<a name="line201">201: </a>      implicit none
+<a name="line202">202: </a> #include <A href="toyf.h.html">toyf.h</A>
+
+<a name="line204">204: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> ierr
+<a name="line205">205: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> dummy
+<a name="line206">206: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> X,G
+<a name="line207">207: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a> tao
+<a name="line208">208: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a> f
+<a name="line209">209: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a> x_v(0:1),g_v(0:1)
+<a name="line210">210: </a>      <a href="../../../../../docs/manualpages/Sys/PetscOffset.html#PetscOffset">PetscOffset</a> x_i,g_i
+
+
+<a name="line213">213: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(X,x_v,x_i,ierr)
+<a name="line214">214: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line215">215: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(G,g_v,g_i,ierr)
+<a name="line216">216: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line217">217: </a>      f=(x_v(x_i)-2.0)*(x_v(x_i)-2.0)+(x_v(x_i+1)-2.0)*(x_v(x_i+1)-2.0)  &amp;
+<a name="line218">218: </a>     &amp;       - 2.0*(x_v(x_i)+x_v(x_i+1))
+<a name="line219">219: </a>      g_v(g_i) = 2.0*(x_v(x_i)-2.0) - 2.0
+<a name="line220">220: </a>      g_v(g_i+1) = 2.0*(x_v(x_i+1)-2.0) - 2.0
+<a name="line221">221: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(X,x_v,x_i,ierr)
+<a name="line222">222: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line223">223: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(G,g_v,g_i,ierr)
+<a name="line224">224: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line225">225: </a>      0
+<a name="line226">226: </a>      end subroutine FormFunctionGradient
+
+
+<a name="line229">229: </a>      subroutine FormHessian(tao,X,H,Hpre,dummy,ierr)
+<a name="line230">230: </a>      implicit none
+<a name="line231">231: </a> #include <A href="toyf.h.html">toyf.h</A>
+
+<a name="line233">233: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a>        tao
+<a name="line234">234: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>              X
+<a name="line235">235: </a>      <a href="../../../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>              H, Hpre
+<a name="line236">236: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>   ierr
+<a name="line237">237: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>         dummy
+
+<a name="line239">239: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>      de_v(0:1),di_v(0:1)
+<a name="line240">240: </a>      <a href="../../../../../docs/manualpages/Sys/PetscOffset.html#PetscOffset">PetscOffset</a>      de_i,di_i
+<a name="line241">241: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>         zero(1)
+<a name="line242">242: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>         one(1)
+<a name="line243">243: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>      two(1)
+<a name="line244">244: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>      val(1)
+<a name="line245">245: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> DE,DI
+<a name="line246">246: </a>      zero(1) = 0
+<a name="line247">247: </a>      one(1) = 1
+<a name="line248">248: </a>      two(1) = 2.0d0
+
+
+<a name="line251">251: </a>      ! fix indices on matsetvalues
+<a name="line252">252: </a>      call <a href="../../../../../docs/manualpages/Tao/TaoGetDualVariables.html#TaoGetDualVariables">TaoGetDualVariables</a>(tao,DE,DI,ierr)
+<a name="line253">253: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line255">255: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(DE,de_v,de_i,ierr)
+<a name="line256">256: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line257">257: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(DI,di_v,di_i,ierr)
+<a name="line258">258: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line260">260: </a>      val(1)=2.0d0 * (1.0d0 + de_v(de_i) + di_v(di_i) - di_v(di_i+1))
+
+<a name="line262">262: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(DE,de_v,de_i,ierr)
+<a name="line263">263: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line264">264: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(DI,di_v,di_i,ierr)
+<a name="line265">265: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line267">267: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetValues.html#MatSetValues">MatSetValues</a>(H,1,zero,1,zero,val,<a href="../../../../../docs/manualpages/Sys/INSERT_VALUES.html#INSERT_VALUES">INSERT_VALUES</a>,ierr)
+<a name="line268">268: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line269">269: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetValues.html#MatSetValues">MatSetValues</a>(H,1,one,1,one,two,<a href="../../../../../docs/manualpages/Sys/INSERT_VALUES.html#INSERT_VALUES">INSERT_VALUES</a>,ierr)
+<a name="line270">270: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line272">272: </a>      call <a href="../../../../../docs/manualpages/Mat/MatAssemblyBegin.html#MatAssemblyBegin">MatAssemblyBegin</a>(H,MAT_FINAL_ASSEMBLY,ierr)
+<a name="line273">273: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line274">274: </a>      call <a href="../../../../../docs/manualpages/Mat/MatAssemblyEnd.html#MatAssemblyEnd">MatAssemblyEnd</a>(H,MAT_FINAL_ASSEMBLY,ierr)
+<a name="line275">275: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line277">277: </a>      flag = SAME_NONZERO_PATTERN
+<a name="line278">278: </a>      0
+<a name="line279">279: </a>      end subroutine FormHessian
+
+<a name="line281">281: </a>      subroutine FormInequalityConstraints(tao,X,C,dummy,ierr)
+<a name="line282">282: </a>      implicit none
+<a name="line283">283: </a> #include <A href="toyf.h.html">toyf.h</A>
+<a name="line284">284: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a>      tao
+<a name="line285">285: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>            X,C
+<a name="line286">286: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       dummy
+<a name="line287">287: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> ierr
+<a name="line288">288: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>    x_v(0:1),c_v(0:1)
+<a name="line289">289: </a>      <a href="../../../../../docs/manualpages/Sys/PetscOffset.html#PetscOffset">PetscOffset</a>    x_i,c_i
+
+<a name="line291">291: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(X,x_v,x_i,ierr)
+<a name="line292">292: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line293">293: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(C,c_v,c_i,ierr)
+<a name="line294">294: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line295">295: </a>      c_v(c_i) = x_v(x_i)*x_v(x_i) - x_v(x_i+1)
+<a name="line296">296: </a>      c_v(c_i+1) = -x_v(x_i)*x_v(x_i) + x_v(x_i+1) + 1.0d0
+<a name="line297">297: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(X,x_v,x_i,ierr)
+<a name="line298">298: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line299">299: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(C,c_v,c_i,ierr)
+<a name="line300">300: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+
+<a name="line302">302: </a>      0
+<a name="line303">303: </a>      end subroutine FormInequalityConstraints
+
+
+<a name="line306">306: </a>      subroutine FormEqualityConstraints(tao,X,C,dummy,ierr)
+<a name="line307">307: </a>      implicit none
+<a name="line308">308: </a> #include <A href="toyf.h.html">toyf.h</A>
+<a name="line309">309: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a>      tao
+<a name="line310">310: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>            X,C
+<a name="line311">311: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       dummy
+<a name="line312">312: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> ierr
+<a name="line313">313: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>    x_v(0:1),c_v(0:1)
+<a name="line314">314: </a>      <a href="../../../../../docs/manualpages/Sys/PetscOffset.html#PetscOffset">PetscOffset</a>    x_i,c_i
+<a name="line315">315: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(X,x_v,x_i,ierr)
+<a name="line316">316: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line317">317: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(C,c_v,c_i,ierr)
+<a name="line318">318: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line319">319: </a>      c_v(c_i) = x_v(x_i)*x_v(x_i) + x_v(x_i+1) - 2.0d0
+<a name="line320">320: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(X,x_v,x_i,ierr)
+<a name="line321">321: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line322">322: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(C,c_v,c_i,ierr)
+<a name="line323">323: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line324">324: </a>      0
+<a name="line325">325: </a>      end subroutine FormEqualityConstraints
+
+
+<a name="line328">328: </a>      subroutine FormInequalityJacobian(tao,X,JI,JIpre,dummy,ierr)
+<a name="line329">329: </a>      implicit none
+<a name="line330">330: </a> #include <A href="toyf.h.html">toyf.h</A>
+
+<a name="line332">332: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a>       tao
+<a name="line333">333: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>             X
+<a name="line334">334: </a>      <a href="../../../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>             JI,JIpre
+<a name="line335">335: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>        dummy
+<a name="line336">336: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  ierr
+
+<a name="line338">338: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>        rows(2)
+<a name="line339">339: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>        cols(2)
+<a name="line340">340: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>     vals(4),x_v(0:1)
+<a name="line341">341: </a>      <a href="../../../../../docs/manualpages/Sys/PetscOffset.html#PetscOffset">PetscOffset</a>     x_i
+
+<a name="line343">343: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(X,x_v,x_i,ierr)
+<a name="line344">344: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line345">345: </a>      rows(1)=0
+<a name="line346">346: </a>      rows(2) = 1
+<a name="line347">347: </a>      cols(1) = 0
+<a name="line348">348: </a>      cols(2) = 1
+<a name="line349">349: </a>      vals(1) = 2.0*x_v(x_i)
+<a name="line350">350: </a>      vals(2) = -1.0d0
+<a name="line351">351: </a>      vals(3) = -2.0*x_v(x_i)
+<a name="line352">352: </a>      vals(4) = 1.0d0
+
+<a name="line354">354: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(X,x_v,x_i,ierr)
+<a name="line355">355: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line356">356: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetValues.html#MatSetValues">MatSetValues</a>(JI,2,rows,2,cols,vals,<a href="../../../../../docs/manualpages/Sys/INSERT_VALUES.html#INSERT_VALUES">INSERT_VALUES</a>,ierr)
+<a name="line357">357: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line358">358: </a>      call <a href="../../../../../docs/manualpages/Mat/MatAssemblyBegin.html#MatAssemblyBegin">MatAssemblyBegin</a>(JI,MAT_FINAL_ASSEMBLY,ierr)
+<a name="line359">359: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line360">360: </a>      call <a href="../../../../../docs/manualpages/Mat/MatAssemblyEnd.html#MatAssemblyEnd">MatAssemblyEnd</a>(JI,MAT_FINAL_ASSEMBLY,ierr)
+<a name="line361">361: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line362">362: </a>      0
+<a name="line363">363: </a>      end subroutine FormInequalityJacobian
+
+<a name="line365">365: </a>      subroutine FormEqualityJacobian(tao,X,JE,JEpre,dummy,ierr)
+<a name="line366">366: </a>      implicit none
+<a name="line367">367: </a> #include <A href="toyf.h.html">toyf.h</A>
+
+<a name="line369">369: </a>      <a href="../../../../../docs/manualpages/Tao/Tao.html#Tao">Tao</a>       tao
+<a name="line370">370: </a>      <a href="../../../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>             X
+<a name="line371">371: </a>      <a href="../../../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>             JE,JEpre
+<a name="line372">372: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>        dummy
+<a name="line373">373: </a>      <a href="../../../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  ierr
+
+<a name="line375">375: </a>      <a href="../../../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>        rows(2)
+<a name="line376">376: </a>      <a href="../../../../../docs/manualpages/Sys/PetscScalar.html#PetscScalar">PetscScalar</a>     vals(4),x_v(0:1)
+<a name="line377">377: </a>      <a href="../../../../../docs/manualpages/Sys/PetscOffset.html#PetscOffset">PetscOffset</a>     x_i
+
+<a name="line379">379: </a>      call <a href="../../../../../docs/manualpages/Vec/VecGetArray.html#VecGetArray">VecGetArray</a>(X,x_v,x_i,ierr)
+<a name="line380">380: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line381">381: </a>      rows(1)=0
+<a name="line382">382: </a>      rows(2) = 1
+<a name="line383">383: </a>      vals(1) = 2.0*x_v(x_i)
+<a name="line384">384: </a>      vals(2) = 1.0d0
+
+<a name="line386">386: </a>      call <a href="../../../../../docs/manualpages/Vec/VecRestoreArray.html#VecRestoreArray">VecRestoreArray</a>(X,x_v,x_i,ierr)
+<a name="line387">387: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line388">388: </a>      call <a href="../../../../../docs/manualpages/Mat/MatSetValues.html#MatSetValues">MatSetValues</a>(JE,1,rows,2,rows,vals,<a href="../../../../../docs/manualpages/Sys/INSERT_VALUES.html#INSERT_VALUES">INSERT_VALUES</a>,ierr)
+<a name="line389">389: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line390">390: </a>      call <a href="../../../../../docs/manualpages/Mat/MatAssemblyBegin.html#MatAssemblyBegin">MatAssemblyBegin</a>(JE,MAT_FINAL_ASSEMBLY,ierr)
+<a name="line391">391: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line392">392: </a>      call <a href="../../../../../docs/manualpages/Mat/MatAssemblyEnd.html#MatAssemblyEnd">MatAssemblyEnd</a>(JE,MAT_FINAL_ASSEMBLY,ierr)
+<a name="line393">393: </a>      <a href="../../../../../docs/manualpages/Sys/CHKERRQ.html#CHKERRQ">CHKERRQ</a>(ierr)
+<a name="line394">394: </a>      0
+<a name="line395">395: </a>      end subroutine FormEqualityJacobian
+</pre>
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML3.2 EN">
+<HTML>
+<HEAD> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/DM/DMForestGetComputeAdaptivitySF.html" />
+<META NAME="GENERATOR" CONTENT="DOCTEXT">
+<TITLE>DMForestGetComputeAdaptivitySF</TITLE>
+</HEAD>
+<BODY BGCOLOR="FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 docs/manualpages/DM/DMForestGetComputeAdaptivitySF.html "><small>Report Typos and Errors</small></a></div>
+<A NAME="DMForestGetComputeAdaptivitySF"><H1>DMForestGetComputeAdaptivitySF</H1></A>
+Get whether transfer PetscSFs should be computed relating the cells of the pre-adaptation forest to the post-adaptiation forest.  After <A HREF="../DM/DMSetUp.html#DMSetUp">DMSetUp</A>() is called, these transfer PetscSFs can be accessed with <A HREF="../DM/DMForestGetAdaptivitySF.html#DMForestGetAdaptivitySF">DMForestGetAdaptivitySF</A>(). 
+<H3><FONT COLOR="#CC3333">Synopsis</FONT></H3>
+<PRE>
+#include "petscdmforest.h" 
+#include "petscdm.h" 
+PetscErrorCode DMForestGetComputeAdaptivitySF(DM dm, PetscBool *computeSF)
+</PRE>
+Not collective
+<P>
+<H3><FONT COLOR="#CC3333">Input Parameter</FONT></H3>
+<DT><B>dm </B> -the post-adaptation forest
+<br>
+<P>
+<H3><FONT COLOR="#CC3333">Output Parameter</FONT></H3>
+<DT><B>computeSF </B> -default <A HREF="../Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</A>
+<br>
+<P>
+
+<P>
+<H3><FONT COLOR="#CC3333">See Also</FONT></H3>
+ <A HREF="../DM/DMForestSetComputeAdaptivitySF.html#DMForestSetComputeAdaptivitySF">DMForestSetComputeAdaptivitySF</A>(), <A HREF="../DM/DMForestGetAdaptivitySF.html#DMForestGetAdaptivitySF">DMForestGetAdaptivitySF</A>()
+<BR><P><B><P><B><FONT COLOR="#CC3333">Level:</FONT></B>advanced
+<BR><FONT COLOR="#CC3333">Location:</FONT></B><A HREF="../../../src/dm/impls/forest/forest.c.html#DMForestGetComputeAdaptivitySF">src/dm/impls/forest/forest.c</A>
+<BR><A HREF="./index.html">Index of all DM routines</A>
+<BR><A HREF="../../index.html">Table of Contents for all manual pages</A>
+<BR><A HREF="../singleindex.html">Index of all manual pages</A>
+</BODY></HTML>

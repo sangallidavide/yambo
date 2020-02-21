@@ -1,0 +1,564 @@
+<center><a href="svdview.c">Actual source code: svdview.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://slepc.upv.es/documentation/current/src/svd/interface/svdview.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-09-29T11:12:05+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>slepc-3.7.3 2016-09-29</b></div>
+   <div id="bugreport" align=right><a href="mailto:slepc-maint@upv.es?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: slepc-3.7.3 v3.7.3 src/svd/interface/svdview.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80"><a name="line1">  1: </a><font color="#B22222">/*</font>
+<a name="line2">  2: </a><font color="#B22222">   The <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> routines related to various viewers.</font>
+
+<a name="line4">  4: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line5">  5: </a><font color="#B22222">   SLEPc - Scalable Library for Eigenvalue Problem Computations</font>
+<a name="line6">  6: </a><font color="#B22222">   Copyright (c) 2002-2016, Universitat Politecnica de Valencia, Spain</font>
+
+<a name="line8">  8: </a><font color="#B22222">   This file is part of SLEPc.</font>
+
+<a name="line10"> 10: </a><font color="#B22222">   SLEPc is free software: you can redistribute it and/or modify it under  the</font>
+<a name="line11"> 11: </a><font color="#B22222">   terms of version 3 of the GNU Lesser General Public License as published by</font>
+<a name="line12"> 12: </a><font color="#B22222">   the Free Software Foundation.</font>
+
+<a name="line14"> 14: </a><font color="#B22222">   SLEPc  is  distributed in the hope that it will be useful, but WITHOUT  ANY</font>
+<a name="line15"> 15: </a><font color="#B22222">   WARRANTY;  without even the implied warranty of MERCHANTABILITY or  FITNESS</font>
+<a name="line16"> 16: </a><font color="#B22222">   FOR  A  PARTICULAR PURPOSE. See the GNU Lesser General Public  License  for</font>
+<a name="line17"> 17: </a><font color="#B22222">   more details.</font>
+
+<a name="line19"> 19: </a><font color="#B22222">   You  should have received a copy of the GNU Lesser General  Public  License</font>
+<a name="line20"> 20: </a><font color="#B22222">   along with SLEPc. If not, see &lt;http://www.gnu.org/licenses/&gt;.</font>
+<a name="line21"> 21: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line22"> 22: </a><font color="#B22222">*/</font>
+
+<a name="line24"> 24: </a><font color="#A020F0">#include &lt;slepc/private/svdimpl.h&gt;      </font><font color="#B22222">/*I "slepcsvd.h" I*/</font><font color="#A020F0"></font>
+<a name="line25"> 25: </a><font color="#A020F0">#include &lt;petscdraw.h&gt;</font>
+
+<a name="line29"> 29: </a><font color="#B22222">/*@C</font>
+<a name="line30"> 30: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDView.html#SVDView">SVDView</a> - Prints the <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> data structure.</font>
+
+<a name="line32"> 32: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line34"> 34: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line35"> 35: </a><font color="#B22222">+  svd - the singular value solver context</font>
+<a name="line36"> 36: </a><font color="#B22222">-  viewer - optional visualization context</font>
+
+<a name="line38"> 38: </a><font color="#B22222">   Options Database Key:</font>
+<a name="line39"> 39: </a><font color="#B22222">.  -svd_view -  Calls <a href="../../../docs/manualpages/SVD/SVDView.html#SVDView">SVDView</a>() at end of <a href="../../../docs/manualpages/SVD/SVDSolve.html#SVDSolve">SVDSolve</a>()</font>
+
+<a name="line41"> 41: </a><font color="#B22222">   Note:</font>
+<a name="line42"> 42: </a><font color="#B22222">   The available visualization contexts include</font>
+<a name="line43"> 43: </a><font color="#B22222">+     PETSC_VIEWER_STDOUT_SELF - standard output (default)</font>
+<a name="line44"> 44: </a><font color="#B22222">-     PETSC_VIEWER_STDOUT_WORLD - synchronized standard</font>
+<a name="line45"> 45: </a><font color="#B22222">         output where only the first processor opens</font>
+<a name="line46"> 46: </a><font color="#B22222">         the file.  All other processors send their</font>
+<a name="line47"> 47: </a><font color="#B22222">         data to the first processor to print.</font>
+
+<a name="line49"> 49: </a><font color="#B22222">   The user can open an alternative visualization context with</font>
+<a name="line50"> 50: </a><font color="#B22222">   PetscViewerASCIIOpen() - output to a specified file.</font>
+
+<a name="line52"> 52: </a><font color="#B22222">   Level: beginner</font>
+
+<a name="line54"> 54: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/ST/STView.html#STView">STView</a>(), PetscViewerASCIIOpen()</font>
+<a name="line55"> 55: </a><font color="#B22222">@*/</font>
+<a name="line56"> 56: </a><strong><font color="#4169E1"><a name="SVDView"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDView.html#SVDView">SVDView</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line57"> 57: </a>{
+<a name="line59"> 59: </a>  PetscBool      isascii,isshell;
+
+<a name="line63"> 63: </a>  <font color="#4169E1">if</font> (!viewer) viewer = PETSC_VIEWER_STDOUT_(PetscObjectComm((PetscObject)svd));
+
+<a name="line67"> 67: </a>  PetscObjectTypeCompare((PetscObject)viewer,PETSCVIEWERASCII,&amp;isascii);
+<a name="line68"> 68: </a>  <font color="#4169E1">if</font> (isascii) {
+<a name="line69"> 69: </a>    PetscObjectPrintClassNamePrefixType((PetscObject)svd,viewer);
+<a name="line70"> 70: </a>    <font color="#4169E1">if</font> (svd-&gt;ops-&gt;view) {
+<a name="line71"> 71: </a>      PetscViewerASCIIPushTab(viewer);
+<a name="line72"> 72: </a>      (*svd-&gt;ops-&gt;view)(svd,viewer);
+<a name="line73"> 73: </a>      PetscViewerASCIIPopTab(viewer);
+<a name="line74"> 74: </a>    }
+<a name="line75"> 75: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  transpose mode: %s\n"</font>,svd-&gt;impltrans?<font color="#666666">"implicit"</font>:<font color="#666666">"explicit"</font>);
+<a name="line76"> 76: </a>    <font color="#4169E1">if</font> (svd-&gt;which == SVD_LARGEST) {
+<a name="line77"> 77: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"  selected portion of the spectrum: largest\n"</font>);
+<a name="line78"> 78: </a>    } <font color="#4169E1">else</font> {
+<a name="line79"> 79: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"  selected portion of the spectrum: smallest\n"</font>);
+<a name="line80"> 80: </a>    }
+<a name="line81"> 81: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  number of singular values (nsv): %D\n"</font>,svd-&gt;nsv);
+<a name="line82"> 82: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  number of column vectors (ncv): %D\n"</font>,svd-&gt;ncv);
+<a name="line83"> 83: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  maximum dimension of projected problem (mpd): %D\n"</font>,svd-&gt;mpd);
+<a name="line84"> 84: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  maximum number of iterations: %D\n"</font>,svd-&gt;max_it);
+<a name="line85"> 85: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  tolerance: %g\n"</font>,(double)svd-&gt;tol);
+<a name="line86"> 86: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"  convergence test: "</font>);
+<a name="line87"> 87: </a>    PetscViewerASCIIUseTabs(viewer,PETSC_FALSE);
+<a name="line88"> 88: </a>    <font color="#4169E1">switch</font> (svd-&gt;conv) {
+<a name="line89"> 89: </a>    <font color="#4169E1">case</font> SVD_CONV_ABS:
+<a name="line90"> 90: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"absolute\n"</font>);<font color="#4169E1">break</font>;
+<a name="line91"> 91: </a>    <font color="#4169E1">case</font> SVD_CONV_REL:
+<a name="line92"> 92: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"relative to the singular value\n"</font>);<font color="#4169E1">break</font>;
+<a name="line93"> 93: </a>    <font color="#4169E1">case</font> SVD_CONV_USER:
+<a name="line94"> 94: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"user-defined\n"</font>);<font color="#4169E1">break</font>;
+<a name="line95"> 95: </a>    }
+<a name="line96"> 96: </a>    PetscViewerASCIIUseTabs(viewer,PETSC_TRUE);
+<a name="line97"> 97: </a>    <font color="#4169E1">if</font> (svd-&gt;nini) {
+<a name="line98"> 98: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"  dimension of user-provided initial space: %D\n"</font>,PetscAbs(svd-&gt;nini));
+<a name="line99"> 99: </a>    }
+<a name="line100">100: </a>    <font color="#4169E1">if</font> (svd-&gt;ninil) {
+<a name="line101">101: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"  dimension of user-provided initial left space: %D\n"</font>,PetscAbs(svd-&gt;ninil));
+<a name="line102">102: </a>    }
+<a name="line103">103: </a>  } <font color="#4169E1">else</font> {
+<a name="line104">104: </a>    <font color="#4169E1">if</font> (svd-&gt;ops-&gt;view) {
+<a name="line105">105: </a>      (*svd-&gt;ops-&gt;view)(svd,viewer);
+<a name="line106">106: </a>    }
+<a name="line107">107: </a>  }
+<a name="line108">108: </a>  PetscObjectTypeCompareAny((PetscObject)svd,&amp;isshell,SVDCROSS,SVDCYCLIC,<font color="#666666">""</font>);
+<a name="line109">109: </a>  <font color="#4169E1">if</font> (!isshell) {
+<a name="line110">110: </a>    PetscViewerPushFormat(viewer,PETSC_VIEWER_ASCII_INFO);
+<a name="line111">111: </a>    <font color="#4169E1">if</font> (!svd-&gt;V) { <a href="../../../docs/manualpages/SVD/SVDGetBV.html#SVDGetBV">SVDGetBV</a>(svd,&amp;svd-&gt;V,NULL); }
+<a name="line112">112: </a>    <a href="../../../docs/manualpages/BV/BVView.html#BVView">BVView</a>(svd-&gt;V,viewer);
+<a name="line113">113: </a>    <font color="#4169E1">if</font> (!svd-&gt;ds) { <a href="../../../docs/manualpages/SVD/SVDGetDS.html#SVDGetDS">SVDGetDS</a>(svd,&amp;svd-&gt;ds); }
+<a name="line114">114: </a>    <a href="../../../docs/manualpages/DS/DSView.html#DSView">DSView</a>(svd-&gt;ds,viewer);
+<a name="line115">115: </a>    PetscViewerPopFormat(viewer);
+<a name="line116">116: </a>  }
+<a name="line117">117: </a>  <font color="#4169E1">return</font>(0);
+<a name="line118">118: </a>}
+
+<a name="line122">122: </a><font color="#B22222">/*@C</font>
+<a name="line123">123: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDReasonView.html#SVDReasonView">SVDReasonView</a> - Displays the reason an <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> solve converged or diverged.</font>
+
+<a name="line125">125: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line127">127: </a><font color="#B22222">   Parameter:</font>
+<a name="line128">128: </a><font color="#B22222">+  svd - the singular value solver context</font>
+<a name="line129">129: </a><font color="#B22222">-  viewer - the viewer to display the reason</font>
+
+<a name="line131">131: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line132">132: </a><font color="#B22222">.  -svd_converged_reason - print reason for convergence, and number of iterations</font>
+
+<a name="line134">134: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line136">136: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/SVD/SVDSetTolerances.html#SVDSetTolerances">SVDSetTolerances</a>(), <a href="../../../docs/manualpages/SVD/SVDGetIterationNumber.html#SVDGetIterationNumber">SVDGetIterationNumber</a>()</font>
+<a name="line137">137: </a><font color="#B22222">@*/</font>
+<a name="line138">138: </a><strong><font color="#4169E1"><a name="SVDReasonView"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDReasonView.html#SVDReasonView">SVDReasonView</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line139">139: </a>{
+<a name="line141">141: </a>  PetscBool      isAscii;
+
+<a name="line144">144: </a>  PetscObjectTypeCompare((PetscObject)viewer,PETSCVIEWERASCII,&amp;isAscii);
+<a name="line145">145: </a>  <font color="#4169E1">if</font> (isAscii) {
+<a name="line146">146: </a>    PetscViewerASCIIAddTab(viewer,((PetscObject)svd)-&gt;tablevel);
+<a name="line147">147: </a>    <font color="#4169E1">if</font> (svd-&gt;reason &gt; 0) {
+<a name="line148">148: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"%s <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> solve converged (%D singular triplet%s) due to %s; iterations %D\n"</font>,((PetscObject)svd)-&gt;prefix?((PetscObject)svd)-&gt;prefix:<font color="#666666">""</font>,svd-&gt;nconv,(svd-&gt;nconv&gt;1)?<font color="#666666">"s"</font>:<font color="#666666">""</font>,SVDConvergedReasons[svd-&gt;reason],svd-&gt;its);
+<a name="line149">149: </a>    } <font color="#4169E1">else</font> {
+<a name="line150">150: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"%s <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> solve did not converge due to %s; iterations %D\n"</font>,((PetscObject)svd)-&gt;prefix?((PetscObject)svd)-&gt;prefix:<font color="#666666">""</font>,SVDConvergedReasons[svd-&gt;reason],svd-&gt;its);
+<a name="line151">151: </a>    }
+<a name="line152">152: </a>    PetscViewerASCIISubtractTab(viewer,((PetscObject)svd)-&gt;tablevel);
+<a name="line153">153: </a>  }
+<a name="line154">154: </a>  <font color="#4169E1">return</font>(0);
+<a name="line155">155: </a>}
+
+<a name="line159">159: </a><font color="#B22222">/*@</font>
+<a name="line160">160: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDReasonViewFromOptions.html#SVDReasonViewFromOptions">SVDReasonViewFromOptions</a> - Processes command line options to determine if/how</font>
+<a name="line161">161: </a><font color="#B22222">   the <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> converged reason is to be viewed. </font>
+
+<a name="line163">163: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line165">165: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line166">166: </a><font color="#B22222">.  svd - the singular value solver context</font>
+
+<a name="line168">168: </a><font color="#B22222">   Level: developer</font>
+<a name="line169">169: </a><font color="#B22222">@*/</font>
+<a name="line170">170: </a><strong><font color="#4169E1"><a name="SVDReasonViewFromOptions"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDReasonViewFromOptions.html#SVDReasonViewFromOptions">SVDReasonViewFromOptions</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd)</font></strong>
+<a name="line171">171: </a>{
+<a name="line172">172: </a>  PetscErrorCode    ierr;
+<a name="line173">173: </a>  PetscViewer       viewer;
+<a name="line174">174: </a>  PetscBool         flg;
+<a name="line175">175: </a>  static PetscBool  incall = PETSC_FALSE;
+<a name="line176">176: </a>  PetscViewerFormat format;
+
+<a name="line179">179: </a>  <font color="#4169E1">if</font> (incall) <font color="#4169E1">return</font>(0);
+<a name="line180">180: </a>  incall = PETSC_TRUE;
+<a name="line181">181: </a>  PetscOptionsGetViewer(PetscObjectComm((PetscObject)svd),((PetscObject)svd)-&gt;prefix,<font color="#666666">"-svd_converged_reason"</font>,&amp;viewer,&amp;format,&amp;flg);
+<a name="line182">182: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line183">183: </a>    PetscViewerPushFormat(viewer,format);
+<a name="line184">184: </a>    <a href="../../../docs/manualpages/SVD/SVDReasonView.html#SVDReasonView">SVDReasonView</a>(svd,viewer);
+<a name="line185">185: </a>    PetscViewerPopFormat(viewer);
+<a name="line186">186: </a>    PetscViewerDestroy(&amp;viewer);
+<a name="line187">187: </a>  }
+<a name="line188">188: </a>  incall = PETSC_FALSE;
+<a name="line189">189: </a>  <font color="#4169E1">return</font>(0);
+<a name="line190">190: </a>}
+
+<a name="line194">194: </a><strong><font color="#4169E1"><a name="SVDErrorView_ASCII"></a>static PetscErrorCode SVDErrorView_ASCII(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,<a href="../../../docs/manualpages/SVD/SVDErrorType.html#SVDErrorType">SVDErrorType</a> etype,PetscViewer viewer)</font></strong>
+<a name="line195">195: </a>{
+<a name="line196">196: </a>  PetscBool      errok;
+<a name="line197">197: </a>  PetscReal      error,sigma;
+<a name="line198">198: </a>  PetscInt       i,j;
+
+<a name="line202">202: </a>  <font color="#4169E1">if</font> (svd-&gt;nconv&lt;svd-&gt;nsv) {
+<a name="line203">203: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" Problem: less than %D singular values converged\n\n"</font>,svd-&gt;nsv);
+<a name="line204">204: </a>    <font color="#4169E1">return</font>(0);
+<a name="line205">205: </a>  }
+<a name="line206">206: </a>  errok = PETSC_TRUE;
+<a name="line207">207: </a>  <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nsv;i++) {
+<a name="line208">208: </a>    <a href="../../../docs/manualpages/SVD/SVDComputeError.html#SVDComputeError">SVDComputeError</a>(svd,i,etype,&amp;error);
+<a name="line209">209: </a>    errok = (errok &amp;&amp; error&lt;5.0*svd-&gt;tol)? PETSC_TRUE: PETSC_FALSE;
+<a name="line210">210: </a>  }
+<a name="line211">211: </a>  <font color="#4169E1">if</font> (!errok) {
+<a name="line212">212: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">" Problem: some of the first %D relative errors are higher than the tolerance\n\n"</font>,svd-&gt;nsv);
+<a name="line213">213: </a>    <font color="#4169E1">return</font>(0);
+<a name="line214">214: </a>  }
+<a name="line215">215: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">" All requested singular values computed up to the required tolerance:"</font>);
+<a name="line216">216: </a>  <font color="#4169E1">for</font> (i=0;i&lt;=(svd-&gt;nsv-1)/8;i++) {
+<a name="line217">217: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"\n     "</font>);
+<a name="line218">218: </a>    <font color="#4169E1">for</font> (j=0;j&lt;PetscMin(8,svd-&gt;nsv-8*i);j++) {
+<a name="line219">219: </a>      <a href="../../../docs/manualpages/SVD/SVDGetSingularTriplet.html#SVDGetSingularTriplet">SVDGetSingularTriplet</a>(svd,8*i+j,&amp;sigma,NULL,NULL);
+<a name="line220">220: </a>      PetscViewerASCIIPrintf(viewer,<font color="#666666">"%.5f"</font>,(double)sigma);
+<a name="line221">221: </a>      <font color="#4169E1">if</font> (8*i+j+1&lt;svd-&gt;nsv) { PetscViewerASCIIPrintf(viewer,<font color="#666666">", "</font>); }
+<a name="line222">222: </a>    }
+<a name="line223">223: </a>  }
+<a name="line224">224: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"\n\n"</font>);
+<a name="line225">225: </a>  <font color="#4169E1">return</font>(0);
+<a name="line226">226: </a>}
+
+<a name="line230">230: </a><strong><font color="#4169E1"><a name="SVDErrorView_DETAIL"></a>static PetscErrorCode SVDErrorView_DETAIL(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,<a href="../../../docs/manualpages/SVD/SVDErrorType.html#SVDErrorType">SVDErrorType</a> etype,PetscViewer viewer)</font></strong>
+<a name="line231">231: </a>{
+<a name="line233">233: </a>  PetscReal      error,sigma;
+<a name="line234">234: </a>  PetscInt       i;
+<a name="line235">235: </a><strong><font color="#228B22">#define EXLEN 30</font></strong>
+<a name="line236">236: </a>  char           ex[EXLEN],sep[]=<font color="#666666">" ---------------------- --------------------\n"</font>;
+
+<a name="line239">239: </a>  <font color="#4169E1">if</font> (!svd-&gt;nconv) <font color="#4169E1">return</font>(0);
+<a name="line240">240: </a>  <font color="#4169E1">switch</font> (etype) {
+<a name="line241">241: </a>    <font color="#4169E1">case</font> SVD_ERROR_ABSOLUTE:
+<a name="line242">242: </a>      PetscSNPrintf(ex,EXLEN,<font color="#666666">" absolute error"</font>);
+<a name="line243">243: </a>      <font color="#4169E1">break</font>;
+<a name="line244">244: </a>    <font color="#4169E1">case</font> SVD_ERROR_RELATIVE:
+<a name="line245">245: </a>      PetscSNPrintf(ex,EXLEN,<font color="#666666">" relative error"</font>);
+<a name="line246">246: </a>      <font color="#4169E1">break</font>;
+<a name="line247">247: </a>  }
+<a name="line248">248: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"%s          sigma           %s\n%s"</font>,sep,ex,sep);
+<a name="line249">249: </a>  <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nconv;i++) {
+<a name="line250">250: </a>    <a href="../../../docs/manualpages/SVD/SVDGetSingularTriplet.html#SVDGetSingularTriplet">SVDGetSingularTriplet</a>(svd,i,&amp;sigma,NULL,NULL);
+<a name="line251">251: </a>    <a href="../../../docs/manualpages/SVD/SVDComputeError.html#SVDComputeError">SVDComputeError</a>(svd,i,etype,&amp;error);
+<a name="line252">252: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"       % 6f          %12g\n"</font>,(double)sigma,(double)error);
+<a name="line253">253: </a>  }
+<a name="line254">254: </a>  PetscViewerASCIIPrintf(viewer,sep);
+<a name="line255">255: </a>  <font color="#4169E1">return</font>(0);
+<a name="line256">256: </a>}
+
+<a name="line260">260: </a><strong><font color="#4169E1"><a name="SVDErrorView_MATLAB"></a>static PetscErrorCode SVDErrorView_MATLAB(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,<a href="../../../docs/manualpages/SVD/SVDErrorType.html#SVDErrorType">SVDErrorType</a> etype,PetscViewer viewer)</font></strong>
+<a name="line261">261: </a>{
+<a name="line263">263: </a>  PetscReal      error;
+<a name="line264">264: </a>  PetscInt       i;
+<a name="line265">265: </a>  const char     *name;
+
+<a name="line268">268: </a>  PetscObjectGetName((PetscObject)svd,&amp;name);
+<a name="line269">269: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"Error_%s = [\n"</font>,name);
+<a name="line270">270: </a>  <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nconv;i++) {
+<a name="line271">271: </a>    <a href="../../../docs/manualpages/SVD/SVDComputeError.html#SVDComputeError">SVDComputeError</a>(svd,i,etype,&amp;error);
+<a name="line272">272: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"%18.16e\n"</font>,error);
+<a name="line273">273: </a>  }
+<a name="line274">274: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"];\n"</font>);
+<a name="line275">275: </a>  <font color="#4169E1">return</font>(0);
+<a name="line276">276: </a>}
+
+<a name="line280">280: </a><font color="#B22222">/*@C</font>
+<a name="line281">281: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDErrorView.html#SVDErrorView">SVDErrorView</a> - Displays the errors associated with the computed solution</font>
+<a name="line282">282: </a><font color="#B22222">   (as well as the singular values).</font>
+
+<a name="line284">284: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line286">286: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line287">287: </a><font color="#B22222">+  svd    - the singular value solver context</font>
+<a name="line288">288: </a><font color="#B22222">.  etype  - error type</font>
+<a name="line289">289: </a><font color="#B22222">-  viewer - optional visualization context</font>
+
+<a name="line291">291: </a><font color="#B22222">   Options Database Key:</font>
+<a name="line292">292: </a><font color="#B22222">+  -svd_error_absolute - print absolute errors of each singular triplet</font>
+<a name="line293">293: </a><font color="#B22222">-  -svd_error_relative - print relative errors of each singular triplet</font>
+
+<a name="line295">295: </a><font color="#B22222">   Notes:</font>
+<a name="line296">296: </a><font color="#B22222">   By default, this function checks the error of all singular triplets and prints</font>
+<a name="line297">297: </a><font color="#B22222">   the singular values if all of them are below the requested tolerance.</font>
+<a name="line298">298: </a><font color="#B22222">   If the viewer has format=PETSC_VIEWER_ASCII_INFO_DETAIL then a table with</font>
+<a name="line299">299: </a><font color="#B22222">   singular values and corresponding errors is printed.</font>
+
+<a name="line301">301: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line303">303: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/SVD/SVDSolve.html#SVDSolve">SVDSolve</a>(), <a href="../../../docs/manualpages/SVD/SVDValuesView.html#SVDValuesView">SVDValuesView</a>(), <a href="../../../docs/manualpages/SVD/SVDVectorsView.html#SVDVectorsView">SVDVectorsView</a>()</font>
+<a name="line304">304: </a><font color="#B22222">@*/</font>
+<a name="line305">305: </a><strong><font color="#4169E1"><a name="SVDErrorView"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDErrorView.html#SVDErrorView">SVDErrorView</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,<a href="../../../docs/manualpages/SVD/SVDErrorType.html#SVDErrorType">SVDErrorType</a> etype,PetscViewer viewer)</font></strong>
+<a name="line306">306: </a>{
+<a name="line307">307: </a>  PetscBool         isascii;
+<a name="line308">308: </a>  PetscViewerFormat format;
+<a name="line309">309: </a>  PetscErrorCode    ierr;
+
+<a name="line313">313: </a>  <font color="#4169E1">if</font> (!viewer) viewer = PETSC_VIEWER_STDOUT_(PetscObjectComm((PetscObject)svd));
+<a name="line316">316: </a>  SVDCheckSolved(svd,1);
+<a name="line317">317: </a>  PetscObjectTypeCompare((PetscObject)viewer,PETSCVIEWERASCII,&amp;isascii);
+<a name="line318">318: </a>  <font color="#4169E1">if</font> (!isascii) <font color="#4169E1">return</font>(0);
+
+<a name="line320">320: </a>  PetscViewerGetFormat(viewer,&amp;format);
+<a name="line321">321: </a>  <font color="#4169E1">switch</font> (format) {
+<a name="line322">322: </a>    <font color="#4169E1">case</font> PETSC_VIEWER_DEFAULT:
+<a name="line323">323: </a>    <font color="#4169E1">case</font> PETSC_VIEWER_ASCII_INFO:
+<a name="line324">324: </a>      SVDErrorView_ASCII(svd,etype,viewer);
+<a name="line325">325: </a>      <font color="#4169E1">break</font>;
+<a name="line326">326: </a>    <font color="#4169E1">case</font> PETSC_VIEWER_ASCII_INFO_DETAIL:
+<a name="line327">327: </a>      SVDErrorView_DETAIL(svd,etype,viewer);
+<a name="line328">328: </a>      <font color="#4169E1">break</font>;
+<a name="line329">329: </a>    <font color="#4169E1">case</font> PETSC_VIEWER_ASCII_MATLAB:
+<a name="line330">330: </a>      SVDErrorView_MATLAB(svd,etype,viewer);
+<a name="line331">331: </a>      <font color="#4169E1">break</font>;
+<a name="line332">332: </a><strong><font color="#FF0000">    default:</font></strong>
+<a name="line333">333: </a>      PetscInfo1(svd,<font color="#666666">"Unsupported viewer format %s\n"</font>,PetscViewerFormats[format]);
+<a name="line334">334: </a>  }
+<a name="line335">335: </a>  <font color="#4169E1">return</font>(0);
+<a name="line336">336: </a>}
+
+<a name="line340">340: </a><font color="#B22222">/*@</font>
+<a name="line341">341: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDErrorViewFromOptions.html#SVDErrorViewFromOptions">SVDErrorViewFromOptions</a> - Processes command line options to determine if/how</font>
+<a name="line342">342: </a><font color="#B22222">   the errors of the computed solution are to be viewed. </font>
+
+<a name="line344">344: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line346">346: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line347">347: </a><font color="#B22222">.  svd - the singular value solver context</font>
+
+<a name="line349">349: </a><font color="#B22222">   Level: developer</font>
+<a name="line350">350: </a><font color="#B22222">@*/</font>
+<a name="line351">351: </a><strong><font color="#4169E1"><a name="SVDErrorViewFromOptions"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDErrorViewFromOptions.html#SVDErrorViewFromOptions">SVDErrorViewFromOptions</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd)</font></strong>
+<a name="line352">352: </a>{
+<a name="line353">353: </a>  PetscErrorCode    ierr;
+<a name="line354">354: </a>  PetscViewer       viewer;
+<a name="line355">355: </a>  PetscBool         flg;
+<a name="line356">356: </a>  static PetscBool  incall = PETSC_FALSE;
+<a name="line357">357: </a>  PetscViewerFormat format;
+
+<a name="line360">360: </a>  <font color="#4169E1">if</font> (incall) <font color="#4169E1">return</font>(0);
+<a name="line361">361: </a>  incall = PETSC_TRUE;
+<a name="line362">362: </a>  PetscOptionsGetViewer(PetscObjectComm((PetscObject)svd),((PetscObject)svd)-&gt;prefix,<font color="#666666">"-svd_error_absolute"</font>,&amp;viewer,&amp;format,&amp;flg);
+<a name="line363">363: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line364">364: </a>    PetscViewerPushFormat(viewer,format);
+<a name="line365">365: </a>    <a href="../../../docs/manualpages/SVD/SVDErrorView.html#SVDErrorView">SVDErrorView</a>(svd,SVD_ERROR_ABSOLUTE,viewer);
+<a name="line366">366: </a>    PetscViewerPopFormat(viewer);
+<a name="line367">367: </a>    PetscViewerDestroy(&amp;viewer);
+<a name="line368">368: </a>  }
+<a name="line369">369: </a>  PetscOptionsGetViewer(PetscObjectComm((PetscObject)svd),((PetscObject)svd)-&gt;prefix,<font color="#666666">"-svd_error_relative"</font>,&amp;viewer,&amp;format,&amp;flg);
+<a name="line370">370: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line371">371: </a>    PetscViewerPushFormat(viewer,format);
+<a name="line372">372: </a>    <a href="../../../docs/manualpages/SVD/SVDErrorView.html#SVDErrorView">SVDErrorView</a>(svd,SVD_ERROR_RELATIVE,viewer);
+<a name="line373">373: </a>    PetscViewerPopFormat(viewer);
+<a name="line374">374: </a>    PetscViewerDestroy(&amp;viewer);
+<a name="line375">375: </a>  }
+<a name="line376">376: </a>  incall = PETSC_FALSE;
+<a name="line377">377: </a>  <font color="#4169E1">return</font>(0);
+<a name="line378">378: </a>}
+
+<a name="line382">382: </a><strong><font color="#4169E1"><a name="SVDValuesView_DRAW"></a>static PetscErrorCode SVDValuesView_DRAW(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line383">383: </a>{
+<a name="line385">385: </a>  PetscDraw      draw;
+<a name="line386">386: </a>  PetscDrawSP    drawsp;
+<a name="line387">387: </a>  PetscReal      re,im=0.0;
+<a name="line388">388: </a>  PetscInt       i;
+
+<a name="line391">391: </a>  <font color="#4169E1">if</font> (!svd-&gt;nconv) <font color="#4169E1">return</font>(0);
+<a name="line392">392: </a>  PetscViewerDrawOpen(PETSC_COMM_SELF,0,<font color="#666666">"Computed singular values"</font>,PETSC_DECIDE,PETSC_DECIDE,300,300,&amp;viewer);
+<a name="line393">393: </a>  PetscViewerDrawGetDraw(viewer,0,&amp;draw);
+<a name="line394">394: </a>  PetscDrawSPCreate(draw,1,&amp;drawsp);
+<a name="line395">395: </a>  <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nconv;i++) {
+<a name="line396">396: </a>    re = svd-&gt;sigma[svd-&gt;perm[i]];
+<a name="line397">397: </a>    PetscDrawSPAddPoint(drawsp,&amp;re,&amp;im);
+<a name="line398">398: </a>  }
+<a name="line399">399: </a>  PetscDrawSPDraw(drawsp,PETSC_TRUE);
+<a name="line400">400: </a>  PetscDrawSPSave(drawsp);
+<a name="line401">401: </a>  PetscDrawSPDestroy(&amp;drawsp);
+<a name="line402">402: </a>  PetscViewerDestroy(&amp;viewer);
+<a name="line403">403: </a>  <font color="#4169E1">return</font>(0);
+<a name="line404">404: </a>}
+
+<a name="line408">408: </a><strong><font color="#4169E1"><a name="SVDValuesView_ASCII"></a>static PetscErrorCode SVDValuesView_ASCII(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line409">409: </a>{
+<a name="line410">410: </a>  PetscInt       i;
+
+<a name="line414">414: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"Singular values = \n"</font>);
+<a name="line415">415: </a>  <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nconv;i++) {
+<a name="line416">416: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"   %.5f\n"</font>,(double)svd-&gt;sigma[svd-&gt;perm[i]]);
+<a name="line417">417: </a>  }
+<a name="line418">418: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"\n"</font>);
+<a name="line419">419: </a>  <font color="#4169E1">return</font>(0);
+<a name="line420">420: </a>}
+
+<a name="line424">424: </a><strong><font color="#4169E1"><a name="SVDValuesView_MATLAB"></a>static PetscErrorCode SVDValuesView_MATLAB(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line425">425: </a>{
+<a name="line427">427: </a>  PetscInt       i;
+<a name="line428">428: </a>  const char     *name;
+
+<a name="line431">431: </a>  PetscObjectGetName((PetscObject)svd,&amp;name);
+<a name="line432">432: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"Sigma_%s = [\n"</font>,name);
+<a name="line433">433: </a>  <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nconv;i++) {
+<a name="line434">434: </a>    PetscViewerASCIIPrintf(viewer,<font color="#666666">"%18.16e\n"</font>,(double)svd-&gt;sigma[svd-&gt;perm[i]]);
+<a name="line435">435: </a>  }
+<a name="line436">436: </a>  PetscViewerASCIIPrintf(viewer,<font color="#666666">"];\n"</font>);
+<a name="line437">437: </a>  <font color="#4169E1">return</font>(0);
+<a name="line438">438: </a>}
+
+<a name="line442">442: </a><font color="#B22222">/*@C</font>
+<a name="line443">443: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDValuesView.html#SVDValuesView">SVDValuesView</a> - Displays the computed singular values in a viewer.</font>
+
+<a name="line445">445: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line447">447: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line448">448: </a><font color="#B22222">+  svd    - the singular value solver context</font>
+<a name="line449">449: </a><font color="#B22222">-  viewer - the viewer</font>
+
+<a name="line451">451: </a><font color="#B22222">   Options Database Key:</font>
+<a name="line452">452: </a><font color="#B22222">.  -svd_view_values - print computed singular values</font>
+
+<a name="line454">454: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line456">456: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/SVD/SVDSolve.html#SVDSolve">SVDSolve</a>(), <a href="../../../docs/manualpages/SVD/SVDVectorsView.html#SVDVectorsView">SVDVectorsView</a>(), <a href="../../../docs/manualpages/SVD/SVDErrorView.html#SVDErrorView">SVDErrorView</a>()</font>
+<a name="line457">457: </a><font color="#B22222">@*/</font>
+<a name="line458">458: </a><strong><font color="#4169E1"><a name="SVDValuesView"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDValuesView.html#SVDValuesView">SVDValuesView</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line459">459: </a>{
+<a name="line460">460: </a>  PetscBool         isascii,isdraw;
+<a name="line461">461: </a>  PetscViewerFormat format;
+<a name="line462">462: </a>  PetscErrorCode    ierr;
+
+<a name="line466">466: </a>  <font color="#4169E1">if</font> (!viewer) viewer = PETSC_VIEWER_STDOUT_(PetscObjectComm((PetscObject)svd));
+<a name="line469">469: </a>  SVDCheckSolved(svd,1);
+<a name="line470">470: </a>  PetscObjectTypeCompare((PetscObject)viewer,PETSCVIEWERDRAW,&amp;isdraw);
+<a name="line471">471: </a>  PetscObjectTypeCompare((PetscObject)viewer,PETSCVIEWERASCII,&amp;isascii);
+<a name="line472">472: </a>  <font color="#4169E1">if</font> (isdraw) {
+<a name="line473">473: </a>    SVDValuesView_DRAW(svd,viewer);
+<a name="line474">474: </a>  } <font color="#4169E1">else</font> <font color="#4169E1">if</font> (isascii) {
+<a name="line475">475: </a>    PetscViewerGetFormat(viewer,&amp;format);
+<a name="line476">476: </a>    <font color="#4169E1">switch</font> (format) {
+<a name="line477">477: </a>      <font color="#4169E1">case</font> PETSC_VIEWER_DEFAULT:
+<a name="line478">478: </a>      <font color="#4169E1">case</font> PETSC_VIEWER_ASCII_INFO:
+<a name="line479">479: </a>      <font color="#4169E1">case</font> PETSC_VIEWER_ASCII_INFO_DETAIL:
+<a name="line480">480: </a>        SVDValuesView_ASCII(svd,viewer);
+<a name="line481">481: </a>        <font color="#4169E1">break</font>;
+<a name="line482">482: </a>      <font color="#4169E1">case</font> PETSC_VIEWER_ASCII_MATLAB:
+<a name="line483">483: </a>        SVDValuesView_MATLAB(svd,viewer);
+<a name="line484">484: </a>        <font color="#4169E1">break</font>;
+<a name="line485">485: </a><strong><font color="#FF0000">      default:</font></strong>
+<a name="line486">486: </a>        PetscInfo1(svd,<font color="#666666">"Unsupported viewer format %s\n"</font>,PetscViewerFormats[format]);
+<a name="line487">487: </a>    }
+<a name="line488">488: </a>  }
+<a name="line489">489: </a>  <font color="#4169E1">return</font>(0);
+<a name="line490">490: </a>}
+
+<a name="line494">494: </a><font color="#B22222">/*@</font>
+<a name="line495">495: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDValuesViewFromOptions.html#SVDValuesViewFromOptions">SVDValuesViewFromOptions</a> - Processes command line options to determine if/how</font>
+<a name="line496">496: </a><font color="#B22222">   the computed singular values are to be viewed. </font>
+
+<a name="line498">498: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line500">500: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line501">501: </a><font color="#B22222">.  svd - the singular value solver context</font>
+
+<a name="line503">503: </a><font color="#B22222">   Level: developer</font>
+<a name="line504">504: </a><font color="#B22222">@*/</font>
+<a name="line505">505: </a><strong><font color="#4169E1"><a name="SVDValuesViewFromOptions"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDValuesViewFromOptions.html#SVDValuesViewFromOptions">SVDValuesViewFromOptions</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd)</font></strong>
+<a name="line506">506: </a>{
+<a name="line507">507: </a>  PetscErrorCode    ierr;
+<a name="line508">508: </a>  PetscViewer       viewer;
+<a name="line509">509: </a>  PetscBool         flg;
+<a name="line510">510: </a>  static PetscBool  incall = PETSC_FALSE;
+<a name="line511">511: </a>  PetscViewerFormat format;
+
+<a name="line514">514: </a>  <font color="#4169E1">if</font> (incall) <font color="#4169E1">return</font>(0);
+<a name="line515">515: </a>  incall = PETSC_TRUE;
+<a name="line516">516: </a>  PetscOptionsGetViewer(PetscObjectComm((PetscObject)svd),((PetscObject)svd)-&gt;prefix,<font color="#666666">"-svd_view_values"</font>,&amp;viewer,&amp;format,&amp;flg);
+<a name="line517">517: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line518">518: </a>    PetscViewerPushFormat(viewer,format);
+<a name="line519">519: </a>    <a href="../../../docs/manualpages/SVD/SVDValuesView.html#SVDValuesView">SVDValuesView</a>(svd,viewer);
+<a name="line520">520: </a>    PetscViewerPopFormat(viewer);
+<a name="line521">521: </a>    PetscViewerDestroy(&amp;viewer);
+<a name="line522">522: </a>  }
+<a name="line523">523: </a>  incall = PETSC_FALSE;
+<a name="line524">524: </a>  <font color="#4169E1">return</font>(0);
+<a name="line525">525: </a>}
+
+<a name="line529">529: </a><font color="#B22222">/*@C</font>
+<a name="line530">530: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDVectorsView.html#SVDVectorsView">SVDVectorsView</a> - Outputs computed singular vectors to a viewer.</font>
+
+<a name="line532">532: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line534">534: </a><font color="#B22222">   Parameter:</font>
+<a name="line535">535: </a><font color="#B22222">+  svd    - the singular value solver context</font>
+<a name="line536">536: </a><font color="#B22222">-  viewer - the viewer</font>
+
+<a name="line538">538: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line539">539: </a><font color="#B22222">.  -svd_view_vectors - output singular vectors</font>
+
+<a name="line541">541: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line543">543: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/SVD/SVDSolve.html#SVDSolve">SVDSolve</a>(), <a href="../../../docs/manualpages/SVD/SVDValuesView.html#SVDValuesView">SVDValuesView</a>(), <a href="../../../docs/manualpages/SVD/SVDErrorView.html#SVDErrorView">SVDErrorView</a>()</font>
+<a name="line544">544: </a><font color="#B22222">@*/</font>
+<a name="line545">545: </a><strong><font color="#4169E1"><a name="SVDVectorsView"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDVectorsView.html#SVDVectorsView">SVDVectorsView</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd,PetscViewer viewer)</font></strong>
+<a name="line546">546: </a>{
+<a name="line548">548: </a>  PetscInt       i,k;
+<a name="line549">549: </a>  Vec            x;
+<a name="line550">550: </a><strong><font color="#228B22">#define NMLEN 30</font></strong>
+<a name="line551">551: </a>  char           vname[NMLEN];
+<a name="line552">552: </a>  const char     *ename;
+
+<a name="line556">556: </a>  <font color="#4169E1">if</font> (!viewer) viewer = PETSC_VIEWER_STDOUT_(PetscObjectComm((PetscObject)svd));
+<a name="line559">559: </a>  SVDCheckSolved(svd,1);
+<a name="line560">560: </a>  <font color="#4169E1">if</font> (svd-&gt;nconv) {
+<a name="line561">561: </a>    PetscObjectGetName((PetscObject)svd,&amp;ename);
+<a name="line562">562: </a>    SVDComputeVectors(svd);
+<a name="line563">563: </a>    <font color="#4169E1">for</font> (i=0;i&lt;svd-&gt;nconv;i++) {
+<a name="line564">564: </a>      k = svd-&gt;perm[i];
+<a name="line565">565: </a>      PetscSNPrintf(vname,NMLEN,<font color="#666666">"V%d_%s"</font>,(int)i,ename);
+<a name="line566">566: </a>      <a href="../../../docs/manualpages/BV/BVGetColumn.html#BVGetColumn">BVGetColumn</a>(svd-&gt;V,k,&amp;x);
+<a name="line567">567: </a>      PetscObjectSetName((PetscObject)x,vname);
+<a name="line568">568: </a>      VecView(x,viewer);
+<a name="line569">569: </a>      <a href="../../../docs/manualpages/BV/BVRestoreColumn.html#BVRestoreColumn">BVRestoreColumn</a>(svd-&gt;V,k,&amp;x);
+<a name="line570">570: </a>      PetscSNPrintf(vname,NMLEN,<font color="#666666">"U%d_%s"</font>,(int)i,ename);
+<a name="line571">571: </a>      <a href="../../../docs/manualpages/BV/BVGetColumn.html#BVGetColumn">BVGetColumn</a>(svd-&gt;U,k,&amp;x);
+<a name="line572">572: </a>      PetscObjectSetName((PetscObject)x,vname);
+<a name="line573">573: </a>      VecView(x,viewer);
+<a name="line574">574: </a>      <a href="../../../docs/manualpages/BV/BVRestoreColumn.html#BVRestoreColumn">BVRestoreColumn</a>(svd-&gt;U,k,&amp;x);
+<a name="line575">575: </a>    }
+<a name="line576">576: </a>  }
+<a name="line577">577: </a>  <font color="#4169E1">return</font>(0);
+<a name="line578">578: </a>}
+
+<a name="line582">582: </a><font color="#B22222">/*@</font>
+<a name="line583">583: </a><font color="#B22222">   <a href="../../../docs/manualpages/SVD/SVDVectorsViewFromOptions.html#SVDVectorsViewFromOptions">SVDVectorsViewFromOptions</a> - Processes command line options to determine if/how</font>
+<a name="line584">584: </a><font color="#B22222">   the computed singular vectors are to be viewed. </font>
+
+<a name="line586">586: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a></font>
+
+<a name="line588">588: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line589">589: </a><font color="#B22222">.  svd - the singular value solver context</font>
+
+<a name="line591">591: </a><font color="#B22222">   Level: developer</font>
+<a name="line592">592: </a><font color="#B22222">@*/</font>
+<a name="line593">593: </a><strong><font color="#4169E1"><a name="SVDVectorsViewFromOptions"></a>PetscErrorCode <a href="../../../docs/manualpages/SVD/SVDVectorsViewFromOptions.html#SVDVectorsViewFromOptions">SVDVectorsViewFromOptions</a>(<a href="../../../docs/manualpages/SVD/SVD.html#SVD">SVD</a> svd)</font></strong>
+<a name="line594">594: </a>{
+<a name="line595">595: </a>  PetscErrorCode    ierr;
+<a name="line596">596: </a>  PetscViewer       viewer;
+<a name="line597">597: </a>  PetscBool         flg = PETSC_FALSE;
+<a name="line598">598: </a>  static PetscBool  incall = PETSC_FALSE;
+<a name="line599">599: </a>  PetscViewerFormat format;
+
+<a name="line602">602: </a>  <font color="#4169E1">if</font> (incall) <font color="#4169E1">return</font>(0);
+<a name="line603">603: </a>  incall = PETSC_TRUE;
+<a name="line604">604: </a>  PetscOptionsGetViewer(PetscObjectComm((PetscObject)svd),((PetscObject)svd)-&gt;prefix,<font color="#666666">"-svd_view_vectors"</font>,&amp;viewer,&amp;format,&amp;flg);
+<a name="line605">605: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line606">606: </a>    PetscViewerPushFormat(viewer,format);
+<a name="line607">607: </a>    <a href="../../../docs/manualpages/SVD/SVDVectorsView.html#SVDVectorsView">SVDVectorsView</a>(svd,viewer);
+<a name="line608">608: </a>    PetscViewerPopFormat(viewer);
+<a name="line609">609: </a>    PetscViewerDestroy(&amp;viewer);
+<a name="line610">610: </a>  }
+<a name="line611">611: </a>  incall = PETSC_FALSE;
+<a name="line612">612: </a>  <font color="#4169E1">return</font>(0);
+<a name="line613">613: </a>}
+
+</pre>
+</body>
+
+</html>

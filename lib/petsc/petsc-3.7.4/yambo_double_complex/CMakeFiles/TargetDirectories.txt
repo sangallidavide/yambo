@@ -1,0 +1,3 @@
+/home/maurizia/D_PGM/D_exc/yambo-devel-github-lfnew1/lib/petsc/petsc-3.7.4/yambo_double_complex/CMakeFiles/rebuild_cache.dir
+/home/maurizia/D_PGM/D_exc/yambo-devel-github-lfnew1/lib/petsc/petsc-3.7.4/yambo_double_complex/CMakeFiles/petsc.dir
+/home/maurizia/D_PGM/D_exc/yambo-devel-github-lfnew1/lib/petsc/petsc-3.7.4/yambo_double_complex/CMakeFiles/edit_cache.dir

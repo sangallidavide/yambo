@@ -1,0 +1,179 @@
+<center><a href="fnutil.c">Actual source code: fnutil.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://slepc.upv.es/documentation/current/src/sys/classes/fn/impls/fnutil.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-09-29T11:10:28+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>slepc-3.7.3 2016-09-29</b></div>
+   <div id="bugreport" align=right><a href="mailto:slepc-maint@upv.es?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: slepc-3.7.3 v3.7.3 src/sys/classes/fn/impls/fnutil.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80"><a name="line1">  1: </a><font color="#B22222">/*</font>
+<a name="line2">  2: </a><font color="#B22222">   Utility subroutines common to several impls</font>
+
+<a name="line4">  4: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line5">  5: </a><font color="#B22222">   SLEPc - Scalable Library for Eigenvalue Problem Computations</font>
+<a name="line6">  6: </a><font color="#B22222">   Copyright (c) 2002-2016, Universitat Politecnica de Valencia, Spain</font>
+
+<a name="line8">  8: </a><font color="#B22222">   This file is part of SLEPc.</font>
+
+<a name="line10"> 10: </a><font color="#B22222">   SLEPc is free software: you can redistribute it and/or modify it under  the</font>
+<a name="line11"> 11: </a><font color="#B22222">   terms of version 3 of the GNU Lesser General Public License as published by</font>
+<a name="line12"> 12: </a><font color="#B22222">   the Free Software Foundation.</font>
+
+<a name="line14"> 14: </a><font color="#B22222">   SLEPc  is  distributed in the hope that it will be useful, but WITHOUT  ANY</font>
+<a name="line15"> 15: </a><font color="#B22222">   WARRANTY;  without even the implied warranty of MERCHANTABILITY or  FITNESS</font>
+<a name="line16"> 16: </a><font color="#B22222">   FOR  A  PARTICULAR PURPOSE. See the GNU Lesser General Public  License  for</font>
+<a name="line17"> 17: </a><font color="#B22222">   more details.</font>
+
+<a name="line19"> 19: </a><font color="#B22222">   You  should have received a copy of the GNU Lesser General  Public  License</font>
+<a name="line20"> 20: </a><font color="#B22222">   along with SLEPc. If not, see &lt;http://www.gnu.org/licenses/&gt;.</font>
+<a name="line21"> 21: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line22"> 22: </a><font color="#B22222">*/</font>
+
+<a name="line24"> 24: </a><font color="#A020F0">#include &lt;slepc/private/fnimpl.h&gt;      </font><font color="#B22222">/*I "slepcfn.h" I*/</font><font color="#A020F0"></font>
+<a name="line25"> 25: </a><font color="#A020F0">#include &lt;slepcblaslapack.h&gt;</font>
+
+<a name="line29"> 29: </a><font color="#B22222">/*</font>
+<a name="line30"> 30: </a><font color="#B22222">   Compute the square root of an upper quasi-triangular matrix T,</font>
+<a name="line31"> 31: </a><font color="#B22222">   using Higham's algorithm (LAA 88, 1987). T is overwritten with sqrtm(T).</font>
+<a name="line32"> 32: </a><font color="#B22222"> */</font>
+<a name="line33"> 33: </a><strong><font color="#4169E1"><a name="SlepcMatDenseSqrt"></a>PetscErrorCode SlepcMatDenseSqrt(PetscBLASInt n,PetscScalar *T,PetscBLASInt ld)</font></strong>
+<a name="line34"> 34: </a>{
+<a name="line35"> 35: </a><font color="#A020F0">#if defined(SLEPC_MISSING_LAPACK_TRSYL)</font>
+<a name="line37"> 37: </a>  SETERRQ(PETSC_COMM_SELF,PETSC_ERR_SUP,<font color="#666666">"TRSYL - Lapack routine unavailable"</font>);
+<a name="line38"> 38: </a><font color="#A020F0">#else</font>
+<a name="line39"> 39: </a>  PetscScalar  one=1.0,mone=-1.0;
+<a name="line40"> 40: </a>  PetscReal    done=1.0;
+<a name="line41"> 41: </a>  PetscBLASInt i,j,si,sj,r,ione=1,info;
+<a name="line42"> 42: </a><font color="#A020F0">#if !defined(PETSC_USE_COMPLEX)</font>
+<a name="line43"> 43: </a>  PetscReal    alpha,theta,mu,mu2;
+<a name="line44"> 44: </a><font color="#A020F0">#endif</font>
+
+<a name="line47"> 47: </a>  <font color="#4169E1">for</font> (j=0;j&lt;n;j++) {
+<a name="line48"> 48: </a><font color="#A020F0">#if defined(PETSC_USE_COMPLEX)</font>
+<a name="line49"> 49: </a>    sj = 1;
+<a name="line50"> 50: </a>    T[j+j*ld] = PetscSqrtScalar(T[j+j*ld]);
+<a name="line51"> 51: </a><font color="#A020F0">#else</font>
+<a name="line52"> 52: </a>    sj = (j==n-1 || T[j+1+j*ld] == 0.0)? 1: 2;
+<a name="line53"> 53: </a>    <font color="#4169E1">if</font> (sj==1) {
+<a name="line54"> 54: </a>      <font color="#4169E1">if</font> (T[j+j*ld]&lt;0.0) SETERRQ(PETSC_COMM_SELF,1,<font color="#666666">"Matrix has a real negative eigenvalue, no real primary square root exists"</font>);
+<a name="line55"> 55: </a>      T[j+j*ld] = PetscSqrtReal(T[j+j*ld]);
+<a name="line56"> 56: </a>    } <font color="#4169E1">else</font> {
+<a name="line57"> 57: </a>      <font color="#B22222">/* square root of 2x2 block */</font>
+<a name="line58"> 58: </a>      theta = (T[j+j*ld]+T[j+1+(j+1)*ld])/2.0;
+<a name="line59"> 59: </a>      mu    = (T[j+j*ld]-T[j+1+(j+1)*ld])/2.0;
+<a name="line60"> 60: </a>      mu2   = -mu*mu-T[j+1+j*ld]*T[j+(j+1)*ld];
+<a name="line61"> 61: </a>      mu    = PetscSqrtReal(mu2);
+<a name="line62"> 62: </a>      <font color="#4169E1">if</font> (theta&gt;0.0) alpha = PetscSqrtReal((theta+PetscSqrtReal(theta*theta+mu2))/2.0);
+<a name="line63"> 63: </a>      <font color="#4169E1">else</font> alpha = mu/PetscSqrtReal(2.0*(-theta+PetscSqrtReal(theta*theta+mu2)));
+<a name="line64"> 64: </a>      T[j+j*ld]       /= 2.0*alpha;
+<a name="line65"> 65: </a>      T[j+1+(j+1)*ld] /= 2.0*alpha;
+<a name="line66"> 66: </a>      T[j+(j+1)*ld]   /= 2.0*alpha;
+<a name="line67"> 67: </a>      T[j+1+j*ld]     /= 2.0*alpha;
+<a name="line68"> 68: </a>      T[j+j*ld]       += alpha-theta/(2.0*alpha);
+<a name="line69"> 69: </a>      T[j+1+(j+1)*ld] += alpha-theta/(2.0*alpha);
+<a name="line70"> 70: </a>    }
+<a name="line71"> 71: </a><font color="#A020F0">#endif</font>
+<a name="line72"> 72: </a>    <font color="#4169E1">for</font> (i=j-1;i&gt;=0;i--) {
+<a name="line73"> 73: </a><font color="#A020F0">#if defined(PETSC_USE_COMPLEX)</font>
+<a name="line74"> 74: </a>      si = 1;
+<a name="line75"> 75: </a><font color="#A020F0">#else</font>
+<a name="line76"> 76: </a>      si = (i==0 || T[i+(i-1)*ld] == 0.0)? 1: 2;
+<a name="line77"> 77: </a>      <font color="#4169E1">if</font> (si==2) i--;
+<a name="line78"> 78: </a><font color="#A020F0">#endif</font>
+<a name="line79"> 79: </a>      <font color="#B22222">/* solve Sylvester equation of order si x sj */</font>
+<a name="line80"> 80: </a>      r = j-i-si;
+<a name="line81"> 81: </a>      <font color="#4169E1">if</font> (r) PetscStackCallBLAS(<font color="#666666">"BLASgemm"</font>,BLASgemm_(<font color="#666666">"N"</font>,<font color="#666666">"N"</font>,&amp;si,&amp;sj,&amp;r,&amp;mone,T+i+(i+si)*ld,&amp;ld,T+i+si+j*ld,&amp;ld,&amp;one,T+i+j*ld,&amp;ld));
+<a name="line82"> 82: </a>      PetscStackCallBLAS(<font color="#666666">"LAPACKtrsyl"</font>,LAPACKtrsyl_(<font color="#666666">"N"</font>,<font color="#666666">"N"</font>,&amp;ione,&amp;si,&amp;sj,T+i+i*ld,&amp;ld,T+j+j*ld,&amp;ld,T+i+j*ld,&amp;ld,&amp;done,&amp;info));
+<a name="line83"> 83: </a>      <font color="#4169E1">if</font> (info) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_LIB,<font color="#666666">"Error in Lapack xTRSYL %d"</font>,info);
+<a name="line84"> 84: </a>    }
+<a name="line85"> 85: </a>    <font color="#4169E1">if</font> (sj==2) j++;
+<a name="line86"> 86: </a>  }
+<a name="line87"> 87: </a>  <font color="#4169E1">return</font>(0);
+<a name="line88"> 88: </a><font color="#A020F0">#endif</font>
+<a name="line89"> 89: </a>}
+
+<a name="line91"> 91: </a><strong><font color="#228B22">#define BLOCKSIZE 64</font></strong>
+
+<a name="line95"> 95: </a><font color="#B22222">/*</font>
+<a name="line96"> 96: </a><font color="#B22222">   Simplified Schur-Parlett algorithm on an upper quasi-triangular matrix T,</font>
+<a name="line97"> 97: </a><font color="#B22222">   particularized for the square root function. T is overwritten with sqrtm(T).</font>
+<a name="line98"> 98: </a><font color="#B22222">   If firstonly then only the first column of T will contain relevant values.</font>
+<a name="line99"> 99: </a><font color="#B22222"> */</font>
+<a name="line100">100: </a><strong><font color="#4169E1"><a name="SlepcSchurParlettSqrt"></a>PetscErrorCode SlepcSchurParlettSqrt(PetscBLASInt n,PetscScalar *T,PetscBLASInt ld,PetscBool firstonly)</font></strong>
+<a name="line101">101: </a>{
+<a name="line102">102: </a><font color="#A020F0">#if defined(SLEPC_MISSING_LAPACK_GEES) || defined(SLEPC_MISSING_LAPACK_TRSYL)</font>
+<a name="line104">104: </a>  SETERRQ(PETSC_COMM_SELF,PETSC_ERR_SUP,<font color="#666666">"GEES/TRSYL - Lapack routines are unavailable"</font>);
+<a name="line105">105: </a><font color="#A020F0">#else</font>
+<a name="line107">107: </a>  PetscBLASInt   i,j,k,r,ione=1,sdim,lwork,*s,*p,info,bs=BLOCKSIZE;
+<a name="line108">108: </a>  PetscScalar    *wr,*W,*Q,*work,one=1.0,zero=0.0,mone=-1.0;
+<a name="line109">109: </a>  PetscInt       m,nblk;
+<a name="line110">110: </a>  PetscReal      done=1.0;
+<a name="line111">111: </a><font color="#A020F0">#if defined(PETSC_USE_COMPLEX)</font>
+<a name="line112">112: </a>  PetscReal      *rwork;
+<a name="line113">113: </a><font color="#A020F0">#else</font>
+<a name="line114">114: </a>  PetscReal      *wi;
+<a name="line115">115: </a><font color="#A020F0">#endif</font>
+
+<a name="line118">118: </a>  m     = n;
+<a name="line119">119: </a>  nblk  = (m+bs-1)/bs;
+<a name="line120">120: </a>  lwork = 5*n;
+<a name="line121">121: </a>  k     = firstonly? 1: n;
+
+<a name="line123">123: </a>  <font color="#B22222">/* compute Schur decomposition A*Q = Q*T */</font>
+<a name="line124">124: </a><font color="#A020F0">#if !defined(PETSC_USE_COMPLEX)</font>
+<a name="line125">125: </a>  PetscMalloc7(m,&amp;wr,m,&amp;wi,m*k,&amp;W,m*m,&amp;Q,lwork,&amp;work,nblk,&amp;s,nblk,&amp;p);
+<a name="line126">126: </a>  PetscStackCallBLAS(<font color="#666666">"LAPACKgees"</font>,LAPACKgees_(<font color="#666666">"V"</font>,<font color="#666666">"N"</font>,NULL,&amp;n,T,&amp;ld,&amp;sdim,wr,wi,Q,&amp;ld,work,&amp;lwork,NULL,&amp;info));
+<a name="line127">127: </a>  <font color="#4169E1">if</font> (info) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_LIB,<font color="#666666">"Error in Lapack xGEES %d"</font>,info);
+<a name="line128">128: </a><font color="#A020F0">#else</font>
+<a name="line129">129: </a>  PetscMalloc7(m,&amp;wr,m,&amp;rwork,m*k,&amp;W,m*m,&amp;Q,lwork,&amp;work,nblk,&amp;s,nblk,&amp;p);
+<a name="line130">130: </a>  PetscStackCallBLAS(<font color="#666666">"LAPACKgees"</font>,LAPACKgees_(<font color="#666666">"V"</font>,<font color="#666666">"N"</font>,NULL,&amp;n,T,&amp;ld,&amp;sdim,wr,Q,&amp;ld,work,&amp;lwork,rwork,NULL,&amp;info));
+<a name="line131">131: </a>  <font color="#4169E1">if</font> (info) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_LIB,<font color="#666666">"Error in Lapack xGEES %d"</font>,info);
+<a name="line132">132: </a><font color="#A020F0">#endif</font>
+
+<a name="line134">134: </a>  <font color="#B22222">/* determine block sizes and positions, to avoid cutting 2x2 blocks */</font>
+<a name="line135">135: </a>  j = 0;
+<a name="line136">136: </a>  p[j] = 0;
+<a name="line137">137: </a>  <font color="#4169E1">do</font> {
+<a name="line138">138: </a>    s[j] = PetscMin(bs,n-p[j]);
+<a name="line139">139: </a><font color="#A020F0">#if !defined(PETSC_USE_COMPLEX)</font>
+<a name="line140">140: </a>    <font color="#4169E1">if</font> (p[j]+s[j]!=n &amp;&amp; T[p[j]+s[j]+(p[j]+s[j]-1)*ld]!=0.0) s[j]++;
+<a name="line141">141: </a><font color="#A020F0">#endif</font>
+<a name="line142">142: </a>    <font color="#4169E1">if</font> (p[j]+s[j]==n) <font color="#4169E1">break</font>;
+<a name="line143">143: </a>    j++;
+<a name="line144">144: </a>    p[j] = p[j-1]+s[j-1];
+<a name="line145">145: </a>  } <font color="#4169E1">while</font> (1);
+<a name="line146">146: </a>  nblk = j+1;
+
+<a name="line148">148: </a>  <font color="#4169E1">for</font> (j=0;j&lt;nblk;j++) {
+<a name="line149">149: </a>    <font color="#B22222">/* evaluate f(T_jj) */</font>
+<a name="line150">150: </a>    SlepcMatDenseSqrt(s[j],T+p[j]+p[j]*ld,ld);
+<a name="line151">151: </a>    <font color="#4169E1">for</font> (i=j-1;i&gt;=0;i--) {
+<a name="line152">152: </a>      <font color="#B22222">/* solve Sylvester equation for block (i,j) */</font>
+<a name="line153">153: </a>      r = p[j]-p[i]-s[i];
+<a name="line154">154: </a>      <font color="#4169E1">if</font> (r) PetscStackCallBLAS(<font color="#666666">"BLASgemm"</font>,BLASgemm_(<font color="#666666">"N"</font>,<font color="#666666">"N"</font>,s+i,s+j,&amp;r,&amp;mone,T+p[i]+(p[i]+s[i])*ld,&amp;ld,T+p[i]+s[i]+p[j]*ld,&amp;ld,&amp;one,T+p[i]+p[j]*ld,&amp;ld));
+<a name="line155">155: </a>      PetscStackCallBLAS(<font color="#666666">"LAPACKtrsyl"</font>,LAPACKtrsyl_(<font color="#666666">"N"</font>,<font color="#666666">"N"</font>,&amp;ione,s+i,s+j,T+p[i]+p[i]*ld,&amp;ld,T+p[j]+p[j]*ld,&amp;ld,T+p[i]+p[j]*ld,&amp;ld,&amp;done,&amp;info));
+<a name="line156">156: </a>      <font color="#4169E1">if</font> (info) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_LIB,<font color="#666666">"Error in Lapack xTRSYL %d"</font>,info);
+<a name="line157">157: </a>    }
+<a name="line158">158: </a>  }
+
+<a name="line160">160: </a>  <font color="#B22222">/* backtransform B = Q*T*Q' */</font>
+<a name="line161">161: </a>  PetscStackCallBLAS(<font color="#666666">"BLASgemm"</font>,BLASgemm_(<font color="#666666">"N"</font>,<font color="#666666">"C"</font>,&amp;n,&amp;k,&amp;n,&amp;one,T,&amp;ld,Q,&amp;ld,&amp;zero,W,&amp;ld));
+<a name="line162">162: </a>  PetscStackCallBLAS(<font color="#666666">"BLASgemm"</font>,BLASgemm_(<font color="#666666">"N"</font>,<font color="#666666">"N"</font>,&amp;n,&amp;k,&amp;n,&amp;one,Q,&amp;ld,W,&amp;ld,&amp;zero,T,&amp;ld));
+
+<a name="line164">164: </a><font color="#A020F0">#if !defined(PETSC_USE_COMPLEX)</font>
+<a name="line165">165: </a>  PetscFree7(wr,wi,W,Q,work,s,p);
+<a name="line166">166: </a><font color="#A020F0">#else</font>
+<a name="line167">167: </a>  PetscFree7(wr,rwork,W,Q,work,s,p);
+<a name="line168">168: </a><font color="#A020F0">#endif</font>
+<a name="line169">169: </a>  <font color="#4169E1">return</font>(0);
+<a name="line170">170: </a><font color="#A020F0">#endif</font>
+<a name="line171">171: </a>}
+
+</pre>
+</body>
+
+</html>

@@ -1,0 +1,128 @@
+<center><a href="fnsqrt.c">Actual source code: fnsqrt.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://slepc.upv.es/documentation/current/src/sys/classes/fn/impls/sqrt/fnsqrt.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-09-29T11:10:31+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>slepc-3.7.3 2016-09-29</b></div>
+   <div id="bugreport" align=right><a href="mailto:slepc-maint@upv.es?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: slepc-3.7.3 v3.7.3 src/sys/classes/fn/impls/sqrt/fnsqrt.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80"><a name="line1">  1: </a><font color="#B22222">/*</font>
+<a name="line2">  2: </a><font color="#B22222">   Square root function  sqrt(x)</font>
+
+<a name="line4">  4: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line5">  5: </a><font color="#B22222">   SLEPc - Scalable Library for Eigenvalue Problem Computations</font>
+<a name="line6">  6: </a><font color="#B22222">   Copyright (c) 2002-2016, Universitat Politecnica de Valencia, Spain</font>
+
+<a name="line8">  8: </a><font color="#B22222">   This file is part of SLEPc.</font>
+
+<a name="line10"> 10: </a><font color="#B22222">   SLEPc is free software: you can redistribute it and/or modify it under  the</font>
+<a name="line11"> 11: </a><font color="#B22222">   terms of version 3 of the GNU Lesser General Public License as published by</font>
+<a name="line12"> 12: </a><font color="#B22222">   the Free Software Foundation.</font>
+
+<a name="line14"> 14: </a><font color="#B22222">   SLEPc  is  distributed in the hope that it will be useful, but WITHOUT  ANY</font>
+<a name="line15"> 15: </a><font color="#B22222">   WARRANTY;  without even the implied warranty of MERCHANTABILITY or  FITNESS</font>
+<a name="line16"> 16: </a><font color="#B22222">   FOR  A  PARTICULAR PURPOSE. See the GNU Lesser General Public  License  for</font>
+<a name="line17"> 17: </a><font color="#B22222">   more details.</font>
+
+<a name="line19"> 19: </a><font color="#B22222">   You  should have received a copy of the GNU Lesser General  Public  License</font>
+<a name="line20"> 20: </a><font color="#B22222">   along with SLEPc. If not, see &lt;http://www.gnu.org/licenses/&gt;.</font>
+<a name="line21"> 21: </a><font color="#B22222">   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font>
+<a name="line22"> 22: </a><font color="#B22222">*/</font>
+
+<a name="line24"> 24: </a><font color="#A020F0">#include &lt;slepc/private/fnimpl.h&gt;      </font><font color="#B22222">/*I "slepcfn.h" I*/</font><font color="#A020F0"></font>
+<a name="line25"> 25: </a><font color="#A020F0">#include &lt;slepcblaslapack.h&gt;</font>
+
+<a name="line29"> 29: </a><strong><font color="#4169E1"><a name="FNEvaluateFunction_Sqrt"></a>PetscErrorCode FNEvaluateFunction_Sqrt(<a href="../../../../../../docs/manualpages/FN/FN.html#FN">FN</a> fn,PetscScalar x,PetscScalar *y)</font></strong>
+<a name="line30"> 30: </a>{
+<a name="line32"> 32: </a>  *y = PetscSqrtScalar(x);
+<a name="line33"> 33: </a>  <font color="#4169E1">return</font>(0);
+<a name="line34"> 34: </a>}
+
+<a name="line38"> 38: </a><strong><font color="#4169E1"><a name="FNEvaluateDerivative_Sqrt"></a>PetscErrorCode FNEvaluateDerivative_Sqrt(<a href="../../../../../../docs/manualpages/FN/FN.html#FN">FN</a> fn,PetscScalar x,PetscScalar *y)</font></strong>
+<a name="line39"> 39: </a>{
+<a name="line41"> 41: </a>  <font color="#4169E1">if</font> (x==0.0) SETERRQ(PETSC_COMM_SELF,1,<font color="#666666">"Derivative not defined in the requested value"</font>);
+<a name="line42"> 42: </a>  *y = 1.0/(2.0*PetscSqrtScalar(x));
+<a name="line43"> 43: </a>  <font color="#4169E1">return</font>(0);
+<a name="line44"> 44: </a>}
+
+<a name="line48"> 48: </a><strong><font color="#4169E1"><a name="FNEvaluateFunctionMat_Sqrt"></a>PetscErrorCode FNEvaluateFunctionMat_Sqrt(<a href="../../../../../../docs/manualpages/FN/FN.html#FN">FN</a> fn,Mat A,Mat B)</font></strong>
+<a name="line49"> 49: </a>{
+<a name="line51"> 51: </a>  PetscBLASInt   n;
+<a name="line52"> 52: </a>  PetscScalar    *T;
+<a name="line53"> 53: </a>  PetscInt       m;
+
+<a name="line56"> 56: </a>  <font color="#4169E1">if</font> (A!=B) { MatCopy(A,B,SAME_NONZERO_PATTERN); }
+<a name="line57"> 57: </a>  MatDenseGetArray(B,&amp;T);
+<a name="line58"> 58: </a>  MatGetSize(A,&amp;m,NULL);
+<a name="line59"> 59: </a>  PetscBLASIntCast(m,&amp;n);
+<a name="line60"> 60: </a>  SlepcSchurParlettSqrt(n,T,n,PETSC_FALSE);
+<a name="line61"> 61: </a>  MatDenseRestoreArray(B,&amp;T);
+<a name="line62"> 62: </a>  <font color="#4169E1">return</font>(0);
+<a name="line63"> 63: </a>}
+
+<a name="line67"> 67: </a><strong><font color="#4169E1"><a name="FNEvaluateFunctionMatVec_Sqrt"></a>PetscErrorCode FNEvaluateFunctionMatVec_Sqrt(<a href="../../../../../../docs/manualpages/FN/FN.html#FN">FN</a> fn,Mat A,Vec v)</font></strong>
+<a name="line68"> 68: </a>{
+<a name="line70"> 70: </a>  PetscBLASInt   n;
+<a name="line71"> 71: </a>  PetscScalar    *T;
+<a name="line72"> 72: </a>  PetscInt       m;
+<a name="line73"> 73: </a>  Mat            B;
+
+<a name="line76"> 76: </a>  FN_AllocateWorkMat(fn,A,&amp;B);
+<a name="line77"> 77: </a>  MatDenseGetArray(B,&amp;T);
+<a name="line78"> 78: </a>  MatGetSize(A,&amp;m,NULL);
+<a name="line79"> 79: </a>  PetscBLASIntCast(m,&amp;n);
+<a name="line80"> 80: </a>  SlepcSchurParlettSqrt(n,T,n,PETSC_TRUE);
+<a name="line81"> 81: </a>  MatDenseRestoreArray(B,&amp;T);
+<a name="line82"> 82: </a>  MatGetColumnVector(B,v,0);
+<a name="line83"> 83: </a>  FN_FreeWorkMat(fn,&amp;B);
+<a name="line84"> 84: </a>  <font color="#4169E1">return</font>(0);
+<a name="line85"> 85: </a>}
+
+<a name="line89"> 89: </a><strong><font color="#4169E1"><a name="FNView_Sqrt"></a>PetscErrorCode FNView_Sqrt(<a href="../../../../../../docs/manualpages/FN/FN.html#FN">FN</a> fn,PetscViewer viewer)</font></strong>
+<a name="line90"> 90: </a>{
+<a name="line92"> 92: </a>  PetscBool      isascii;
+<a name="line93"> 93: </a>  char           str[50];
+
+<a name="line96"> 96: </a>  PetscObjectTypeCompare((PetscObject)viewer,PETSCVIEWERASCII,&amp;isascii);
+<a name="line97"> 97: </a>  <font color="#4169E1">if</font> (isascii) {
+<a name="line98"> 98: </a>    <font color="#4169E1">if</font> (fn-&gt;beta==(PetscScalar)1.0) {
+<a name="line99"> 99: </a>      <font color="#4169E1">if</font> (fn-&gt;alpha==(PetscScalar)1.0) {
+<a name="line100">100: </a>        PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Square root: sqrt(x)\n"</font>);
+<a name="line101">101: </a>      } <font color="#4169E1">else</font> {
+<a name="line102">102: </a>        <a href="../../../../../../docs/manualpages/sys/SlepcSNPrintfScalar.html#SlepcSNPrintfScalar">SlepcSNPrintfScalar</a>(str,50,fn-&gt;alpha,PETSC_TRUE);
+<a name="line103">103: </a>        PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Square root: sqrt(%s*x)\n"</font>,str);
+<a name="line104">104: </a>      }
+<a name="line105">105: </a>    } <font color="#4169E1">else</font> {
+<a name="line106">106: </a>      <a href="../../../../../../docs/manualpages/sys/SlepcSNPrintfScalar.html#SlepcSNPrintfScalar">SlepcSNPrintfScalar</a>(str,50,fn-&gt;beta,PETSC_TRUE);
+<a name="line107">107: </a>      <font color="#4169E1">if</font> (fn-&gt;alpha==(PetscScalar)1.0) {
+<a name="line108">108: </a>        PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Square root: %s*sqrt(x)\n"</font>,str);
+<a name="line109">109: </a>      } <font color="#4169E1">else</font> {
+<a name="line110">110: </a>        PetscViewerASCIIPrintf(viewer,<font color="#666666">"  Square root: %s"</font>,str);
+<a name="line111">111: </a>        PetscViewerASCIIUseTabs(viewer,PETSC_FALSE);
+<a name="line112">112: </a>        <a href="../../../../../../docs/manualpages/sys/SlepcSNPrintfScalar.html#SlepcSNPrintfScalar">SlepcSNPrintfScalar</a>(str,50,fn-&gt;alpha,PETSC_TRUE);
+<a name="line113">113: </a>        PetscViewerASCIIPrintf(viewer,<font color="#666666">"*sqrt(%s*x)\n"</font>,str);
+<a name="line114">114: </a>        PetscViewerASCIIUseTabs(viewer,PETSC_TRUE);
+<a name="line115">115: </a>      }
+<a name="line116">116: </a>    }
+<a name="line117">117: </a>  }
+<a name="line118">118: </a>  <font color="#4169E1">return</font>(0);
+<a name="line119">119: </a>}
+
+<a name="line123">123: </a><strong><font color="#4169E1"><a name="FNCreate_Sqrt"></a>PETSC_EXTERN PetscErrorCode FNCreate_Sqrt(<a href="../../../../../../docs/manualpages/FN/FN.html#FN">FN</a> fn)</font></strong>
+<a name="line124">124: </a>{
+<a name="line126">126: </a>  fn-&gt;ops-&gt;evaluatefunction       = FNEvaluateFunction_Sqrt;
+<a name="line127">127: </a>  fn-&gt;ops-&gt;evaluatederivative     = FNEvaluateDerivative_Sqrt;
+<a name="line128">128: </a>  fn-&gt;ops-&gt;evaluatefunctionmat    = FNEvaluateFunctionMat_Sqrt;
+<a name="line129">129: </a>  fn-&gt;ops-&gt;evaluatefunctionmatvec = FNEvaluateFunctionMatVec_Sqrt;
+<a name="line130">130: </a>  fn-&gt;ops-&gt;view                   = FNView_Sqrt;
+<a name="line131">131: </a>  <font color="#4169E1">return</font>(0);
+<a name="line132">132: </a>}
+
+</pre>
+</body>
+
+</html>

@@ -40,6 +40,7 @@ subroutine check_periodic_directions(is_cut)
  real(SP) :: non_p_dot_product(3),periodic_length,non_periodic_length
  !
  non_p_dir=0
+ write(6,*) 'is_cut',is_cut(1),is_cut(2),is_cut(3)
  if (any(is_cut)) then
    if (is_cut(1)) non_p_dir(1)=1
    if (is_cut(2)) non_p_dir(2)=1

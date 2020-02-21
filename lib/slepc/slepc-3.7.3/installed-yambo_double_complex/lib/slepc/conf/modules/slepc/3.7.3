@@ -1,0 +1,12 @@
+#%Module
+
+proc ModulesHelp { } {
+    puts stderr "This module sets the path and environment variables for slepc-3.7.3"
+    puts stderr "     see http://slepc.upv.es/ for more information"
+    puts stderr ""
+}
+module-whatis "SLEPc - Scalable Library for Eigenvalue Problem Computations"
+
+module load petsc
+set slepc_dir /home/maurizia/D_PGM/D_exc/yambo-libs/gfortran/mpifort/double
+setenv SLEPC_DIR $slepc_dir

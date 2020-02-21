@@ -1,0 +1,593 @@
+<center><a href="fdmatrix.c">Actual source code: fdmatrix.c</a></center><br>
+
+<html>
+<head> <link rel="canonical" href="http://www.mcs.anl.gov/petsc/petsc-current/src/mat/matfd/fdmatrix.c.html" />
+<title></title>
+<meta name="generator" content="c2html 0.9.4">
+<meta name="date" content="2016-10-03T02:40:15+00:00">
+</head>
+
+<body bgcolor="#FFFFFF">
+   <div id="version" align=right><b>petsc-3.7.4 2016-10-02</b></div>
+   <div id="bugreport" align=right><a href="mailto:petsc-maint@mcs.anl.gov?subject=Typo or Error in Documentation &body=Please describe the typo or error in the documentation: petsc-3.7.4 v3.7.4 src/mat/matfd/fdmatrix.c.html "><small>Report Typos and Errors</small></a></div>
+<pre width="80">
+<a name="line2">  2: </a><font color="#B22222">/*</font>
+<a name="line3">  3: </a><font color="#B22222">   This is where the abstract matrix operations are defined that are</font>
+<a name="line4">  4: </a><font color="#B22222">  used for finite difference computations of Jacobians using coloring.</font>
+<a name="line5">  5: </a><font color="#B22222">*/</font>
+
+<a name="line7">  7: </a><font color="#A020F0">#include &lt;petsc/private/matimpl.h&gt;        </font><font color="#B22222">/*I "petscmat.h" I*/</font><font color="#A020F0"></font>
+<a name="line8">  8: </a><font color="#A020F0">#include &lt;petsc/private/isimpl.h&gt;</font>
+
+<a name="line12"> 12: </a><strong><font color="#4169E1"><a name="MatFDColoringSetF"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  MatFDColoringSetF(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> fd,<a href="../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> F)</font></strong>
+<a name="line13"> 13: </a>{
+
+<a name="line17"> 17: </a>  <font color="#4169E1">if</font> (F) {
+<a name="line18"> 18: </a>    <a href="../../../docs/manualpages/Vec/VecCopy.html#VecCopy">VecCopy</a>(F,fd-&gt;w1);
+<a name="line19"> 19: </a>    fd-&gt;fset = <a href="../../../docs/manualpages/Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</a>;
+<a name="line20"> 20: </a>  } <font color="#4169E1">else</font> {
+<a name="line21"> 21: </a>    fd-&gt;fset = <a href="../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+<a name="line22"> 22: </a>  }
+<a name="line23"> 23: </a>  <font color="#4169E1">return</font>(0);
+<a name="line24"> 24: </a>}
+
+<a name="line26"> 26: </a><font color="#A020F0">#include &lt;petscdraw.h&gt;</font>
+<a name="line29"> 29: </a><strong><font color="#4169E1"><a name="MatFDColoringView_Draw_Zoom"></a>static <a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> MatFDColoringView_Draw_Zoom(<a href="../../../docs/manualpages/Draw/PetscDraw.html#PetscDraw">PetscDraw</a> draw,void *Aa)</font></strong>
+<a name="line30"> 30: </a>{
+<a name="line31"> 31: </a>  <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a>  fd = (<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a>)Aa;
+<a name="line33"> 33: </a>  <a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       i,j,nz,row;
+<a name="line34"> 34: </a>  <a href="../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>      x,y;
+<a name="line35"> 35: </a>  MatEntry       *Jentry=fd-&gt;matentry;
+
+<a name="line38"> 38: </a>  <font color="#B22222">/* loop over colors  */</font>
+<a name="line39"> 39: </a>  nz = 0;
+<a name="line40"> 40: </a>  <font color="#4169E1">for</font> (i=0; i&lt;fd-&gt;ncolors; i++) {
+<a name="line41"> 41: </a>    <font color="#4169E1">for</font> (j=0; j&lt;fd-&gt;nrows[i]; j++) {
+<a name="line42"> 42: </a>      row = Jentry[nz].row;
+<a name="line43"> 43: </a>      y   = fd-&gt;M - row - fd-&gt;rstart;
+<a name="line44"> 44: </a>      x   = (<a href="../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>)Jentry[nz++].col;
+<a name="line45"> 45: </a>      <a href="../../../docs/manualpages/Draw/PetscDrawRectangle.html#PetscDrawRectangle">PetscDrawRectangle</a>(draw,x,y,x+1,y+1,i+1,i+1,i+1,i+1);
+<a name="line46"> 46: </a>    }
+<a name="line47"> 47: </a>  }
+<a name="line48"> 48: </a>  <font color="#4169E1">return</font>(0);
+<a name="line49"> 49: </a>}
+
+<a name="line53"> 53: </a><strong><font color="#4169E1"><a name="MatFDColoringView_Draw"></a>static <a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> MatFDColoringView_Draw(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> fd,<a href="../../../docs/manualpages/Viewer/PetscViewer.html#PetscViewer">PetscViewer</a> viewer)</font></strong>
+<a name="line54"> 54: </a>{
+<a name="line56"> 56: </a>  <a href="../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      isnull;
+<a name="line57"> 57: </a>  <a href="../../../docs/manualpages/Draw/PetscDraw.html#PetscDraw">PetscDraw</a>      draw;
+<a name="line58"> 58: </a>  <a href="../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a>      xr,yr,xl,yl,h,w;
+
+<a name="line61"> 61: </a>  <a href="../../../docs/manualpages/Viewer/PetscViewerDrawGetDraw.html#PetscViewerDrawGetDraw">PetscViewerDrawGetDraw</a>(viewer,0,&amp;draw);
+<a name="line62"> 62: </a>  <a href="../../../docs/manualpages/Draw/PetscDrawIsNull.html#PetscDrawIsNull">PetscDrawIsNull</a>(draw,&amp;isnull);
+<a name="line63"> 63: </a>  <font color="#4169E1">if</font> (isnull) <font color="#4169E1">return</font>(0);
+
+<a name="line65"> 65: </a>  xr   = fd-&gt;N; yr  = fd-&gt;M; h = yr/10.0; w = xr/10.0;
+<a name="line66"> 66: </a>  xr  += w;     yr += h;    xl = -w;     yl = -h;
+<a name="line67"> 67: </a>  <a href="../../../docs/manualpages/Draw/PetscDrawSetCoordinates.html#PetscDrawSetCoordinates">PetscDrawSetCoordinates</a>(draw,xl,yl,xr,yr);
+<a name="line68"> 68: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectCompose.html#PetscObjectCompose">PetscObjectCompose</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)fd,<font color="#666666">"Zoomviewer"</font>,(<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)viewer);
+<a name="line69"> 69: </a>  <a href="../../../docs/manualpages/Draw/PetscDrawZoom.html#PetscDrawZoom">PetscDrawZoom</a>(draw,MatFDColoringView_Draw_Zoom,fd);
+<a name="line70"> 70: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectCompose.html#PetscObjectCompose">PetscObjectCompose</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)fd,<font color="#666666">"Zoomviewer"</font>,NULL);
+<a name="line71"> 71: </a>  <a href="../../../docs/manualpages/Draw/PetscDrawSave.html#PetscDrawSave">PetscDrawSave</a>(draw);
+<a name="line72"> 72: </a>  <font color="#4169E1">return</font>(0);
+<a name="line73"> 73: </a>}
+
+<a name="line77"> 77: </a><font color="#B22222">/*@C</font>
+<a name="line78"> 78: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a> - Views a finite difference coloring context.</font>
+
+<a name="line80"> 80: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line82"> 82: </a><font color="#B22222">   Input  Parameters:</font>
+<a name="line83"> 83: </a><font color="#B22222">+  c - the coloring context</font>
+<a name="line84"> 84: </a><font color="#B22222">-  viewer - visualization context</font>
+
+<a name="line86"> 86: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line88"> 88: </a><font color="#B22222">   Notes:</font>
+<a name="line89"> 89: </a><font color="#B22222">   The available visualization contexts include</font>
+<a name="line90"> 90: </a><font color="#B22222">+     <a href="../../../docs/manualpages/Viewer/PETSC_VIEWER_STDOUT_SELF.html#PETSC_VIEWER_STDOUT_SELF">PETSC_VIEWER_STDOUT_SELF</a> - standard output (default)</font>
+<a name="line91"> 91: </a><font color="#B22222">.     <a href="../../../docs/manualpages/Viewer/PETSC_VIEWER_STDOUT_WORLD.html#PETSC_VIEWER_STDOUT_WORLD">PETSC_VIEWER_STDOUT_WORLD</a> - synchronized standard</font>
+<a name="line92"> 92: </a><font color="#B22222">        output where only the first processor opens</font>
+<a name="line93"> 93: </a><font color="#B22222">        the file.  All other processors send their</font>
+<a name="line94"> 94: </a><font color="#B22222">        data to the first processor to print.</font>
+<a name="line95"> 95: </a><font color="#B22222">-     <a href="../../../docs/manualpages/Viewer/PETSC_VIEWER_DRAW_WORLD.html#PETSC_VIEWER_DRAW_WORLD">PETSC_VIEWER_DRAW_WORLD</a> - graphical display of nonzero structure</font>
+
+<a name="line97"> 97: </a><font color="#B22222">   Notes:</font>
+<a name="line98"> 98: </a><font color="#B22222">     Since PETSc uses only a small number of basic colors (currently 33), if the coloring</font>
+<a name="line99"> 99: </a><font color="#B22222">   involves more than 33 then some seemingly identical colors are displayed making it look</font>
+<a name="line100">100: </a><font color="#B22222">   like an illegal coloring. This is just a graphical artifact.</font>
+
+<a name="line102">102: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>()</font>
+
+<a name="line104">104: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, finite differences, coloring, view</font>
+<a name="line105">105: </a><font color="#B22222">@*/</font>
+<a name="line106">106: </a><strong><font color="#4169E1"><a name="MatFDColoringView"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> c,<a href="../../../docs/manualpages/Viewer/PetscViewer.html#PetscViewer">PetscViewer</a> viewer)</font></strong>
+<a name="line107">107: </a>{
+<a name="line108">108: </a>  <a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>    ierr;
+<a name="line109">109: </a>  <a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>          i,j;
+<a name="line110">110: </a>  <a href="../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>         isdraw,iascii;
+<a name="line111">111: </a>  <a href="../../../docs/manualpages/Viewer/PetscViewerFormat.html#PetscViewerFormat">PetscViewerFormat</a> format;
+
+<a name="line115">115: </a>  <font color="#4169E1">if</font> (!viewer) {
+<a name="line116">116: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIGetStdout.html#PetscViewerASCIIGetStdout">PetscViewerASCIIGetStdout</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c),&amp;viewer);
+<a name="line117">117: </a>  }
+
+<a name="line121">121: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)viewer,PETSCVIEWERDRAW,&amp;isdraw);
+<a name="line122">122: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectTypeCompare.html#PetscObjectTypeCompare">PetscObjectTypeCompare</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)viewer,PETSCVIEWERASCII,&amp;iascii);
+<a name="line123">123: </a>  <font color="#4169E1">if</font> (isdraw) {
+<a name="line124">124: </a>    MatFDColoringView_Draw(c,viewer);
+<a name="line125">125: </a>  } <font color="#4169E1">else</font> <font color="#4169E1">if</font> (iascii) {
+<a name="line126">126: </a>    PetscObjectPrintClassNamePrefixType((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c,viewer);
+<a name="line127">127: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Error tolerance=%g\n"</font>,(double)c-&gt;error_rel);
+<a name="line128">128: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Umin=%g\n"</font>,(double)c-&gt;umin);
+<a name="line129">129: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Number of colors=%D\n"</font>,c-&gt;ncolors);
+
+<a name="line131">131: </a>    PetscViewerGetFormat(viewer,&amp;format);
+<a name="line132">132: </a>    <font color="#4169E1">if</font> (format != PETSC_VIEWER_ASCII_INFO) {
+<a name="line133">133: </a>      <a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> row,col,nz;
+<a name="line134">134: </a>      nz = 0;
+<a name="line135">135: </a>      <font color="#4169E1">for</font> (i=0; i&lt;c-&gt;ncolors; i++) {
+<a name="line136">136: </a>        <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"  Information for color %D\n"</font>,i);
+<a name="line137">137: </a>        <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"    Number of columns %D\n"</font>,c-&gt;ncolumns[i]);
+<a name="line138">138: </a>        <font color="#4169E1">for</font> (j=0; j&lt;c-&gt;ncolumns[i]; j++) {
+<a name="line139">139: </a>          <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"      %D\n"</font>,c-&gt;columns[i][j]);
+<a name="line140">140: </a>        }
+<a name="line141">141: </a>        <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"    Number of rows %D\n"</font>,c-&gt;nrows[i]);
+<a name="line142">142: </a>        <font color="#4169E1">for</font> (j=0; j&lt;c-&gt;nrows[i]; j++) {
+<a name="line143">143: </a>          row  = c-&gt;matentry[nz].row;
+<a name="line144">144: </a>          col  = c-&gt;matentry[nz++].col;
+<a name="line145">145: </a>          <a href="../../../docs/manualpages/Viewer/PetscViewerASCIIPrintf.html#PetscViewerASCIIPrintf">PetscViewerASCIIPrintf</a>(viewer,<font color="#666666">"      %D %D \n"</font>,row,col);
+<a name="line146">146: </a>        }
+<a name="line147">147: </a>      }
+<a name="line148">148: </a>    }
+<a name="line149">149: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerFlush.html#PetscViewerFlush">PetscViewerFlush</a>(viewer);
+<a name="line150">150: </a>  }
+<a name="line151">151: </a>  <font color="#4169E1">return</font>(0);
+<a name="line152">152: </a>}
+
+<a name="line156">156: </a><font color="#B22222">/*@</font>
+<a name="line157">157: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a> - Sets the parameters for the sparse approximation of</font>
+<a name="line158">158: </a><font color="#B22222">   a Jacobian matrix using finite differences.</font>
+
+<a name="line160">160: </a><font color="#B22222">   Logically Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line162">162: </a><font color="#B22222">   The Jacobian is estimated with the differencing approximation</font>
+<a name="line163">163: </a><font color="#B22222">.vb</font>
+<a name="line164">164: </a><font color="#B22222">       F'(u)_{:,i} = [F(u+h*dx_{i}) - F(u)]/h where</font>
+<a name="line165">165: </a><font color="#B22222">       h = error_rel*u[i]                 if  abs(u[i]) &gt; umin</font>
+<a name="line166">166: </a><font color="#B22222">         = +/- error_rel*umin             otherwise, with +/- determined by the sign of u[i]</font>
+<a name="line167">167: </a><font color="#B22222">       dx_{i} = (0, ... 1, .... 0)</font>
+<a name="line168">168: </a><font color="#B22222">.ve</font>
+
+<a name="line170">170: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line171">171: </a><font color="#B22222">+  coloring - the coloring context</font>
+<a name="line172">172: </a><font color="#B22222">.  error_rel - relative error</font>
+<a name="line173">173: </a><font color="#B22222">-  umin - minimum allowable u-value magnitude</font>
+
+<a name="line175">175: </a><font color="#B22222">   Level: advanced</font>
+
+<a name="line177">177: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, finite differences, coloring, set, parameters</font>
+
+<a name="line179">179: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a>()</font>
+
+<a name="line181">181: </a><font color="#B22222">@*/</font>
+<a name="line182">182: </a><strong><font color="#4169E1"><a name="MatFDColoringSetParameters"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> <a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> matfd,<a href="../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> error,<a href="../../../docs/manualpages/Sys/PetscReal.html#PetscReal">PetscReal</a> umin)</font></strong>
+<a name="line183">183: </a>{
+<a name="line188">188: </a>  <font color="#4169E1">if</font> (error != <a href="../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a>) matfd-&gt;error_rel = error;
+<a name="line189">189: </a>  <font color="#4169E1">if</font> (umin != <a href="../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a>)  matfd-&gt;umin      = umin;
+<a name="line190">190: </a>  <font color="#4169E1">return</font>(0);
+<a name="line191">191: </a>}
+
+<a name="line195">195: </a><font color="#B22222">/*@</font>
+<a name="line196">196: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringSetBlockSize.html#MatFDColoringSetBlockSize">MatFDColoringSetBlockSize</a> - Sets block size for efficient inserting entries of Jacobian matrix.</font>
+
+<a name="line198">198: </a><font color="#B22222">   Logically Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line200">200: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line201">201: </a><font color="#B22222">+  coloring - the coloring context</font>
+<a name="line202">202: </a><font color="#B22222">.  brows - number of rows in the block</font>
+<a name="line203">203: </a><font color="#B22222">-  bcols - number of columns in the block</font>
+
+<a name="line205">205: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line207">207: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, coloring</font>
+
+<a name="line209">209: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a>()</font>
+
+<a name="line211">211: </a><font color="#B22222">@*/</font>
+<a name="line212">212: </a><strong><font color="#4169E1"><a name="MatFDColoringSetBlockSize"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> <a href="../../../docs/manualpages/MatFD/MatFDColoringSetBlockSize.html#MatFDColoringSetBlockSize">MatFDColoringSetBlockSize</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> matfd,<a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> brows,<a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> bcols)</font></strong>
+<a name="line213">213: </a>{
+<a name="line218">218: </a>  <font color="#4169E1">if</font> (brows != <a href="../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a>) matfd-&gt;brows = brows;
+<a name="line219">219: </a>  <font color="#4169E1">if</font> (bcols != <a href="../../../docs/manualpages/Sys/PETSC_DEFAULT.html#PETSC_DEFAULT">PETSC_DEFAULT</a>) matfd-&gt;bcols = bcols;
+<a name="line220">220: </a>  <font color="#4169E1">return</font>(0);
+<a name="line221">221: </a>}
+
+<a name="line225">225: </a><font color="#B22222">/*@</font>
+<a name="line226">226: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringSetUp.html#MatFDColoringSetUp">MatFDColoringSetUp</a> - Sets up the internal data structures of matrix coloring context for the later use.</font>
+
+<a name="line228">228: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a></font>
+
+<a name="line230">230: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line231">231: </a><font color="#B22222">+  mat - the matrix containing the nonzero structure of the Jacobian</font>
+<a name="line232">232: </a><font color="#B22222">.  iscoloring - the coloring of the matrix; usually obtained with MatGetColoring() or <a href="../../../docs/manualpages/DM/DMCreateColoring.html#DMCreateColoring">DMCreateColoring</a>()</font>
+<a name="line233">233: </a><font color="#B22222">-  color - the matrix coloring context</font>
+
+<a name="line235">235: </a><font color="#B22222">   Level: beginner</font>
+
+<a name="line237">237: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a>, setup</font>
+
+<a name="line239">239: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a>()</font>
+<a name="line240">240: </a><font color="#B22222">@*/</font>
+<a name="line241">241: </a><strong><font color="#4169E1"><a name="MatFDColoringSetUp"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> <a href="../../../docs/manualpages/MatFD/MatFDColoringSetUp.html#MatFDColoringSetUp">MatFDColoringSetUp</a>(<a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a> mat,<a href="../../../docs/manualpages/IS/ISColoring.html#ISColoring">ISColoring</a> iscoloring,<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> color)</font></strong>
+<a name="line242">242: </a>{
+
+<a name="line248">248: </a>  <font color="#4169E1">if</font> (color-&gt;setupcalled) <font color="#4169E1">return</font>(0);
+
+<a name="line250">250: </a>  <a href="../../../docs/manualpages/Profiling/PetscLogEventBegin.html#PetscLogEventBegin">PetscLogEventBegin</a>(MAT_FDColoringSetUp,mat,0,0,0);
+<a name="line251">251: </a>  <font color="#4169E1">if</font> (mat-&gt;ops-&gt;fdcoloringsetup) {
+<a name="line252">252: </a>    (*mat-&gt;ops-&gt;fdcoloringsetup)(mat,iscoloring,color);
+<a name="line253">253: </a>  } <font color="#4169E1">else</font> <a href="../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat),PETSC_ERR_SUP,<font color="#666666">"Code not yet written for matrix type %s"</font>,((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat)-&gt;type_name);
+
+<a name="line255">255: </a>  color-&gt;setupcalled = <a href="../../../docs/manualpages/Sys/PETSC_TRUE.html#PETSC_TRUE">PETSC_TRUE</a>;
+<a name="line256">256: </a>   <a href="../../../docs/manualpages/Profiling/PetscLogEventEnd.html#PetscLogEventEnd">PetscLogEventEnd</a>(MAT_FDColoringSetUp,mat,0,0,0);
+<a name="line257">257: </a>  <font color="#4169E1">return</font>(0);
+<a name="line258">258: </a>}
+
+<a name="line262">262: </a><font color="#B22222">/*@C</font>
+<a name="line263">263: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringGetFunction.html#MatFDColoringGetFunction">MatFDColoringGetFunction</a> - Gets the function to use for computing the Jacobian.</font>
+
+<a name="line265">265: </a><font color="#B22222">   Not Collective</font>
+
+<a name="line267">267: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line268">268: </a><font color="#B22222">.  coloring - the coloring context</font>
+
+<a name="line270">270: </a><font color="#B22222">   Output Parameters:</font>
+<a name="line271">271: </a><font color="#B22222">+  f - the function</font>
+<a name="line272">272: </a><font color="#B22222">-  fctx - the optional user-defined function context</font>
+
+<a name="line274">274: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line276">276: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, Jacobian, finite differences, set, function</font>
+
+<a name="line278">278: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a>()</font>
+
+<a name="line280">280: </a><font color="#B22222">@*/</font>
+<a name="line281">281: </a><strong><font color="#4169E1"><a name="MatFDColoringGetFunction"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringGetFunction.html#MatFDColoringGetFunction">MatFDColoringGetFunction</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> matfd,<a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> (**f)(void),void **fctx)</font></strong>
+<a name="line282">282: </a>{
+<a name="line285">285: </a>  <font color="#4169E1">if</font> (f) *f = matfd-&gt;f;
+<a name="line286">286: </a>  <font color="#4169E1">if</font> (fctx) *fctx = matfd-&gt;fctx;
+<a name="line287">287: </a>  <font color="#4169E1">return</font>(0);
+<a name="line288">288: </a>}
+
+<a name="line292">292: </a><font color="#B22222">/*@C</font>
+<a name="line293">293: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a> - Sets the function to use for computing the Jacobian.</font>
+
+<a name="line295">295: </a><font color="#B22222">   Logically Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line297">297: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line298">298: </a><font color="#B22222">+  coloring - the coloring context</font>
+<a name="line299">299: </a><font color="#B22222">.  f - the function</font>
+<a name="line300">300: </a><font color="#B22222">-  fctx - the optional user-defined function context</font>
+
+<a name="line302">302: </a><font color="#B22222">   Calling sequence of (*f) function:</font>
+<a name="line303">303: </a><font color="#B22222">    For <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a>:    <a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> (*f)(<a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a>,<a href="../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>,<a href="../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>,void*)</font>
+<a name="line304">304: </a><font color="#B22222">    If not using <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a>: <a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> (*f)(void *dummy,<a href="../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>,<a href="../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a>,void*) and dummy is ignored</font>
+
+<a name="line306">306: </a><font color="#B22222">   Level: advanced</font>
+
+<a name="line308">308: </a><font color="#B22222">   Notes: This function is usually used automatically by <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a> (when one uses <a href="../../../docs/manualpages/SNES/SNESSetJacobian.html#SNESSetJacobian">SNESSetJacobian</a>() with the argument</font>
+<a name="line309">309: </a><font color="#B22222">     <a href="../../../docs/manualpages/SNES/SNESComputeJacobianDefaultColor.html#SNESComputeJacobianDefaultColor">SNESComputeJacobianDefaultColor</a>()) and only needs to be used by someone computing a matrix via coloring directly by</font>
+<a name="line310">310: </a><font color="#B22222">     calling <a href="../../../docs/manualpages/MatFD/MatFDColoringApply.html#MatFDColoringApply">MatFDColoringApply</a>()</font>
+
+<a name="line312">312: </a><font color="#B22222">   Fortran Notes:</font>
+<a name="line313">313: </a><font color="#B22222">    In Fortran you must call <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a>() for a coloring object to</font>
+<a name="line314">314: </a><font color="#B22222">  be used without <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a> or within the <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a> solvers.</font>
+
+<a name="line316">316: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, Jacobian, finite differences, set, function</font>
+
+<a name="line318">318: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringGetFunction.html#MatFDColoringGetFunction">MatFDColoringGetFunction</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a>()</font>
+
+<a name="line320">320: </a><font color="#B22222">@*/</font>
+<a name="line321">321: </a><strong><font color="#4169E1"><a name="MatFDColoringSetFunction"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> matfd,<a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> (*f)(void),void *fctx)</font></strong>
+<a name="line322">322: </a>{
+<a name="line325">325: </a>  matfd-&gt;f    = f;
+<a name="line326">326: </a>  matfd-&gt;fctx = fctx;
+<a name="line327">327: </a>  <font color="#4169E1">return</font>(0);
+<a name="line328">328: </a>}
+
+<a name="line332">332: </a><font color="#B22222">/*@</font>
+<a name="line333">333: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a> - Sets coloring finite difference parameters from</font>
+<a name="line334">334: </a><font color="#B22222">   the options database.</font>
+
+<a name="line336">336: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line338">338: </a><font color="#B22222">   The Jacobian, F'(u), is estimated with the differencing approximation</font>
+<a name="line339">339: </a><font color="#B22222">.vb</font>
+<a name="line340">340: </a><font color="#B22222">       F'(u)_{:,i} = [F(u+h*dx_{i}) - F(u)]/h where</font>
+<a name="line341">341: </a><font color="#B22222">       h = error_rel*u[i]                 if  abs(u[i]) &gt; umin</font>
+<a name="line342">342: </a><font color="#B22222">         = +/- error_rel*umin             otherwise, with +/- determined by the sign of u[i]</font>
+<a name="line343">343: </a><font color="#B22222">       dx_{i} = (0, ... 1, .... 0)</font>
+<a name="line344">344: </a><font color="#B22222">.ve</font>
+
+<a name="line346">346: </a><font color="#B22222">   Input Parameter:</font>
+<a name="line347">347: </a><font color="#B22222">.  coloring - the coloring context</font>
+
+<a name="line349">349: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line350">350: </a><font color="#B22222">+  -mat_fd_coloring_err &lt;err&gt; - Sets &lt;err&gt; (square root of relative error in the function)</font>
+<a name="line351">351: </a><font color="#B22222">.  -mat_fd_coloring_umin &lt;umin&gt; - Sets umin, the minimum allowable u-value magnitude</font>
+<a name="line352">352: </a><font color="#B22222">.  -mat_fd_type - "wp" or "ds" (see <a href="../../../docs/manualpages/Mat/MATMFFD_WP.html#MATMFFD_WP">MATMFFD_WP</a> or <a href="../../../docs/manualpages/Mat/MATMFFD_DS.html#MATMFFD_DS">MATMFFD_DS</a>)</font>
+<a name="line353">353: </a><font color="#B22222">.  -mat_fd_coloring_view - Activates basic viewing</font>
+<a name="line354">354: </a><font color="#B22222">.  -mat_fd_coloring_view ::ascii_info - Activates viewing info</font>
+<a name="line355">355: </a><font color="#B22222">-  -mat_fd_coloring_view draw - Activates drawing</font>
+
+<a name="line357">357: </a><font color="#B22222">    Level: intermediate</font>
+
+<a name="line359">359: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, finite differences, parameters</font>
+
+<a name="line361">361: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a>()</font>
+
+<a name="line363">363: </a><font color="#B22222">@*/</font>
+<a name="line364">364: </a><strong><font color="#4169E1"><a name="MatFDColoringSetFromOptions"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> matfd)</font></strong>
+<a name="line365">365: </a>{
+<a name="line367">367: </a>  <a href="../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      flg;
+<a name="line368">368: </a>  char           value[3];
+
+
+<a name="line373">373: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectOptionsBegin.html#PetscObjectOptionsBegin">PetscObjectOptionsBegin</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)matfd);
+<a name="line374">374: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsReal.html#PetscOptionsReal">PetscOptionsReal</a>(<font color="#666666">"-mat_fd_coloring_err"</font>,<font color="#666666">"Square root of relative error in function"</font>,<font color="#666666">"<a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a>"</font>,matfd-&gt;error_rel,&amp;matfd-&gt;error_rel,0);
+<a name="line375">375: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsReal.html#PetscOptionsReal">PetscOptionsReal</a>(<font color="#666666">"-mat_fd_coloring_umin"</font>,<font color="#666666">"Minimum allowable u magnitude"</font>,<font color="#666666">"<a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a>"</font>,matfd-&gt;umin,&amp;matfd-&gt;umin,0);
+<a name="line376">376: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsString.html#PetscOptionsString">PetscOptionsString</a>(<font color="#666666">"-mat_fd_type"</font>,<font color="#666666">"Algorithm to compute h, wp or ds"</font>,<font color="#666666">"<a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>"</font>,matfd-&gt;htype,value,3,&amp;flg);
+<a name="line377">377: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line378">378: </a>    <font color="#4169E1">if</font> (value[0] == 'w' &amp;&amp; value[1] == 'p') matfd-&gt;htype = <font color="#666666">"wp"</font>;
+<a name="line379">379: </a>    <font color="#4169E1">else</font> <font color="#4169E1">if</font> (value[0] == 'd' &amp;&amp; value[1] == 's') matfd-&gt;htype = <font color="#666666">"ds"</font>;
+<a name="line380">380: </a>    <font color="#4169E1">else</font> <a href="../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Unknown finite differencing type %s"</font>,value);
+<a name="line381">381: </a>  }
+<a name="line382">382: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsInt.html#PetscOptionsInt">PetscOptionsInt</a>(<font color="#666666">"-mat_fd_coloring_brows"</font>,<font color="#666666">"Number of block rows"</font>,<font color="#666666">"<a href="../../../docs/manualpages/MatFD/MatFDColoringSetBlockSize.html#MatFDColoringSetBlockSize">MatFDColoringSetBlockSize</a>"</font>,matfd-&gt;brows,&amp;matfd-&gt;brows,NULL);
+<a name="line383">383: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsInt.html#PetscOptionsInt">PetscOptionsInt</a>(<font color="#666666">"-mat_fd_coloring_bcols"</font>,<font color="#666666">"Number of block columns"</font>,<font color="#666666">"<a href="../../../docs/manualpages/MatFD/MatFDColoringSetBlockSize.html#MatFDColoringSetBlockSize">MatFDColoringSetBlockSize</a>"</font>,matfd-&gt;bcols,&amp;matfd-&gt;bcols,&amp;flg);
+<a name="line384">384: </a>  <font color="#4169E1">if</font> (flg &amp;&amp; matfd-&gt;bcols &gt; matfd-&gt;ncolors) {
+<a name="line385">385: </a>    <font color="#B22222">/* input bcols cannot be &gt; matfd-&gt;ncolors, thus set it as ncolors */</font>
+<a name="line386">386: </a>    matfd-&gt;bcols = matfd-&gt;ncolors;
+<a name="line387">387: </a>  }
+
+<a name="line389">389: </a>  <font color="#B22222">/* process any options handlers added with <a href="../../../docs/manualpages/Sys/PetscObjectAddOptionsHandler.html#PetscObjectAddOptionsHandler">PetscObjectAddOptionsHandler</a>() */</font>
+<a name="line390">390: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectProcessOptionsHandlers.html#PetscObjectProcessOptionsHandlers">PetscObjectProcessOptionsHandlers</a>(PetscOptionsObject,(<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)matfd);
+<a name="line391">391: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsEnd.html#PetscOptionsEnd">PetscOptionsEnd</a>();
+<a name="line392">392: </a>  <font color="#4169E1">return</font>(0);
+<a name="line393">393: </a>}
+
+<a name="line397">397: </a><font color="#B22222">/*@C</font>
+<a name="line398">398: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringSetType.html#MatFDColoringSetType">MatFDColoringSetType</a> - Sets the approach for computing the finite difference parameter</font>
+
+<a name="line400">400: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line402">402: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line403">403: </a><font color="#B22222">+  coloring - the coloring context</font>
+<a name="line404">404: </a><font color="#B22222">-  type - either <a href="../../../docs/manualpages/Mat/MATMFFD_WP.html#MATMFFD_WP">MATMFFD_WP</a> or <a href="../../../docs/manualpages/Mat/MATMFFD_DS.html#MATMFFD_DS">MATMFFD_DS</a></font>
+
+<a name="line406">406: </a><font color="#B22222">   Options Database Keys:</font>
+<a name="line407">407: </a><font color="#B22222">.  -mat_fd_type - "wp" or "ds"</font>
+
+<a name="line409">409: </a><font color="#B22222">   Note: It is goofy that the argument type is <a href="../../../docs/manualpages/Mat/MatMFFDType.html#MatMFFDType">MatMFFDType</a> since the <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> actually computes the matrix entries</font>
+<a name="line410">410: </a><font color="#B22222">         but the process of computing the entries is the same as as with the <a href="../../../docs/manualpages/Mat/MatMFFD.html#MatMFFD">MatMFFD</a> operation so we should reuse the names instead of</font>
+<a name="line411">411: </a><font color="#B22222">         introducing another one.</font>
+
+<a name="line413">413: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line415">415: </a><font color="#B22222">.keywords: <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>, finite differences, parameters</font>
+
+<a name="line417">417: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a>()</font>
+
+<a name="line419">419: </a><font color="#B22222">@*/</font>
+<a name="line420">420: </a><strong><font color="#4169E1"><a name="MatFDColoringSetType"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringSetType.html#MatFDColoringSetType">MatFDColoringSetType</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> matfd,<a href="../../../docs/manualpages/Mat/MatMFFDType.html#MatMFFDType">MatMFFDType</a> type)</font></strong>
+<a name="line421">421: </a>{
+<a name="line424">424: </a>  <font color="#B22222">/*</font>
+<a name="line425">425: </a><font color="#B22222">     It is goofy to handle the strings this way but currently there is no code to free a dynamically created matfd-&gt;htype</font>
+<a name="line426">426: </a><font color="#B22222">     and this function is being provided as patch for a release so it shouldn't change the implementaton</font>
+<a name="line427">427: </a><font color="#B22222">  */</font>
+<a name="line428">428: </a>  <font color="#4169E1">if</font> (type[0] == 'w' &amp;&amp; type[1] == 'p') matfd-&gt;htype = <font color="#666666">"wp"</font>;
+<a name="line429">429: </a>  <font color="#4169E1">else</font> <font color="#4169E1">if</font> (type[0] == 'd' &amp;&amp; type[1] == 's') matfd-&gt;htype = <font color="#666666">"ds"</font>;
+<a name="line430">430: </a>  <font color="#4169E1">else</font> <a href="../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_OUTOFRANGE,<font color="#666666">"Unknown finite differencing type %s"</font>,type);
+<a name="line431">431: </a>  <font color="#4169E1">return</font>(0);
+<a name="line432">432: </a>}
+
+<a name="line436">436: </a><strong><font color="#4169E1"><a name="MatFDColoringViewFromOptions"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a> MatFDColoringViewFromOptions(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> fd,const char prefix[],const char optionname[])</font></strong>
+<a name="line437">437: </a>{
+<a name="line438">438: </a>  <a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>    ierr;
+<a name="line439">439: </a>  <a href="../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>         flg;
+<a name="line440">440: </a>  <a href="../../../docs/manualpages/Viewer/PetscViewer.html#PetscViewer">PetscViewer</a>       viewer;
+<a name="line441">441: </a>  <a href="../../../docs/manualpages/Viewer/PetscViewerFormat.html#PetscViewerFormat">PetscViewerFormat</a> format;
+
+<a name="line444">444: </a>  <font color="#4169E1">if</font> (prefix) {
+<a name="line445">445: </a>    <a href="../../../docs/manualpages/Viewer/PetscOptionsGetViewer.html#PetscOptionsGetViewer">PetscOptionsGetViewer</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)fd),prefix,optionname,&amp;viewer,&amp;format,&amp;flg);
+<a name="line446">446: </a>  } <font color="#4169E1">else</font> {
+<a name="line447">447: </a>    <a href="../../../docs/manualpages/Viewer/PetscOptionsGetViewer.html#PetscOptionsGetViewer">PetscOptionsGetViewer</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)fd),((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)fd)-&gt;prefix,optionname,&amp;viewer,&amp;format,&amp;flg);
+<a name="line448">448: </a>  }
+<a name="line449">449: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line450">450: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerPushFormat.html#PetscViewerPushFormat">PetscViewerPushFormat</a>(viewer,format);
+<a name="line451">451: </a>    <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(fd,viewer);
+<a name="line452">452: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerPopFormat.html#PetscViewerPopFormat">PetscViewerPopFormat</a>(viewer);
+<a name="line453">453: </a>    <a href="../../../docs/manualpages/Viewer/PetscViewerDestroy.html#PetscViewerDestroy">PetscViewerDestroy</a>(&amp;viewer);
+<a name="line454">454: </a>  }
+<a name="line455">455: </a>  <font color="#4169E1">return</font>(0);
+<a name="line456">456: </a>}
+
+<a name="line460">460: </a><font color="#B22222">/*@</font>
+<a name="line461">461: </a><font color="#B22222">   <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a> - Creates a matrix coloring context for finite difference</font>
+<a name="line462">462: </a><font color="#B22222">   computation of Jacobians.</font>
+
+<a name="line464">464: </a><font color="#B22222">   Collective on <a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a></font>
+
+<a name="line466">466: </a><font color="#B22222">   Input Parameters:</font>
+<a name="line467">467: </a><font color="#B22222">+  mat - the matrix containing the nonzero structure of the Jacobian</font>
+<a name="line468">468: </a><font color="#B22222">-  iscoloring - the coloring of the matrix; usually obtained with <a href="../../../docs/manualpages/MatOrderings/MatColoringCreate.html#MatColoringCreate">MatColoringCreate</a>() or <a href="../../../docs/manualpages/DM/DMCreateColoring.html#DMCreateColoring">DMCreateColoring</a>()</font>
+
+<a name="line470">470: </a><font color="#B22222">    Output Parameter:</font>
+<a name="line471">471: </a><font color="#B22222">.   color - the new coloring context</font>
+
+<a name="line473">473: </a><font color="#B22222">    Level: intermediate</font>
+
+<a name="line475">475: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a>(),<a href="../../../docs/manualpages/SNES/SNESComputeJacobianDefaultColor.html#SNESComputeJacobianDefaultColor">SNESComputeJacobianDefaultColor</a>(), <a href="../../../docs/manualpages/IS/ISColoringCreate.html#ISColoringCreate">ISColoringCreate</a>(),</font>
+<a name="line476">476: </a><font color="#B22222">          <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFromOptions.html#MatFDColoringSetFromOptions">MatFDColoringSetFromOptions</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringApply.html#MatFDColoringApply">MatFDColoringApply</a>(),</font>
+<a name="line477">477: </a><font color="#B22222">          <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetParameters.html#MatFDColoringSetParameters">MatFDColoringSetParameters</a>(), <a href="../../../docs/manualpages/MatOrderings/MatColoringCreate.html#MatColoringCreate">MatColoringCreate</a>(), <a href="../../../docs/manualpages/DM/DMCreateColoring.html#DMCreateColoring">DMCreateColoring</a>()</font>
+<a name="line478">478: </a><font color="#B22222">@*/</font>
+<a name="line479">479: </a><strong><font color="#4169E1"><a name="MatFDColoringCreate"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(<a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a> mat,<a href="../../../docs/manualpages/IS/ISColoring.html#ISColoring">ISColoring</a> iscoloring,<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> *color)</font></strong>
+<a name="line480">480: </a>{
+<a name="line481">481: </a>  <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a>  c;
+<a name="line482">482: </a>  <a href="../../../docs/manualpages/Sys/MPI_Comm.html#MPI_Comm">MPI_Comm</a>       comm;
+<a name="line484">484: </a>  <a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       M,N;
+
+<a name="line488">488: </a>  <font color="#4169E1">if</font> (!mat-&gt;assembled) <a href="../../../docs/manualpages/Sys/SETERRQ.html#SETERRQ">SETERRQ</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat),PETSC_ERR_ARG_WRONGSTATE,<font color="#666666">"Matrix must be assembled by calls to <a href="../../../docs/manualpages/Mat/MatAssemblyBegin.html#MatAssemblyBegin">MatAssemblyBegin</a>/End();"</font>);
+<a name="line489">489: </a>  <a href="../../../docs/manualpages/Profiling/PetscLogEventBegin.html#PetscLogEventBegin">PetscLogEventBegin</a>(MAT_FDColoringCreate,mat,0,0,0);
+<a name="line490">490: </a>  <a href="../../../docs/manualpages/Mat/MatGetSize.html#MatGetSize">MatGetSize</a>(mat,&amp;M,&amp;N);
+<a name="line491">491: </a>  <font color="#4169E1">if</font> (M != N) <a href="../../../docs/manualpages/Sys/SETERRQ.html#SETERRQ">SETERRQ</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat),PETSC_ERR_SUP,<font color="#666666">"Only for square matrices"</font>);
+<a name="line492">492: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectGetComm.html#PetscObjectGetComm">PetscObjectGetComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat,&amp;comm);
+<a name="line493">493: </a>  <a href="../../../docs/manualpages/Sys/PetscHeaderCreate.html#PetscHeaderCreate">PetscHeaderCreate</a>(c,MAT_FDCOLORING_CLASSID,<font color="#666666">"<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a>"</font>,<font color="#666666">"Jacobian computation via finite differences with coloring"</font>,<font color="#666666">"<a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a>"</font>,comm,<a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a>,<a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>);
+
+<a name="line495">495: </a>  c-&gt;ctype = iscoloring-&gt;ctype;
+
+<a name="line497">497: </a>  <font color="#4169E1">if</font> (mat-&gt;ops-&gt;fdcoloringcreate) {
+<a name="line498">498: </a>    (*mat-&gt;ops-&gt;fdcoloringcreate)(mat,iscoloring,c);
+<a name="line499">499: </a>  } <font color="#4169E1">else</font> <a href="../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat),PETSC_ERR_SUP,<font color="#666666">"Code not yet written for matrix type %s"</font>,((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat)-&gt;type_name);
+
+<a name="line501">501: </a>  <a href="../../../docs/manualpages/Mat/MatCreateVecs.html#MatCreateVecs">MatCreateVecs</a>(mat,NULL,&amp;c-&gt;w1);
+<a name="line502">502: </a>  PetscLogObjectParent((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c,(<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c-&gt;w1);
+<a name="line503">503: </a>  <a href="../../../docs/manualpages/Vec/VecDuplicate.html#VecDuplicate">VecDuplicate</a>(c-&gt;w1,&amp;c-&gt;w2);
+<a name="line504">504: </a>  PetscLogObjectParent((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c,(<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c-&gt;w2);
+
+<a name="line506">506: </a>  c-&gt;error_rel    = PETSC_SQRT_MACHINE_EPSILON;
+<a name="line507">507: </a>  c-&gt;umin         = 100.0*PETSC_SQRT_MACHINE_EPSILON;
+<a name="line508">508: </a>  c-&gt;currentcolor = -1;
+<a name="line509">509: </a>  c-&gt;htype        = <font color="#666666">"wp"</font>;
+<a name="line510">510: </a>  c-&gt;fset         = <a href="../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+<a name="line511">511: </a>  c-&gt;setupcalled  = <a href="../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+
+<a name="line513">513: </a>  *color = c;
+<a name="line514">514: </a>  <a href="../../../docs/manualpages/Sys/PetscObjectCompose.html#PetscObjectCompose">PetscObjectCompose</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)mat,<font color="#666666">"SNESMatFDColoring"</font>,(<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)c);
+<a name="line515">515: </a>  <a href="../../../docs/manualpages/Profiling/PetscLogEventEnd.html#PetscLogEventEnd">PetscLogEventEnd</a>(MAT_FDColoringCreate,mat,0,0,0);
+<a name="line516">516: </a>  <font color="#4169E1">return</font>(0);
+<a name="line517">517: </a>}
+
+<a name="line521">521: </a><font color="#B22222">/*@</font>
+<a name="line522">522: </a><font color="#B22222">    <a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a> - Destroys a matrix coloring context that was created</font>
+<a name="line523">523: </a><font color="#B22222">    via <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>().</font>
+
+<a name="line525">525: </a><font color="#B22222">    Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line527">527: </a><font color="#B22222">    Input Parameter:</font>
+<a name="line528">528: </a><font color="#B22222">.   c - coloring context</font>
+
+<a name="line530">530: </a><font color="#B22222">    Level: intermediate</font>
+
+<a name="line532">532: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>()</font>
+<a name="line533">533: </a><font color="#B22222">@*/</font>
+<a name="line534">534: </a><strong><font color="#4169E1"><a name="MatFDColoringDestroy"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> *c)</font></strong>
+<a name="line535">535: </a>{
+<a name="line537">537: </a>  <a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a>       i;
+<a name="line538">538: </a>  <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a>  color = *c;
+
+<a name="line541">541: </a>  <font color="#4169E1">if</font> (!*c) <font color="#4169E1">return</font>(0);
+<a name="line542">542: </a>  <font color="#4169E1">if</font> (--((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)color)-&gt;refct &gt; 0) {*c = 0; <font color="#4169E1">return</font>(0);}
+
+<a name="line544">544: </a>  <font color="#4169E1">for</font> (i=0; i&lt;color-&gt;ncolors; i++) {
+<a name="line545">545: </a>    <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;columns[i]);
+<a name="line546">546: </a>  }
+<a name="line547">547: </a>  <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;ncolumns);
+<a name="line548">548: </a>  <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;columns);
+<a name="line549">549: </a>  <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;nrows);
+<a name="line550">550: </a>  <font color="#4169E1">if</font> (color-&gt;htype[0] == 'w') {
+<a name="line551">551: </a>    <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;matentry2);
+<a name="line552">552: </a>  } <font color="#4169E1">else</font> {
+<a name="line553">553: </a>    <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;matentry);
+<a name="line554">554: </a>  }
+<a name="line555">555: </a>  <a href="../../../docs/manualpages/Sys/PetscFree.html#PetscFree">PetscFree</a>(color-&gt;dy);
+<a name="line556">556: </a>  <font color="#4169E1">if</font> (color-&gt;vscale) {<a href="../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;color-&gt;vscale);}
+<a name="line557">557: </a>  <a href="../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;color-&gt;w1);
+<a name="line558">558: </a>  <a href="../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;color-&gt;w2);
+<a name="line559">559: </a>  <a href="../../../docs/manualpages/Vec/VecDestroy.html#VecDestroy">VecDestroy</a>(&amp;color-&gt;w3);
+<a name="line560">560: </a>  <a href="../../../docs/manualpages/Sys/PetscHeaderDestroy.html#PetscHeaderDestroy">PetscHeaderDestroy</a>(c);
+<a name="line561">561: </a>  <font color="#4169E1">return</font>(0);
+<a name="line562">562: </a>}
+
+<a name="line566">566: </a><font color="#B22222">/*@C</font>
+<a name="line567">567: </a><font color="#B22222">    <a href="../../../docs/manualpages/MatFD/MatFDColoringGetPerturbedColumns.html#MatFDColoringGetPerturbedColumns">MatFDColoringGetPerturbedColumns</a> - Returns the indices of the columns that</font>
+<a name="line568">568: </a><font color="#B22222">      that are currently being perturbed.</font>
+
+<a name="line570">570: </a><font color="#B22222">    Not Collective</font>
+
+<a name="line572">572: </a><font color="#B22222">    Input Parameters:</font>
+<a name="line573">573: </a><font color="#B22222">.   coloring - coloring context created with <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>()</font>
+
+<a name="line575">575: </a><font color="#B22222">    Output Parameters:</font>
+<a name="line576">576: </a><font color="#B22222">+   n - the number of local columns being perturbed</font>
+<a name="line577">577: </a><font color="#B22222">-   cols - the column indices, in global numbering</font>
+
+<a name="line579">579: </a><font color="#B22222">   Level: intermediate</font>
+
+<a name="line581">581: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringApply.html#MatFDColoringApply">MatFDColoringApply</a>()</font>
+
+<a name="line583">583: </a><font color="#B22222">.keywords: coloring, Jacobian, finite differences</font>
+<a name="line584">584: </a><font color="#B22222">@*/</font>
+<a name="line585">585: </a><strong><font color="#4169E1"><a name="MatFDColoringGetPerturbedColumns"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringGetPerturbedColumns.html#MatFDColoringGetPerturbedColumns">MatFDColoringGetPerturbedColumns</a>(<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> coloring,<a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> *n,<a href="../../../docs/manualpages/Sys/PetscInt.html#PetscInt">PetscInt</a> *cols[])</font></strong>
+<a name="line586">586: </a>{
+<a name="line588">588: </a>  <font color="#4169E1">if</font> (coloring-&gt;currentcolor &gt;= 0) {
+<a name="line589">589: </a>    *n    = coloring-&gt;ncolumns[coloring-&gt;currentcolor];
+<a name="line590">590: </a>    *cols = coloring-&gt;columns[coloring-&gt;currentcolor];
+<a name="line591">591: </a>  } <font color="#4169E1">else</font> {
+<a name="line592">592: </a>    *n = 0;
+<a name="line593">593: </a>  }
+<a name="line594">594: </a>  <font color="#4169E1">return</font>(0);
+<a name="line595">595: </a>}
+
+<a name="line599">599: </a><font color="#B22222">/*@</font>
+<a name="line600">600: </a><font color="#B22222">    <a href="../../../docs/manualpages/MatFD/MatFDColoringApply.html#MatFDColoringApply">MatFDColoringApply</a> - Given a matrix for which a <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> context</font>
+<a name="line601">601: </a><font color="#B22222">    has been created, computes the Jacobian for a function via finite differences.</font>
+
+<a name="line603">603: </a><font color="#B22222">    Collective on <a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a></font>
+
+<a name="line605">605: </a><font color="#B22222">    Input Parameters:</font>
+<a name="line606">606: </a><font color="#B22222">+   mat - location to store Jacobian</font>
+<a name="line607">607: </a><font color="#B22222">.   coloring - coloring context created with <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>()</font>
+<a name="line608">608: </a><font color="#B22222">.   x1 - location at which Jacobian is to be computed</font>
+<a name="line609">609: </a><font color="#B22222">-   sctx - context required by function, if this is being used with the <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a> solver then it is <a href="../../../docs/manualpages/SNES/SNES.html#SNES">SNES</a> object, otherwise it is null</font>
+
+<a name="line611">611: </a><font color="#B22222">    Options Database Keys:</font>
+<a name="line612">612: </a><font color="#B22222">+    -mat_fd_type - "wp" or "ds"  (see <a href="../../../docs/manualpages/Mat/MATMFFD_WP.html#MATMFFD_WP">MATMFFD_WP</a> or <a href="../../../docs/manualpages/Mat/MATMFFD_DS.html#MATMFFD_DS">MATMFFD_DS</a>)</font>
+<a name="line613">613: </a><font color="#B22222">.    -mat_fd_coloring_view - Activates basic viewing or coloring</font>
+<a name="line614">614: </a><font color="#B22222">.    -mat_fd_coloring_view draw - Activates drawing of coloring</font>
+<a name="line615">615: </a><font color="#B22222">-    -mat_fd_coloring_view ::ascii_info - Activates viewing of coloring info</font>
+
+<a name="line617">617: </a><font color="#B22222">    Level: intermediate</font>
+
+<a name="line619">619: </a><font color="#B22222">.seealso: <a href="../../../docs/manualpages/MatFD/MatFDColoringCreate.html#MatFDColoringCreate">MatFDColoringCreate</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringDestroy.html#MatFDColoringDestroy">MatFDColoringDestroy</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringView.html#MatFDColoringView">MatFDColoringView</a>(), <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a>()</font>
+
+<a name="line621">621: </a><font color="#B22222">.keywords: coloring, Jacobian, finite differences</font>
+<a name="line622">622: </a><font color="#B22222">@*/</font>
+<a name="line623">623: </a><strong><font color="#4169E1"><a name="MatFDColoringApply"></a><a href="../../../docs/manualpages/Sys/PetscErrorCode.html#PetscErrorCode">PetscErrorCode</a>  <a href="../../../docs/manualpages/MatFD/MatFDColoringApply.html#MatFDColoringApply">MatFDColoringApply</a>(<a href="../../../docs/manualpages/Mat/Mat.html#Mat">Mat</a> J,<a href="../../../docs/manualpages/Mat/MatFDColoring.html#MatFDColoring">MatFDColoring</a> coloring,<a href="../../../docs/manualpages/Vec/Vec.html#Vec">Vec</a> x1,void *sctx)</font></strong>
+<a name="line624">624: </a>{
+<a name="line626">626: </a>  <a href="../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a>      flg = <a href="../../../docs/manualpages/Sys/PETSC_FALSE.html#PETSC_FALSE">PETSC_FALSE</a>;
+
+<a name="line632">632: </a>  <font color="#4169E1">if</font> (!coloring-&gt;f) <a href="../../../docs/manualpages/Sys/SETERRQ.html#SETERRQ">SETERRQ</a>(<a href="../../../docs/manualpages/Sys/PetscObjectComm.html#PetscObjectComm">PetscObjectComm</a>((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)J),PETSC_ERR_ARG_WRONGSTATE,<font color="#666666">"Must call <a href="../../../docs/manualpages/MatFD/MatFDColoringSetFunction.html#MatFDColoringSetFunction">MatFDColoringSetFunction</a>()"</font>);
+<a name="line633">633: </a>  <font color="#4169E1">if</font> (!J-&gt;ops-&gt;fdcoloringapply) <a href="../../../docs/manualpages/Sys/SETERRQ1.html#SETERRQ1">SETERRQ1</a>(<a href="../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_SUP,<font color="#666666">"Not supported for this matrix type %s"</font>,((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)J)-&gt;type_name);
+<a name="line634">634: </a>  <font color="#4169E1">if</font> (!coloring-&gt;setupcalled) <a href="../../../docs/manualpages/Sys/SETERRQ.html#SETERRQ">SETERRQ</a>(<a href="../../../docs/manualpages/Sys/PETSC_COMM_SELF.html#PETSC_COMM_SELF">PETSC_COMM_SELF</a>,PETSC_ERR_ARG_WRONGSTATE,<font color="#666666">"Must call <a href="../../../docs/manualpages/MatFD/MatFDColoringSetUp.html#MatFDColoringSetUp">MatFDColoringSetUp</a>()"</font>);
+
+<a name="line636">636: </a>  <a href="../../../docs/manualpages/Mat/MatSetUnfactored.html#MatSetUnfactored">MatSetUnfactored</a>(J);
+<a name="line637">637: </a>  <a href="../../../docs/manualpages/Sys/PetscOptionsGetBool.html#PetscOptionsGetBool">PetscOptionsGetBool</a>(((<a href="../../../docs/manualpages/Sys/PetscObject.html#PetscObject">PetscObject</a>)coloring)-&gt;options,NULL,<font color="#666666">"-mat_fd_coloring_dont_rezero"</font>,&amp;flg,NULL);
+<a name="line638">638: </a>  <font color="#4169E1">if</font> (flg) {
+<a name="line639">639: </a>    <a href="../../../docs/manualpages/Profiling/PetscInfo.html#PetscInfo">PetscInfo</a>(coloring,<font color="#666666">"Not calling <a href="../../../docs/manualpages/Mat/MatZeroEntries.html#MatZeroEntries">MatZeroEntries</a>()\n"</font>);
+<a name="line640">640: </a>  } <font color="#4169E1">else</font> {
+<a name="line641">641: </a>    <a href="../../../docs/manualpages/Sys/PetscBool.html#PetscBool">PetscBool</a> assembled;
+<a name="line642">642: </a>    <a href="../../../docs/manualpages/Mat/MatAssembled.html#MatAssembled">MatAssembled</a>(J,&amp;assembled);
+<a name="line643">643: </a>    <font color="#4169E1">if</font> (assembled) {
+<a name="line644">644: </a>      <a href="../../../docs/manualpages/Mat/MatZeroEntries.html#MatZeroEntries">MatZeroEntries</a>(J);
+<a name="line645">645: </a>    }
+<a name="line646">646: </a>  }
+
+<a name="line648">648: </a>  <a href="../../../docs/manualpages/Profiling/PetscLogEventBegin.html#PetscLogEventBegin">PetscLogEventBegin</a>(MAT_FDColoringApply,coloring,J,x1,0);
+<a name="line649">649: </a>  (*J-&gt;ops-&gt;fdcoloringapply)(J,coloring,x1,sctx);
+<a name="line650">650: </a>  <a href="../../../docs/manualpages/Profiling/PetscLogEventEnd.html#PetscLogEventEnd">PetscLogEventEnd</a>(MAT_FDColoringApply,coloring,J,x1,0);
+<a name="line651">651: </a>  <font color="#4169E1">return</font>(0);
+<a name="line652">652: </a>}
+</pre>
+</body>
+
+</html>
