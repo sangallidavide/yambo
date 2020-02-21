@@ -70,18 +70,13 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  !
  real(SP)           :: exc_energy
  real(SP)           :: tau0
- real(SP)           :: num,den,tau_eff,gamma_eff
+ real(SP)           :: num,den,tauT_eff,gammaT_eff
  real(DP)           :: arg
  !
  !HYC add 
  integer :: ik_mem
  complex(SP)        :: iR_EXC_TRY(3)
- !
- !VAJ add - trapezoidal integration
- integer, parameter :: n_trap=1000
- real(SP)           :: u_trap,du_trap,end_trap,start_trap,integrand,A,B,C,D,E,F
- real(SP)           :: integral
- integer            :: i_trap
+ real(SP)           :: phi(EXC_Phi_Grid)
  !
  logical            :: is_cut(3)
  !
@@ -108,7 +103,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
   titles(1)='E [eV]'
   titles(2)='Tau0(s)'
   titles(3)='tauT_aver(s)'
-  titles(4)='tau_eff(s)'
+  titles(4)='tauT_eff(s)'
  !
  do i_lambda=1,EXCITONS_n_user_states
    !
@@ -201,8 +196,8 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
      arg =real(BS_E(i_l)-BS_E(1))/EXC_temp
      num = num + dexp(-arg)*gammaT_aver
      den = den + dexp(-arg)
-     gamma_eff = num/den
-     tau_eff = AU2SEC/gamma_eff
+     gammaT_eff = num/den
+     tauT_eff = AU2SEC/gammaT_eff
    enddo
    111 format (i4, 6d15.7)
    !
@@ -211,7 +206,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
    call msg('o exc_life',"# ","gammaT aver  = "//trim(real2ch(gammaT_aver)),INDENT=0)
 !
    call msg('o exc_life','#',titles(:4),INDENT=0,USE_TABS=.true.) 
-   call msg('o exc_life',' ',(/exc_energy,tau0_grp,tauT_aver,tau_eff/),INDENT=0,USE_TABS=.true.)
+   call msg('o exc_life',' ',(/exc_energy,tau0_grp,tauT_aver,tauT_eff/),INDENT=0,USE_TABS=.true.)
   call of_open_close(ch_dummy)
    !
  enddo
