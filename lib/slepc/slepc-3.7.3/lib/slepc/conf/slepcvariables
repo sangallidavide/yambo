@@ -1,2 +1,0 @@
-SLEPC_DIR = /home/maurizia/D_PGM/D_exc/yambo-devel-github-lfnew1/lib/slepc/slepc-3.7.3
-PETSC_ARCH = installed-yambo_double_complex

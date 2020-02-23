@@ -1,1 +1,0 @@
-static const char *petscconfigureoptions = "--prefix=/home/maurizia/D_PGM/D_exc/yambo-libs/gfortran/mpifort/double --PETSC_ARCH=yambo_double_complex --with-ssl=0 --with-x=0 --with-cxx=0 --with-shared-libraries=0 --with-blas-lapack-lib=\"-llapack -lblas\" --with-scalar-type=complex --with-precision=double --with-cc=mpicc --with-fc=mpifort";

@@ -167,9 +167,10 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
       gamma0(i_l) =  4._SP*P_EXC_square*((real(BS_E(i_l))-EXC_shift)/(3._SP*real(nkbz)*SPEED_OF_LIGHT**3))
      endif
      if (l_1D) then
-     P_EXC_square = Px_EXC_square
-      gamma0(i_l) = (eps_2_alpha/DL_vol*real(nkbz))*P_EXC_square*4.*pi*SPEED_OF_LIGHT**2
+     P_EXC_square = Pz_EXC_square
+      gamma0(i_l) = eps_2_alpha*P_EXC_square*4.*pi/(DL_vol*real(nkbz)*SPEED_OF_LIGHT**2)
       alpha= 4._SP*(real(BS_E(i_l))-EXC_shift)/(3._SP*SPEED_OF_LIGHT*sqrt(2._SP*EXC_mass(1)*EXC_temp*PI))
+      write(9,*) exc_temp,exc_energy,P_EXC_square,alpha
      endif
      if (l_2D) then
      P_EXC_square = Px_EXC_square + Py_EXC_square 

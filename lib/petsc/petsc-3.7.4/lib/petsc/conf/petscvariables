@@ -1,3 +1,0 @@
-PETSC_ARCH=yambo_double_complex
-PETSC_DIR=/home/maurizia/D_PGM/D_exc/yambo-devel-github-lfnew1/lib/petsc/petsc-3.7.4
-include /home/maurizia/D_PGM/D_exc/yambo-devel-github-lfnew1/lib/petsc/petsc-3.7.4/yambo_double_complex/lib/petsc/conf/petscvariables
