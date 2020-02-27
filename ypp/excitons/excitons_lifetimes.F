@@ -100,6 +100,20 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  call section('=','Computing Excitons radiative lifetimes')
  !
  !
+ if ((l_1d) .and. (.not. is_cut(3))) then
+  write (6,*) 'STOP - 1D implemented only for periodic direction along z'
+  stop
+ endif
+ if ((l_2d) .and. (.not. is_cut(3))) then
+  write (6,*) 'STOP  - 2D implemented only for non-periodic direction along z'
+  stop
+ endif
+ if ((l_3d) .and. (epsi0(1).ne.epsi0(2)))  then
+  write (6,*) 'STOP - 3D implemented only for isotropic or anisotropic axiz along z'
+  stop
+ endif
+
+
   titles(1)='E [eV]'
   titles(2)='Tau0(s)'
   titles(3)='tauT_aver(s)'
@@ -164,24 +178,24 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
      !==========================================
      if (l_0D) then
       P_EXC_square=Px_EXC_square + Py_EXC_square + Pz_EXC_square
-      gamma0(i_l) =  4._SP*P_EXC_square*((real(BS_E(i_l))-EXC_shift)/(3._SP*real(nkbz)*SPEED_OF_LIGHT**3))
+      gamma0(i_l) =  4._SP*P_EXC_square*((real(BS_E(i_l))-EXC_shift)/(3._SP*SPEED_OF_LIGHT**3))
      endif
      if (l_1D) then
-     P_EXC_square = Pz_EXC_square
+      P_EXC_square = Pz_EXC_square
       gamma0(i_l) = eps_2_alpha*P_EXC_square*4.*pi/(DL_vol*real(nkbz)*SPEED_OF_LIGHT**2)
-      alpha= 4._SP*(real(BS_E(i_l))-EXC_shift)/(3._SP*SPEED_OF_LIGHT*sqrt(2._SP*EXC_mass(1)*EXC_temp*PI))
+      alpha= 4._SP*(real(BS_E(i_l))-EXC_shift)/(3._SP*SPEED_OF_LIGHT*sqrt(2._SP*EXC_mass(3)*EXC_temp*PI))
       write(9,*) exc_temp,exc_energy,P_EXC_square,alpha
      endif
      if (l_2D) then
      P_EXC_square = Px_EXC_square + Py_EXC_square 
       gamma0(i_l) = 4.*pi*P_EXC_square*eps_2_alpha/((DL_VOL*real(BS_E(i_l))-EXC_shift)*SPEED_OF_LIGHT*real(nkbz))
-      alpha=4.*(real(BS_E(i_l))-EXC_shift)**2/(3._SP*2._SP*(EXC_mass(1))*EXC_temp*SPEED_OF_LIGHT**2) 
+      alpha=4.*(real(BS_E(i_l))-EXC_shift)**2/(3._SP*2._SP*sqrt(EXC_mass(1)*EXC_mass(2))*EXC_temp*SPEED_OF_LIGHT**2) 
      endif 
      if (l_3D) then
       P_EXC_square = Px_EXC_square + Py_EXC_square + Pz_EXC_square
        gamma0(i_l) =  4.*pi*(sqrt(pi*epsi0(1))/DL_vol)/((real(BS_E(i_l))-EXC_shift)**2*real(nkbz))*&
        ((2._SP/3._SP*epsi0(3)/epsi0(1)+2._SP)*(Px_EXC_square+Py_EXC_square)+8./3.*Pz_EXC_square)
-      alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*(EXC_mass(1)**2*EXC_mass(2))**(1./3.)&
+      alpha=((real(BS_E(i_l))-EXC_shift)**2/(2._SP*(EXC_mass(1)**2*EXC_mass(3))**(1./3.)&
               *EXC_temp*SPEED_OF_LIGHT**2))**1.5
      endif
      gamma0_grp=gamma0_grp+gamma0(i_l)
