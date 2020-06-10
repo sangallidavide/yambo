@@ -30,7 +30,6 @@ subroutine INIT_ypp_load(defs)
  use wave_func,     ONLY:wf_ng
  use LIVE_t,        ONLY:nhash
  use D_lattice,     ONLY:Tel,Bose_Temp,non_periodic_directions
->>>>>>> origin/bug-fixes
  use electrons,     ONLY:n_spinor
  use interpolate,   ONLY:INTERP_shell_factor,INTERP_mode,NN_n_of_nearest
  use YPPm,          ONLY:E_field,alat_used_for_output,B_field,B_psi,B_theta,BANDS_bands,BANDS_path,&
