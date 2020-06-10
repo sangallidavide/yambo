@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2019 the YAMBO team
+!        Copyright (C) 2000-2020 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -39,7 +39,7 @@ integer function ypp(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_dir
  use interfaces,          ONLY:PARALLEL_global_indexes
  use YPPm,                 ONLY:l_bxsf,l_bz_grids,l_dos,l_electrons,l_fix_syms,l_map_kpts,l_map_WFs,&
 &                              l_QP_DBs_create_and_modify,l_QP_DBs_manipulate,l_excitons,l_wannier,&
-&                              l_fix_save,alat_used_for_output
+&                              l_fix_save,alat_used_for_output,l_QP_DB_expand
 #if defined _YPP_RT
  use YPP_real_time,       ONLY:l_RealTime,l_RT_abs,l_RT_DBs,l_NL_X,l_NL_exc
 #endif
@@ -109,9 +109,7 @@ integer function ypp(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_dir
    call ypp_finalize("Where is the SAVE?",instr)
    return
  else
-   call mk_dir(more_io_path)
-   call mk_dir(com_path)
-   if (ncpu>1) call mk_dir(trim(com_path)//"/LOG")
+   call IO_make_directories("MORE LOG")
  endif
  !
 #if defined _MEM_CHECK
@@ -211,6 +209,8 @@ integer function ypp(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_dir
  !
  if (l_QP_DBs_create_and_modify)  call QP_DBs_create_and_modify(en,k)
  !
+ if (l_QP_DB_expand)  call QP_DB_expand( k )
+ !
  if (l_QP_DBs_manipulate)  call QP_DBs_manipulate( en )
  !
  if (l_wannier) call WANNIER_driver(k,en)
@@ -269,7 +269,7 @@ integer function ypp(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_dir
  ! CLOSING
  !=========
  !
- call CLOSE_the_run(.TRUE.,.FALSE.,.FALSE.)
+ call CLOSE_the_run(.TRUE.,.TRUE.,.FALSE.)
  !
  call INIT_ypp(en,Dip,instr,.TRUE.)
  !
