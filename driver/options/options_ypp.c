@@ -150,7 +150,7 @@ void options_ypp(struct options_struct options[],int *i_opt)
 #endif
  /* GPL_EXCLUDE_END */
  /* GPL_INCLUDE_START 
- options[*i_opt].long_desc[0]="<string>=(s)ort,(sp)in,(a)mplitude,(w)ave";
+ options[*i_opt].long_desc[0]="<string>=(s)ort,(l)ifetimes,(sp)in,(a)mplitude,(w)ave";
     GPL_INCLUDE_END */
  options[*i_opt].yambo_string="excitons";
  options[*i_opt].section="Plots";
