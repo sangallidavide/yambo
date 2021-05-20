@@ -31,7 +31,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  use it_m,          ONLY:initdefs,E_unit,G_unit,T_unit,Bfield_unit,MEM_unit,&
 &                        Time_unit,I_unit,Angle_unit,V_parallel,initmode,&
 &                        V_RL,V_kpt,V_sc,V_qp,V_io,V_general,V_resp,V_real_time,V_nl_optics
- use X_m,           ONLY:Chi_mode,X_t,q_plus_G_direction,Q_Shift_Order,&
+ use X_m,           ONLY:Chi_mode,Chi_prop,X_t,q_plus_G_direction,Q_Shift_Order,&
 &                        global_gauge,Chi_linalg_mode, &
 &                        X_terminator_Kind,X_terminator_E,X_DbGd_percentual
  use DIPOLES,       ONLY:DIPOLE_t
@@ -276,6 +276,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  !
  ! Xs Xd Xp
  !
+ call it(defs,'Chiprop',      '[X] abs/kerr/magn',Chi_prop,protect=.FALSE.,case="L")
  call it(defs,'Chimod',       '[X] IP/Hartree/ALDA/LRC/PF/BSfxc',Chi_mode,protect=.FALSE.,case="A")
  call it(defs,'ChiLinAlgMod', '[X] inversion/lin_sys,cpu/gpu',Chi_linalg_mode,verb_level=V_resp,case="A")
  call Xload(X(2),Xw(2))

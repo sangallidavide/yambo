@@ -26,7 +26,7 @@ module X_output
  use pars,      ONLY:schlen,SP,msg_len
  use stderr,    ONLY:intc
  use com,       ONLY:msg,com_compose_msg
- use X_m,       ONLY:alpha_dim,global_gauge
+ use X_m,       ONLY:alpha_dim,global_gauge,l_X_abs,l_X_magn
  use BS,        ONLY:l_BS_kerr,l_BS_magnons,l_BS_dichroism
  use interfaces,ONLY:DESC_write
  use R_lattice, ONLY:FineGd_desc
@@ -55,7 +55,7 @@ module X_output
      ! T-ordering
      !
      files='o eps refl eel alpha off beta moke jdos Spm Smp CD'
-     if (l_chi) files= 'o eps refl eel alpha'
+     if (l_chi) files= 'o eps refl eel alpha Spm'
      if (GreenF) then
        call msg(trim(files),com_compose_msg(pre="# ",body="[GEN] GF poles"),trim(X_E_xc_string(4)),INDENT=0)
      else
@@ -227,7 +227,7 @@ module X_output
        moke_file_name=' '
      endif
      !
-     if (.not.l_BS_magnons) then
+     if (.not.(l_BS_magnons.or.l_X_magn)) then
        magp_file_name=' '
        magm_file_name=' '
      endif

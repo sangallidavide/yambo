@@ -32,6 +32,10 @@ module X_m
 #include <dev_defs.h>
 #include <memory.h>
  !
+ logical  :: l_X_abs
+ logical  :: l_X_kerr
+ logical  :: l_X_magn
+ !
  ! Polarizability
  !
  real(SP)                 :: eps_2_alpha
@@ -67,6 +71,7 @@ module X_m
  ! workspace for X_irredux_residuals on GPUs
  !
  complex(SP), allocatable DEV_ATTR :: rhotw_save_d(:), rhotw_save2_d(:)
+ complex(SP), allocatable DEV_ATTR :: rhotw_save_r_d(:)
  !
  ! Absorption & Polarizability
  !
@@ -83,6 +88,7 @@ module X_m
  !
  ! Response function
  !
+ character(schlen)        :: Chi_prop
  character(schlen)        :: Chi_mode
  character(schlen)        :: Chi_linalg_mode
  logical                  :: X_use_gpu=have_cuda

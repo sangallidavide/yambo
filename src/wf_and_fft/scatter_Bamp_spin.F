@@ -64,6 +64,8 @@ subroutine scatter_Bamp_spin(isc,which)
    if (which=="x") WF_spin=isc%WF_symm_i
    if (which=="y") WF_spin=isc%WF_symm_i*cI*(-1)**(isc%is(4)-1)
    if (which=="z") WF_spin=isc%WF_symm_i   *(-1)**(isc%is(4)-1)
+   if (which=="+") WF_spin=isc%WF_symm_i*0.5_SP*real(1+(-1)**isc%is(4),SP)
+   if (which=="-") WF_spin=isc%WF_symm_i*0.5_SP*real(1-(-1)**isc%is(4),SP)
  else
    if (which=="x") then
      WF_spin(:,1)=    isc%WF_symm_i(:,2)
@@ -77,9 +79,15 @@ subroutine scatter_Bamp_spin(isc,which)
      WF_spin(:,1)=    isc%WF_symm_i(:,2)
      WF_spin(:,2)=-   isc%WF_symm_i(:,1)
    endif
+   if (which=="+") then
+     WF_spin(:,1)=    0._SP
+     WF_spin(:,2)=    isc%WF_symm_i(:,1)
+   endif
+   if (which=="-") then
+     WF_spin(:,1)=    isc%WF_symm_i(:,2)
+     WF_spin(:,2)=    0._SP
+   endif
  endif
- !
- ! Chartesian components of the gradient loop
  !
  !$omp parallel default(shared), private(ir)
  !$omp do

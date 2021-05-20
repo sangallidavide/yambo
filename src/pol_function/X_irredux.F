@@ -62,8 +62,9 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc
  use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,X_lower_triangle_matrix_in_use,&
 &                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
-&                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states
- use X_m,           ONLY:rhotw_save_d
+&                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states,&
+&                        l_X_abs,l_X_kerr,l_X_magn
+ use X_m,           ONLY:rhotw_save_d,rhotw_save_r_d
  use cuda_m,        ONLY:have_cuda
 #if defined _SC 
  use drivers,       ONLY:l_sc_run,l_eval_collisions
@@ -100,6 +101,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  integer,    external     :: X_eh_setup
  type(elemental_collision), target :: Xo_scatt
+ type(elemental_collision), target :: Xo_scatt_r
  !
  ! Defaults & Setups
  !===================
@@ -152,7 +154,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    !
    if (n_poles==0) call warning(' [CPU '//trim(intc(myid))//'] has no poles')
    !
-   YAMBO_ALLOC(X_poles_tab,(n_poles,4))
+   YAMBO_ALLOC(X_poles_tab,(n_poles,5))
    !
    if (.not.force_bare_X_G) call FREQUENCIES_coarse_grid('X',X_poles,n_poles,X%cg_percentual,X_Ein_poles,l_X_terminator)
    if (     force_bare_X_G) call FREQUENCIES_coarse_grid('X',X_poles,n_poles,0._SP,(/0.0_SP/),.FALSE.)
@@ -226,7 +228,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
 #if !defined _CUDA
  !$omp parallel num_threads(n_out_threads) default(shared), &
- !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,ig_col,&
+ !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,Xo_scatt_r,ig_col,&
  !$omp &        ig1,ig_row_transp,iw,mutexid,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
@@ -239,9 +241,16 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  if (have_cuda) then
    YAMBO_ALLOC(Xo_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
    YAMBO_ALLOC(rhotw_save_d,(ngrho))
+   if(l_X_kerr.or.l_X_magn) then
+     YAMBO_ALLOC(rhotw_save_r_d,(ngrho))
+   endif
  endif
  call elemental_collision_free(Xo_scatt)
  call elemental_collision_alloc(Xo_scatt,NG=ngrho,TITLE="Xo") 
+ if(l_X_magn.or.l_X_kerr) then
+   call elemental_collision_free(Xo_scatt_r)
+   call elemental_collision_alloc(Xo_scatt_r,NG=ngrho,TITLE="Xo") 
+ endif
  !
  if (have_cuda) then
    X_par_blc_d => X_par%blc_d
@@ -256,7 +265,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt)
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,Xo_scatt_r)
      ctmp = DEV_VAR(Xo_res)(1,1)
      !
      X_par%blc(1,1,:)=X_par%blc(1,1,:)+ctmp*drude_GreenF(:)
@@ -291,7 +300,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    !
    ! 1) First compute the residuals
    !================================
-   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt)
+   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,Xo_scatt_r)
    !
    ! 2) Then the frequency dependent term
    !=======================================
@@ -443,6 +452,10 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  YAMBO_FREE(Xo_res_d)
  YAMBO_FREE(rhotw_save_d)
  call elemental_collision_free(Xo_scatt)
+ if(l_X_magn.or.l_X_kerr) then
+   YAMBO_FREE(rhotw_save_r_d)
+   call elemental_collision_free(Xo_scatt_r)
+ endif
  !
 #if !defined _CUDA
 !$omp end parallel

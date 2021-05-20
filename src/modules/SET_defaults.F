@@ -30,7 +30,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use LOGO,       ONLY:ID_logo,ID_logo_stderr
  use global_XC,  ONLY:EXT_NONE
  use X_m,        ONLY:current_iq,self_detect_E_range,X_FILL_UP_matrix_only,eps_2_alpha,l_drude,&
-&                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,skip_cond_sum_rule,&
+&                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,Chi_prop,skip_cond_sum_rule,&
 &                     eval_alpha,&
 &                     q_plus_G_direction,Q_Shift_Order,&
 &                     l_X_terminator,X_terminator_E,global_gauge,&
@@ -346,6 +346,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !X
  !
  Chi_mode=' '
+ Chi_prop='abs'
  Chi_linalg_mode="lin_sys"
  X_use_lin_sys=.FALSE.
  X_use_gpu=have_cuda

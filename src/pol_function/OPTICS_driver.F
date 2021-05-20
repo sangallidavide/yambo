@@ -31,21 +31,21 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use units,         ONLY:HA2EV
  use drivers,       ONLY:l_rpa_IP,l_bs_fxc,l_alda_fxc,l_pf_fxc,l_col_cut
  use frequency,     ONLY:w_samp
- use electrons,     ONLY:levels
+ use electrons,     ONLY:levels,n_spin
  use R_lattice,     ONLY:bz_samp,q_norm,bare_qpg
  use com,           ONLY:msg,of_open_close
  use DIPOLES,       ONLY:DIPOLE_t
- use X_m,           ONLY:X_t,Epsilon_ii,EEL,Alpha,X_fxc,X_par,alpha_dim,&
+ use X_m,           ONLY:X_t,Epsilon_ii,EEL,Alpha,X_magnons,X_fxc,X_par,alpha_dim,&
 &                        use_X_DbGd,eval_alpha,eps_2_alpha,OPTICS_eels,X_par_lower_triangle,&
-&                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table
+&                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,l_X_abs,l_X_kerr,l_X_magn,Chi_prop
  use parallel_int,  ONLY:PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_index,PARALLEL_WF_distribute
  use parallel_m,    ONLY:PAR_IND_Q_ibz,PAR_COM_Q_A2A,PAR_IND_CON_BANDS_X,&
 &                        PAR_IND_Xk_ibz,PAR_IND_VAL_BANDS_X,master_cpu
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
  use TDDFT,         ONLY:FXC_desc,FXC_type,&
 &                        FXC,FXC_K_diagonal,FXC_n_g_corr
- use X_output,      ONLY:X_setup_file_names,eps_file_name,eel_file_name,alpha_file_name,fxc_file_name,&
-&                        X_write_q_plus_G,X_write_messages_before_headers,headers,&
+ use X_output,      ONLY:eps_file_name,eel_file_name,alpha_file_name,fxc_file_name,magp_file_name,&
+&                        X_setup_file_names,X_write_q_plus_G,X_write_messages_before_headers,headers,&
 &                        X_setup_headers
  use interfaces,    ONLY:WF_load,WF_free,DESC_write,WF_load
  use matrix,        ONLY:MATRIX_reset
@@ -69,6 +69,13 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  integer,external :: O_select_q_and_G
  !
  call section('*','Optics')
+ !
+ l_X_abs       = (index(Chi_prop,'abs')/=0)
+ !l_X_jdos      = (index(Chi_prop,'jdos')/=0)
+ !l_X_dichroism = (index(Chi_prop,'dich')/=0)
+ l_X_kerr      = (index(Chi_prop,'kerr')/=0)
+ !l_X_photolum  = (index(Chi_prop,'photolum')/=0)
+ l_X_magn      = (index(Chi_prop,'magn')/=0) .and.n_spin>1
  !
  ! Basical Checks
  !
@@ -133,9 +140,14 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    ! Arrays to be written in the o. files
    !
-   YAMBO_ALLOC(Epsilon_ii,(wv%n_freqs,2))
-   YAMBO_ALLOC(EEL,(wv%n_freqs,2))
-   YAMBO_ALLOC(Alpha,(wv%n_freqs,2))
+   if(l_X_abs) then
+     YAMBO_ALLOC(Epsilon_ii,(wv%n_freqs,2))
+     YAMBO_ALLOC(EEL,(wv%n_freqs,2))
+     YAMBO_ALLOC(Alpha,(wv%n_freqs,2))
+   endif
+   if(l_X_magn) then
+     YAMBO_ALLOC(X_magnons,(wv%n_freqs,2,1))
+   endif
    if (l_bs_fxc) then
      YAMBO_ALLOC(X_fxc,(wv%n_freqs))
      X_fxc=cZERO
@@ -154,12 +166,16 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    Macroscopic_CPU=X_par(1)%rows(1)<=i_G_shift.and.i_G_shift<=X_par(1)%rows(2).and.&
 &                  X_par(1)%cols(1)<=i_G_shift.and.i_G_shift<=X_par(1)%cols(2)
    !
-   ! Check if EELS can be evaluated
-   !
-   eval_eels= .not. (l_col_cut .or. trim(alpha_dim)=="volume")
-   if(eval_eels) eval_eels= OPTICS_eels(wv%p,wv%n_freqs,.TRUE.,X%ordering)
-   !
-   if (eval_alpha) eval_alpha=(eval_eels.or.l_col_cut.or.trim(alpha_dim)=="volume")
+   if(l_X_abs) then
+     !
+     ! Check if EELS can be evaluated
+     !
+     eval_eels= .not. (l_col_cut .or. trim(alpha_dim)=="volume")
+     if(eval_eels) eval_eels= OPTICS_eels(wv%p,wv%n_freqs,.TRUE.,X%ordering)
+     !
+     if (eval_alpha) eval_alpha=(eval_eels.or.l_col_cut.or.trim(alpha_dim)=="volume")
+     !
+   endif
    !
    ! OutPut files...
    !
@@ -169,14 +185,20 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    ! ... permissions ...
    if (iq==1) call IO_and_Messaging_switch("+output SAVE",CONDITION=master_cpu)
    !
-   ! ... open ...
-   call of_open_close(eps_file_name,'ot')
-   if (     eval_eels)  call of_open_close(eel_file_name,'ot')
-   if (.not.eval_eels)  eel_file_name=' '
-   if (     eval_alpha) call of_open_close(alpha_file_name,'ot')
-   if (.not.eval_alpha) alpha_file_name=' '
-   if (     l_bs_fxc)   call of_open_close(fxc_file_name,'ot')
-   if (.not.l_bs_fxc)   fxc_file_name=' '
+   if(l_X_abs) then
+     !
+     ! ... open ...
+     call of_open_close(eps_file_name,'ot')
+     if (     eval_eels)  call of_open_close(eel_file_name,'ot')
+     if (.not.eval_eels)  eel_file_name=' '
+     if (     eval_alpha) call of_open_close(alpha_file_name,'ot')
+     if (.not.eval_alpha) alpha_file_name=' '
+     if (     l_bs_fxc)   call of_open_close(fxc_file_name,'ot')
+     if (.not.l_bs_fxc)   fxc_file_name=' '
+     !
+   elseif (l_X_magn) then
+     call of_open_close(magp_file_name,'ot')
+   endif
    if (iq==1) call IO_and_Messaging_switch("+output RESTORE")
    !
    ! Initial Messages
@@ -201,25 +223,36 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    if (iq==1) call PP_redux_wait
    if (iq> 1) call PP_redux_wait(COMM=PAR_COM_Q_A2A%COMM)
    !
-   call of_open_close(eps_file_name)
-   call of_open_close(eel_file_name)
-   call of_open_close(alpha_file_name)
-   call of_open_close(fxc_file_name)
+   if(l_X_abs) then
+     call of_open_close(eps_file_name)
+     call of_open_close(eel_file_name)
+     call of_open_close(alpha_file_name)
+     call of_open_close(fxc_file_name)
+   else if(l_X_magn) then
+     call of_open_close(magp_file_name)
+   endif
    !
    ! e Table
    ! 1:e0     2:e     ==> Epsilon_ii(iw,1:2)
    ! 1:eel0   2:eel   ==> EEL(iw,1:2)
    ! 1:alpha0 6:alpha ==> Alpha(iw,1:2)
    !
-   Epsilon_ii=cZERO
-   EEL       =cZERO
-   Alpha     =cZERO
+   if(l_X_abs) then
+     Epsilon_ii=cZERO
+     EEL       =cZERO
+     Alpha     =cZERO
+   else if(l_X_magn) then
+     X_magnons =cZERO
+   endif
    !
    call X_irredux(iq,X_par(1),Xen,Xk,wv,X,Dip)
    !
    ! Without LF eps
    !
-   if (Macroscopic_CPU) Alpha(:,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
+   if (Macroscopic_CPU) then
+     if(l_X_abs)  Alpha(:,1)      =-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
+     if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+   endif
    !
    ! X Dyson equation solver
    !
@@ -227,15 +260,19 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    if (Macroscopic_CPU) then
      !
-     if (     l_rpa_IP) then
-       Alpha(:,2)=Alpha(:,1)
-     else
-       if(.not.l_col_cut) Alpha(:,2)=1._SP/(X_par(1)%blc(i_G_shift,i_G_shift,:)+1._SP)-1._SP
-       ! Here I assume X_par is small and I use 1/(1+x)~1-x 
-       if(     l_col_cut) Alpha(:,2)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+     if (l_X_abs) then
+       if (     l_rpa_IP) then
+         Alpha(:,2)=Alpha(:,1)
+       else
+         if(.not.l_col_cut) Alpha(:,2)=1._SP/(X_par(1)%blc(i_G_shift,i_G_shift,:)+1._SP)-1._SP
+         ! Here I assume X_par is small and I use 1/(1+x)~1-x 
+         if(     l_col_cut) Alpha(:,2)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+       endif
+       Epsilon_ii(:,1:2)=1._SP+Alpha(:,1:2)
+       !
+     else if(l_X_magn) then
+       if (l_rpa_IP) X_magnons(:,2,1)=X_magnons(:,1,1)
      endif
-     !
-     Epsilon_ii(:,1:2)=1._SP+Alpha(:,1:2)
      !
    endif
    !
@@ -249,9 +286,13 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      end if
    end if
    !
-   call of_open_close(eps_file_name,'oa')
-   call of_open_close(eel_file_name,'oa')
-   call of_open_close(alpha_file_name,'oa')
+   if (l_X_abs) then
+     call of_open_close(eps_file_name,'oa')
+     call of_open_close(eel_file_name,'oa')
+     call of_open_close(alpha_file_name,'oa')
+   else if(l_X_magn) then
+     call of_open_close(magp_file_name,'oa')
+   endif
    !
    ! Unfortunately some of the variables need in this second bunch of messages is setup only in X_os
    !
@@ -261,6 +302,9 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    n_output=5
    if(l_rpa_IP.or.l_skip_non_int_eps) n_output=3
+   !
+   if (l_X_abs) then
+   !
    call msg('o eps_q eel_q fxc alpha','#')
    call X_setup_headers('EPS')
    call msg('o eps_q',  '#',headers(:n_output),INDENT=0,USE_TABS=.true.)    
@@ -356,6 +400,22 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    YAMBO_FREE(Alpha)
    YAMBO_FREE(Epsilon_ii)
    YAMBO_FREE(X_fxc)
+   endif
+   !
+   if (l_X_magn) then
+     call X_setup_headers('S+-')
+     call msg('o Spm','#',headers(:n_output),INDENT=0,USE_TABS=.true.)    
+     call msg('o Spm','#')
+     call of_open_close(magp_file_name,'oa')
+     do iw=1,wv%n_freqs
+       output_data=(/real(wv%p(iw))*HA2EV,aimag(X_magnons(iw,2,1)),real(X_magnons(iw,2,1)),&
+&                    aimag(X_magnons(iw,1,1)),real(X_magnons(iw,1,1))/)
+       call msg('o Spm','',output_data(:n_output),INDENT=-2,USE_TABS=.true.)
+     enddo
+     call of_open_close(magp_file_name)
+     YAMBO_FREE(X_magnons)
+   endif
+   !
    call FREQUENCIES_reset(wv,"all")
    call X_PARALLEL_alloc(X_par(1),0,0,"CLEAN")
    YAMBO_FREE(X_par_lower_triangle%blc)

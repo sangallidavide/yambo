@@ -41,7 +41,7 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  !
 #include<memory.h>
  !
- integer      :: iq,transitions(4)
+ integer      :: iq,transitions(5)
  type(w_samp) :: Xw
  type(levels) :: Xen
  type(bz_samp):: Xk
@@ -54,7 +54,7 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  ! Work Space
  !
  logical      :: X_os_run,K_inv_run,use_DbGd
- integer      :: ikbz_ikpbz_FineGd_used,ikbz_FineGd,ikpbz_FineGd,iw,ikbz,ikpbz,iv,ic,i_spin,&
+ integer      :: ikbz_ikpbz_FineGd_used,ikbz_FineGd,ikpbz_FineGd,iw,ikbz,ikpbz,iv,ic,v_sp_pol,c_sp_pol,&
 &                ik_FineGd,ikp_FineGd,ik,ikp,ikbz_mem
  real(SP)     :: ffac,cg_ffac,f_e,f_h,weight,W_,En1,En2
  complex(SP)  :: Z_,pole,pole_X_term
@@ -71,7 +71,8 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  ikbz   = transitions(1)
  iv     = transitions(2)
  ic     = transitions(3)
- i_spin = transitions(4)
+ c_sp_pol = transitions(4)
+ v_sp_pol = transitions(5)
  ! 
  ikpbz  = qindx_X(iq,ikbz,1) 
  ik     = Xk%sstar(ikbz,1)
@@ -79,8 +80,8 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  !
  W_=0._SP
  Z_=cONE
- if (allocated(Xen%W)) W_=abs(Xen%W(ic,ik,i_spin))+abs(Xen%W(iv,ikp,i_spin))
- if (allocated(Xen%Z)) Z_=Xen%Z(ic,ik,i_spin)*Xen%Z(iv,ikp,i_spin)
+ if (allocated(Xen%W)) W_=abs(Xen%W(ic,ik,c_sp_pol))+abs(Xen%W(iv,ikp,v_sp_pol))
+ if (allocated(Xen%Z)) Z_=Xen%Z(ic,ik,c_sp_pol)*Xen%Z(iv,ikp,v_sp_pol)
  !
  use_DbGd= (X_os_run .and.use_X_DbGd.and.ic<=Xen%FG%nb) .or. &
 &          (K_inv_run.and.BSS_uses_DbGd)
@@ -93,13 +94,13 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  !
  if ( .not.use_DbGd ) then
    !
-   pole=cmplx(Xen%E(ic,ik,i_spin)-Xen%E(iv,ikp,i_spin),-W_,KIND=SP)
+   pole=cmplx(Xen%E(ic,ik,c_sp_pol)-Xen%E(iv,ikp,v_sp_pol),-W_,KIND=SP)
    !
    pole_X_term=0.0_SP
-   if(X_terminator) pole_X_term= cmplx(X_term_E-Xen%E(iv,ikp,i_spin),-W_,KIND=SP)
+   if(X_terminator) pole_X_term= cmplx(X_term_E-Xen%E(iv,ikp,v_sp_pol),-W_,KIND=SP)
    !
    if( X_os_run  )      ffac = 1._SP
-   if( K_inv_run )      ffac = ( Xen%f(iv,ikp,i_spin) - Xen%f(ic,ik ,i_spin) )/spin_occ*real(Z_)
+   if( K_inv_run )      ffac = ( Xen%f(iv,ikp,v_sp_pol) - Xen%f(ic,ik ,c_sp_pol) )/spin_occ*real(Z_)
    if( no_occupations ) ffac = 1._SP
    !
    do iw=1,Xw%n_freqs
@@ -128,7 +129,7 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  ! - divide   by the occupations on the coarse grid
  ! - multiply by the occupations on the fine   grid
  !
- if( X_os_run  ) cg_ffac = Xen%f(iv,ikp,i_spin)*( spin_occ-Xen%f(ic,ik ,i_spin) )
+ if( X_os_run  ) cg_ffac = Xen%f(iv,ikp,v_sp_pol)*( spin_occ-Xen%f(ic,ik ,c_sp_pol) )
  if( K_inv_run ) cg_ffac = spin_occ/real(Z_)
  !
  ! In the K case, the anti-res part of Lo uses a w+\Omega (and not -\Omega) simply
@@ -152,24 +153,24 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
    ikpbz_FineGd=X_DbGd_nkpt_at_q_table(ikbz_mem, ikbz_ikpbz_FineGd_used ,2)
    !
    if(ikbz_FineGd==Xk%FGbz%k_range(ikbz,1)) then
-     En1       = Xen%E(ic,ik,i_spin)
-     ffac      = Xen%f(ic,ik,i_spin)
+     En1       = Xen%E(ic,ik,c_sp_pol)
+     ffac      = Xen%f(ic,ik,c_sp_pol)
    else
      ik_FineGd = Xk%FGbz%E_map(ikbz_FineGd)
-     En1       = Xen%FG%E(ic,ik_FineGd,i_spin)
-     ffac      = Xen%FG%f(ic,ik_FineGd,i_spin)
+     En1       = Xen%FG%E(ic,ik_FineGd,c_sp_pol)
+     ffac      = Xen%FG%f(ic,ik_FineGd,c_sp_pol)
    endif
    !
    if( X_os_run  ) f_h = spin_occ-ffac
    if( K_inv_run ) f_h =          ffac
    !
    if(ikpbz_FineGd==Xk%FGbz%k_range(ikpbz,1)) then
-     En2       = Xen%E(iv,ikp,i_spin)
-     f_e       = Xen%f(iv,ikp,i_spin)
+     En2       = Xen%E(iv,ikp,v_sp_pol)
+     f_e       = Xen%f(iv,ikp,v_sp_pol)
    else
      ikp_FineGd= Xk%FGbz%E_map(ikpbz_FineGd)
-     En2       = Xen%FG%E(iv,ikp_FineGd,i_spin)
-     f_e       = Xen%FG%f(iv,ikp_FineGd,i_spin)
+     En2       = Xen%FG%E(iv,ikp_FineGd,v_sp_pol)
+     f_e       = Xen%FG%f(iv,ikp_FineGd,v_sp_pol)
    endif
    !
    pole=cmplx(En1-En2,-W_)
