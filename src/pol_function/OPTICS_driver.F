@@ -271,7 +271,8 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
        Epsilon_ii(:,1:2)=1._SP+Alpha(:,1:2)
        !
      else if(l_X_magn) then
-       if (l_rpa_IP) X_magnons(:,2,1)=X_magnons(:,1,1)
+       if (     l_rpa_IP) X_magnons(:,2,1)= X_magnons(:,1,1)
+       if (.not.l_rpa_IP) X_magnons(:,2,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
      endif
      !
    endif

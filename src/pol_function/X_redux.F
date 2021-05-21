@@ -36,6 +36,7 @@ subroutine X_redux(iq,X_par,Xw,X)
  !
  use pars,          ONLY:SP,pi,cZERO,cONE
  use com,           ONLY:msg
+ use electrons,     ONLY:n_sp_pol
  use drivers,       ONLY:l_bs_fxc,l_alda_fxc,l_lrc_fxc
  use LIVE_t,        ONLY:live_timing
  use parallel_int,  ONLY:PP_redux_wait,PP_bcast
@@ -191,7 +192,6 @@ subroutine X_redux(iq,X_par,Xw,X)
    else if (l_lrc_fxc) then
      !
      ! LRC Fxc
-     ! DS : notice that here I've redefined the 1/q^2 kernel for the cases where the cutoff is used
      !
      if (Xo%cols(1)==1) then
        !$omp parallel do default(shared), private(ig1)
