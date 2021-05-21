@@ -71,7 +71,6 @@ module X_m
  ! workspace for X_irredux_residuals on GPUs
  !
  complex(SP), allocatable DEV_ATTR :: rhotw_save_d(:), rhotw_save2_d(:)
- complex(SP), allocatable DEV_ATTR :: rhotw_save_r_d(:)
  !
  ! Absorption & Polarizability
  !
