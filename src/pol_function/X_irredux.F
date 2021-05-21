@@ -55,7 +55,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
 #endif
  use frequency,     ONLY:w_samp,bare_grid_N,coarse_grid_N,coarse_grid_Pt
  use interfaces,    ONLY:WF_load
- use electrons,     ONLY:levels,n_spinor
+ use electrons,     ONLY:levels,n_spinor,n_sp_pol
  use R_lattice,     ONLY:qindx_X,bz_samp,G_m_G
  use D_lattice,     ONLY:i_space_inv
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
@@ -64,7 +64,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
 &                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
 &                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states,&
 &                        l_X_abs,l_X_kerr,l_X_magn
- use X_m,           ONLY:rhotw_save_d,rhotw_save_r_d
+ use X_m,           ONLY:rhotw_save_d
  use cuda_m,        ONLY:have_cuda
 #if defined _SC 
  use drivers,       ONLY:l_sc_run,l_eval_collisions
@@ -88,7 +88,8 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  character(2)             :: ordering
  character(schlen)        :: live_t_string
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
-&                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err
+&                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
+&                            i_comp,i_res_ares,n_res_ares
  logical                  :: force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
@@ -102,7 +103,6 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  integer,    external     :: X_eh_setup
  type(elemental_collision), target :: Xo_scatt
- type(elemental_collision), target :: Xo_scatt_r
  !
  ! Defaults & Setups
  !===================
@@ -218,19 +218,28 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !========
  live_t_string='Xo@q['//trim(intc(iq))//'] '
  !
+ ordering=X%ordering
+ l_res   = X%ordering=="R".or.X%ordering=="T".or.X%ordering=="r"
+ l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
+ l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
+ !
+ i_comp=1
+ n_res_ares=1
+ if(l_X_magn.and.n_spinor==2.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
+ !
 #if defined _SC 
  if (l_sc_run.and..not.l_eval_collisions) live_t_string='Xo @it['//trim(intc(it_now))//'] '
 #endif
  !
- if (coarse_grid_N>=n_out_threads) call live_timing(trim(live_t_string),coarse_grid_N/n_out_threads)
+ if (coarse_grid_N>=n_out_threads) call live_timing(trim(live_t_string),coarse_grid_N*n_res_ares/n_out_threads)
  !
  ! OpenMP setup
  !==============
  !
 #if !defined _CUDA
  !$omp parallel num_threads(n_out_threads) default(shared), &
- !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,Xo_scatt_r,ig_col,&
- !$omp &        ig1,ig_row_transp,iw,mutexid,&
+ !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,ig_col,&
+ !$omp &        ig1,ig_row_transp,iw,mutexid,i_res_ares,i_comp,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
  !
@@ -242,16 +251,9 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  if (have_cuda) then
    YAMBO_ALLOC(Xo_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
    YAMBO_ALLOC(rhotw_save_d,(ngrho))
-   if(l_X_magn.and.n_spinor==2) then
-     YAMBO_ALLOC(rhotw_save_r_d,(ngrho))
-   endif
  endif
  call elemental_collision_free(Xo_scatt)
  call elemental_collision_alloc(Xo_scatt,NG=ngrho,TITLE="Xo") 
- if(l_X_magn.and.n_spinor==2) then
-   call elemental_collision_free(Xo_scatt_r)
-   call elemental_collision_alloc(Xo_scatt_r,NG=ngrho,TITLE="Xo") 
- endif
  !
  if (have_cuda) then
    X_par_blc_d => X_par%blc_d
@@ -266,7 +268,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,Xo_scatt_r)
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,1)
      ctmp = DEV_VAR(Xo_res)(1,1)
      !
      X_par%blc(1,1,:)=X_par%blc(1,1,:)+ctmp*drude_GreenF(:)
@@ -283,11 +285,9 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! MAIN LOOP
  !===========
- ordering=X%ordering
- l_res   = X%ordering=="R".or.X%ordering=="T".or.X%ordering=="r"
- l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
- l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
  !
+ do i_res_ares=1,n_res_ares
+   !
 #if !defined _CUDA
  !$omp do
 #endif
@@ -304,14 +304,20 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    endif
    !
    if(l_X_magn) then
-     if(X_poles_tab(i_bg,5)==1.and.l_res   ) ordering="r"
-     if(X_poles_tab(i_bg,5)==2.and.l_ares_T) ordering="Ta"
-     if(X_poles_tab(i_bg,5)==2.and.l_ares_R) ordering="Ra"
+     if(n_sp_pol==2) i_comp=X_poles_tab(i_bg,5)
+     if(n_spinor==2) i_comp=i_res_ares
+     if(i_comp==1.and.l_res   ) ordering="r"
+     if(i_comp==2.and.l_ares_T) ordering="Ta"
+     if(i_comp==2.and.l_ares_R) ordering="Ra"
+     if(i_comp==2.and..not.(l_ares_T.or.l_ares_R)) then
+       if (master_thread) call live_timing(steps=1)
+       cycle
+     endif
    endif
    !
    ! 1) First compute the residuals
    !================================
-   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,Xo_scatt_r)
+   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,i_comp)
    !
    ! 2) Then the frequency dependent term
    !=======================================
@@ -321,9 +327,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    if(.not.allocated(Xen%GreenF)) & 
 &       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #else
-   !
    call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
-   !
 #endif
    !
    ! 3) Finally multiply residual and frequency dependent term
@@ -451,11 +455,13 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    !
    if (master_thread) call live_timing(steps=1)
    !
- enddo 
+ enddo
  !
 #if !defined _CUDA
  !$omp end do
 #endif
+   !
+ enddo
  !
  ! CLEAN
  !=======
@@ -463,10 +469,6 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  YAMBO_FREE(Xo_res_d)
  YAMBO_FREE(rhotw_save_d)
  call elemental_collision_free(Xo_scatt)
- if(l_X_magn.and.n_spinor==2) then
-   YAMBO_FREE(rhotw_save_r_d)
-   call elemental_collision_free(Xo_scatt_r)
- endif
  !
 #if !defined _CUDA
 !$omp end parallel
