@@ -60,6 +60,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
 #if defined _SC || defined _RT
  use DIPOLES,        ONLY:P_square
 #endif
+ use X_m,            ONLY:Chi_prop,l_X_magn
  use BS,             ONLY:BSE_prop,l_BS_magnons,l_BS_dichroism,l_BS_photolum
 
  use timing_m,       ONLY:timing
@@ -86,10 +87,11 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
    io_DIP=.true.
  endif
  !
+ l_X_magn= (index(Chi_prop,'magn')/=0)
  l_BS_magnons= (index(BSE_prop,'magn')/=0)
  l_BS_dichroism= (index(BSE_prop,'dich')/=0)
  l_BS_photolum= (index(BSE_prop,'photolum')/=0)
- if (l_BS_dichroism.or.l_BS_magnons) Dip%bands_ordered=.false.
+ if (l_BS_dichroism.or.l_BS_magnons.or.l_X_magn) Dip%bands_ordered=.false.
  !
 #if defined _NL
  if (l_nl_optics) then
@@ -119,7 +121,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  compute_Spin_dipoles        = compute_Spin_dipoles .or. (l_real_time .and. n_spin>1)
  compute_Orb_dipoles         = compute_Orb_dipoles  .or. (l_real_time .and. n_spin>1)
 #endif
- compute_Spin_dipoles        = compute_Spin_dipoles .or. (l_BS_magnons .and. n_spin>1)
+ compute_Spin_dipoles        = compute_Spin_dipoles .or. ((l_BS_magnons.or.l_X_magn) .and. n_spin>1)
  !
  if(.not.any((/use_g_space_approach,use_real_space_approach,use_covariant_approach,use_shifted_grids_approach/))) then
    call warning(' Dipoles approach defined in input not recognised. Reverting to G-space v')

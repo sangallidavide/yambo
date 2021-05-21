@@ -32,10 +32,11 @@ function Lorentzian_FT(W,pole,ordering)
  !
  ! DS,31/10/18. Note that the present structure uses the relation e_{n,k}=e_{n,-k},
  !              See Fetter-Walecka, p.158 from Eq.(12.29) to (12.30)
- !              Such relation is always true. However it
- !              implies that f_{n,k}=f_{n,-k} and rho_{n,k}=rho_{n,-k} (eventually with a star)
- !              when the occupations and the oscillators are used.
- !              Here "n" is a generalized index for the transition when speaking about oscillators
+ !              Such relation is not always true. See for example magnetic systems with SOC and no SI.
+ !              Moreover, as used in Xo, it implies
+ !              - f_{n,k}=f_{n,-k} (occupations)
+ !              - R_{nm,k}=R_{nm,-k} (residuals, eventually with a star)
+ !              For chi_rr, R_{nmk}=rho_{nm,k}
  !              There are two cases where this is not true:
  !              a) with SOC rho_{n,k}/=rho_{n,-k} if SI is not a symmetry of the system
  !              b) in NEQ f_{n,k}=f_{n,-k} may not be true

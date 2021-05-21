@@ -66,14 +66,12 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  X_eh_setup=0
  local_tresh=epsilon(1._SP)
  !
-
-
  do c_sp_pol=1,n_sp_pol
    !
    v_sp_pol = c_sp_pol
    !
    if (l_X_magn.and.n_sp_pol==2) then
-     if(c_sp_pol==1) cycle
+     !if(c_sp_pol==1) cycle
      !if(i_res_ares==1.and.c_sp_pol==1) cycle
      !if(i_res_ares==2.and.c_sp_pol==2) cycle
      v_sp_pol=mod(c_sp_pol,n_sp_pol)+1

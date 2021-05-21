@@ -55,7 +55,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
 #endif
  use frequency,     ONLY:w_samp,bare_grid_N,coarse_grid_N,coarse_grid_Pt
  use interfaces,    ONLY:WF_load
- use electrons,     ONLY:levels
+ use electrons,     ONLY:levels,n_spinor
  use R_lattice,     ONLY:qindx_X,bz_samp,G_m_G
  use D_lattice,     ONLY:i_space_inv
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
@@ -85,10 +85,11 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! Work Space
  !
+ character(2)             :: ordering
  character(schlen)        :: live_t_string
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err
- logical                  :: force_bare_X_G,Drude_pole,skip_WF_load
+ logical                  :: force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
  complex(SP),allocatable  :: Xo_res(:,:)
@@ -241,13 +242,13 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  if (have_cuda) then
    YAMBO_ALLOC(Xo_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
    YAMBO_ALLOC(rhotw_save_d,(ngrho))
-   if(l_X_kerr.or.l_X_magn) then
+   if(l_X_magn.and.n_spinor==2) then
      YAMBO_ALLOC(rhotw_save_r_d,(ngrho))
    endif
  endif
  call elemental_collision_free(Xo_scatt)
  call elemental_collision_alloc(Xo_scatt,NG=ngrho,TITLE="Xo") 
- if(l_X_magn.or.l_X_kerr) then
+ if(l_X_magn.and.n_spinor==2) then
    call elemental_collision_free(Xo_scatt_r)
    call elemental_collision_alloc(Xo_scatt_r,NG=ngrho,TITLE="Xo") 
  endif
@@ -282,6 +283,10 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! MAIN LOOP
  !===========
+ ordering=X%ordering
+ l_res   = X%ordering=="R".or.X%ordering=="T".or.X%ordering=="r"
+ l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
+ l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
  !
 #if !defined _CUDA
  !$omp do
@@ -298,6 +303,12 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
      cycle
    endif
    !
+   if(l_X_magn) then
+     if(X_poles_tab(i_bg,5)==1.and.l_res   ) ordering="r"
+     if(X_poles_tab(i_bg,5)==2.and.l_ares_T) ordering="Ta"
+     if(X_poles_tab(i_bg,5)==2.and.l_ares_R) ordering="Ra"
+   endif
+   !
    ! 1) First compute the residuals
    !================================
    call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,Xo_scatt_r)
@@ -306,12 +317,12 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    !=======================================
    !
 #if defined _ELPH
-   if(     allocated(Xen%GreenF)) call X_GreenF_convoluted(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,X%ordering)
+   if(     allocated(Xen%GreenF)) call X_GreenF_convoluted(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering)
    if(.not.allocated(Xen%GreenF)) & 
-&       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,X%ordering,'G',.FALSE.,l_X_terminator)
+&       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #else
    !
-   call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,X%ordering,'G',.FALSE.,l_X_terminator)
+   call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
    !
 #endif
    !
@@ -452,7 +463,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  YAMBO_FREE(Xo_res_d)
  YAMBO_FREE(rhotw_save_d)
  call elemental_collision_free(Xo_scatt)
- if(l_X_magn.or.l_X_kerr) then
+ if(l_X_magn.and.n_spinor==2) then
    YAMBO_FREE(rhotw_save_r_d)
    call elemental_collision_free(Xo_scatt_r)
  endif
