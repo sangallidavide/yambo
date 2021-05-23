@@ -223,7 +223,6 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
  l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
  !
- i_comp=1
  n_res_ares=1
  if(l_X_magn.and.n_spinor==2.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
  !
@@ -285,6 +284,8 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! MAIN LOOP
  !===========
+ !
+ i_comp=1
  !
  do i_res_ares=1,n_res_ares
    !

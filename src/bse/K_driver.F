@@ -35,7 +35,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use IO_m,           ONLY:OP_RD_CL,REP
  use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_add_antiresonant,BSS_damp_reference,&
 &                         BSS_uses_DbGd,BSS_q0,BSS_eels_to_eps
- use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_K_coupling,BS_res_K_corr,BS_res_K_exchange,l_BS_anomalous_Hall,&
+ use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_n_g_fxc,BS_K_coupling,BS_res_K_corr,BS_res_K_exchange,l_BS_anomalous_Hall,&
 &                         BS_W_is_diagonal,BS_res_mode,BS_n_g_W,BS_K_is_ALDA,BS_cpl_mode,BS_cpl_K_corr,BS_cpl_K_exchange,&
 &                         BSE_mode,BSE_prop,BS_Blocks_and_Transitions_free,l_BSE_minimize_memory,BSqpts,L_kind,&
 &                         BS_perturbative_SOC,BS_dip_size,l_BS_abs,l_BS_jdos,l_BS_trace,&
@@ -122,6 +122,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !==========
    !
    BS_n_g_exch=FXC_n_g_corr
+   BS_n_g_fxc =FXC_n_g_corr
    !
    if (index(BSS_mode,'t')/=0) then
      !
@@ -211,7 +212,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  ! Compute qindx_B_max
  ! =====================
  !
- if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.(l_bs_fxc.or.BS_K_is_ALDA)) then
+ if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) then
    !
    ! Here I need the distribution over k
    call PARALLEL_SETUP_K_scheme("K")
@@ -252,7 +253,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !===================
    call K_observables("ALLOC",W_bss)
    !
-   if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.(l_bs_fxc.or.BS_K_is_ALDA)) then
+   if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) then
      !
      ! W/X RL size setup looking at the max index of G-G' 
      ! =========

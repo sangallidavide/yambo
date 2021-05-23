@@ -27,6 +27,7 @@ subroutine XC_eval_lda_kernel(v1rho,v2rho2)
  use xc_functionals, ONLY:F_xc,magn,xc_spin,xc_spin_map1
  use electrons,      ONLY:n_spin,n_spinor,n_sp_pol
  use FFT_m,          ONLY:fft_size
+ use X_m,            ONLY:l_X_magn
  use BS,             ONLY:l_BS_magnons
  use D_lattice,      ONLY:DL_vol
  !
@@ -38,11 +39,13 @@ subroutine XC_eval_lda_kernel(v1rho,v2rho2)
  real(SP):: one_over_magn,mod_mag
  !
  if (n_spin==1) then
-   forall(ifft=1:fft_size) F_xc(ifft,1,1) = F_xc(ifft,1,1) + real(v2rho2(1,ifft),SP)
+   do ifft=1,fft_size
+     F_xc(ifft,1,1) = F_xc(ifft,1,1) + real(v2rho2(1,ifft),SP)
+   enddo
  endif
  !
  if (n_sp_pol==2) then
-   if(.not.l_BS_magnons) then
+   if(.not.(l_BS_magnons.or.l_X_magn)) then
      ! Optical Fxc
      do is1 = 1,n_sp_pol
        do is2 = 1,n_sp_pol
@@ -69,8 +72,6 @@ subroutine XC_eval_lda_kernel(v1rho,v2rho2)
  endif
  !
  if (n_spinor==2) then
-   ! To be coded ...
-   ! Here F_xc has 4 spin indexes. The old one is wrong
    do is1 = 1,n_spinor
      do is2 = 1,n_spinor
        is_xc = xc_spin_map1(is1,is2)

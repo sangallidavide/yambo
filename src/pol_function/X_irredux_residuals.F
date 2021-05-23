@@ -168,7 +168,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
 #else
        !$omp parallel do default(shared), private(ig1,ig2)
 #endif
-       do ig1=1,X_ng
+       do ig1=2,X_ng
          ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
          Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
        enddo
