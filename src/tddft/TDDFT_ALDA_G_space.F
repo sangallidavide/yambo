@@ -24,6 +24,7 @@
 subroutine TDDFT_ALDA_G_space(E,k)
  !
  use pars,          ONLY:DP,SP
+ use X_m,           ONLY:l_X_magn,l_X_abs
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace
  use com,           ONLY:msg
  use FFT_m,         ONLY:fft_size,fftw_plan,fft_dim,fft_g_table
@@ -70,9 +71,19 @@ subroutine TDDFT_ALDA_G_space(E,k)
    YAMBO_ALLOC(magn,(fft_size,3))
  endif
  call XC_potential_driver(E,k,WF_kind,WF_xc_functional,2)
- do i1=1,fft_size
-   F_xc_DP(i1)=sum(cmplx(F_xc(i1,:,:),kind=DP))
- enddo
+ !
+ if(l_X_abs) then
+   do i1=1,fft_size
+     F_xc_DP(i1)=sum(cmplx(F_xc(i1,:,:),kind=DP))
+   enddo
+ else if(l_X_magn) then
+   ! DS warning. This is exact for the collinear case only.
+   ! The non collinear case implementation should be extended, while here the 
+   ! mixing between the +-, --, -+ and ++ components is neglected in the G-space implementation
+   do i1=1,fft_size
+     F_xc_DP(i1)=    cmplx(F_xc(i1,2,2),kind=DP)
+   enddo
+ endif
  !
  ! need to reset the plan to do a BACKWARD FFT (R->G)
  !
