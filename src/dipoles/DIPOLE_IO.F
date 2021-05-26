@@ -67,13 +67,9 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  ID_S=0
  io_err=0
  !
-#if defined _PAR_IO
- write_header  =       PAR_K_scheme%COM_ibz_A2A%CPU_id==0.and.writing
- read_header   =       reading.or.check
-#else
- write_header  =(      master_cpu.and.writing )
- read_header   =.not.writing.and.(reading.or.check)
-#endif
+ write_header  =      (master_cpu.and.writing)
+ read_header   =.not.write_header
+ !
  write_header_ovlp  =write_header.and.use_covariant_approach
  read_header_ovlp   = read_header.and.use_covariant_approach
  !
@@ -88,8 +84,8 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
    io_err=io_err+io_Overlaps(Dip,ID_S)
  endif
  !
- ! Master node bcast matrix dimensions for the other cores
- !
+ ! Master node bcast matrix dimensions for the other cores.
+ ! This should not be needed and can likely be removed.
  if(writing) call PP_bcast_writing_info()
  !
  call PP_redux_wait(COMM=PAR_K_scheme%comm_world)
@@ -122,10 +118,11 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  if(writing) IO_ACTION=OP_IF_START_APP_CL_IF_END
  !
 #if defined _PAR_IO
- IO_ACT_NOW=manage_action(IO_ACTION,0,0,2)
- call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/0/),ID=ID)
- io_err=io_DIPOLES(Dip,ID)
- IO_ACT_NOW=manage_action(IO_ACTION,1,0,2)
+ if ( (PAR_K_scheme%COM_ibz_A2A%CPU_id==0.and.writing).or.reading ) then
+   IO_ACT_NOW=manage_action(IO_ACTION,0,0,2)
+   call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/0/),ID=ID)
+   io_err=io_DIPOLES(Dip,ID)
+   IO_ACT_NOW=manage_action(IO_ACTION,1,0,2)
 #endif
  do i_sp_pol=1,n_sp_pol
    do ik=1,Xk%nibz
@@ -141,17 +138,19 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
    enddo
  enddo
 #if defined _PAR_IO
- IO_ACT_NOW=manage_action(IO_ACTION,2,0,2)
- call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/2+Xk%nibz*n_sp_pol/),ID=ID)
- io_err=io_DIPOLES(Dip,ID)
+   IO_ACT_NOW=manage_action(IO_ACTION,2,0,2)
+   call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/2+Xk%nibz*n_sp_pol/),ID=ID)
+   io_err=io_DIPOLES(Dip,ID)
+ endif
 #endif
  !
  if(use_covariant_approach) then
 #if defined _PAR_IO
-   IO_ACT_NOW=manage_action(IO_ACTION,0,0,2)
-   call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/0/),ID=ID_S)
-   io_err=io_Overlaps(Dip,ID_S)
-   IO_ACT_NOW=manage_action(IO_ACTION,1,0,2)
+   if ( (PAR_K_scheme%COM_ibz_A2A%CPU_id==0.and.writing).or.reading ) then
+     IO_ACT_NOW=manage_action(IO_ACTION,0,0,2)
+     call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/0/),ID=ID_S)
+     io_err=io_Overlaps(Dip,ID_S)
+     IO_ACT_NOW=manage_action(IO_ACTION,1,0,2)
 #endif
    do i_sp_pol=1,n_sp_pol
      do ik=1,Xk%nbz
@@ -168,9 +167,10 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
      enddo
    enddo
 #if defined _PAR_IO
-   IO_ACT_NOW=manage_action(IO_ACTION,2,0,2)
-   call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/2+Xk%nibz*n_sp_pol/),ID=ID_S)
-   io_err=io_Overlaps(Dip,ID_S)
+     IO_ACT_NOW=manage_action(IO_ACTION,2,0,2)
+     call io_control(ACTION=IO_ACT_NOW,COM=REP,SEC=(/2+Xk%nibz*n_sp_pol/),ID=ID_S)
+     io_err=io_Overlaps(Dip,ID_S)
+   endif
 #endif
  endif
  !
