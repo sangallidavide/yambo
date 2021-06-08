@@ -53,7 +53,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  use IO_int,       ONLY:io_control
  use IO_m,         ONLY:REP,OP_WR,RD,WR_CL,OP_APP,deliver_IO_error_message,WR
  use TDDFT,         ONLY:FXC_K_diagonal,F_xc_gspace,FXC_n_g_corr,io_BS_Fxc
- use xc_functionals,ONLY:F_xc,magn,XC_potential_driver
+ use xc_functionals,ONLY:F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind,WF_exx_fraction
  use wave_func,     ONLY:WF
  use openmp,        ONLY:OPENMP_update,master_thread
@@ -669,6 +669,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
    !
  else if (BS_K_is_ALDA) then
    YAMBO_FREE(F_xc)
+   YAMBO_FREE(F_xc_mat)
  endif
  !
  if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) qindx_tmp=qindx_B_close(qindx_ID)
