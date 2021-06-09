@@ -509,7 +509,8 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
    EDIM=min(BS_K_dim(1),10000)
    allocate(first_el(EDIM)); allocate(n_of_el(EDIM))
    ! Threshold is 1meV
-   call degeneration_finder(vtmpR(:EDIM),EDIM,first_el,n_of_el,n_deg_grp,0.001_SP/HA2EV,Include_single_values=.TRUE.)
+   call degeneration_finder(EDIM,first_el,n_of_el,n_deg_grp,&
+   &      Er=vtmpR(:EDIM),deg_accuracy=0.001_SP/HA2EV,Include_single_values=.TRUE.)
    EDIM=min(BS_K_dim(1),1000)
    do i_VAR=1,nVAR
      BS_E_sorted(:,i_VAR,1)=cZERO
