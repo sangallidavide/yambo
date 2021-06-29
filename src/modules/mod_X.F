@@ -56,6 +56,7 @@ module X_m
  !
  real(SP)                 :: q_plus_G_direction(3)
  integer                  :: Q_Shift_Order
+ integer                  :: i_G_shift
  !
  ! Double Grid
  !

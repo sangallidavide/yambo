@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine X_redux(iq,X_par,Xw,X)
+subroutine X_redux(iq,X_par,Xw,X,call_kind)
  !
  ! Here we solve the Dyson equation using a combination of Serial(SER)/Parallel(PAR)/SLK environments.
  !
@@ -36,7 +36,6 @@ subroutine X_redux(iq,X_par,Xw,X)
  !
  use pars,          ONLY:SP,pi,cZERO,cONE
  use com,           ONLY:msg
- use electrons,     ONLY:n_sp_pol
  use drivers,       ONLY:l_bs_fxc,l_alda_fxc,l_lrc_fxc
  use LIVE_t,        ONLY:live_timing
  use parallel_int,  ONLY:PP_redux_wait,PP_bcast
@@ -49,7 +48,7 @@ subroutine X_redux(iq,X_par,Xw,X)
  use wrapper,       ONLY:M_by_M
  use interfaces,    ONLY:LINEAR_ALGEBRA_driver,MATRIX_transfer
  use stderr,        ONLY:intc
- use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,X_par_lower_triangle,l_X_magn
+ use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,X_par_lower_triangle,i_G_shift,l_X_magn
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits
  use timing_m,      ONLY:timing
  use cuda_m
@@ -62,6 +61,7 @@ subroutine X_redux(iq,X_par,Xw,X)
  type(X_t)        :: X
  type(w_samp)     :: Xw
  integer          :: iq
+ character(*)     :: call_kind
  !
  ! Work Space
  !
@@ -298,56 +298,10 @@ subroutine X_redux(iq,X_par,Xw,X)
  if (l_alda_fxc.and.Xo%kind=="SLK") call MATRIX_reset(K_FXC)
  !
  call timing('X (procedure)',OPR='stop')
- call timing('X (REDUX)',OPR='start')
  !
- ! [3] Interface SER/SLK(X_redux) => SER/PAR(X)
- ! ============================================
+ if(call_kind=="screening") call X_redux_pp_redux_micro()
  !
- ! The old X_par structure need to be cleaned and replaced by a non symmetric structure
- !
- if (X_par%INTER_comm%n_CPU>1) then
-   !
-   call MATRIX_reset(X_par)
-   call X_PARALLEL_alloc(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
-   !
- endif
- !
- ! Now the interfaces. 
- !
- ! From all CPU of the SLK group to one of the RL group.
- !
- do i_LA_pool=1,PAR_COM_SLK_INDEX_local%n_CPU
-   !
-   do iw_par=1,PAR_n_freqs_global(i_LA_pool)
-     !
-     ! The PP_redux forces me to define the iw_X only using the first CPU of each freq pool
-     !
-     iw_X    = 0
-     if (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1.and.PAR_COM_SLK%CPU_id==0) then
-       iw_X  = PAR_FREQS_index(iw_par)
-     endif
-     call PP_redux_wait(iw_X,COMM=PAR_COM_X_WORLD%COMM)
-     !
-     ! iw_par is used ONLY by the CPU's that SEND the matrix (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1)
-     ! All other CPU's do not use the BUFFER and can set INDEX_in as a dummy 1. This is needed as 
-     ! BUFFER is dimensioned with the PAR #of freqs.
-     !
-     iw=iw_par
-     if (iw_par>PAR_n_freqs) iw=1
-     !
-     call MATRIX_transfer(M_in=BUFFER,M_out=X_par,INDEX_in=iw,INDEX_out=iw_X(1),&
-&                         SND=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
-&                         RCV=PAR_COM_X_WORLD_RL_resolved%CPU_id==0,&
-&                         COMM=PAR_COM_X_WORLD,COMM_name="X_redux_2_"//trim(intc(i_LA_pool)))
-     !
-   enddo
- enddo
- !
- ! complete the transfer with a collective communication
- !
- call PP_bcast(X_par%blc,node=0,COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
- !
- call timing('X (REDUX)',OPR='stop')
+ if(call_kind=="optics")    call X_redux_pp_redux_macro()
  !
  ! Clean-up of FREQ structure
  !==========
@@ -395,5 +349,93 @@ contains
      endif
      !
    end subroutine X_redux_build_kernel
+   !
+   !
+   subroutine X_redux_pp_redux_micro()
+     !
+     call timing('X (REDUX)',OPR='start')
+     !
+     ! [3] Interface SER/SLK(X_redux) => SER/PAR(X)
+     ! ============================================
+     !
+     ! The old X_par structure need to be cleaned and replaced by a non symmetric structure
+     !
+     if (X_par%INTER_comm%n_CPU>1) then
+       !
+       call MATRIX_reset(X_par)
+       call X_PARALLEL_alloc(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
+       !
+     endif
+     !
+     ! Now the interfaces. 
+     !
+     ! From all CPU of the SLK group to one of the RL group.
+     !
+     do i_LA_pool=1,PAR_COM_SLK_INDEX_local%n_CPU
+       do iw_par=1,PAR_n_freqs_global(i_LA_pool)
+         !
+         ! The PP_redux forces me to define the iw_X only using the first CPU of each freq pool
+         !
+         iw_X    = 0
+         if (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1.and.PAR_COM_SLK%CPU_id==0) then
+           iw_X  = PAR_FREQS_index(iw_par)
+         endif
+         call PP_redux_wait(iw_X,COMM=PAR_COM_X_WORLD%COMM)
+         !
+         ! iw_par is used ONLY by the CPU's that SEND the matrix (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1)
+         ! All other CPU's do not use the BUFFER and can set INDEX_in as a dummy 1. This is needed as 
+         ! BUFFER is dimensioned with the PAR #of freqs.
+         !
+         iw=iw_par
+         if (iw_par>PAR_n_freqs) iw=1
+         !
+         call MATRIX_transfer(M_in=BUFFER,M_out=X_par,INDEX_in=iw,INDEX_out=iw_X(1),&
+&                             SND=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
+&                             RCV=PAR_COM_X_WORLD_RL_resolved%CPU_id==0,&
+&                             COMM=PAR_COM_X_WORLD,COMM_name="X_redux_2_"//trim(intc(i_LA_pool)))
+         !
+       enddo
+     enddo
+     !
+     ! complete the transfer with a collective communication
+     !
+     call PP_bcast(X_par%blc,node=0,COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
+     !
+     call timing('X (REDUX)',OPR='stop')  
+     !
+   end subroutine X_redux_pp_redux_micro
+   !
+   !
+   subroutine X_redux_pp_redux_macro()
+     !
+     if (X_par%INTER_comm%n_CPU>1) then
+       !
+       call MATRIX_reset(X_par)
+       !
+     endif
+     !
+     YAMBO_ALLOC(X_par%blc,(1,1,Xw%n_freqs))
+     X_par%blc=cZERO
+     !
+     do i_LA_pool=1,PAR_COM_SLK_INDEX_local%n_CPU
+       do iw_par=1,PAR_n_freqs_global(i_LA_pool)
+         !
+         ! The PP_redux forces me to define the iw_X only using the first CPU of each freq pool
+         !
+         iw_X    = 0
+         if (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1.and.PAR_COM_SLK%CPU_id==0) then
+           iw_X  = PAR_FREQS_index(iw_par)
+           iw=iw_par
+           if (iw_par>PAR_n_freqs) iw=1
+           write(*,*) i_LA_pool,iw_par,iw_X,iw
+           X_par%blc(1,1,iw_X)=BUFFER%blc(i_G_shift,i_G_shift,iw)
+         endif
+         !
+       enddo
+     enddo
+     !
+     call PP_redux_wait(X_par%blc,COMM=PAR_COM_X_WORLD%COMM)
+     !
+   end subroutine X_redux_pp_redux_macro
    !
 end subroutine

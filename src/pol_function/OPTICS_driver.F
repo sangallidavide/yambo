@@ -35,7 +35,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use R_lattice,     ONLY:bz_samp,q_norm,bare_qpg
  use com,           ONLY:msg,of_open_close
  use DIPOLES,       ONLY:DIPOLE_t
- use X_m,           ONLY:X_t,Epsilon_ii,EEL,Alpha,X_magnons,X_fxc,X_par,alpha_dim,&
+ use X_m,           ONLY:X_t,Epsilon_ii,EEL,Alpha,X_magnons,X_fxc,X_par,alpha_dim,i_G_shift,&
 &                        use_X_DbGd,eval_alpha,eps_2_alpha,OPTICS_eels,X_par_lower_triangle,&
 &                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,l_X_abs,l_X_kerr,l_X_magn,Chi_prop
  use parallel_int,  ONLY:PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_index,PARALLEL_WF_distribute
@@ -61,7 +61,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  ! 
  ! Work Space
  !
- integer          :: iw,iq,i_G_shift,n_output
+ integer          :: iw,iq,n_output
  real(SP)         :: output_data(5),Q_plus_G_pt(3),Q_plus_G_sq_modulus,a_xc,b_xc
  complex(SP)      :: alpha_factor
  logical          :: l_skip_non_int_eps,eval_eels,Macroscopic_CPU
@@ -250,13 +250,13 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    ! Without LF eps
    !
    if (Macroscopic_CPU) then
-     if(l_X_abs)  Alpha(:,1)      =-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
-     if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+     if(l_X_abs)  Alpha(:,1)      =-X_par(1)%blc(1,1,:)*4.0_SP*pi/Q_plus_G_sq_modulus
+     if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(1,1,:)
    endif
    !
    ! X Dyson equation solver
    !
-   if (.not.l_rpa_IP) call X_redux(iq,X_par(1),wv,X)
+   if (.not.l_rpa_IP) call X_redux(iq,X_par(1),wv,X,"optics")
    !
    if (Macroscopic_CPU) then
      !
@@ -264,15 +264,15 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
        if (     l_rpa_IP) then
          Alpha(:,2)=Alpha(:,1)
        else
-         if(.not.l_col_cut) Alpha(:,2)=1._SP/(X_par(1)%blc(i_G_shift,i_G_shift,:)+1._SP)-1._SP
+         if(.not.l_col_cut) Alpha(:,2)=1._SP/(X_par(1)%blc(1,1,:)+1._SP)-1._SP
          ! Here I assume X_par is small and I use 1/(1+x)~1-x 
-         if(     l_col_cut) Alpha(:,2)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+         if(     l_col_cut) Alpha(:,2)=-X_par(1)%blc(1,1,:)
        endif
        Epsilon_ii(:,1:2)=1._SP+Alpha(:,1:2)
        !
      else if(l_X_magn) then
        if (     l_rpa_IP) X_magnons(:,2,1)= X_magnons(:,1,1)
-       if (.not.l_rpa_IP) X_magnons(:,2,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+       if (.not.l_rpa_IP) X_magnons(:,2,1)=-X_par(1)%blc(1,1,:)
      endif
      !
    endif

@@ -273,7 +273,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
    !
    ! When X%whoami == 1 X is Xo (ACFDT). 
    !
-   if (X%whoami/=1) call X_redux(iq,X_par(iq_mem),Xw,X)
+   if (X%whoami/=1) call X_redux(iq,X_par(iq_mem),Xw,X,"screening")
    !
 #if defined _PAR_IO
    if(.not.io_RESPONSE) then
