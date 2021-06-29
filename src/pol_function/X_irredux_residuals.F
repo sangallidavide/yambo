@@ -31,7 +31,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
  ! intent(IN) and not modified.
  !
  use pars,          ONLY:SP,cZERO,cONE,cI
- use wrapper,       ONLY:V_by_V_plus_V
+ use wrapper,       ONLY:V_plus_alpha_V
  use DIPOLES,       ONLY:DIPOLE_t,DIP_rotated
  use X_m,           ONLY:X_t,X_poles_tab,l_X_terminator,X_cols,X_rows,drude_n_states,&
 &                        l_X_abs,l_X_magn,global_gauge
@@ -230,7 +230,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
    !$omp parallel do default(shared), private(ig2)
    do ig2=X_cols(1),X_cols(2)
      ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
-     call V_by_V_plus_V(ROWS(2)-ROWS(1)+1,Z_eh_occ*Xo_scatt_rhotw_p(ig2),&
+     call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,Z_eh_occ*Xo_scatt%rhotw(ig2),&
 &                       conjg(Xo_scatt_rhotw_p(ROWS(1):ROWS(2))),Xo_res(ROWS(1):ROWS(2),ig2))
    enddo
    !$omp end parallel do
