@@ -199,11 +199,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
 &                              Bp_index=PAR_IND_VAL_BANDS_X(X%whoami),&
 &                              CLEAN_UP=.TRUE.)
    !
-   if (WF_buffered_IO) then
-     !
-     call WF_load(WF_buffer,0,1,X%ib,(/1,Xk%nibz/),space='B',title='-BUFFER')
-     !
-   endif
+   if (WF_buffered_IO) call WF_load(WF_buffer,0,1,X%ib,(/1,Xk%nibz/),space='B',title='-BUFFER')
    !
  endif
  !
@@ -350,6 +346,6 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  call DIP_alloc('DIP_iR')
  call DIP_alloc('DIP_P')
  call DIP_alloc('DIP_v')
- if (.not.SILENT_MODE.or.X%iq(2)==q%nibz) call WF_free(WF)
+ if (WF_buffered_IO) call WF_free(WF_buffer)
  !
 end function

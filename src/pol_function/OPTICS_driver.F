@@ -47,7 +47,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use X_output,      ONLY:eps_file_name,eel_file_name,alpha_file_name,fxc_file_name,magp_file_name,&
 &                        X_setup_file_names,X_write_q_plus_G,X_write_messages_before_headers,headers,&
 &                        X_setup_headers
- use interfaces,    ONLY:WF_load,WF_free,DESC_write,WF_load
+ use interfaces,    ONLY:WF_load,WF_free,DESC_write
  use matrix,        ONLY:MATRIX_reset
  use IO_int,        ONLY:IO_and_Messaging_switch
  !
@@ -432,7 +432,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  call MATRIX_reset(X_par(1))
  call MATRIX_reset(X_par_lower_triangle)
  deallocate(X_par)
- call WF_free(WF)
+ if (WF_buffered_IO) call WF_free(WF_buffer)
  call PP_redux_wait
  if (allocated(F_xc_gspace)) then
    YAMBO_FREE(F_xc_gspace)

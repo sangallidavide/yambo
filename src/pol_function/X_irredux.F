@@ -54,7 +54,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  use openmp,        ONLY:OPENMP_compute_mutex,omp_locks
 #endif
  use frequency,     ONLY:w_samp,bare_grid_N,coarse_grid_N,coarse_grid_Pt
- use interfaces,    ONLY:WF_load
+ use interfaces,    ONLY:WF_load,WF_free
  use electrons,     ONLY:levels,n_spinor,n_sp_pol
  use R_lattice,     ONLY:qindx_X,bz_samp,G_m_G
  use D_lattice,     ONLY:i_space_inv
@@ -467,6 +467,9 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! CLEAN
  !=======
+ !
+ if(.not.skip_WF_load) call WF_free(WF)
+ !
  YAMBO_FREE(Xo_res)
  YAMBO_FREE(Xo_res_d)
  YAMBO_FREE(rhotw_save_d)
