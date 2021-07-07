@@ -419,6 +419,7 @@ contains
      !
      do i_LA_pool=1,PAR_COM_SLK_INDEX_local%n_CPU
        do iw_par=1,PAR_n_freqs_global(i_LA_pool)
+         if (iw_par>PAR_n_freqs) cycle
          !
          ! The PP_redux forces me to define the iw_X only using the first CPU of each freq pool
          !
@@ -426,8 +427,6 @@ contains
          if (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1.and.PAR_COM_SLK%CPU_id==0) then
            iw_X  = PAR_FREQS_index(iw_par)
            iw=iw_par
-           if (iw_par>PAR_n_freqs) iw=1
-           write(*,*) i_LA_pool,iw_par,iw_X,iw
            X_par%blc(1,1,iw_X)=BUFFER%blc(i_G_shift,i_G_shift,iw)
          endif
          !
