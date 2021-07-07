@@ -66,13 +66,14 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  ! Work Space
  !
  type(PP_indexes) :: PAR_IND_freqs
- integer          :: ig1,ig2,iw_par,iw,iw_X(1),INV_MODE,i_LA_pool,&
+ integer          :: ig1,ig2,iw_par,iw_par_loop,buffer_nfreq,iw,iw_X(1),INV_MODE,i_LA_pool,&
 &                    PAR_n_freqs_global(PAR_COM_SLK_INDEX_local%n_CPU)
  integer          :: Xo_rows(2), Xo_cols(2)
  logical          :: compute_on_gpu
  type(PAR_matrix) :: K_FXC
  type(PAR_matrix), target      :: BUFFER,KERNEL,Xo
  complex(SP), pointer DEV_ATTR :: BUFFER_blc_d(:,:,:)
+ complex(SP), allocatable      :: BUFFER_SAVE(:)
  !
  ! Setup 
  !
@@ -112,13 +113,23 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  call MATRIX_init( "SLK", Xo , X%ng, 1 )
  YAMBO_ALLOC(Xo%blc,(Xo%BLCrows(1):Xo%BLCrows(2),Xo%BLCcols(1):Xo%BLCcols(2),1))
  Xo%blc=cZERO
- call MATRIX_init( "SLK", BUFFER , X%ng, max(PAR_n_freqs,1) )
- YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),max(PAR_n_freqs,1)))
+ !
+ if(call_kind=="screening")  buffer_nfreq=max(PAR_n_freqs,1)
+ if(call_kind=="optics")     buffer_nfreq=1
+ !
+ call MATRIX_init( "SLK", BUFFER , X%ng, buffer_nfreq )
+ YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
  BUFFER%blc=cZERO
+ !
+ if(call_kind=="optics") then
+   buffer_nfreq=max(PAR_n_freqs,1)
+   YAMBO_ALLOC(BUFFER_SAVE,(buffer_nfreq))
+   BUFFER_SAVE=cZERO
+ endif
  !
  if (compute_on_gpu) then
    YAMBO_ALLOC(KERNEL%blc_d,(KERNEL%BLCrows(1):KERNEL%BLCrows(2),KERNEL%BLCcols(1):KERNEL%BLCcols(2),1))
-   YAMBO_ALLOC(BUFFER%blc_d,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),max(PAR_n_freqs,1)))
+   YAMBO_ALLOC(BUFFER%blc_d,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
    YAMBO_ALLOC(Xo%blc_d,(Xo%BLCrows(1):Xo%BLCrows(2),Xo%BLCcols(1):Xo%BLCcols(2),1))
    call dev_memset(KERNEL%blc_d,cZERO)
    call dev_memset(BUFFER%blc_d,cZERO)
@@ -132,7 +143,10 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
    call MATRIX_transfer(M=-F_xc_gspace(:,:,1),M_out=K_FXC)
  endif
  !
- do iw_par=1,maxval(PAR_n_freqs_global)
+ do iw_par_loop=1,maxval(PAR_n_freqs_global)
+   !
+   if(call_kind=="optics")    iw_par=1
+   if(call_kind=="screening") iw_par=iw_par_loop
    !
    ! [1] Interface PAR/SER(Xo) => SLK/SER(X_redux)
    ! =============================================
@@ -285,6 +299,8 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
    !
    if (PAR_n_freqs>0) call live_timing(steps=1)
    !
+   if(call_kind=="optics") BUFFER_SAVE(iw_par_loop)=BUFFER%blc(i_G_shift,i_G_shift,1)
+   !
  enddo
  !
  call dev_stream_sync(stream_d2h)
@@ -308,6 +324,9 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  call MATRIX_reset(BUFFER)
  YAMBO_FREE(PAR_FREQS_index)
  call PP_indexes_reset(PAR_IND_freqs)
+ if(call_kind=="optics") then
+   YAMBO_FREE(BUFFER_SAVE)
+ endif
  !
 contains
    !
@@ -360,12 +379,7 @@ contains
      !
      ! The old X_par structure need to be cleaned and replaced by a non symmetric structure
      !
-     if (X_par%INTER_comm%n_CPU>1) then
-       !
-       call MATRIX_reset(X_par)
-       call X_PARALLEL_alloc(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
-       !
-     endif
+     if (X_par%INTER_comm%n_CPU>1) call X_PARALLEL_alloc(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
      !
      ! Now the interfaces. 
      !
@@ -408,14 +422,7 @@ contains
    !
    subroutine X_redux_pp_redux_macro()
      !
-     if (X_par%INTER_comm%n_CPU>1) then
-       !
-       call MATRIX_reset(X_par)
-       !
-     endif
-     !
-     YAMBO_ALLOC(X_par%blc,(1,1,Xw%n_freqs))
-     X_par%blc=cZERO
+     if (X_par%INTER_comm%n_CPU>1) call X_PARALLEL_alloc(X_par,1,Xw%n_freqs,"X,CPU_ONLY")
      !
      do i_LA_pool=1,PAR_COM_SLK_INDEX_local%n_CPU
        do iw_par=1,PAR_n_freqs_global(i_LA_pool)
@@ -427,7 +434,7 @@ contains
          if (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1.and.PAR_COM_SLK%CPU_id==0) then
            iw_X  = PAR_FREQS_index(iw_par)
            iw=iw_par
-           X_par%blc(1,1,iw_X)=BUFFER%blc(i_G_shift,i_G_shift,iw)
+           X_par%blc(1,1,iw_X)=BUFFER_SAVE(iw)
          endif
          !
        enddo

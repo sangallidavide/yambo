@@ -45,6 +45,10 @@ subroutine X_PARALLEL_alloc(X_par,NG,NW,mode)
  !
  call MATRIX_reset(X_par)
  !
+ ! Clean-up
+ !
+ if (mode=="CLEAN") return
+ !
  ! Type of allocation....
  !
  !l_XUP        =mode=="XUP"
@@ -52,15 +56,6 @@ subroutine X_PARALLEL_alloc(X_par,NG,NW,mode)
  l_XUP      = index(mode,"XUP")>0
  l_PAR      = index(mode,"X")>0.and.index(mode,"XUP")==0
  l_CPU_ONLY = index(mode,"CPU_ONLY")>0
- !
- ! Clean-up
- !
- if (mode=="CLEAN") then
-   YAMBO_FREE(X_par%blc)
-   YAMBO_FREE(X_par%blc_d)
-   call MATRIX_reset(X_par)
-   return
- endif
  !
  ! Initialization
  !
