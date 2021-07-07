@@ -66,7 +66,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  ! Work Space
  !
  type(PP_indexes) :: PAR_IND_freqs
- integer          :: ig1,ig2,iw_par,iw_par_loop,buffer_nfreq,iw,iw_X(1),INV_MODE,i_LA_pool,&
+ integer          :: ig1,ig2,iw_par,iw_par_buffer,buffer_nfreq,iw,iw_X(1),INV_MODE,i_LA_pool,&
 &                    PAR_n_freqs_global(PAR_COM_SLK_INDEX_local%n_CPU)
  integer          :: Xo_rows(2), Xo_cols(2)
  logical          :: compute_on_gpu
@@ -143,10 +143,10 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
    call MATRIX_transfer(M=-F_xc_gspace(:,:,1),M_out=K_FXC)
  endif
  !
- do iw_par_loop=1,maxval(PAR_n_freqs_global)
+ do iw_par=1,maxval(PAR_n_freqs_global)
    !
-   if(call_kind=="optics")    iw_par=1
-   if(call_kind=="screening") iw_par=iw_par_loop
+   if(call_kind=="optics")    iw_par_buffer=1
+   if(call_kind=="screening") iw_par_buffer=iw_par
    !
    ! [1] Interface PAR/SER(Xo) => SLK/SER(X_redux)
    ! =============================================
@@ -188,7 +188,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
    ! ==================
    !
    iw         = PAR_FREQS_index(iw_par)
-   BUFFER%I   = iw_par
+   BUFFER%I   = iw_par_buffer
    KERNEL%blc = cZERO
    if (compute_on_gpu) call dev_memset(KERNEL%blc_d,cZERO)
    !
@@ -269,7 +269,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
    if(.not.l_X_magn) then
    if (compute_on_gpu) then
       !
-!      call dev_mat_upd_dMd(Xo_rows(2)-Xo_rows(1)+1,Xo_cols(2)-Xo_cols(1)+1,BUFFER%blc_d(:,:,iw_par),&
+!      call dev_mat_upd_dMd(Xo_rows(2)-Xo_rows(1)+1,Xo_cols(2)-Xo_cols(1)+1,BUFFER%blc_d(:,:,iw_par_buffer),&
 !&                          bare_qpg_d(Xo_rows(1):,iq),"R",bare_qpg_d(iq,Xo_cols(1):),"R",scal=cmplx(4._SP*pi,kind=SP)) 
       !
       BUFFER_blc_d => BUFFER%blc_d
@@ -277,7 +277,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
       !$cuf kernel do(2)
       do ig2=Xo_cols(1),Xo_cols(2)
         do ig1=Xo_rows(1),Xo_rows(2)
-          BUFFER_blc_d(ig1,ig2,iw_par)=BUFFER_blc_d(ig1,ig2,iw_par)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
+          BUFFER_blc_d(ig1,ig2,iw_par_buffer)=BUFFER_blc_d(ig1,ig2,iw_par_buffer)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
         enddo
       enddo
       !
@@ -289,7 +289,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
       !$omp parallel do default(shared), private(ig1,ig2), collapse(2)
       do ig2=Xo%cols(1),Xo%cols(2)
         do ig1=Xo%rows(1),Xo%rows(2)
-          BUFFER%blc(ig1,ig2,iw_par)=BUFFER%blc(ig1,ig2,iw_par)*4._SP*pi/bare_qpg(iq,ig1)/bare_qpg(iq,ig2)
+          BUFFER%blc(ig1,ig2,iw_par_buffer)=BUFFER%blc(ig1,ig2,iw_par_buffer)*4._SP*pi/bare_qpg(iq,ig1)/bare_qpg(iq,ig2)
         enddo
       enddo
       !$omp end parallel do
@@ -299,7 +299,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
    !
    if (PAR_n_freqs>0) call live_timing(steps=1)
    !
-   if(call_kind=="optics") BUFFER_SAVE(iw_par_loop)=BUFFER%blc(i_G_shift,i_G_shift,1)
+   if(call_kind=="optics") BUFFER_SAVE(iw_par)=BUFFER%blc(i_G_shift,i_G_shift,1)
    !
  enddo
  !
