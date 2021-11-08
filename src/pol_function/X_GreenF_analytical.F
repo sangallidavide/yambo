@@ -108,11 +108,11 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
      !
      GreenF(iw)= Lorentzian_FT(Xw%p(iw),pole,ordering)*ffac
      !
-     if (X_terminator.and.ic>Xen%nbm) then
+     if (X_terminator.and.ic>Xen%nbm(c_sp_pol)) then
        GreenF(iw)= GreenF(iw) -Lorentzian_FT(Xw%p(iw),pole_X_term,ordering)*ffac  
      endif
      !
-     if (X_terminator.and.ic<=Xen%nbm) then
+     if (X_terminator.and.ic<=Xen%nbm(c_sp_pol)) then
        GreenF(iw)= -Lorentzian_FT(Xw%p(iw),pole_X_term,ordering)*ffac 
      endif
      !
@@ -137,7 +137,7 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
  ! because this routine is always called using the i_res \Omega. Indeed 
  !
  intra_band = .FALSE.
- if( ic <= Xen%nbf ) intra_band = .TRUE.
+ if( ic <= Xen%nbf(c_sp_pol) ) intra_band = .TRUE.
  !
  ! 1/6/2020 CA When Terminator is on, there are v->v' transition and therefore occupation factor
  ! cg_ffac goes to zeros and gives NaN. Fixed by introducing a flag for intra-band transitions
@@ -186,11 +186,11 @@ subroutine X_GreenF_analytical(iq,transitions,Xw,Xen,Xk,GreenF,ordering,space,no
      !
      GreenF(iw)=GreenF(iw)+Lorentzian_FT(Xw%p(iw),pole,ordering)*ffac
      !
-     if (X_terminator.and.ic>Xen%nbm) then 
+     if (X_terminator.and.ic>Xen%nbm(c_sp_pol)) then 
        GreenF(iw)= GreenF(iw) -Lorentzian_FT(Xw%p(iw),pole_X_term,ordering)*ffac
      endif
      !
-     if (X_terminator.and.ic<=Xen%nbm) then
+     if (X_terminator.and.ic<=Xen%nbm(c_sp_pol)) then
        GreenF(iw)= -Lorentzian_FT(Xw%p(iw),pole_X_term,ordering)*ffac
      endif      
      !

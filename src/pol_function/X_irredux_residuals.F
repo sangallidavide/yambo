@@ -107,7 +107,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
    if (i_comp==1) then; ikc=ik ; ikv=ikp; endif
    if (i_comp==2) then; ikc=ikp; ikv=ik ; endif
    !
-   l_X_term_vv = (l_X_terminator.and.ic>=X%ib(1).and.ic<=Xen%nbm)
+   l_X_term_vv = (l_X_terminator.and.ic>=X%ib(1).and.ic<=Xen%nbm(c_sp_pol))
    !
    ! take into account the cancellation of terms
    ! occurring when dealing with the wings
