@@ -84,28 +84,29 @@ subroutine X_pre_setup(Xen,Xk,X)
  !
  if (FXC_n_g_corr>X%ng) FXC_n_g_corr=X%ng
  !
+ ! Finite temperature X MUST be causal. This is because in X_eh_setup the
+ ! "resonant" or "antiresonant" par of X (in the many body language) include
+ ! negative poles as well. Only the sum of the two is meaningful, then.
+ if ( (Finite_Tel.or.l_rt_carriers_in_use) .and. .not.trim(X%ordering)=="R" ) then
+   call warning('Fractional occupations. Imposing retarded X ordering')
+   X%ordering="R"
+   if ( allocated(Xen%GreenF)) Xen%GreenF_is_causal=.true.
+ endif
+ !
  ! In case the columbian is cutoffed a resonant/antiresonant 
  ! only calculation is meaningless because of the dependence 
  ! of the alpha from X
  !
  if (l_col_cut) then
-   if ( trim(X%ordering) == 'a' .or. trim(X%ordering) == 'r' )  X%ordering='T'
+   if ( trim(X%ordering) == 'Ta' )  X%ordering='T'
+   if ( trim(X%ordering) == 'Ra' .or. trim(X%ordering) == 'r' )  X%ordering='R'
  endif
- !
- ! Finite temperature X MUST be causal. This is because in X_eh_setup the
- ! "resonant" or "antiresonant" par of X (in the many body language) include
- ! negative poles as well. Only the sum of the two is meaningful, then.
- !
- if (Finite_Tel .or. l_rt_carriers_in_use) X%ordering="R"
  !
  ! Transfer the GF's ordering 
  !
- if ( allocated(Xen%GreenF).and.     Xen%GreenF_is_causal ) X%ordering='R'
- if ( allocated(Xen%GreenF).and..not.Xen%GreenF_is_causal ) then
-   if ( .not.(Finite_Tel.or.l_rt_carriers_in_use) ) X%ordering='T'
-   if (      (Finite_Tel.or.l_rt_carriers_in_use) ) then
-     call error('Fractional occupations but GF is not retarded (causal in yambo language)')
-   endif 
+ if ( allocated(Xen%GreenF)) then
+   if (      Xen%GreenF_is_causal ) X%ordering='R'
+   if ( .not.Xen%GreenF_is_causal ) X%ordering='T'
  endif
  !
  ! Dyson solver

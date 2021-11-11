@@ -130,9 +130,6 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
      i_T_group_last=0
    endif
    !
-   ! DS: WARNING
-   ! I cannot revert ik and i_sp_pol loop here ...
-   !
    do i_res_ares=1,BS_n_eh_spaces
      !
      if (mode=="T") i_T_group_start=i_T_group_now+1

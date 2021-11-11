@@ -30,9 +30,12 @@ function Lorentzian_FT(W,pole,ordering)
  !
  ! AM,01/08/16. Note that aimag(pole) is always negative while aimag(W)>0
  !
- ! DS,31/10/18. Note that the present structure uses the relation e_{n,k}=e_{n,-k},
+ ! DS,31/10/18. Note that the present structure, at fieite q, uses the relation e_{n,k}=e_{n,-k},
  !              See Fetter-Walecka, p.158 from Eq.(12.29) to (12.30)
  !              Such relation is not always true. See for example magnetic systems with SOC and no SI.
+ !              See also finite-q BSE where resonant and anti-resonant block are explicitly computed if needed
+ !              via the flag l_BS_res_from_ares
+ !
  !              Moreover, as used in Xo, it implies
  !              - f_{n,k}=f_{n,-k} (occupations)
  !              - R_{nm,k}=R_{nm,-k} (residuals, eventually with a star)

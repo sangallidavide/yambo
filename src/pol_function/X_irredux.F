@@ -329,6 +329,9 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
    if(.not.allocated(Xen%GreenF)) & 
 &       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #else
+   ! DS: *** critical for magnons *** 
+   !     Here it is always assumed that resonant and anti-resonat terms can be related by T-rev
+   !     
    call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #endif
    !
