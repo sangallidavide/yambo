@@ -26,12 +26,13 @@ subroutine TDDFT_ALDA_G_space(E,k)
  use pars,          ONLY:DP,SP
  use X_m,           ONLY:l_X_magn,l_X_abs
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace
+ use QP_m,          ONLY:QP_ng_Vxc
  use com,           ONLY:msg
  use FFT_m,         ONLY:fft_size,fftw_plan,fft_dim,fft_g_table
- use electrons,     ONLY:levels,n_spin
+ use electrons,     ONLY:levels,n_spin,n_spinor
  use R_lattice,     ONLY:bz_samp,G_m_G
  use wave_func,     ONLY:WF
- use xc_functionals,ONLY:F_xc,magn,XC_potential_driver
+ use xc_functionals,ONLY:V_xc,F_xc,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind
  use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G
  !
@@ -67,6 +68,11 @@ subroutine TDDFT_ALDA_G_space(E,k)
  !
  YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
  YAMBO_ALLOC(F_xc_DP,(fft_size))
+ if (l_X_magn.and.n_spinor==2) then
+   YAMBO_ALLOC(V_xc,(fft_size,n_spin))
+   V_xc=0._SP
+   QP_ng_Vxc=nG
+ endif
  if (n_spin>1) then
    YAMBO_ALLOC(magn,(fft_size,3))
  endif
@@ -107,6 +113,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
  !
  YAMBO_FREE(F_xc)
  YAMBO_FREE(F_xc_DP)
+ YAMBO_FREE(V_xc)
  YAMBO_FREE(magn)
  call WF_free(WF)
  !
