@@ -46,7 +46,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  use matrix,        ONLY:PAR_matrix
  use stderr,        ONLY:intc
  use wave_func,     ONLY:WF
- use parallel_m,    ONLY:PAR_COM_X_WORLD,PAR_COM_RL_INDEX,myid,PAR_COM_X_WORLD_RL_resolved
+ use parallel_m,    ONLY:PAR_COM_X_WORLD,PAR_COM_RL_INDEX,myid,PAR_COM_X_WORLD_RL_resolved,PAR_COM_HOST
  use parallel_int,  ONLY:PP_redux_wait
  use openmp,        ONLY:OPENMP_update,n_threads_X,master_thread,OPENMP_set_threads,n_threads_X,&
 &                        n_out_threads,n_inn_threads,OPENMP_locks_reset,n_threads_FFT
@@ -87,6 +87,7 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  character(2)             :: ordering
  character(schlen)        :: live_t_string
+ integer(IPL)             :: HOST_SIZE(2),TMP_SIZE(2)
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
 &                            i_comp,i_res_ares,n_res_ares
@@ -247,6 +248,8 @@ subroutine X_irredux(iq,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! memory estimate and local alloc
  !=================================
+ !TMP_SIZE=(/X_par%rows(2)-X_par%rows(1)+1,X_par%cols(2)-X_par%cols(1)+1/)
+ !AMBO_PAR_ALLOC_CHECK2(Xo_res,TMP_SIZE)
  YAMBO_ALLOC(Xo_res,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
  if (have_cuda) then
    YAMBO_ALLOC(Xo_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))

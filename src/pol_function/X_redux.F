@@ -39,7 +39,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  use drivers,       ONLY:l_bs_fxc,l_alda_fxc,l_lrc_fxc
  use LIVE_t,        ONLY:live_timing
  use parallel_int,  ONLY:PP_redux_wait,PP_bcast
- use parallel_m,    ONLY:PP_indexes,PP_indexes_reset,PAR_COM_X_WORLD_RL_resolved,&
+ use parallel_m,    ONLY:PP_indexes,PP_indexes_reset,PAR_COM_X_WORLD_RL_resolved,PAR_COM_HOST,&
 &                        PAR_COM_X_WORLD,PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
  use R_lattice,     ONLY:bare_qpg, bare_qpg_d
  use frequency,     ONLY:w_samp
@@ -69,6 +69,7 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  integer          :: ig1,ig2,iw_par,iw_par_buffer,buffer_nfreq,iw,iw_X(1),INV_MODE,i_LA_pool,&
 &                    PAR_n_freqs_global(PAR_COM_SLK_INDEX_local%n_CPU)
  integer          :: Xo_rows(2), Xo_cols(2)
+ integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
  logical          :: compute_on_gpu
  type(PAR_matrix) :: K_FXC
  type(PAR_matrix), target      :: BUFFER,KERNEL
@@ -108,6 +109,8 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  ! ... and local BLACS structures for the response function components
  !         ======================
  call MATRIX_init( "SLK", KERNEL , X%ng, 1 )
+ !TMP_SIZE=(/KERNEL%BLCrows(2)-KERNEL%BLCrows(1)+1,KERNEL%BLCcols(2)-KERNEL%BLCcols(1)+1,2/)
+ !AMBO_PAR_ALLOC_CHECK3(KERNEL%blc,TMP_SIZE)
  YAMBO_ALLOC(KERNEL%blc,(KERNEL%BLCrows(1):KERNEL%BLCrows(2),KERNEL%BLCcols(1):KERNEL%BLCcols(2),1))
  KERNEL%blc=cZERO
  !
@@ -115,6 +118,8 @@ subroutine X_redux(iq,X_par,Xw,X,call_kind)
  if(call_kind=="optics")     buffer_nfreq=1
  !
  call MATRIX_init( "SLK", BUFFER , X%ng, buffer_nfreq )
+ !TMP_SIZE=(/BUFFER%BLCrows(2)-BUFFER%BLCrows(1)+1,BUFFER%BLCcols(2)-BUFFER%BLCcols(1)+1,buffer_nfreq*2/)
+ !AMBO_PAR_ALLOC_CHECK3(BUFFER%blc,TMP_SIZE)
  YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
  BUFFER%blc=cZERO
  !
