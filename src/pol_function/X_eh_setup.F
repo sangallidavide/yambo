@@ -111,7 +111,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
          ik_m_q =Xk%sstar(i_sym,1)
          !
          ! terminator handling
-         if (ic>=X%ib(1).and.ic<=Xen%nbm(i_sp).and.l_X_terminator) then
+         if (ic>=X%ib(1).and.ic<=Xen%nbm(c_sp_pol).and.l_X_terminator) then
            l_XTerm_vv=.TRUE.
            E_eh=X_term_E-Xen%E(iv,ik_m_q,v_sp_pol)       
          else
