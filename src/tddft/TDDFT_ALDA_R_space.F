@@ -55,7 +55,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  ! 
  ! Work Space
  !
- integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irhotw,is_yambo,os_yambo
+ integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y
  complex(SP) :: rhotwr1(fft_size*n_spinor*n_spinor)
  complex(SP) :: rhotwr2(fft_size*n_spinor*n_spinor)
  complex(SP) :: WF_symm1(fft_size,n_spinor)
@@ -111,12 +111,14 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
    rhotwr2=cZERO
    do i_spinor=1,n_spinor
      do j_spinor=1,n_spinor
+       i_spinor_y=j_spinor
+       j_spinor_y=i_spinor
        do ip_spinor=1,n_spinor
          do jp_spinor=1,n_spinor
            do ifft=1,fft_size
              irhotw=ifft+(i_spinor-1)*fft_size+(j_spinor-1)*n_spinor*fft_size
              rhotwr2(irhotw)=rhotwr2(irhotw)+&
-             &  F_xc_mat(ifft,i_spinor,j_spinor,ip_spinor,jp_spinor)*WF_symm1(ifft,ip_spinor)*conjg(WF_symm2(ifft,jp_spinor))
+             &  F_xc_mat(ifft,i_spinor_y,j_spinor_y,ip_spinor,jp_spinor)*WF_symm1(ifft,ip_spinor)*conjg(WF_symm2(ifft,jp_spinor))
            enddo
          enddo
        enddo
