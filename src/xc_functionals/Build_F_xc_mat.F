@@ -80,10 +80,10 @@ subroutine Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
      F_xc_mat(:,2,2,1,1)= F_xc(:,2,1)
      F_xc_mat(:,2,2,2,2)= F_xc(:,2,2)
    else
-     F_xc_mat(:,1,2,1,2)= F_xc(:,2,1)  ! This is zero
-     F_xc_mat(:,1,2,2,1)= F_xc(:,1,1)
-     F_xc_mat(:,2,1,1,2)= F_xc(:,2,2)
-     F_xc_mat(:,2,1,2,1)= F_xc(:,1,1)  ! This is zero
+     F_xc_mat(:,1,2,1,2)= F_xc(:,1,1)  ! This is zero
+     F_xc_mat(:,1,2,2,1)= F_xc(:,1,2)
+     F_xc_mat(:,2,1,1,2)= F_xc(:,2,1)
+     F_xc_mat(:,2,1,2,1)= F_xc(:,2,2)  ! This is zero
    endif
    !
  else if (n_spinor==2) then
@@ -110,8 +110,8 @@ subroutine Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
    !
    F_xc_mat(:,1,2,1,2) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)-cI*magn_versor(:,2))**2                      !  (mag)
    F_xc_mat(:,1,2,2,1) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)**2+magn_versor(:,2)**2)+2*Vxc_mag*magn_inv   !  (mag)
-   F_xc_mat(:,2,1,2,1) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)**2+magn_versor(:,2)**2)+2*Vxc_mag*magn_inv   !  (mag)
-   F_xc_mat(:,2,2,1,1) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)+cI*magn_versor(:,2))**2                      !  (mag)
+   F_xc_mat(:,2,1,1,2) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)**2+magn_versor(:,2)**2)+2*Vxc_mag*magn_inv   !  (mag)
+   F_xc_mat(:,2,1,2,1) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)+cI*magn_versor(:,2))**2                      !  (mag)
    !
    ! TO DO !!
    !
