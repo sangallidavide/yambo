@@ -35,7 +35,8 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  use vec_operate,    ONLY:k_periodic_idx
  use matrix_operate, ONLY:hermitian
  use parallel_m,     ONLY:PAR_IND_DIPk_ibz,PAR_DIPk_ibz_index,PAR_IND_DIPk_ibz_ID,&
-&                         PAR_DIPk_nbz,PAR_IND_CON_BANDS_DIP, PAR_IND_VAL_BANDS_DIP
+&                         PAR_DIPk_nbz,PAR_IND_CON_BANDS_DIP, PAR_IND_VAL_BANDS_DIP, &
+&                         PAR_IND_DIPk_bz,PAR_DIPk_bz_index,PAR_IND_DIPk_bz_ID
  use com,            ONLY:msg
  use D_lattice,      ONLY:a
  use parser_m,       ONLY:parser
@@ -66,13 +67,27 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  if(any(k_map%max_kdir(:)>=6.and..not.l_force_SndOrd)) &
  &   call msg('rs','Using forth order approximation for der-k dipoles')
  !
- call live_timing('Der-k Dipoles',PAR_IND_DIPk_ibz%n_of_elements(PAR_IND_DIPk_ibz_ID+1)*n_sp_pol)
- !
  ! Notice that DIP_iR/DIP_v are defined only in the IBZ
  ! while the overlaps are in the BZ 
  !
+ call live_timing("Build Rotation Matrices:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
+ !
+ do i_sp_pol=1,n_sp_pol
+   !
+   do ikbz=1,Xk%nbz
+     !
+     if(.not.PAR_IND_DIPk_bz%element_1D(ikbz)) cycle
+     !
+     call live_timing(steps=1)
+     !
+   enddo ! BZ loop
+   !
+ enddo ! i_sp_pol
+ !
  call live_timing()
  !
+ ! Build non-periodic directions if necessary
+ ! 
  if(any(idir_not_done)) call DIPOLE_x_real_space(Xen,Xk,Dip,idir_not_done)
  !
  call timing("DIPOLE_buil_derk",OPR="stop")
