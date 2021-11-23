@@ -33,6 +33,7 @@ module DIPOLES
  !
  logical                  :: use_covariant_approach
  logical                  :: use_shifted_grids_approach
+ logical                  :: use_der_k
  logical                  :: use_g_space_approach
  logical                  :: use_real_space_approach
  logical                  :: compute_P2_dipoles

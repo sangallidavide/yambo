@@ -45,7 +45,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  use IO_m,           ONLY:io_DIP
  use R_lattice,      ONLY:bz_samp
  use DIPOLES,        ONLY:DIP_alloc,DIPOLE_t,DIP_iR,use_covariant_approach,use_real_space_approach,&
-&                         Vnl_commutator_warning,use_g_space_approach,&
+&                         Vnl_commutator_warning,use_g_space_approach,use_der_k,&
 &                         use_shifted_grids_approach,DIP_P,DIP_v,DIP_S,eval_OVERLAPS,&
 &                         compute_P2_dipoles,compute_Orb_dipoles,compute_Spin_dipoles
  use IO_int,         ONLY:IO_and_Messaging_switch
@@ -108,6 +108,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  use_real_space_approach     = trim(Dip%approach)=='R-space x'
  use_covariant_approach      = trim(Dip%approach)=='Covariant'
  use_shifted_grids_approach  = trim(Dip%approach)=='Shifted grids'
+ use_der_k                   = trim(Dip%approach)=='derk'
  !
  compute_P2_dipoles          = index(Dip%computed,"P2")  /=0
  compute_Spin_dipoles        = index(Dip%computed,"Spin")/=0
@@ -181,7 +182,9 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
    !
    if (use_shifted_grids_approach) call DIPOLE_shifted_grids(Xen,Xk,Dip)
    !
-   if (use_covariant_approach)     call DIPOLE_build_covariants(Xen,Xk,Dip)
+   if (use_covariant_approach.or.use_der_k) call DIPOLE_overlaps(Xk,Dip)
+   !
+   if (use_covariant_approach) call DIPOLE_build_covariants(Xen,Xk,Dip)
    !
    if (use_real_space_approach)    call DIPOLE_x_real_space(Xen,Xk,Dip,idir_not_done)
    !
