@@ -30,7 +30,7 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  use pars,           ONLY:SP,cI,cZERO,pi
  use LIVE_t,         ONLY:live_timing
  use electrons,      ONLY:levels,n_sp_pol
- use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v
+ use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,DIP_U,DIP_alloc
  use R_lattice,      ONLY:bz_samp,k_map
  use vec_operate,    ONLY:k_periodic_idx
  use matrix_operate, ONLY:hermitian
@@ -52,8 +52,7 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  ! Work Space
  !
  logical     :: idir_not_done(3)
- logical     :: l_eval_polarization,l_force_SndOrd
- integer     :: ik,iv,ic,ic_min,iv_max,i_sp_pol,ikm1,id_red,idir,idx(3),ikbz,ik_mem
+ integer     :: ikbz,i_sp_pol,id
  integer     :: istep,max_step
  !
  call timing("DIPOLE_buil_derk",OPR="start")
@@ -72,15 +71,34 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  !
  call live_timing("Build Rotation Matrices:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
  !
+ call DIP_alloc('DIP_U',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
+ DIP_U=DIP_S
+ call DIP_free('DIP_S')
+ !
  do i_sp_pol=1,n_sp_pol
    !
    do ikbz=1,Xk%nbz
      !
      if(.not.PAR_IND_DIPk_bz%element_1D(ikbz)) cycle
      !
+     do id=1,3  ! Loop on the three crystal directions in the BZ
+       !
+       if(k_map%max_kdir(id)==1) cycle ! Non-periodic direction, skip calculation
+       !
+       max_step=1 ! Only the first neighbor
+       if(k_map%max_kdir(id)>=6) max_step=2  ! First and second neighbors
+       !
+       do istep=1,max_step
+         call SERIAL_SVD(Dip%ib(2),DIP_U(:,:,id+(istep-1)*3,ikbz,i_sp_pol),'uni',0)
+       enddo
+       !
+     enddo
+     !
      call live_timing(steps=1)
      !
    enddo ! BZ loop
+   !
+   call PP_redux_wait(DIP_S(:,:,:,:,i_sp_pol),COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
    !
  enddo ! i_sp_pol
  !
