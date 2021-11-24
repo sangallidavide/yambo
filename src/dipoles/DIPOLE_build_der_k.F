@@ -52,9 +52,9 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  ! Work Space
  !
  logical     :: idir_not_done(3)
- integer     :: ikbz,i_sp_pol,id
- integer     :: istep,max_step
- complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:)
+ integer     :: ik,i_sp_pol,id_red,idx(3),idir,ic,ik_mem,ikbz,iv
+ integer     :: istep,max_step,ikm1
+ complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:)
  !
  call timing("DIPOLE_buil_derk",OPR="start")
  !
@@ -74,31 +74,90 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  YAMBO_ALLOC(U_l,(Dip%ib(2),Dip%ib(2),2))
  YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),2))
+ YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),2))
+ YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
+ !
+ U_l       =cZERO
+ U_r       =cZERO
+ Der_k_cart=cZERO
+ Der_k_red =cZERO
  !
  do i_sp_pol=1,n_sp_pol
    !
-   do ikbz=1,Xk%nbz
+   do ik=1,Xk%nibz 
      !
-     if(.not.PAR_IND_DIPk_bz%element_1D(ikbz)) cycle
+     if (.not.PAR_IND_DIPk_ibz%element_1D(ik)) cycle
      !
-     do id=1,3  ! Loop on the three crystal directions in the BZ
+     ik_mem=PAR_DIPk_ibz_index(ik)
+     !
+     ikbz=Xk%k_table(ik,1)
+     !
+     do id_red=1,3  ! Loop on the three crystal directions in the BZ
        !
-       if(k_map%max_kdir(id)==1) cycle ! Non-periodic direction, skip calculation
+       if(k_map%max_kdir(id_red)==1) cycle ! Non-periodic direction, skip calculation
        !
        max_step=1 ! Only the first neighbor
-       if(k_map%max_kdir(id)>=6.and..not.l_force_SndOrd) max_step=2
+       if(k_map%max_kdir(id_red)>=6.and..not.l_force_SndOrd) max_step=2
        !
        do istep=1,max_step
-!         call SERIAL_SVD(Dip%ib(2),DIP_U(:,:,id+(istep-1)*3,ikbz,i_sp_pol),'uni',0)
+         ! 
+         idx=k_map%k_map_inv(ikbz,:)
+         idx(id_red)=idx(id_red)-istep
+         idx=k_periodic_idx(idx,k_map)
+         ikm1=k_map%k_map_dir(idx(1),idx(2),idx(3))
+         !
+         U_r(:,:,istep)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
+         U_l(:,:,istep)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
+         ! 
+         call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
+         call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
+         !
+         Der_k_red(:,:,istep)=matmul(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))-   &
+&                            -matmul(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol), hermitian(U_l(:,:,istep)))
+         Der_k_red(:,:,istep)=cI*Der_k_red(:,:,istep)*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
+         !
        enddo
        !
+       ! Transform in cartesian coordinates 
+       !
+       if(max_step==1) then
+         !      
+         ! First order formula D(dk)      
+         ! Eq. 96 of PRB 63, 155107(2001)
+         !
+         do idir=1,3
+         enddo
+           Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(Der_k_red(:,:,1))*a(id_red,idir)
+         !
+       else
+         !      
+         ! Second order formula   ( 4*D(dk) - D(2*dk) ) / 3
+         ! Eq. 97 of PRB 63, 155107(2001)
+         !
+         do idir=1,3
+           Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(4._SP*Der_k_red(:,:,1)-Der_k_red(:,:,2))/3._SP*a(id_red,idir)
+         enddo
+         !
+       endif
+       !
+     enddo  ! id_red loop on crystal directions 
+     !
+     !======
+     ! <iR>
+     !======
+     do iv=Dip%ib(1),Dip%ib_lim(1)
+       if(.not.PAR_IND_VAL_BANDS_DIP%element_1D(iv)) cycle
+       do ic=max(iv,Dip%ib_lim(2)),Dip%ib(2)
+         if(.not.PAR_IND_CON_BANDS_DIP%element_1D(ic)) cycle
+         do idir=1,3
+           DIP_iR(idir,ic,iv,ik_mem,i_sp_pol)=(Der_k_cart(ic,iv,idir)+conjg(Der_k_cart(iv,ic,idir)))/cI
+         enddo
+       enddo
      enddo
      !
      call live_timing(steps=1)
      !
-   enddo ! BZ loop
-   !
-   call PP_redux_wait(DIP_S(:,:,:,:,i_sp_pol),COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
+   enddo ! ik iiBZ loop
    !
  enddo ! i_sp_pol
  !
@@ -106,6 +165,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  YAMBO_FREE(U_l)
  YAMBO_FREE(U_r)
+ YAMBO_FREE(Der_k_red)
+ YAMBO_FREE(Der_k_cart)
  !
  ! Build non-periodic directions if necessary
  ! 
