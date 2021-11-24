@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine DIPOLE_build_derk(Xen,Xk,Dip)
+subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  ! Build the dipole as k-derivative using
  ! the overlaps  to contruct local rotation matrices 
@@ -30,21 +30,21 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  use pars,           ONLY:SP,cI,cZERO,pi
  use LIVE_t,         ONLY:live_timing
  use electrons,      ONLY:levels,n_sp_pol
- use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,DIP_U,DIP_alloc
+ use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,DIP_alloc,l_force_SndOrd
  use R_lattice,      ONLY:bz_samp,k_map
  use vec_operate,    ONLY:k_periodic_idx
  use matrix_operate, ONLY:hermitian
  use parallel_m,     ONLY:PAR_IND_DIPk_ibz,PAR_DIPk_ibz_index,PAR_IND_DIPk_ibz_ID,&
 &                         PAR_DIPk_nbz,PAR_IND_CON_BANDS_DIP, PAR_IND_VAL_BANDS_DIP, &
-&                         PAR_IND_DIPk_bz,PAR_DIPk_bz_index,PAR_IND_DIPk_bz_ID
+&                         PAR_IND_DIPk_bz,PAR_DIPk_bz_index,PAR_IND_DIPk_bz_ID,PAR_COM_DIPk_ibz_INDEX
+ use parallel_int,   ONLY:PP_redux_wait
  use com,            ONLY:msg
  use D_lattice,      ONLY:a
  use parser_m,       ONLY:parser
  use timing_m,       ONLY:timing
+ !
+#include <memory.h>
 
- !
- implicit none
- !
  type(levels),           intent(in)     :: Xen
  type(bz_samp),          intent(inout)  :: Xk
  type(DIPOLE_t),         intent(inout)  :: Dip
@@ -54,6 +54,7 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  logical     :: idir_not_done(3)
  integer     :: ikbz,i_sp_pol,id
  integer     :: istep,max_step
+ complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:)
  !
  call timing("DIPOLE_buil_derk",OPR="start")
  !
@@ -71,9 +72,8 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  !
  call live_timing("Build Rotation Matrices:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
  !
- call DIP_alloc('DIP_U',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
- DIP_U=DIP_S
- call DIP_free('DIP_S')
+ YAMBO_ALLOC(U_l,(Dip%ib(2),Dip%ib(2),2))
+ YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),2))
  !
  do i_sp_pol=1,n_sp_pol
    !
@@ -86,10 +86,10 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
        if(k_map%max_kdir(id)==1) cycle ! Non-periodic direction, skip calculation
        !
        max_step=1 ! Only the first neighbor
-       if(k_map%max_kdir(id)>=6) max_step=2  ! First and second neighbors
+       if(k_map%max_kdir(id)>=6.and..not.l_force_SndOrd) max_step=2
        !
        do istep=1,max_step
-         call SERIAL_SVD(Dip%ib(2),DIP_U(:,:,id+(istep-1)*3,ikbz,i_sp_pol),'uni',0)
+!         call SERIAL_SVD(Dip%ib(2),DIP_U(:,:,id+(istep-1)*3,ikbz,i_sp_pol),'uni',0)
        enddo
        !
      enddo
@@ -104,6 +104,9 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  !
  call live_timing()
  !
+ YAMBO_FREE(U_l)
+ YAMBO_FREE(U_r)
+ !
  ! Build non-periodic directions if necessary
  ! 
  if(any(idir_not_done)) call DIPOLE_x_real_space(Xen,Xk,Dip,idir_not_done)
@@ -111,4 +114,4 @@ subroutine DIPOLE_build_derk(Xen,Xk,Dip)
  call timing("DIPOLE_buil_derk",OPR="stop")
  return
  !
-end subroutine DIPOLE_build_derk
+end subroutine DIPOLE_build_der_k
