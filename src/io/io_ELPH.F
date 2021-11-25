@@ -30,7 +30,7 @@ integer function io_ELPH(ID,what)
 &                         io_variable_elemental,io_bulk,io_header,def_variable_elemental
  use ELPH,           ONLY:ph_modes,elph_nb,PH_freqs_sq,elph_nk_bz,ELPH_desc,&
 &                         QP_PH_n_G_bands,PH_W_debye,elph_nQ,PH_kpt_bz,l_GKKP_hosts_bare_dV,&
-&                         elph_use_q_grid,PH_qpt,elph_nQ_used,GKKP,GKKP_bare,&
+&                         elph_use_q_grid,PH_qpt,elph_nQ_used,GKKP,GKKP_bare,l_GKKP_DW,&
 &                         gsqF_fan,gsqF_dw ,gsqF_ca_corr ,gsqF_life_bose ,gsqF_life_f,&
 &                         PH_pol_vector,elph_Ham_bands,elph_branches,GKKP,elph_grids_are_expanded
  use stderr,         ONLY:intc
@@ -96,6 +96,7 @@ integer function io_ELPH(ID,what)
    !
    if (.not.ver_is_gt_or_eq(ID,revision=18920)) call def_variable_elemental(ID,"PARS",6,SP,0)
    if (     ver_is_gt_or_eq(ID,revision=18920)) call def_variable_elemental(ID,"PARS",7,SP,0)
+   if (     ver_is_gt_or_eq(ID,revision=20495)) call def_variable_elemental(ID,"PARS",8,SP,0)
    call io_variable_elemental(ID,VAR="[ELPH] Phonon modes",I0=ph_modes,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=ELPH_desc)
    call io_variable_elemental(ID,VAR="[ELPH] Q points",I0=elph_nQ,CHECK=.true.,OP=(/"=="/),&
 &                             TERMINATOR="[avail]",DESCRIPTOR=ELPH_desc)
@@ -107,6 +108,12 @@ integer function io_ELPH(ID,what)
    if (ver_is_gt_or_eq(ID,revision=18920)) then
      call io_variable_elemental(ID,VAR="[ELPH] Bare interaction",L0=l_GKKP_hosts_bare_dV,&
 &                               CHECK=.true.,OP=(/"=="/),DESCRIPTOR=ELPH_desc)
+   endif
+   if (ver_is_gt_or_eq(ID,revision=20495)) then
+     call io_variable_elemental(ID,VAR="[ELPH] Debye-Waller interaction",L0=l_GKKP_DW, &
+&                               CHECK=.true.,OP=(/"=="/),DESCRIPTOR=ELPH_desc)
+   else
+      l_GKKP_DW=.TRUE.
    endif
    if (l_gFsq) then
      call def_variable_elemental(ID,"QP_nb_nk_n_states",3,SP,0)
@@ -241,10 +248,14 @@ integer function io_ELPH(ID,what)
    !
  endif
  !
- ! ELPH_DW 
- !
- call io_bulk(ID_frag,VAR="ELPH_DW_Q"//trim(intc(iq)),VAR_SZ=(/ph_modes,elph_nb,elph_nb,nkbz/))
- call io_bulk(ID_frag,R4=GKKP%dVr(:,:,:,:,1))
+ if(l_GKKP_DW) then
+   !      
+   ! ELPH_DW 
+   !
+   call io_bulk(ID_frag,VAR="ELPH_DW_Q"//trim(intc(iq)),VAR_SZ=(/ph_modes,elph_nb,elph_nb,nkbz/))
+   call io_bulk(ID_frag,R4=GKKP%dVr(:,:,:,:,1))
+   !
+ endif
  !
 1 call io_fragment_disconnect(ID,ID_frag)
  !
