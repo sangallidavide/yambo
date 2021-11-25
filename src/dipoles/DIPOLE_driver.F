@@ -123,7 +123,8 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
 #endif
  compute_Spin_dipoles        = compute_Spin_dipoles .or. (l_BS_magnons .and. n_spin>1)
  !
- if(.not.any((/use_g_space_approach,use_real_space_approach,use_covariant_approach,use_shifted_grids_approach/))) then
+ if(.not.any((/use_g_space_approach,use_real_space_approach, &
+&         use_der_k,use_covariant_approach,use_shifted_grids_approach/))) then
    call warning(' Dipoles approach defined in input not recognised. Reverting to G-space v')
    use_g_space_approach = .true.
    Dip%approach='G-space v'
