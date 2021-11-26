@@ -74,7 +74,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  YAMBO_ALLOC(U_l,(Dip%ib(2),Dip%ib(2),2))
  YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),2))
- YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),2))
+ YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
  !
  U_l       =cZERO
@@ -97,7 +97,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
        if(k_map%max_kdir(id_red)==1) cycle ! Non-periodic direction, skip calculation
        !
        max_step=1 ! Only the first neighbor
-       if(k_map%max_kdir(id_red)>=6.and..not.l_force_SndOrd) max_step=2
+!       if(k_map%max_kdir(id_red)>=6.and..not.l_force_SndOrd) max_step=2
        !
        do istep=1,max_step
          ! 
@@ -112,8 +112,9 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
          call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
          !
-         Der_k_red(:,:,istep)=matmul(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))-   &
-&                            -matmul(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol), hermitian(U_l(:,:,istep)))
+         Der_k_red(:,:,istep)= matmul(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))   &
+&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))
+         !
          Der_k_red(:,:,istep)=cI*Der_k_red(:,:,istep)*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
          !
        enddo
@@ -126,8 +127,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          ! Eq. 96 of PRB 63, 155107(2001)
          !
          do idir=1,3
-         enddo
            Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(Der_k_red(:,:,1))*a(id_red,idir)
+         enddo
          !
        else
          !      
