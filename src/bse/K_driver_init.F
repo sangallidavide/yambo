@@ -24,7 +24,7 @@
 subroutine K_driver_init(what,iq,Ken,Xk)
  !
  use R_lattice,    ONLY:bz_samp
- use electrons,    ONLY:n_spin,levels,n_sp_pol
+ use electrons,    ONLY:n_spin,levels,n_sp_pol,get_spin_majority
  use parser_m,     ONLY:parser
  use parallel_m,   ONLY:PARALLEL_default_mode
  use stderr,       ONLY:STRING_match
@@ -97,6 +97,8 @@ subroutine K_driver_init(what,iq,Ken,Xk)
    BS_n_eh_spaces=2
    if (.not.BS_K_coupling) BS_res_ares_n_mat=2
  endif
+ !
+ call get_spin_majority(Ken)
  !
  if (what=="loop-init") return
  !
