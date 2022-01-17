@@ -44,7 +44,7 @@ module DIPOLES
  ! other
  !
  integer                  :: num_shifted_grids
- logical                  :: eval_OVERLAPS
+ logical                  :: compute_overlaps
  logical                  :: l_force_SndOrd 
  ! 
  ! Descriptor

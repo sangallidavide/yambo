@@ -46,7 +46,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  use R_lattice,      ONLY:bz_samp
  use DIPOLES,        ONLY:DIP_alloc,DIPOLE_t,DIP_iR,use_covariant_approach,use_real_space_approach,&
 &                         Vnl_commutator_warning,use_g_space_approach,use_der_k,l_force_SndOrd,&
-&                         use_shifted_grids_approach,DIP_P,DIP_v,DIP_S,eval_OVERLAPS,&
+&                         use_shifted_grids_approach,DIP_P,DIP_v,DIP_S,compute_overlaps,&
 &                         compute_P2_dipoles,compute_Orb_dipoles,compute_Spin_dipoles
  use IO_int,         ONLY:IO_and_Messaging_switch
  use parallel_m,     ONLY:PAR_IND_DIPk_ibz,PAR_DIPk_nibz,PAR_COM_DIPk_ibz_A2A,&
@@ -146,7 +146,8 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  if (compute_Spin_dipoles) Dip%computed=trim(Dip%computed)//' Spin'
  if (compute_Orb_dipoles)  Dip%computed=trim(Dip%computed)//' Orb'
  !
- if (use_covariant_approach.or.use_der_k)  eval_OVERLAPS=.true.
+ compute_overlaps=.false.
+ if (use_covariant_approach.or.use_der_k)  compute_overlaps=.true.
  !
  ! Dipole dimensions to be fixed
  !
@@ -185,7 +186,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
    !
    if (use_shifted_grids_approach) call DIPOLE_shifted_grids(Xen,Xk,Dip)
    !
-   if (eval_OVERLAPS)              call DIPOLE_overlaps(Xk,Dip)
+   if (compute_overlaps)           call DIPOLE_overlaps(Xk,Dip)
    !
    if (use_covariant_approach)     call DIPOLE_build_covariants(Xen,Xk,Dip)
    !
@@ -250,7 +251,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  call DIP_alloc('DIP_iR')
  call DIP_alloc('DIP_P')
  call DIP_alloc('DIP_v')
- if (use_covariant_approach) call DIP_alloc('DIP_S')
+ if (compute_overlaps)       call DIP_alloc('DIP_S')
  if (compute_P2_dipoles)     call DIP_alloc('P_square') 
  if (compute_Orb_dipoles)    call DIP_alloc('DIP_orbital')
  if (compute_Spin_dipoles)   call DIP_alloc('DIP_spin')
@@ -298,7 +299,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
        DIP_orbital=cZERO
      endif
      !
-     if(use_covariant_approach) then
+     if(compute_overlaps) then
        call DIP_alloc('DIP_S',(/Dip%ib(2),Dip%ib(2),6,Xk%nbz/))
        DIP_S=cZERO
      endif

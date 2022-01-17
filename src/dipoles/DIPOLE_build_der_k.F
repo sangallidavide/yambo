@@ -98,7 +98,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
        if(k_map%max_kdir(id_red)==1) cycle ! Non-periodic direction, skip calculation
        !
        max_step=1 ! Only the first neighbor
-!       if(k_map%max_kdir(id_red)>=6.and..not.l_force_SndOrd) max_step=2
+       if(k_map%max_kdir(id_red)>=6.and..not.l_force_SndOrd) max_step=2
        !
        do istep=1,max_step
          ! 
@@ -107,23 +107,34 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          idx=k_periodic_idx(idx,k_map)
          ikm1=k_map%k_map_dir(idx(1),idx(2),idx(3))
          !
+         !write(*,*) ikbz,ikm1
+         !write(*,*) DIP_S(13:14,13:14,id_red+(istep-1)*3,ikbz,i_sp_pol)
+         !write(*,*) DIP_S(13:14,13:14,id_red+(istep-1)*3,ikm1,i_sp_pol)
+         !
          U_r(:,:,istep)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
          U_l(:,:,istep)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
          ! 
          call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
          call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
          !
+         !write(*,*) U_r(13:14,13:14,istep)
+         !write(*,*) U_l(13:14,13:14,istep)
+         !
          !r+l
          Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))  &
 &                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),          U_r(:,:,istep) )  &
-&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol), hermitian(U_l(:,:,istep)))  &
-&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),          U_l(:,:,istep) )
+&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))  &
+&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep) )
+         !
+         !l
+!         Der_k_red(:,:,istep)=-matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))  &
+!&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep) )
+!         write(*,*) Der_k_red(13:14,13:14,istep)
+         !
          !r
 !         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))  &
 !&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),          U_r(:,:,istep) )
-         !l
-!         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol), hermitian(U_l(:,:,istep)))  &
-!&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),          U_l(:,:,istep) )
+!         write(*,*) Der_k_red(13:14,13:14,istep)
          !
          Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
          !

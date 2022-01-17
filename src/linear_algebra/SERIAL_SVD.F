@@ -32,8 +32,8 @@ subroutine SERIAL_SVD(n,M,mode,SVD_digits)
  !
  integer,     intent(in)    :: n
  complex(SP), intent(inout) :: M(n,n)
- integer,     intent(in)    :: SVD_digits 
  character(3),intent(in)    :: mode
+ integer,     intent(in)    :: SVD_digits
  !
  !ws
  integer           :: i_loop 
