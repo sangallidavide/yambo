@@ -28,11 +28,12 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  ! see Phys. Rev. B 76, 035213 (2007) and  Phys. Rev. Research 2, 013357 (2020)
  !
  use pars,           ONLY:SP,cI,cZERO,pi
+ use units,          ONLY:HA2EV
  use LIVE_t,         ONLY:live_timing
  use electrons,      ONLY:levels,n_sp_pol
  use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,DIP_alloc,l_force_SndOrd
  use R_lattice,      ONLY:bz_samp,k_map
- use vec_operate,    ONLY:k_periodic_idx
+ use vec_operate,    ONLY:k_periodic_idx,degeneration_finder
  use matrix_operate, ONLY:hermitian
  use parallel_m,     ONLY:PAR_IND_DIPk_ibz,PAR_DIPk_ibz_index,PAR_IND_DIPk_ibz_ID,&
 &                         PAR_DIPk_nbz,PAR_IND_CON_BANDS_DIP, PAR_IND_VAL_BANDS_DIP, &
@@ -53,8 +54,12 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  logical     :: idir_not_done(3)
  integer     :: ik,i_sp_pol,id_red,idx(3),idir,ic,ik_mem,ikbz,iv
- integer     :: istep,max_step,ikm1
+ integer     :: istep,max_step,ikm1,ikp1
  complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:)
+ !
+ logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
+ integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
+ real(SP)    :: deg_thresh
  !
  call timing("DIPOLE_buil_derk",OPR="start")
  !
@@ -77,6 +82,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
  !
+ deg_thresh=0.005/HA2EV
+ !
  do i_sp_pol=1,n_sp_pol
    !
    do ik=1,Xk%nibz 
@@ -86,6 +93,20 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
      ik_mem=PAR_DIPk_ibz_index(ik)
      !
      ikbz=Xk%k_table(ik,1)
+     !
+     call degeneration_finder(Xen%E(1:Dip%ib(2),ik,i_sp_pol),Dip%ib(2),&
+     &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
+     !
+     deg_table_k=.false.
+     do i_grp=1,n_deg_grp_k
+       do ib=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
+         do ibp=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
+           deg_table_k(ib,ibp)=.true.
+           deg_table_k(ibp,ib)=.true.
+         enddo
+         !deg_table_k(ib,ib)=.false.
+       enddo
+     enddo
      !
      U_l       =cZERO
      U_r       =cZERO
@@ -103,40 +124,92 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
        do istep=1,max_step
          ! 
          idx=k_map%k_map_inv(ikbz,:)
+         idx(id_red)=idx(id_red)+istep
+         idx=k_periodic_idx(idx,k_map)
+         ikp1=k_map%k_map_dir(idx(1),idx(2),idx(3))
+         !
+         call degeneration_finder(Xen%E(1:Dip%ib(2),Xk%sstar(ikp1,1),i_sp_pol),Dip%ib(2),&
+         &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
+         !
+         deg_table_kp=.false.
+         do i_grp=1,n_deg_grp_k
+           do ib=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
+             do ibp=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
+               deg_table_kp(ib,ibp)=.true.
+               deg_table_kp(ibp,ib)=.true.
+             enddo
+           enddo
+         enddo
+         ! 
+         idx=k_map%k_map_inv(ikbz,:)
          idx(id_red)=idx(id_red)-istep
          idx=k_periodic_idx(idx,k_map)
          ikm1=k_map%k_map_dir(idx(1),idx(2),idx(3))
          !
-         !write(*,*) ikbz,ikm1
-         !write(*,*) DIP_S(13:14,13:14,id_red+(istep-1)*3,ikbz,i_sp_pol)
-         !write(*,*) DIP_S(13:14,13:14,id_red+(istep-1)*3,ikm1,i_sp_pol)
+         call degeneration_finder(Xen%E(1:Dip%ib(2),Xk%sstar(ikm1,1),i_sp_pol),Dip%ib(2),&
+         &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
+         !
+         deg_table_km=.false.
+         do i_grp=1,n_deg_grp_k
+           do ib=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
+             do ibp=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
+               deg_table_km(ib,ibp)=.true.
+               deg_table_km(ibp,ib)=.true.
+             enddo
+           enddo
+         enddo
+         !
+         write(*,*) ikbz,ikm1
+         write(*,*) "S1= ",DIP_S(13:14,13:14,id_red+(istep-1)*3,ikbz,i_sp_pol)
+         write(*,*) "S2= ",DIP_S(13:14,13:14,id_red+(istep-1)*3,ikm1,i_sp_pol)
          !
          U_r(:,:,istep)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
          U_l(:,:,istep)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
+         !
+         do ib=1,Dip%ib(2)
+           do ibp=1,Dip%ib(2)
+             if(deg_table_k(ibp,ib).or.deg_table_kp(ibp,ib)) cycle
+             U_r(ib,ibp,istep)=cZERO
+           enddo
+         enddo
+         !
+         do ib=1,Dip%ib(2)
+           do ibp=1,Dip%ib(2)
+             if(deg_table_k(ibp,ib).or.deg_table_km(ibp,ib)) cycle
+             U_l(ib,ibp,istep)=cZERO
+           enddo
+         enddo
          ! 
          call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
          call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
          !
-         !write(*,*) U_r(13:14,13:14,istep)
-         !write(*,*) U_l(13:14,13:14,istep)
+         write(*,*) "Ur= ",U_r(13:14,13:14,istep)
+         write(*,*) "Ul= ",U_l(13:14,13:14,istep)
          !
          !r+l
          Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))  &
 &                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),          U_r(:,:,istep) )  &
 &                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))  &
-&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep) )
+&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep)) 
+!&                             +matmul(hermitian(U_l(:,:,istep)),hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)))  &
+!&                             -matmul(          U_l(:,:,istep) ,          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ) 
          !
          !l
 !         Der_k_red(:,:,istep)=-matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))  &
 !&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep) )
 !         write(*,*) Der_k_red(13:14,13:14,istep)
          !
+         !l'
+!&        Der_k_red(:,:,istep)=+matmul(hermitian(U_l(:,:,istep)),hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)))  &
+!&                             -matmul(          U_l(:,:,istep) ,          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ) 
+         !
          !r
 !         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))  &
 !&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),          U_r(:,:,istep) )
-!         write(*,*) Der_k_red(13:14,13:14,istep)
+         write(*,*) Der_k_red(13:14,13:14,istep)
          !
          Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
+         write(*,*) "Derk= ",Der_k_red(13:14,13:14,istep)
          !
        enddo
        !
@@ -149,6 +222,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          do idir=1,3
            Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(Der_k_red(:,:,1))*a(id_red,idir)
          enddo
+         write(*,*) "Derk_c= ",Der_k_cart(13:14,13:14,1)
          !
        else
          !      
