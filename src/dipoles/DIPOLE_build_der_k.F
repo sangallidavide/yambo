@@ -113,7 +113,9 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
          call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
          !
-         Der_k_red(:,:,istep)= matmul(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))   &
+         Der_k_red(:,:,istep)= matmul(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))            &
+&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),hermitian(U_r(:,:,istep)))  &
+&                             +matmul(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol), hermitian(U_l(:,:,istep)))            &
 &                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))
          !
          Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
