@@ -77,11 +77,6 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
  !
- U_l       =cZERO
- U_r       =cZERO
- Der_k_cart=cZERO
- Der_k_red =cZERO
- !
  do i_sp_pol=1,n_sp_pol
    !
    do ik=1,Xk%nibz 
@@ -91,6 +86,12 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
      ik_mem=PAR_DIPk_ibz_index(ik)
      !
      ikbz=Xk%k_table(ik,1)
+     !
+     U_l       =cZERO
+     U_r       =cZERO
+     !
+     Der_k_cart=cZERO
+     Der_k_red =cZERO
      !
      do id_red=1,3  ! Loop on the three crystal directions in the BZ
        !
@@ -115,7 +116,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          Der_k_red(:,:,istep)= matmul(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))   &
 &                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))
          !
-         Der_k_red(:,:,istep)=cI*Der_k_red(:,:,istep)*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
+         Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
          !
        enddo
        !
@@ -124,7 +125,6 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
        if(max_step==1) then
          !      
          ! First order formula D(dk)      
-         ! Eq. 96 of PRB 63, 155107(2001)
          !
          do idir=1,3
            Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(Der_k_red(:,:,1))*a(id_red,idir)
@@ -133,7 +133,6 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
        else
          !      
          ! Second order formula   ( 4*D(dk) - D(2*dk) ) / 3
-         ! Eq. 97 of PRB 63, 155107(2001)
          !
          do idir=1,3
            Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(4._SP*Der_k_red(:,:,1)-Der_k_red(:,:,2))/3._SP*a(id_red,idir)
