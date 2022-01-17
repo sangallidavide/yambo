@@ -30,7 +30,7 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  use IO_m,        ONLY:io_DIP
  use R_lattice,   ONLY:bz_samp
  use electrons,   ONLY:levels,n_sp_pol
- use DIPOLES,     ONLY:DIPOLE_t,DIP_v,use_covariant_approach
+ use DIPOLES,     ONLY:DIPOLE_t,DIP_v,use_covariant_approach,use_der_k
  use IO_int,      ONLY:io_control
  use IO_m,        ONLY:manage_action,VERIFY,DUMP,REP,OP_WR_CL,OP_WR,OP_RD_CL,&
 &                      OP_IF_START_APP_CL_IF_END,OP_IF_START_RD_CL_IF_END
@@ -80,8 +80,8 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  write_header  =  (master_cpu.and.writing)
  read_header   =  .not.write_header 
  !
- write_header_ovlp  =write_header.and.use_covariant_approach
- read_header_ovlp   = read_header.and.use_covariant_approach
+ write_header_ovlp  =write_header.and.(use_covariant_approach.or.use_der_k)
+ read_header_ovlp   = read_header.and.(use_covariant_approach.or.use_der_k)
  !
  if(write_header) then
    call msg('s','[DIP] Writing dipoles header ')
@@ -169,7 +169,7 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
  endif
 #endif
  !
- if(use_covariant_approach) then
+ if(use_covariant_approach.or.use_der_k) then
 #if defined _PAR_IO
    if ( (PAR_K_scheme%COM_ibz_A2A%CPU_id==0.and.writing).or.reading ) then
      IO_ACT_NOW=manage_action(IO_ACTION,0,0,2)
