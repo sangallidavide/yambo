@@ -27,7 +27,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  ! the overlaps  to contruct local rotation matrices 
  ! see Phys. Rev. B 76, 035213 (2007) and  Phys. Rev. Research 2, 013357 (2020)
  !
- use pars,           ONLY:SP,cI,cZERO,pi
+ use pars,           ONLY:SP,cI,cZERO,pi,cONE
  use units,          ONLY:HA2EV
  use LIVE_t,         ONLY:live_timing
  use electrons,      ONLY:levels,n_sp_pol
@@ -55,7 +55,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  logical     :: idir_not_done(3)
  integer     :: ik,i_sp_pol,id_red,idx(3),idir,ic,ik_mem,ikbz,iv
  integer     :: istep,max_step,ikm1,ikp1
- complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:),Der_k_tmp(:,:)
+ complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:),delta(:,:)
  !
  logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
  integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
@@ -81,7 +81,12 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),2))
  YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
- YAMBO_ALLOC(Der_k_tmp,(Dip%ib(2),Dip%ib(2)))
+ YAMBO_ALLOC(delta,(Dip%ib(2),Dip%ib(2)))
+ !
+ delta=cZERO
+ do ib=1,Dip%ib(2)
+   delta(ib,ib)=cONE
+ enddo
  !
  deg_thresh=0.005/HA2EV
  !
@@ -105,7 +110,6 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
            deg_table_k(ib,ibp)=.true.
            deg_table_k(ibp,ib)=.true.
          enddo
-         !deg_table_k(ib,ib)=.false.
        enddo
      enddo
      !
@@ -160,10 +164,6 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
            enddo
          enddo
          !
-         write(*,*) ikbz,ikm1
-         write(*,*) "S1= ",DIP_S(13:14,13:14,id_red+(istep-1)*3,ikbz,i_sp_pol)
-         write(*,*) "S2= ",DIP_S(13:14,13:14,id_red+(istep-1)*3,ikm1,i_sp_pol)
-         !
          U_r(:,:,istep)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
          U_l(:,:,istep)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
          !
@@ -184,15 +184,12 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
          call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
          !
-         write(*,*) "Ur= ",U_r(13:14,13:14,istep)
-         write(*,*) "Ul= ",U_l(13:14,13:14,istep)
+         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol) ,hermitian(U_r(:,:,istep)) )  &
+&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)) )
+!&                             +matmul( U_l(:,:,istep), DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)            )  &
+!&                             -2*delta(:,:)
          !
-         !
-         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)) )  &
-&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)) ) 
-         !
-         Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
-         write(*,*) "Derk= ",Der_k_red(13:14,13:14,istep)
+         Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
          !
        enddo
        !
@@ -243,7 +240,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  YAMBO_FREE(U_r)
  YAMBO_FREE(Der_k_red)
  YAMBO_FREE(Der_k_cart)
- YAMBO_FREE(Der_k_tmp)
+ YAMBO_FREE(delta)
  !
  ! Build non-periodic directions if necessary
  ! 
