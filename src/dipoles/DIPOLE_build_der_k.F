@@ -55,7 +55,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  logical     :: idir_not_done(3)
  integer     :: ik,i_sp_pol,id_red,idx(3),idir,ic,ik_mem,ikbz,iv
  integer     :: istep,max_step,ikm1,ikp1
- complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:)
+ complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:),Der_k_tmp(:,:)
  !
  logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
  integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
@@ -81,6 +81,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),2))
  YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
+ YAMBO_ALLOC(Der_k_tmp,(Dip%ib(2),Dip%ib(2)))
  !
  deg_thresh=0.005/HA2EV
  !
@@ -186,27 +187,9 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          write(*,*) "Ur= ",U_r(13:14,13:14,istep)
          write(*,*) "Ul= ",U_l(13:14,13:14,istep)
          !
-         !r+l
-         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))  &
-&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),          U_r(:,:,istep) )  &
-&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))  &
-&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep)) 
-!&                             +matmul(hermitian(U_l(:,:,istep)),hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)))  &
-!&                             -matmul(          U_l(:,:,istep) ,          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ) 
          !
-         !l
-!         Der_k_red(:,:,istep)=-matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)))  &
-!&                             +matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ,          U_l(:,:,istep) )
-!         write(*,*) Der_k_red(13:14,13:14,istep)
-         !
-         !l'
-!&        Der_k_red(:,:,istep)=+matmul(hermitian(U_l(:,:,istep)),hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)))  &
-!&                             -matmul(          U_l(:,:,istep) ,          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol) ) 
-         !
-         !r
-!         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)))  &
-!&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)),          U_r(:,:,istep) )
-         write(*,*) Der_k_red(13:14,13:14,istep)
+         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol), hermitian(U_r(:,:,istep)) )  &
+&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)) ) 
          !
          Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
          write(*,*) "Derk= ",Der_k_red(13:14,13:14,istep)
@@ -222,7 +205,6 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          do idir=1,3
            Der_k_cart(:,:,idir)=Der_k_cart(:,:,idir)+transpose(Der_k_red(:,:,1))*a(id_red,idir)
          enddo
-         write(*,*) "Derk_c= ",Der_k_cart(13:14,13:14,1)
          !
        else
          !      
@@ -261,6 +243,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  YAMBO_FREE(U_r)
  YAMBO_FREE(Der_k_red)
  YAMBO_FREE(Der_k_cart)
+ YAMBO_FREE(Der_k_tmp)
  !
  ! Build non-periodic directions if necessary
  ! 
