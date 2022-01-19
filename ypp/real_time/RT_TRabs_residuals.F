@@ -59,6 +59,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    do i_l=1,BS_K_dim(1)
      !
+     TRabs_E(i_l)   = real(BS_E(i_l),SP)
+     !
      do i_cv = 1,BS_K_dim(1)
        !
        i_kbz   = BSS_eh_table(i_cv,1)
@@ -97,8 +99,6 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        !
      enddo
      !
-     TRabs_E(i_l)   = real(BS_E(i_l),SP)
-     !
    enddo
    !
    N_trans=BS_K_dim(1)
@@ -116,6 +116,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    do i_l=1,BS_K_dim(1)
      !
      i_trans=i_l+N_trans
+     TRabs_E(i_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
+     !
+     if (i_l==i_l_ref) cycle
      !
      do i_cv = 1,BS_K_dim(1)
        !
@@ -197,8 +200,6 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        enddo
        !
      enddo
-     !
-     TRabs_E(i_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
      !
    enddo
    !
