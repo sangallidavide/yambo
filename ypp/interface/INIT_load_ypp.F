@@ -47,7 +47,7 @@ subroutine INIT_ypp_load(defs)
  use YPP_real_time, ONLY:RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,Rho_deph,&
 &                        Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,X_kind,Eh_pumped_pair_energy,&
 &                        Eh_pumped_pair_BZ_width,Eh_mu,Eh_temp,h_mu_autotune_thr,TRabsWHAT,TRabsDIP_plane,&
-&                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold
+&                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold,TRabs_Exc_Ref
 
  use real_time,     ONLY:RT_bands
 #endif
@@ -200,6 +200,7 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'TRabsDIPdir',   '[RT] Dipole reference direction. Defines the internal `x` axis',TRabsDIP_dir)
  call it(defs,'TRabsMODE',     '[RT] TRabs mode. It can be a combination of cv,vv,cc,ip,eq',TRabsMODE)
  call it(defs,'TRabsEtresh',   '[RT] Treshold imposed on the e/h pairs energy',TRabs_Eeh_treshold,unit=E_unit)
+ call it(defs,'TRabsExcRef',   '[RT] Exciton index to define the initial state',TRabs_Exc_Ref)
  !
 #endif
  !

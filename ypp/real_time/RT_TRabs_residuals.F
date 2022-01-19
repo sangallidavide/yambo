@@ -24,11 +24,13 @@
 subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  !
  use pars,            ONLY:SP,pi,cI
+ use drivers,         ONLY:l_rt_carriers_in_use
  use R_lattice,       ONLY:bz_samp
  use electrons,       ONLY:levels,n_sp_pol,spin,spin_occ
  use X_m,             ONLY:global_gauge
  use DIPOLES,         ONLY:DIP_rotated
- use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold
+ use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold,&
+&                          TRabs_Exc_Ref
  use BS,              ONLY:BS_K_dim
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat
  use YPPm,            ONLY:BS_E
@@ -46,7 +48,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  !
  ! Work space
  !
- integer           :: i_lp,i_v,i_c,i_kbz,i_kibz,i_spin,i_l,bands(2,2),i_n,i_np,i_dir
+ integer           :: i_cv,i_v,i_c,i_kbz,i_kibz,i_spin,i_l,i_l_ref,bands(2,2),i_n,i_np,i_dir, &
+&                     i_cv_p,i_v_p,i_c_p,i_kbz_p,i_spin_p,i_trans
  real(SP)          :: E_eh
  complex(SP)       :: dipole_rotated(3),f_eh(2),DIP_dot
  !
@@ -56,13 +59,14 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    do i_l=1,BS_K_dim(1)
      !
-     do i_lp = 1,BS_K_dim(1)
+     do i_cv = 1,BS_K_dim(1)
        !
-       i_kbz   = BSS_eh_table(i_lp,1)
+       i_kbz   = BSS_eh_table(i_cv,1)
+       i_v     = BSS_eh_table(i_cv,2)
+       i_c     = BSS_eh_table(i_cv,3)
+       i_spin  = spin(BSS_eh_table(i_cv,:))
+       !
        i_kibz  = Xk%sstar(i_kbz,1)
-       i_v     = BSS_eh_table(i_lp,2)
-       i_c     = BSS_eh_table(i_lp,3)
-       i_spin  = spin(BSS_eh_table(i_lp,:))
        !
        if (i_v<RT_bands(1) .or. i_c>RT_bands(2) ) cycle
        !
@@ -78,24 +82,127 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
          !
          TRabs_RES_right(i_l,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)+&
-&                                      conjg(DIP_dot)*BS_mat(i_lp,i_l)*sqrt(f_eh(1))
-         TRabs_RES_right(i_l,i_dir,2)= TRabs_RES_right(i_l,i_dir,2)+&
-&                                      conjg(DIP_dot)*BS_mat(i_lp,i_l)*f_eh(2)/sqrt(f_eh(1))/sqrt(2._SP)
+&                                      conjg(DIP_dot)*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
          TRabs_RES_left(i_l,i_dir,1) = TRabs_RES_left(i_l,i_dir,1)+&
-&                                      DIP_dot*conjg(BS_mat(i_lp,i_l))*sqrt(f_eh(1))
-         TRabs_RES_left(i_l,i_dir,2) = TRabs_RES_left(i_l,i_dir,2)+&
-&                                      DIP_dot*conjg(BS_mat(i_lp,i_l))*f_eh(2)/sqrt(f_eh(1))/sqrt(2._SP)
+&                                      DIP_dot*conjg(BS_mat(i_cv,i_l))*sqrt(f_eh(1))
+         !
+         if (l_rt_carriers_in_use) then
+           TRabs_RES_right(i_l,i_dir,2)= TRabs_RES_right(i_l,i_dir,2)+&
+&                                        conjg(DIP_dot)*BS_mat(i_cv,i_l)*f_eh(2)/sqrt(f_eh(1))/sqrt(2._SP)
+           TRabs_RES_left(i_l,i_dir,2) = TRabs_RES_left(i_l,i_dir,2)+&
+&                                        DIP_dot*conjg(BS_mat(i_cv,i_l))*f_eh(2)/sqrt(f_eh(1))/sqrt(2._SP)
+         endif
+         !
        enddo
        !
-       if (i_l==1) TRabs_E(i_lp)   = real(BS_E(i_lp),SP)
-       !
      enddo
+     !
+     TRabs_E(i_l)   = real(BS_E(i_l),SP)
      !
    enddo
    !
    N_trans=BS_K_dim(1)
    !
    return
+   !
+ endif
+ !
+ ! EXC-EXC residuals
+ ! -------------
+ if (index(what,"EXC")>0) then
+   !
+   i_l_ref=TRabs_Exc_Ref
+   !
+   do i_l=1,BS_K_dim(1)
+     !
+     i_trans=i_l+N_trans
+     !
+     do i_cv = 1,BS_K_dim(1)
+       !
+       i_kbz   = BSS_eh_table(i_cv,1)
+       i_v     = BSS_eh_table(i_cv,2)
+       i_c     = BSS_eh_table(i_cv,3)
+       i_spin  = spin(BSS_eh_table(i_cv,:))
+       !
+       i_kibz  = Xk%sstar(i_kbz,1)
+       !
+       if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
+       if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+       if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+       !
+       ! c--> c' term
+       !
+       do i_cv_p = 1,BS_K_dim(1)
+         !
+         i_kbz_p   = BSS_eh_table(i_cv_p,1)
+         i_v_p     = BSS_eh_table(i_cv_p,2)
+         i_c_p     = BSS_eh_table(i_cv_p,3)
+         i_spin_p  = spin(BSS_eh_table(i_cv_p,:))
+         !
+         i_kibz  = Xk%sstar(i_kbz,1)
+         !
+         if(i_spin_p/=i_spin ) cycle
+         if(i_kbz_p /=i_kbz_p) cycle
+         if (i_v    /=i_v_p  ) cycle
+         !
+         E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_c_p,i_kibz,i_spin)
+         if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
+         !
+         dipole_rotated=conjg(-cI*DIP_rotated(i_c_p,i_c,i_kbz,i_spin,"DIP_iR",Xk))
+         !
+         do i_dir=1,N_dirs
+           !
+           DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
+           !
+           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)+&
+&                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
+           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_l,i_dir,1)+&
+&                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
+           !
+         enddo
+         !
+       enddo
+       !
+       ! v --> v' term
+       !
+       do i_cv_p = 1,BS_K_dim(1)
+         !
+         i_kbz_p   = BSS_eh_table(i_cv_p,1)
+         i_v_p     = BSS_eh_table(i_cv_p,2)
+         i_c_p     = BSS_eh_table(i_cv_p,3)
+         i_spin_p  = spin(BSS_eh_table(i_cv_p,:))
+         !
+         i_kibz  = Xk%sstar(i_kbz,1)
+         !
+         if(i_spin_p/=i_spin ) cycle
+         if(i_kbz_p /=i_kbz_p) cycle
+         if (i_c    /=i_c_p  ) cycle
+         !
+         E_eh=Xen%E(i_v,i_kibz,i_spin)-Xen%E(i_v_p,i_kibz,i_spin)
+         if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
+         !
+         dipole_rotated=conjg(-cI*DIP_rotated(i_v_p,i_v,i_kbz,i_spin,"DIP_iR",Xk))
+         !
+         do i_dir=1,N_dirs
+           !
+           DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
+           !
+           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)-&
+&                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
+           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_l,i_dir,1)-&
+&                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
+           !
+         enddo
+         !
+       enddo
+       !
+     enddo
+     !
+     TRabs_E(i_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
+     !
+   enddo
+   !
+   N_trans=N_trans+BS_K_dim(1)
    !
  endif
  !
@@ -159,9 +266,14 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      complex(SP) :: gimme_f_and_delta_f(2)
      real(SP)    :: Delta_f,Delta_df
      integer     :: ib,ibp,i_sp,ik
-     Delta_f=(Xen%fo(ib,ik,i_sp)-Xen%fo(ibp,ik,i_sp))/spin_occ
-     !Delta_df=(Xen%df(ib,ik,i_sp)-Xen%df(ibp,ik,i_sp))/spin_occ
-     Delta_df=(Xen%f(ib,ik,i_sp)-Xen%f(ibp,ik,i_sp))/spin_occ-Delta_f
+     if(l_rt_carriers_in_use) then
+       Delta_f=(Xen%fo(ib,ik,i_sp)-Xen%fo(ibp,ik,i_sp))/spin_occ
+       !Delta_df=(Xen%df(ib,ik,i_sp)-Xen%df(ibp,ik,i_sp))/spin_occ
+       Delta_df=(Xen%f(ib,ik,i_sp)-Xen%f(ibp,ik,i_sp))/spin_occ-Delta_f
+     else
+       Delta_f=(Xen%f(ib,ik,i_sp)-Xen%f(ibp,ik,i_sp))/spin_occ
+       Delta_df=0._SP
+     endif
      gimme_f_and_delta_f(1)=Delta_f
      gimme_f_and_delta_f(2)=Delta_df
    end function 

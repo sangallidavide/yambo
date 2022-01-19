@@ -113,6 +113,7 @@ module YPP_real_time
  character(schlen) :: TRabsDIP_plane="none"
  character(schlen) :: TRabsMODE="cv"
  logical           :: TRabs_lEPS(3,3)=.FALSE.
+ integer           :: TRabs_Exc_Ref=0
  real(SP),    allocatable :: TRabs_E(:)
  complex(SP), allocatable :: TRabs_RES_left(:,:,:)  ! I_trans, DIP_dir, 1 ( RES_0 ) - 2 ( dRES)
  complex(SP), allocatable :: TRabs_RES_right(:,:,:)

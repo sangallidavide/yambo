@@ -655,7 +655,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
    !
    if (l_RT_abs) then
      call initactivate(1,"BSQindex EnRngeRt ETStpsRt DampFactor")
-     call initactivate(1,"TRabsOBS TRabsDIPdir TRabsDIPplane TRabsMODE TRabsEtresh")
+     call initactivate(1,"TRabsOBS TRabsDIPdir TRabsDIPplane TRabsMODE TRabsEtresh TRabsExcRef")
    endif
    !
  endif
