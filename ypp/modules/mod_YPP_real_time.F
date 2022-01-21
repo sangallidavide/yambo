@@ -107,13 +107,13 @@ module YPP_real_time
  !
  ! (RT) TRabs
  !
- real(SP)          :: TRabsDIP_dir(3)=0.
+ real(SP)          :: TRabs_Exc_pol(3)=0._SP
+ real(SP)          :: TRabsDIP_dir(3)=0._SP
  real(SP)          :: TRabs_Eeh_treshold=1.E-5_SP/HA2EV
  character(schlen) :: TRabsWHAT="abs"
  character(schlen) :: TRabsDIP_plane="none"
  character(schlen) :: TRabsMODE="cv"
  logical           :: TRabs_lEPS(3,3)=.FALSE.
- integer           :: TRabs_Exc_Ref=0
  real(SP),    allocatable :: TRabs_E(:)
  complex(SP), allocatable :: TRabs_RES_left(:,:,:)  ! I_trans, DIP_dir, 1 ( RES_0 ) - 2 ( dRES)
  complex(SP), allocatable :: TRabs_RES_right(:,:,:)

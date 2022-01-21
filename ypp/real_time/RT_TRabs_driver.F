@@ -32,8 +32,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use RT_control,      ONLY:RT_apply,CARR_RT_IO_t
  use YPP_real_time,   ONLY:RT_conf,RT_time,TRabsDIP_dir,TRabsWHAT,TRabsDIP_plane,&
 &                          TRabs_RES_left,TRabs_RES_right,TRabsMODE,TRabs_E,Epsilon_ij,&
-&                          B_Hall,TRabs_lEPS,TRabs_EPS_label,TRabs_Exc_Ref
- use YPPm,            ONLY:DIPs
+&                          B_Hall,TRabs_lEPS,TRabs_EPS_label,TRabs_Exc_Pol
+ use YPPm,            ONLY:DIPs,EXCITONS_n_user_states
  use X_m,             ONLY:global_gauge
  use IO_m,            ONLY:LOG
  use BS,              ONLY:BS_bands,BS_K_dim,BS_H_dim
@@ -73,7 +73,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  ! Dimensions, Constant, Logicals and allocs
  !
  l_BS      = BS_K_dim(1)> 0
- l_neq_exc = l_BS.and.TRabs_Exc_ref>0
+ l_neq_exc = l_BS.and.EXCITONS_n_user_states>0
  !
  l_ABS     = STRING_match(TRabsWHAT,"abs") ! To add more derived quantities: kerr, transmission, reflectivity...
  l_cv      = STRING_match(TRabsMODE,"cv")
@@ -176,6 +176,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  DIP_dir=rZERO
  call msg('s','Creating '//trim(TRabsDIP_plane)//' related dipole directions')
  call msg('s','Dipole direction seed (defines `x` axis)',TRabsDIP_dir)
+ if (l_neq_exc) call msg('s','Exciton polarization ',TRabs_Exc_Pol)
  TRabsDIP_dir=TRabsDIP_dir/v_norm( TRabsDIP_dir )
  if (trim(global_gauge)=='length'  ) TRabsDIP_dir=TRabsDIP_dir*q0_def_norm
  do i_dir=1,N_DIP_dirs
@@ -250,7 +251,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    if (l_BS) then
      call RT_TRabs_residuals("BSE",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      ! Inter and intra excitons transitions
-     if(TRabs_Exc_Ref>0) call RT_TRabs_residuals("EXC",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
+     if(l_neq_exc) call RT_TRabs_residuals("EXC",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    else
      ! IP spectrum
      if (l_cc) call RT_TRabs_residuals("cv IP",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)

@@ -76,6 +76,11 @@ module vec_operate
      v_norm=sqrt(dot_product(v,v))
    end function v_norm
    !
+   pure complex(SP) function v_norm_c(v)
+     complex(SP), intent(in) :: v(3)
+     v_norm_c=sqrt(real(conjg(v(1))*v(1)+conjg(v(2))*v(2)+conjg(v(3))*v(3),SP))
+   end function v_norm_c
+   !
    pure real(SP) function v_norm2(v)
      real(SP), intent(in) :: v(3)
      v_norm2=v(1)*v(1)+v(2)*v(2)+v(3)*v(3)
