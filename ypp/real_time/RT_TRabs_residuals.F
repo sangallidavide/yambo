@@ -184,10 +184,10 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
            !
-           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)+&
-&                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)+&
-&                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
+           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1) &
+           &                                 +conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
+           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)  &
+           &                                 +BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
          !
@@ -215,10 +215,10 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
            !
-           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)-&
-&                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)-&
-&                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
+           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1) &
+           &                                -conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
+           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1) &
+           &                                -BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
          !
@@ -246,7 +246,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      call live_timing(steps=1)
      !
      ! DEBUG <
-     !write(*,*) TRabs_E(N_trans)*27.211,i_l_ref,real(BS_E(i_l_ref))*27.211," --> ",i_l,real(BS_E(i_l))*27.211
+     !write(*,*) i_l_ref,real(BS_E(i_l_ref))*27.211," --> ",i_l,real(BS_E(i_l))*27.211
+     !write(*,*) TRabs_E(N_trans)*27.211,TRabs_RES_right(N_trans,1,1)*TRabs_RES_left(N_trans,1,1)
      !write(*,*) N_trans,TRabs_RES_right(N_trans,1,1)
      ! DEBUG >
      !
