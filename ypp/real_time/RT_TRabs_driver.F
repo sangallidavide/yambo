@@ -58,6 +58,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  integer                 :: N_cv_trans,N_cc_trans,N_vv_trans,N_cc_vv_trans,N_trans,N_trans_real,i_T,io_err,i_trans,&
 &                           nb(2),N_DIP_dirs,i_dir,j_dir,N_res,N_files,DIP_dir_table(3),ic,jc
  real(SP)                :: DIP_dir(3,3),Co,Time
+ complex(SP)             :: diam
  logical                 :: l_BS,l_OFF,l_cv,l_cc,l_vv,l_ABS,l_EQ,l_neq_exc
  character(2)            :: label
  character(schlen)       :: ofile(20)
@@ -146,7 +147,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  if (l_vv) call msg('s','[TR-ABS] vv (NEQ) transitions :',N_vv_trans)
  call msg('s','[TR-ABS] Total    transitions :',N_trans)
  !
- Co=real(spin_occ)/(2._SP*pi)**3*d3k_factor*4._SP*pi/q0_def_norm**2 
+ Co=real(spin_occ)/(2._SP*pi)**3*d3k_factor*4._SP*pi
  !
  ! Par Setup
  !
@@ -186,8 +187,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  call msg('s','Creating '//trim(TRabsDIP_plane)//' related dipole directions')
  call msg('s','Dipole direction seed (defines `x` axis)',TRabsDIP_dir)
  if (l_neq_exc) call msg('s','Exciton polarization ',TRabs_Exc_Pol)
+ !
  TRabsDIP_dir=TRabsDIP_dir/v_norm( TRabsDIP_dir )
  if (trim(global_gauge)=='length'  ) TRabsDIP_dir=TRabsDIP_dir*q0_def_norm
+ !
  do i_dir=1,N_DIP_dirs
    if (DIP_dir_table(i_dir)==1) DIP_dir(i_dir,:)=TRabsDIP_dir
    if (DIP_dir_table(i_dir)==2) call v_rotate("xy",-pi/2._SP,TRabsDIP_dir,v_out=DIP_dir(i_dir,:))
@@ -283,8 +286,13 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        call build_up_eps_ij("EPS-"//label,ic,jc)
        if (l_neq_exc) call build_up_eps_ij("EPS-EXC",ic,jc)
        if (l_OFF.and.ic/=jc) call build_up_eps_ij("AH-"//label,ic,jc)
+       if (ic==jc) diam=Epsilon_ij(1,ic,jc)
+       if (ic/=jc) diam=cZERO
+       if (trim(global_gauge)=='length'  ) Epsilon_ij(:,ic,jc)=  Epsilon_ij(:,ic,jc)      /q0_def_norm**2
+       if (trim(global_gauge)=='velocity') Epsilon_ij(:,ic,jc)= (Epsilon_ij(:,ic,jc)-diam)/W_bss%p(:)**2
      enddo
    enddo
+   !
    !
    call PP_redux_wait(Epsilon_ij)
    if (l_OFF) call PP_redux_wait(B_Hall)
