@@ -32,7 +32,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use DIPOLES,         ONLY:DIP_rotated
  use LIVE_t,          ONLY:live_timing
  use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold,&
-&                          TRabs_Exc_Pol
+&                          TRabs_Exc_Pol,TRAbs_N_Exc
  use BS,              ONLY:BS_K_dim
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
  use YPPm,            ONLY:BS_E,EXCITONS_n_user_states,EXCITONS_user_indexes
@@ -40,6 +40,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use vec_operate,     ONLY:v_norm_c,cross_product
  use matrix_operate,  ONLY:m3inv_c,m3det_c
  use parallel_m,      ONLY:PAR_IND_DIPk_ibz,PAR_IND_VAL_BANDS_DIP,PAR_IND_CON_BANDS_DIP
+ use parallel_int,    ONLY:PP_redux_wait
  !
 #include<memory.h>
  !
@@ -53,7 +54,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  ! Work space
  !
  integer           :: i_cv,i_v,i_c,i_kbz,i_kibz,i_spin,i_l,i_l_ref,bands(2,2),i_n,i_np,i_dir, &
-&                     i_cv_p,i_v_p,i_c_p,i_kbz_p,i_spin_p,i_trans,i_exc,i_exc_p
+&                     i_cv_p,i_v_p,i_c_p,i_kbz_p,i_spin_p,i_exc,i_exc_p
  real(SP)          :: E_eh
  complex(SP)       :: DIP_ver(3,3),U(3,3),E_ver(3,3)
  complex(SP)       :: dipole_rotated(3),f_eh(2),DIP_dot,DIP_tmp(3)
@@ -138,6 +139,10 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          i_c     = BSS_eh_table(i_cv,3)
          i_spin  = spin(BSS_eh_table(i_cv,:))
          !
+         if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
+         if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+         if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+         !
          i_kibz  = Xk%sstar(i_kbz,1)
          !
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_v,i_kibz,i_spin)
@@ -151,8 +156,13 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
        enddo
        !
-       DIP_ver(:,i_exc)=DIP_tmp/v_norm_c(DIP_tmp)
+       DIP_ver(:,i_exc)=DIP_tmp
        !
+     enddo
+     !
+     call PP_redux_wait(DIP_ver)
+     do i_exc=1,EXCITONS_n_user_states
+       DIP_ver(:,i_exc)=DIP_ver(:,i_exc)/v_norm_c(DIP_ver(:,i_exc))
      enddo
      !
      if (EXCITONS_n_user_states==2) then
@@ -255,6 +265,10 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          i_c     = BSS_eh_table(i_cv,3)
          i_spin  = spin(BSS_eh_table(i_cv,:))
          !
+         if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
+         if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+         if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+         !
          i_kibz  = Xk%sstar(i_kbz,1)
          !
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_v,i_kibz,i_spin)
@@ -272,6 +286,10 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        !
      enddo
      !
+     call PP_redux_wait(DIP_ver)
+     !
+     call msg("s","Excitonic dipole after rotation ",abs(DIP_ver(:,i_exc)))
+     !
      !write(*,*) " "
      !write(*,*) "DIP_ver"
      !do i_dir=1,3
@@ -283,14 +301,17 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    i_l_ref=EXCITONS_user_indexes(1)
    !
-   call live_timing("Computing inter/intra exciton dipoles",BSS_n_eig-1)
+   call live_timing("Computing inter/intra exciton dipoles",TRAbs_N_Exc)
    !
-   do i_l=1,BSS_n_eig
+   do i_l=1,TRAbs_N_Exc
      !
-     i_trans=i_l+N_trans
-     TRabs_E(i_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
+     N_trans=N_trans+1
+     TRabs_E(N_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
      !
-     if (i_l==i_l_ref) cycle
+     if (i_l==i_l_ref) then
+       call live_timing(steps=1)
+       cycle
+     endif
      !
      do i_cv = 1,BS_K_dim(1)
        !
@@ -329,9 +350,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
            !
-           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_trans,i_dir,1)+&
+           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)+&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_trans,i_dir,1)+&
+           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)+&
 &                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
@@ -362,9 +383,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
            !
-           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_trans,i_dir,1)-&
+           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)-&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_trans,i_dir,1)-&
+           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)-&
 &                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
@@ -378,8 +399,6 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    enddo
    !
    call live_timing()
-   !
-   N_trans=N_trans+BSS_n_eig-1
    !
  endif
  !
@@ -415,12 +434,12 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
            !
            N_trans=N_trans+1
+           TRabs_E(N_trans)=E_eh
            !
            if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
            if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_np)) cycle
            if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_n)) cycle
            !
-           TRabs_E(N_trans)=E_eh
            dipole_rotated=conjg(-cI*DIP_rotated(i_np,i_n,i_kbz,i_spin,"DIP_iR",Xk))
            !
            do i_dir=1,N_dirs

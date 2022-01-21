@@ -47,7 +47,7 @@ subroutine INIT_ypp_load(defs)
  use YPP_real_time, ONLY:RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,Rho_deph,&
 &                        Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,X_kind,Eh_pumped_pair_energy,&
 &                        Eh_pumped_pair_BZ_width,Eh_mu,Eh_temp,h_mu_autotune_thr,TRabsWHAT,TRabsDIP_plane,&
-&                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold,TRabs_Exc_Pol
+&                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold,TRabs_Exc_Pol,TRabs_N_exc
  use real_time,     ONLY:RT_bands
 #endif
 #if defined _YPP_SC
@@ -70,6 +70,14 @@ subroutine INIT_ypp_load(defs)
  ! ... from C_driver
  !
  call INIT_C_driver_runlevels(defs)
+ !
+ !=======
+ ! CPU's
+ !=======
+ !
+#if defined _MPI 
+ call CPU_structure_load(defs)
+#endif
  !
  ! ... derived
  !=============
@@ -200,6 +208,7 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'TRabsMODE',     '[RT] TRabs mode. It can be a combination of cv,vv,cc,ip,eq',TRabsMODE)
  call it(defs,'TRabsEtresh',   '[RT] Treshold imposed on the e/h pairs energy',TRabs_Eeh_treshold,unit=E_unit)
  call it(defs,'TRabsExcPol',   '[RT] Polarization of the exciton in the initial state',TRabs_Exc_Pol)
+ call it(defs,'TRabsNExc',     '[RT] Index of the last exciton considered for inter/intra excitons transitions',TRabs_N_Exc)
  !
 #endif
  !

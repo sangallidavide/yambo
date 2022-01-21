@@ -32,7 +32,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use RT_control,      ONLY:RT_apply,CARR_RT_IO_t
  use YPP_real_time,   ONLY:RT_conf,RT_time,TRabsDIP_dir,TRabsWHAT,TRabsDIP_plane,&
 &                          TRabs_RES_left,TRabs_RES_right,TRabsMODE,TRabs_E,Epsilon_ij,&
-&                          B_Hall,TRabs_lEPS,TRabs_EPS_label,TRabs_Exc_Pol
+&                          B_Hall,TRabs_lEPS,TRabs_EPS_label,TRabs_Exc_Pol,TRabs_N_Exc
  use YPPm,            ONLY:DIPs,EXCITONS_n_user_states
  use X_m,             ONLY:global_gauge
  use IO_m,            ONLY:LOG
@@ -40,7 +40,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use BS_solvers,      ONLY:BSS_n_eig
  use frequency,       ONLY:w_samp
  use parallel_int,    ONLY:PARALLEL_global_indexes,PP_redux_wait,PARALLEL_index
- use parallel_m,      ONLY:PAR_COM_DIPk_ibz_INDEX,PAR_COM_DIPk_ibz_A2A,PP_indexes,PP_indexes_reset
+ use parallel_m,      ONLY:PAR_COM_DIPk_ibz_INDEX,PAR_COM_DIPk_ibz_A2A,PP_indexes,PP_indexes_reset,&
+&                          PAR_COM_CON_INDEX_DIP,PAR_COM_VAL_INDEX_DIP
  use real_time,       ONLY:RT_bands,l_TRabs_YPP
  use stderr,          ONLY:STRING_match,STRING_same
  use com,             ONLY:msg
@@ -149,6 +150,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
  call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=DIPs)
  !
+ if (l_neq_exc .and. (PAR_COM_CON_INDEX_DIP%n_CPU>1 .or. PAR_COM_VAL_INDEX_DIP%n_CPU>1) ) then
+   call error(" Inter/Intra excitons simulations cannot be performed distribuiting over cv indexes")
+ endif
+ !
  ! Dipoles...
  !------------
  !
@@ -201,7 +206,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  ! ... Energies
  N_res=1
  if (l_neq_exc) N_res=N_res+1
- YAMBO_ALLOC(TRabs_E,(N_trans*N_res-1))
+ YAMBO_ALLOC(TRabs_E,(N_trans*N_res))
  !
  ! ... Observables 
  YAMBO_ALLOC(Epsilon_ij,(RT_conf%W_n_steps,3,3)) 
@@ -267,8 +272,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    call PP_redux_wait(TRabs_RES_left,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
    call PP_redux_wait(TRabs_RES_left,COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
    call PP_redux_wait(TRabs_RES_right,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
-   call PP_redux_wait(TRabs_E,COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
-   call PP_redux_wait(TRabs_E,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
+   !call PP_redux_wait(TRabs_E,COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
+   !call PP_redux_wait(TRabs_E,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
    !
    do ic=1,N_DIP_dirs
      do jc=1,N_DIP_dirs
@@ -345,9 +350,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        enddo
      endif
      if (index(what,"EXC")>0) then
-       do i_trans=BSS_n_eig+1,2*BSS_n_eig-1
+       do i_trans=BSS_n_eig+1,BSS_n_eig+TRabs_N_Exc
          if (.not.PX_bs%element_1D(i_trans-BSS_n_eig)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
+         if(RES==cZERO) cycle
          ! ANTI-RES part to be coded for EPS-BS.
          if (what=="EPS-EXC") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
          if (what=="AH-EXC")  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
