@@ -33,7 +33,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use LIVE_t,          ONLY:live_timing
  use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold,&
 &                          TRabs_Exc_Pol,TRAbs_N_Exc
- use BS,              ONLY:BS_K_dim
+ use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
  use YPPm,            ONLY:BS_E,EXCITONS_n_user_states,EXCITONS_user_indexes
  use real_time,       ONLY:RT_bands
@@ -58,7 +58,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  character(6)      :: DIP_kind
  real(SP)          :: E_eh
  complex(SP)       :: DIP_ver(3,3),U(3,3),E_ver(3,3),DIP_f
- complex(SP)       :: dipole_rotated(3),f_eh(2),DIP_dot,DIP_tmp(3)
+ complex(SP)       :: DIP_rot(3),f_eh(2),DIP_dot,DIP_tmp(3)
  complex(SP), allocatable :: A_vec_tmp(:,:)
  !
  if(trim(global_gauge)=="length") then
@@ -93,11 +93,11 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
        !
        f_eh=gimme_f_and_delta_f(i_v,i_c,i_kibz,i_spin)
-       dipole_rotated=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
+       DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
        !
        do i_dir=1,N_dirs
          !
-         DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
+         DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
          !
          TRabs_RES_right(i_l,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)+&
 &                                      conjg(DIP_dot)*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
@@ -159,9 +159,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
          f_eh=gimme_f_and_delta_f(i_v,i_c,i_kibz,i_spin)
          !
-         dipole_rotated=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
+         DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
          !
-         DIP_tmp= DIP_tmp+conjg(dipole_rotated(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
+         DIP_tmp= DIP_tmp+conjg(DIP_rot(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
          !
        enddo
        !
@@ -285,9 +285,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
          f_eh=gimme_f_and_delta_f(i_v,i_c,i_kibz,i_spin)
          !
-         dipole_rotated=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
+         DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
          !
-         DIP_ver(:,i_exc)= DIP_ver(:,i_exc)+conjg(dipole_rotated(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
+         DIP_ver(:,i_exc)= DIP_ver(:,i_exc)+conjg(DIP_rot(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
          !
        enddo
        !
@@ -311,6 +311,17 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    i_l_ref=EXCITONS_user_indexes(1)
    !
    call live_timing("Computing inter/intra exciton dipoles",TRAbs_N_Exc)
+   !
+   if (trim(global_gauge)=="velocity") then
+     !
+     DIP_tmp=cZERO
+     do i_spin=1,n_sp_pol
+       do i_v=BS_bands(1),Xen%nbf(i_spin)
+         DIP_tmp=DIP_tmp+conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+       enddo
+     enddo
+     !
+   endif
    !
    do i_l=1,TRAbs_N_Exc
      !
@@ -351,11 +362,11 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_c_p,i_kibz,i_spin)
          if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
          !
-         dipole_rotated=conjg(DIP_f*DIP_rotated(i_c_p,i_c,i_kbz,i_spin,DIP_kind,Xk))
+         DIP_rot=conjg(DIP_f*DIP_rotated(i_c_p,i_c,i_kbz,i_spin,DIP_kind,Xk))
          !
          do i_dir=1,N_dirs
            !
-           DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
+           DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
            !
            TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)+&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
@@ -382,11 +393,11 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          E_eh=Xen%E(i_v,i_kibz,i_spin)-Xen%E(i_v_p,i_kibz,i_spin)
          if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
          !
-         dipole_rotated=conjg(DIP_f*DIP_rotated(i_v_p,i_v,i_kbz,i_spin,DIP_kind,Xk))
+         DIP_rot=conjg(DIP_f*DIP_rotated(i_v_p,i_v,i_kbz,i_spin,DIP_kind,Xk))
          !
          do i_dir=1,N_dirs
            !
-           DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
+           DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
            !
            TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)-&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
@@ -396,6 +407,26 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          enddo
          !
        enddo
+       !
+       ! Intraband term
+       !
+       if (trim(global_gauge)=="velocity") then
+         !
+         DIP_rot=+conjg(DIP_f*DIP_rotated(i_c,i_c,i_kbz,i_spin,DIP_kind,Xk)) &
+&                -conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+         !
+         do i_dir=1,N_dirs
+           !
+           DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot+DIP_tmp)
+           !
+           TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)-&
+&                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv,i_l)
+           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)-&
+&                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv,i_l))
+           !
+         enddo
+         !
+       endif
        !
      enddo
      !
@@ -445,11 +476,11 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_np)) cycle
            if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_n)) cycle
            !
-           dipole_rotated=conjg(DIP_f*DIP_rotated(i_np,i_n,i_kbz,i_spin,DIP_kind,Xk))
+           DIP_rot=conjg(DIP_f*DIP_rotated(i_np,i_n,i_kbz,i_spin,DIP_kind,Xk))
            !
            do i_dir=1,N_dirs
-             TRabs_RES_right(N_trans,i_dir,1)= conjg(dot_product(DIP_dir(i_dir,:),dipole_rotated))*sqrt(f_eh(2))
-             TRabs_RES_left(N_trans,i_dir,1) =       dot_product(DIP_dir(i_dir,:),dipole_rotated) *sqrt(f_eh(2))
+             TRabs_RES_right(N_trans,i_dir,1)= conjg(dot_product(DIP_dir(i_dir,:),DIP_rot))*sqrt(f_eh(2))
+             TRabs_RES_left(N_trans,i_dir,1) =       dot_product(DIP_dir(i_dir,:),DIP_rot) *sqrt(f_eh(2))
            enddo
            !
          enddo
