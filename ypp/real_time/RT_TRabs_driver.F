@@ -93,7 +93,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  if (l_rt_carriers_in_use) call RT_time_configuration_setup("CARRIERS",CARR_RT_IO_t)
  !
- if (l_neq_exc) RT_conf%T_n_steps=1
+ if (l_neq_exc) then
+   if(TRabs_N_Exc==0) TRabs_N_Exc=BSS_n_eig
+   RT_conf%T_n_steps=1
+ endif
  !
  !  |   | <- RT_bands(2)
  !  |   |
@@ -150,9 +153,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
  call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=DIPs)
  !
- if (l_neq_exc .and. (PAR_COM_CON_INDEX_DIP%n_CPU>1 .or. PAR_COM_VAL_INDEX_DIP%n_CPU>1) ) then
-   call error(" Inter/Intra excitons simulations cannot be performed distribuiting over cv indexes")
- endif
+ !if (l_neq_exc .and. (PAR_COM_CON_INDEX_DIP%n_CPU>1 .or. PAR_COM_VAL_INDEX_DIP%n_CPU>1) ) then
+ !  call error(" Inter/Intra excitons simulations cannot be performed distribuiting over cv indexes")
+ !endif
  !
  ! Dipoles...
  !------------
