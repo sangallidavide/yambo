@@ -201,7 +201,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  ! ... Energies
  N_res=1
  if (l_neq_exc) N_res=N_res+1
- YAMBO_ALLOC(TRabs_E,(N_trans*N_res))
+ YAMBO_ALLOC(TRabs_E,(N_trans*N_res-1))
  !
  ! ... Observables 
  YAMBO_ALLOC(Epsilon_ij,(RT_conf%W_n_steps,3,3)) 
@@ -237,7 +237,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
      Time=RT_time(i_T)
    endif
    !
-   if (i_T==1)  then
+   if (i_T==1.and..not.l_neq_exc)  then
      call live_timing('Transient Absorption',RT_conf%T_n_steps)
      INTERPOLATE_is_quiet=.TRUE.
    endif
@@ -284,11 +284,11 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    ! Output (write)
    call RT_Trabs_output("write",label,ofile,N_files,W_bss,Time)
    !
-   call live_timing(steps=1)
+   if (.not.l_neq_exc) call live_timing(steps=1)
    !
  enddo
  !
- call live_timing()
+ if (.not.l_neq_exc) call live_timing()
  INTERPOLATE_is_quiet=.FALSE.
  !
  ! Output (close)

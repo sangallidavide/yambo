@@ -30,6 +30,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use electrons,       ONLY:levels,n_sp_pol,spin,spin_occ
  use X_m,             ONLY:global_gauge
  use DIPOLES,         ONLY:DIP_rotated
+ use LIVE_t,          ONLY:live_timing
  use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold,&
 &                          TRabs_Exc_Pol
  use BS,              ONLY:BS_K_dim
@@ -271,8 +272,6 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        !
      enddo
      !
-     call msg("s","  ")
-     !
      !write(*,*) " "
      !write(*,*) "DIP_ver"
      !do i_dir=1,3
@@ -283,6 +282,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    endif
    !
    i_l_ref=EXCITONS_user_indexes(1)
+   !
+   call live_timing("Computing inter/intra exciton dipoles",BSS_n_eig-1)
    !
    do i_l=1,BSS_n_eig
      !
@@ -372,7 +373,11 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        !
      enddo
      !
+     call live_timing(steps=1)
+     !
    enddo
+   !
+   call live_timing()
    !
    N_trans=N_trans+BSS_n_eig-1
    !
