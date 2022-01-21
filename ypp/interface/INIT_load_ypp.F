@@ -28,6 +28,7 @@ subroutine INIT_ypp_load(defs)
 &                        Time_unit,Bfield_unit,V_real_time,T_unit,V_nl_optics,V_io,V_sc
  use wave_func,     ONLY:wf_ng
  use LIVE_t,        ONLY:nhash
+ use X_m,           ONLY:global_gauge
  use D_lattice,     ONLY:Tel,Bose_Temp
  use R_lattice,     ONLY:BZ_FineGd_mode
  use electrons,     ONLY:n_spinor
@@ -209,6 +210,7 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'TRabsEtresh',   '[RT] Treshold imposed on the e/h pairs energy',TRabs_Eeh_treshold,unit=E_unit)
  call it(defs,'TRabsExcPol',   '[RT] Polarization of the exciton in the initial state',TRabs_Exc_Pol)
  call it(defs,'TRabsNExc',     '[RT] Index of the last exciton considered for inter/intra excitons transitions',TRabs_N_Exc)
+ call it(defs,'Gauge' ,        '[RT] Gauge (length|velocity)',global_gauge)
  !
 #endif
  !

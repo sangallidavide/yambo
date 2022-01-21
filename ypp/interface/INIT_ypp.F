@@ -657,7 +657,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
      call CPU_activate("DIP")
      call initactivate(1,"BSQindex EnRngeRt ETStpsRt DampFactor")
      call initactivate(1,"TRabsOBS TRabsDIPdir TRabsDIPplane TRabsMODE TRabsEtresh TRabsExcPol TRabsNexc")
-     call initactivate(1,"States En_treshold BSQindex")
+     call initactivate(1,"Gauge States En_treshold BSQindex")
    endif
    !
  endif
