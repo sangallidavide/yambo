@@ -362,7 +362,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_c_p,i_kibz,i_spin)
          if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
          !
-         DIP_rot=conjg(DIP_f*DIP_rotated(i_c_p,i_c,i_kbz,i_spin,DIP_kind,Xk))
+         DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_c_p,i_kbz,i_spin,DIP_kind,Xk))
          !
          do i_dir=1,N_dirs
            !
@@ -431,6 +431,11 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      enddo
      !
      call live_timing(steps=1)
+     !
+     ! DEBUG <
+     !write(*,*) TRabs_E(N_trans)*27.211,i_l_ref,real(BS_E(i_l_ref))*27.211," --> ",i_l,real(BS_E(i_l))*27.211
+     !write(*,*) N_trans,TRabs_RES_right(N_trans,1,1)
+     ! DEBUG >
      !
    enddo
    !
