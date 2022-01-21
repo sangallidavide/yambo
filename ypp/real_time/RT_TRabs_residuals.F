@@ -33,7 +33,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold,&
 &                          TRabs_Exc_Pol
  use BS,              ONLY:BS_K_dim
- use BS_solvers,      ONLY:BSS_eh_table,BS_mat
+ use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
  use YPPm,            ONLY:BS_E,EXCITONS_n_user_states,EXCITONS_user_indexes
  use real_time,       ONLY:RT_bands
  use vec_operate,     ONLY:v_norm_c,cross_product
@@ -62,7 +62,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  ! -------------
  if (index(what,"BSE")>0) then
    !
-   do i_l=1,BS_K_dim(1)
+   do i_l=1,BSS_n_eig
      !
      TRabs_E(i_l)   = real(BS_E(i_l),SP)
      !
@@ -106,7 +106,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      !
    enddo
    !
-   N_trans=BS_K_dim(1)
+   N_trans=BSS_n_eig
    !
    return
    !
@@ -284,7 +284,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    i_l_ref=EXCITONS_user_indexes(1)
    !
-   do i_l=1,BS_K_dim(1)
+   do i_l=1,BSS_n_eig
      !
      i_trans=i_l+N_trans
      TRabs_E(i_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
@@ -374,7 +374,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      !
    enddo
    !
-   N_trans=N_trans+BS_K_dim(1)-1
+   N_trans=N_trans+BSS_n_eig-1
    !
  endif
  !

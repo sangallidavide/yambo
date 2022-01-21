@@ -37,6 +37,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use X_m,             ONLY:global_gauge
  use IO_m,            ONLY:LOG
  use BS,              ONLY:BS_bands,BS_K_dim,BS_H_dim
+ use BS_solvers,      ONLY:BSS_n_eig
  use frequency,       ONLY:w_samp
  use parallel_int,    ONLY:PARALLEL_global_indexes,PP_redux_wait,PARALLEL_index
  use parallel_m,      ONLY:PAR_COM_DIPk_ibz_INDEX,PAR_COM_DIPk_ibz_A2A,PP_indexes,PP_indexes_reset
@@ -110,7 +111,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  if (l_BS) then
    DIPs%ib   =BS_bands
-   N_cv_trans=BS_K_dim(1)
+   N_cv_trans=BSS_n_eig
  else
    DIPs%ib   =RT_bands
    N_cv_trans=(RT_bands(2)-Xen%nbf(1))*(Xen%nbm(1)-RT_bands(1)+1)*Xk%nbz
@@ -315,8 +316,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
      if (.not.TRabs_lEPS(i_dir,j_dir)) return
      !
      if (index(what,"IP")>0) then
-       do i_trans=BS_K_dim(1)+1,N_trans_real
-         if (.not.PX_ip%element_1D(i_trans-BS_K_dim(1))) cycle
+       do i_trans=BSS_n_eig+1,N_trans_real
+         if (.not.PX_ip%element_1D(i_trans-BSS_n_eig)) cycle
          if (what=="EPS-IP") then
            RES=Co*TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1)
            ACC(:)=ACC(:)-RES/(W_bss%p(:)-TRabs_E(i_trans))+conjg(RES)/(W_bss%p(:)+TRabs_E(i_trans))
@@ -330,7 +331,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        if (what=="AH-IP" )  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+cI*ACC(1)
      endif
      if (index(what,"BS")>0) then
-       do i_trans=1,BS_K_dim(1)
+       do i_trans=1,BSS_n_eig
          if (.not.PX_bs%element_1D(i_trans)) cycle
          RES=cZERO
          if (l_rt_carriers_in_use) then
@@ -344,8 +345,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        enddo
      endif
      if (index(what,"EXC")>0) then
-       do i_trans=BS_K_dim(1)+1,2*BS_K_dim(1)
-         if (.not.PX_bs%element_1D(i_trans-BS_K_dim(1))) cycle
+       do i_trans=BSS_n_eig+1,2*BSS_n_eig-1
+         if (.not.PX_bs%element_1D(i_trans-BSS_n_eig)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
          ! ANTI-RES part to be coded for EPS-BS.
          if (what=="EPS-EXC") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
