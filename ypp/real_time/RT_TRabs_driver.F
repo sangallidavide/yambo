@@ -81,7 +81,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  l_cv      = STRING_match(TRabsMODE,"cv")
  l_cc      = STRING_match(TRabsMODE,"cc")
  l_vv      = STRING_match(TRabsMODE,"vv")
- l_EQ      = STRING_match(TRabsMODE,"eq").or.l_neq_exc
+ l_EQ      = STRING_match(TRabsMODE,"eq")
  !
  ! Pre-setup of carrier components and Time evolution parameters
  !
@@ -280,9 +280,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    !
    do ic=1,N_DIP_dirs
      do jc=1,N_DIP_dirs
-       call build_up_eps_ij("EPS-"//label,ic,jc)
-       if (l_neq_exc) call build_up_eps_ij("EPS-EXC",ic,jc)
-       if (l_OFF.and.ic/=jc) call build_up_eps_ij("AH-"//label,ic,jc)
+       if ((.not.l_neq_exc).or.l_EQ) call build_up_eps_ij("EPS-"//label,ic,jc)
+       if (l_neq_exc)                call build_up_eps_ij("EPS-EXC",ic,jc)
+       if (l_OFF.and.ic/=jc)         call build_up_eps_ij("AH-"//label,ic,jc)
      enddo
    enddo
    !
