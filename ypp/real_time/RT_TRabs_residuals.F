@@ -150,7 +150,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
        enddo
        !
-       DIP_ver(:,i_exc)=DIP_tmp!/v_norm_c(DIP_tmp)
+       DIP_ver(:,i_exc)=DIP_tmp/v_norm_c(DIP_tmp)
        !
      enddo
      !
@@ -247,8 +247,6 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        !
        i_l=EXCITONS_user_indexes(i_exc)
        !
-       DIP_tmp=0._SP
-       !
        do i_cv = 1,BS_K_dim(1)
          !
          i_kbz   = BSS_eh_table(i_cv,1)
@@ -265,14 +263,15 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
          dipole_rotated=conjg(-cI*DIP_rotated(i_c,i_v,i_kbz,i_spin,"DIP_iR",Xk))
          !
-         DIP_tmp= DIP_tmp+conjg(dipole_rotated(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
+         DIP_ver(:,i_exc)= DIP_ver(:,i_exc)+conjg(dipole_rotated(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
          !
        enddo
        !
-       call msg("s","Excitonic dipole after rotation ",abs(DIP_tmp))
-       !DIP_ver(:,i_exc)=DIP_tmp
+       call msg("s","Excitonic dipole after rotation ",abs(DIP_ver(:,i_exc)))
        !
      enddo
+     !
+     call msg("s","  ")
      !
      !write(*,*) " "
      !write(*,*) "DIP_ver"
@@ -329,9 +328,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
            !
-           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)+&
+           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_trans,i_dir,1)+&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_l,i_dir,1)+&
+           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_trans,i_dir,1)+&
 &                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
@@ -362,9 +361,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            DIP_dot=dot_product(DIP_dir(i_dir,:),dipole_rotated)
            !
-           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)-&
+           TRabs_RES_right(i_trans,i_dir,1)= TRabs_RES_right(i_trans,i_dir,1)-&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_l,i_dir,1)-&
+           TRabs_RES_left(i_trans,i_dir,1) = TRabs_RES_left(i_trans,i_dir,1)-&
 &                                            BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
