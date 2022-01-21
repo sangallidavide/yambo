@@ -40,8 +40,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use BS_solvers,      ONLY:BSS_n_eig
  use frequency,       ONLY:w_samp
  use parallel_int,    ONLY:PARALLEL_global_indexes,PP_redux_wait,PARALLEL_index
- use parallel_m,      ONLY:PAR_COM_DIPk_ibz_INDEX,PAR_COM_DIPk_ibz_A2A,PP_indexes,PP_indexes_reset,&
-&                          PAR_COM_CON_INDEX_DIP,PAR_COM_VAL_INDEX_DIP
+ use parallel_m,      ONLY:PAR_COM_DIPk_ibz_INDEX,PAR_COM_DIPk_ibz_A2A,PP_indexes,PP_indexes_reset
  use real_time,       ONLY:RT_bands,l_TRabs_YPP
  use stderr,          ONLY:STRING_match,STRING_same
  use com,             ONLY:msg
@@ -153,10 +152,6 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
  call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=DIPs)
- !
- !if (l_neq_exc .and. (PAR_COM_CON_INDEX_DIP%n_CPU>1 .or. PAR_COM_VAL_INDEX_DIP%n_CPU>1) ) then
- !  call error(" Inter/Intra excitons simulations cannot be performed distribuiting over cv indexes")
- !endif
  !
  ! Dipoles...
  !------------
@@ -278,8 +273,6 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    call PP_redux_wait(TRabs_RES_left,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
    call PP_redux_wait(TRabs_RES_left,COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
    call PP_redux_wait(TRabs_RES_right,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
-   !call PP_redux_wait(TRabs_E,COMM=PAR_COM_DIPk_ibz_INDEX%COMM)
-   !call PP_redux_wait(TRabs_E,COMM=PAR_COM_DIPk_ibz_A2A%COMM)
    !
    do ic=1,N_DIP_dirs
      do jc=1,N_DIP_dirs
@@ -339,7 +332,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
            ACC(:)=ACC(:)-RES/(W_bss%p(:)-TRabs_E(i_trans))+conjg(RES)/(W_bss%p(:)+TRabs_E(i_trans))
          endif
          if (what=="AH-IP") then
-           RES=2.*Co*aimag(TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1))
+           RES=2._SP*Co*aimag(TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1))
            ACC(1)=ACC(1)+RES
          endif
        enddo

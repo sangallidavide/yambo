@@ -185,9 +185,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
            !
            TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1) &
-           &                                 +conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
+           &                                +conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
            TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)  &
-           &                                 +BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
+           &                                +BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
          !
@@ -217,7 +217,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1) &
            &                                -conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv_p,i_l)
-           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1) &
+           TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1)  &
            &                                -BS_mat(i_cv,i_l_ref)*DIP_dot*conjg(BS_mat(i_cv_p,i_l))
            !
          enddo
