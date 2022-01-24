@@ -26,7 +26,7 @@
  implicit none
 
 #if defined _MPI
- integer :: isize
+ integer :: isize_mem
 
  /* MPI only part */
 
@@ -34,8 +34,8 @@
   HOST_SIZE=0 NEWLINE \
   HOST_SIZE(1)=product(SIZE) NEWLINE \
   call PP_redux_wait(HOST_SIZE,COMM=PAR_COM_HOST%COMM) NEWLINE \
-  do isize=2,size(HOST_size) NEWLINE \
-    HOST_size(isize)=1 NEWLINE \
+  do isize_mem=2,size(HOST_size) NEWLINE \
+    HOST_size(isize_mem)=1 NEWLINE \
   enddo NEWLINE \
   if (PAR_COM_HOST%CPU_id==0 ) then
 
