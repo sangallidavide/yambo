@@ -132,8 +132,12 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      !
      DIP_tmp=cZERO
      do i_spin=1,n_sp_pol
-       do i_v=BS_bands(1),Xen%nbf(i_spin)
-         DIP_tmp=DIP_tmp+conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+       do i_kbz=1,Xk%nbz
+         if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+         do i_v=BS_bands(1),Xen%nbf(i_spin)
+           if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+           DIP_tmp=DIP_tmp+conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+         enddo
        enddo
      enddo
      !
@@ -230,7 +234,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
          do i_dir=1,N_dirs
            !
-           DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot+DIP_tmp)
+           DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_tmp)
            !
            TRabs_RES_right(N_trans,i_dir,1)= TRabs_RES_right(N_trans,i_dir,1)-&
 &                                            conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv,i_l)

@@ -33,6 +33,7 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  use pars,            ONLY:SP,cZERO,cONE
  use com,             ONLY:msg
  use R_lattice,       ONLY:bz_samp
+ use stderr,          ONLY:intc
  use electrons,       ONLY:levels,spin,spin_occ
  use X_m,             ONLY:global_gauge
  use DIPOLES,         ONLY:DIP_rotated
@@ -105,7 +106,11 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  enddo
  !
  call PP_redux_wait(DIP_ver)
+ !
+ call msg("s","Excitonic dipoles before rotation ")
  do i_exc=1,EXCITONS_n_user_states
+   i_l=EXCITONS_user_indexes(i_exc_p)
+   call msg("s","Excion "//trim(intc(i_l)),abs(DIP_ver(:,i_exc)))
    DIP_ver(:,i_exc)=DIP_ver(:,i_exc)/v_norm_c(DIP_ver(:,i_exc))
  enddo
  !
@@ -230,8 +235,10 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  !
  call PP_redux_wait(DIP_ver)
  !
+ call msg("s","Excitonic dipoles after rotation ")
  do i_exc=1,EXCITONS_n_user_states
-   call msg("s","Excitonic dipole after rotation ",abs(DIP_ver(:,i_exc)))
+   i_l=EXCITONS_user_indexes(i_exc_p)
+   call msg("s","Excion "//trim(intc(i_l)),abs(DIP_ver(:,i_exc)))
  enddo
  !
  !write(*,*) " "

@@ -57,7 +57,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  integer                 :: N_cv_trans,N_cc_trans,N_vv_trans,N_cc_vv_trans,N_trans,N_trans_real,i_T,io_err,i_trans,&
 &                           nb(2),N_DIP_dirs,i_dir,j_dir,N_res,N_files,DIP_dir_table(3),ic,jc
  real(SP)                :: DIP_dir(3,3),Co,Time
- complex(SP)             :: diam
+ complex(SP)             :: diam(3,3)
  logical                 :: l_BS,l_OFF,l_cv,l_cc,l_vv,l_ABS,l_EQ,l_neq_exc
  character(2)            :: label
  character(schlen)       :: ofile(20)
@@ -253,6 +253,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    TRabs_RES_right=cZERO
    if (l_OFF) B_Hall =cZERO
    Epsilon_ij     =cZERO
+   diam           =cZERO
    !
    N_trans_real=0
    if (l_BS) then
@@ -279,16 +280,20 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        if ((.not.l_neq_exc).or.l_EQ) call build_up_eps_ij("EPS-"//label,ic,jc)
        if (l_neq_exc)                call build_up_eps_ij("EPS-EXC",ic,jc)
        if (l_OFF.and.ic/=jc)         call build_up_eps_ij("AH-"//label,ic,jc)
-       if (ic==jc) diam=Epsilon_ij(1,ic,jc)
-       if (ic/=jc) diam=cZERO
-       if (trim(global_gauge)=='length'  ) Epsilon_ij(:,ic,jc)=  Epsilon_ij(:,ic,jc)      /q0_def_norm**2
-       if (trim(global_gauge)=='velocity') Epsilon_ij(:,ic,jc)= (Epsilon_ij(:,ic,jc)-diam)/W_bss%p(:)**2
      enddo
    enddo
    !
-   !
    call PP_redux_wait(Epsilon_ij)
    if (l_OFF) call PP_redux_wait(B_Hall)
+   !
+   if (trim(global_gauge)=='length'  ) Epsilon_ij = Epsilon_ij / q0_def_norm**2
+   if (trim(global_gauge)=='velocity') then
+     do ic=1,N_DIP_dirs
+       do jc=1,N_DIP_dirs
+         Epsilon_ij(:,ic,jc)= (Epsilon_ij(:,ic,jc)-diam(ic,jc))/W_bss%p(:)**2
+       enddo
+     enddo
+   endif
    !
    ! Output (write)
    call RT_Trabs_output("write",label,ofile,N_files,W_bss,Time)
@@ -350,6 +355,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
          if (l_EQ) RES=RES+Co*TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1)
          ! ANTI-RES part to be coded for EPS-BS.
          if (what=="EPS-BS") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
+         if (ic==jc) diam(ic,jc)=diam(ic,jc)+RES/TRabs_E(i_trans)
+         ! This is a direct expression for the epsilon after removing the two terms 1/w2 and 1/w
+         !if (what=="EPS-BS") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES &
+         !&                                              /(W_bss%p(:)-TRabs_E(i_trans))/TRabs_E(i_trans)**2
          if (what=="AH-BS")  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
        enddo
      endif
@@ -360,6 +369,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
          if(RES==cZERO) cycle
          ! ANTI-RES part to be coded for EPS-BS.
          if (what=="EPS-EXC") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
+         if (ic==jc) diam(ic,jc)=diam(ic,jc)+RES/TRabs_E(i_trans)
+         ! This is a direct expression for the epsilon after removing the two terms 1/w2 and 1/w
+         !if (what=="EPS-BS") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES &
+         !&                                              /(W_bss%p(:)-TRabs_E(i_trans))/TRabs_E(i_trans)**2
          if (what=="AH-EXC")  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
        enddo
      endif
