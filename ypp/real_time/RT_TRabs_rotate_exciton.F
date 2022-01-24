@@ -109,7 +109,7 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  !
  call msg("s","Excitonic dipoles before rotation ")
  do i_exc=1,EXCITONS_n_user_states
-   i_l=EXCITONS_user_indexes(i_exc_p)
+   i_l=EXCITONS_user_indexes(i_exc)
    call msg("s","Excion "//trim(intc(i_l)),abs(DIP_ver(:,i_exc)))
    DIP_ver(:,i_exc)=DIP_ver(:,i_exc)/v_norm_c(DIP_ver(:,i_exc))
  enddo
@@ -237,7 +237,7 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  !
  call msg("s","Excitonic dipoles after rotation ")
  do i_exc=1,EXCITONS_n_user_states
-   i_l=EXCITONS_user_indexes(i_exc_p)
+   i_l=EXCITONS_user_indexes(i_exc)
    call msg("s","Excion "//trim(intc(i_l)),abs(DIP_ver(:,i_exc)))
  enddo
  !
