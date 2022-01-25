@@ -282,7 +282,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
  enddo
  if (n_to_print<n_g_shells) call msg('r',"...")
  !
- wf_ng_1st_BZ=maxval(g_rot(:wf_ng,:))
+ wf_ng_1st_BZ=maxval(g_rot(:min(wf_ng,ng_closed),:))
  !
  call section('=','K-grid lattice')
  !=================================
