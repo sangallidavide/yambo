@@ -28,13 +28,13 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  use R_lattice,         ONLY:k_map,bz_samp,WF_shifts,G_m_G
  use wave_func,         ONLY:WF
  use vec_operate,       ONLY:k_periodic_idx
- use DIPOLES,           ONLY:DIPOLE_t,DIP_S,DIP_alloc
+ use DIPOLES,           ONLY:DIPOLE_t,DIP_S
  use electrons,         ONLY:n_spinor,n_sp_pol
  use wrapper,           ONLY:Vstar_dot_V
  use wave_func,         ONLY:wf_ng_1st_BZ,wf_ng_overlaps,wf_ng
  use parallel_m,        ONLY:PAR_IND_DIPk_bz,PAR_IND_DIPk_bz_ID,PAR_COM_DIPk_ibz_A2A, &
 &                            PAR_IND_CON_BANDS_OVLP,PAR_IND_VAL_BANDS_OVLP,           &
-&                            PAR_IND_OVLPk_ibz,PAR_COM_DIPk_ibz_INDEX,PAR_DIPk_nbz
+&                            PAR_IND_OVLPk_ibz,PAR_COM_DIPk_ibz_INDEX
  use parallel_int,      ONLY:PP_redux_wait,PARALLEL_WF_index,PARALLEL_WF_distribute
  use interfaces,        ONLY:WF_shift_kpoint,WF_symm_kpoint,eval_G_minus_G,WF_load,WF_free
  use timing_m,          ONLY:timing
@@ -51,21 +51,13 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  integer           :: iG0,ng_tmp,wf_ng_save,wf_ng_1st_BZ_save
  integer           :: id,idx_kp(3),idx_k(3),shift(3),g0_idx(3,2)
  real(SP)          :: g0_length(3)
- complex(SP), allocatable :: WF_symm(:,:,:,:),WF_shifted(:,:,:,:),WF_ik(:,:,:,:),WF_ikp(:,:,:,:)
+ complex(SP), allocatable :: WF_symm(:,:,:),WF_shifted(:,:,:),WF_ik(:,:,:),WF_ikp(:,:,:)
 #ifdef _CUDA
  attributes(device):: WF_symm,WF_shifted,WF_ik,WF_ikp
 #endif
  logical           :: USE_shifted_wf
  !
  call timing("DIPOLE_overlaps",OPR="start")
- !
- if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
- if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
- !
- ! Notice that DIP_S is defined in the BZ
- !
- call DIP_alloc('DIP_S',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
- DIP_S=cZERO
  !
  call k_find_smallest_g0(g0_idx,g0_length)
  iG0=max(maxval(g0_idx(:,1)),maxval(g0_idx(:,2)))
@@ -94,10 +86,10 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  !
  call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/1,Xk%nibz/),space='G',title='-Oscillators/G space/Overlaps')
  !
- YAMBO_ALLOC(WF_symm,(wf_ng_1st_BZ,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_shifted,(wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_ik,     (wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_ikp,    (wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
+ YAMBO_ALLOC(WF_symm,   (wf_ng_1st_BZ,  n_spinor,Dip%ib(2)))
+ YAMBO_ALLOC(WF_shifted,(wf_ng_overlaps,n_spinor,Dip%ib(2)))
+ YAMBO_ALLOC(WF_ik,     (wf_ng_overlaps,n_spinor,Dip%ib(2)))
+ YAMBO_ALLOC(WF_ikp,    (wf_ng_overlaps,n_spinor,Dip%ib(2)))
  !
  DIP_S=cZERO
  !
@@ -114,9 +106,9 @@ subroutine DIPOLE_overlaps(Xk,Dip)
      ik = Xk%sstar(ikbz,1)
      is = Xk%sstar(ikbz,2)
      !
-     call WF_symm_kpoint((/1,Dip%ib(2)/),ikbz,Xk,WF_symm)
+     call WF_symm_kpoint((/1,Dip%ib(2)/),ikbz,i_sp_pol,Xk,WF_symm)
      !  
-     call WF_shift_kpoint((/1,Dip%ib(2)/),ikbz,WF_shifts(ikbz,:),Xk,WF_symm,WF_ik)
+     call WF_shift_kpoint((/1,Dip%ib(2)/),ikbz,i_sp_pol,WF_shifts(ikbz,:),Xk,WF_symm,WF_ik)
      !
      do id=1,3  ! Loop on the three crystal directions in the BZ
        !
@@ -140,7 +132,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
          ikp = Xk%sstar(ikbzp,1)
          isp = Xk%sstar(ikbzp,2)
          !
-         call WF_symm_kpoint((/1,Dip%ib(2)/),ikbzp,Xk,WF_symm)
+         call WF_symm_kpoint((/1,Dip%ib(2)/),ikbzp,i_sp_pol,Xk,WF_symm)
          !
          ! Shift the wave-function by a G-vector if the neighbor is out of the BZ (USE_shifed_wf=.true.)
          shift=WF_shifts(ikbzp,:)
@@ -149,14 +141,14 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            if(WF_shifts(ikbzp,id)==0) shift(id)=1
            if(WF_shifts(ikbzp,id)==2) shift(id)=0
          endif
-         call WF_shift_kpoint((/1,Dip%ib(2)/),ikbzp,shift,Xk,WF_symm,WF_ikp)
+         call WF_shift_kpoint((/1,Dip%ib(2)/),ikbzp,i_sp_pol,shift,Xk,WF_symm,WF_ikp)
          !
          do ib=1,Dip%ib(2)
            if(.not.PAR_IND_VAL_BANDS_OVLP%element_1D(ib)) cycle
            do ibp=1,Dip%ib(2)
              if(.not.PAR_IND_CON_BANDS_OVLP%element_1D(ibp)) cycle
              DIP_S(ib,ibp,id+(istep-1)*3,ikbz,i_sp_pol)= &
-                       &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib,i_sp_pol),WF_ikp(:,:,ibp,i_sp_pol)) 
+                       &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib),WF_ikp(:,:,ibp)) 
            enddo ! ibp
          enddo ! ib
          !
