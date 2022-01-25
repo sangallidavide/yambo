@@ -28,13 +28,13 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  use R_lattice,         ONLY:k_map,bz_samp,WF_shifts,G_m_G
  use wave_func,         ONLY:WF
  use vec_operate,       ONLY:k_periodic_idx
- use DIPOLES,           ONLY:DIPOLE_t,DIP_S
+ use DIPOLES,           ONLY:DIPOLE_t,DIP_S,DIP_alloc
  use electrons,         ONLY:n_spinor,n_sp_pol
  use wrapper,           ONLY:Vstar_dot_V
  use wave_func,         ONLY:wf_ng_1st_BZ,wf_ng_overlaps,wf_ng
  use parallel_m,        ONLY:PAR_IND_DIPk_bz,PAR_IND_DIPk_bz_ID,PAR_COM_DIPk_ibz_A2A, &
 &                            PAR_IND_CON_BANDS_OVLP,PAR_IND_VAL_BANDS_OVLP,           &
-&                            PAR_IND_OVLPk_ibz,PAR_COM_DIPk_ibz_INDEX
+&                            PAR_IND_OVLPk_ibz,PAR_COM_DIPk_ibz_INDEX,PAR_DIPk_nbz
  use parallel_int,      ONLY:PP_redux_wait,PARALLEL_WF_index,PARALLEL_WF_distribute
  use interfaces,        ONLY:WF_shift_kpoint,WF_symm_kpoint,eval_G_minus_G,WF_load,WF_free
  use timing_m,          ONLY:timing
@@ -58,6 +58,15 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  logical           :: USE_shifted_wf
  !
  call timing("DIPOLE_overlaps",OPR="start")
+ !
+ if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
+ if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
+ !
+ ! Notice that DIP_S is defined in the BZ
+ !
+ call DIP_alloc('DIP_S',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
+ DIP_S=cZERO
+ !
  !
  call k_find_smallest_g0(g0_idx,g0_length)
  iG0=max(maxval(g0_idx(:,1)),maxval(g0_idx(:,2)))
@@ -148,7 +157,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            do ibp=1,Dip%ib(2)
              if(.not.PAR_IND_CON_BANDS_OVLP%element_1D(ibp)) cycle
              DIP_S(ib,ibp,id+(istep-1)*3,ikbz,i_sp_pol)= &
-                       &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib),WF_ikp(:,:,ibp)) 
+                       &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib),WF_ikp(:,:,ibp))
            enddo ! ibp
          enddo ! ib
          !
