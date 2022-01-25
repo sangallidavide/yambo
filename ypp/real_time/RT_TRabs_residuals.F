@@ -24,6 +24,7 @@
 subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  !
  use pars,            ONLY:SP,pi,cI,cZERO,cONE
+ use parser_m,        ONLY:parser
  use com,             ONLY:msg
  use drivers,         ONLY:l_rt_carriers_in_use
  use R_lattice,       ONLY:bz_samp
@@ -53,15 +54,26 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  integer           :: i_cv,i_v,i_c,i_kbz,i_kibz,i_spin,i_l,i_l_ref,bands(2,2),i_n,i_np,i_dir, &
 &                     i_cv_p,i_v_p,i_c_p,i_kbz_p,i_spin_p,i_exc,i_exc_p
  character(6)      :: DIP_kind
+ logical           :: l_gold_modes
  real(SP)          :: E_eh
  complex(SP)       :: DIP_f,DIP_rot(3),f_eh(2),DIP_dot,DIP_tmp(3)
  !
  if(trim(global_gauge)=="length") then
+   !
    DIP_kind="DIP_iR"
    DIP_f=-cI
+   !
  else if(trim(global_gauge)=="velocity") then
+   !
+   ! N.B.: In case the velocity gauge is chosen the definition of the excitonic
+   !       dipoles <\lambda|v|\lambda> used here is not exact. The reason is that
+   !       v=[x,H], and, in the excitonic case, H^{exc} should be used.
+   !       However H^{IP} is used in practice by yambo.
+   !       For a discussion see PRB 95, 155203 (2017)
+   !
    DIP_kind="DIP_v"
    DIP_f=cONE
+   !
  endif
  !
  ! BSE residuals
@@ -122,7 +134,9 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  ! -------------
  if (index(what,"EXC")>0) then
    !
-   if (EXCITONS_n_user_states>1) call RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
+   call RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
+   !
+   call parser("TRabsGoldModes",l_gold_modes)
    !
    i_l_ref=EXCITONS_user_indexes(1)
    !
@@ -148,7 +162,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      N_trans=N_trans+1
      TRabs_E(N_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)
      !
-     if (i_l==i_l_ref) then
+     if (i_l==i_l_ref .or. (abs(TRabs_E(N_trans))<0.001_SP .and. .not.l_gold_modes )) then
        call live_timing(steps=1)
        cycle
      endif
@@ -180,7 +194,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (i_v    /=i_v_p   ) cycle
          !
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_c_p,i_kibz,i_spin)
-         if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
+         if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+         !if (abs(E_eh) < TRabs_Eeh_treshold) cycle
          !
          DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_c_p,i_kbz,i_spin,DIP_kind,Xk))
          !
@@ -211,7 +226,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (i_c    /=i_c_p   ) cycle
          !
          E_eh=Xen%E(i_v,i_kibz,i_spin)-Xen%E(i_v_p,i_kibz,i_spin)
-         if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
+         if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+         !if (abs(E_eh) < TRabs_Eeh_treshold) cycle
          !
          DIP_rot=conjg(DIP_f*DIP_rotated(i_v_p,i_v,i_kbz,i_spin,DIP_kind,Xk))
          !
@@ -290,7 +306,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            !
            if (l_EQ) f_eh(2)=f_eh(2)+f_eh(1)
            !
-           if (abs(E_eh) < TRabs_Eeh_treshold.and. trim(global_gauge)=="length") cycle
+           if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+           !if (abs(E_eh) < TRabs_Eeh_treshold) cycle
            !
            N_trans=N_trans+1
            TRabs_E(N_trans)=E_eh

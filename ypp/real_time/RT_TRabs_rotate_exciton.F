@@ -28,7 +28,7 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  ! If the excitonic state belongs to a degenerate space, the state with 
  ! excitonic dipole along the input variable needs to be selected.
  !
- ! The present subroutine does this operation
+ ! The present subroutine does this operation. BS_mat modified
  !
  use pars,            ONLY:SP,cZERO,cONE
  use com,             ONLY:msg
@@ -64,8 +64,6 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  complex(SP)       :: DIP_rot(3),f_eh(2),DIP_dot,DIP_tmp(3)
  complex(SP), allocatable :: A_vec_tmp(:,:)
  !
- !
- allocate(A_vec_tmp(BS_K_dim(1),EXCITONS_n_user_states))
  !
  ! I need to select the exciton with the dipole in the direction asked from input
  !
@@ -113,6 +111,11 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
    call msg("s","Excion "//trim(intc(i_l)),abs(DIP_ver(:,i_exc)))
    DIP_ver(:,i_exc)=DIP_ver(:,i_exc)/v_norm_c(DIP_ver(:,i_exc))
  enddo
+ !
+ if (EXCITONS_n_user_states==1) then
+   call msg("s","No rotation performed since exciton is not degenerate to anything ")
+   return 
+ endif
  !
  if (EXCITONS_n_user_states==2) then
    DIP_ver(:,3) = cross_product(DIP_ver(:,1),Dip_ver(:,2))
@@ -187,6 +190,8 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
  !
  ! Step 4: rotate the excitons
  !
+ allocate(A_vec_tmp(BS_K_dim(1),EXCITONS_n_user_states))
+ !
  A_vec_tmp=cZERO
  do i_exc=1,EXCITONS_n_user_states
    do i_exc_p=1,EXCITONS_n_user_states
@@ -198,6 +203,8 @@ subroutine RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
    i_l=EXCITONS_user_indexes(i_exc)
    BS_mat(:,i_l)=A_vec_tmp(:,i_exc)
  enddo
+ !
+ deallocate(A_vec_tmp)
  !
  ! Step 5: Check new excitonic dipoles
  !

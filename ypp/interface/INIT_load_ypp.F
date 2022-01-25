@@ -24,7 +24,7 @@
 subroutine INIT_ypp_load(defs)
  !
  use it_tools,      ONLY:it
- use it_m,          ONLY:initdefs,E_unit,G_unit,V_general,V_RL,&
+ use it_m,          ONLY:initdefs,E_unit,G_unit,V_general,V_RL,V_real_time,&
 &                        Time_unit,Bfield_unit,V_real_time,T_unit,V_nl_optics,V_io,V_sc
  use wave_func,     ONLY:wf_ng
  use LIVE_t,        ONLY:nhash
@@ -211,6 +211,8 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'TRabsExcPol',   '[RT] Polarization of the exciton in the initial state',TRabs_Exc_Pol)
  call it(defs,'TRabsNExc',     '[RT] Index of the last exciton considered for inter/intra excitons transitions',TRabs_N_Exc)
  call it(defs,'Gauge' ,        '[RT] Gauge (length|velocity)',global_gauge)
+ call it('f',defs,'TRabsVelFullExpr','[RT] Use explicit expression with the terms 1/w2 and 1/w',verb_level=V_real_time)
+ call it('f',defs,'TRabsGoldModes',  '[RT] Include transitions at zero energy',verb_level=V_real_time)
  !
 #endif
  !

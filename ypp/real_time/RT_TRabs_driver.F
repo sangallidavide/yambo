@@ -25,6 +25,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  use drivers,         ONLY:l_rt_carriers_in_use
  use pars,            ONLY:SP,pi,cZERO,rZERO,schlen,DP,cI
+ use parser_m,        ONLY:parser
  use R_lattice,       ONLY:bz_samp,q0_def_norm,d3k_factor
  use electrons,       ONLY:levels,spin,spin_occ
  use LIVE_t,          ONLY:live_timing
@@ -58,7 +59,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
 &                           nb(2),N_DIP_dirs,i_dir,j_dir,N_res,N_files,DIP_dir_table(3),ic,jc
  real(SP)                :: DIP_dir(3,3),Co,Time
  complex(SP)             :: diam(3,3)
- logical                 :: l_BS,l_OFF,l_cv,l_cc,l_vv,l_ABS,l_EQ,l_neq_exc
+ logical                 :: l_BS,l_OFF,l_cv,l_cc,l_vv,l_ABS,l_EQ,l_neq_exc,l_full_expression
  character(2)            :: label
  character(schlen)       :: ofile(20)
  type(PP_indexes)        :: PX_bs,PX_ip
@@ -71,6 +72,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  endif
  !
  l_TRabs_YPP=.TRUE.
+ !
+ ! Instead of imposing the conductivity sum rule by hand, it sums explicitly the 1/w2 term
+ call parser("TRabsVelFullExpr",l_full_expression)
  !
  ! Dimensions, Constant, Logicals and allocs
  !
@@ -287,7 +291,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    if (l_OFF) call PP_redux_wait(B_Hall)
    !
    if (trim(global_gauge)=='length'  ) Epsilon_ij = Epsilon_ij / q0_def_norm**2
-   if (trim(global_gauge)=='velocity') then
+   if (trim(global_gauge)=='velocity' .and. l_full_expression) then
      do ic=1,N_DIP_dirs
        do jc=1,N_DIP_dirs
          Epsilon_ij(:,ic,jc)= (Epsilon_ij(:,ic,jc)-diam(ic,jc))/W_bss%p(:)**2
@@ -322,6 +326,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    subroutine build_up_eps_ij(what,I,J)
      character(*) :: what
      integer      :: I,J
+     !
+     logical      :: l_velocity_procedure
      complex(SP)  :: RES,GF(W_bss%n_freqs)
      complex(DP)  :: ACC(W_bss%n_freqs)
      ACC=0._DP
@@ -329,22 +335,24 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
      j_dir=DIP_dir_table(J)
      if (.not.TRabs_lEPS(i_dir,j_dir)) return
      !
-     if (index(what,"IP")>0) then
+     l_velocity_procedure = (trim(global_gauge)=="velocity" .and. .not.l_full_expression)
+     !
+     if ( index(what,"IP")>0 ) then
        do i_trans=BSS_n_eig+1,N_trans_real
          if (.not.PX_ip%element_1D(i_trans-BSS_n_eig)) cycle
-         if (what=="EPS-IP") then
+         if ( index(what,"EPS")>0 ) then
            RES=Co*TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1)
            ACC(:)=ACC(:)-RES/(W_bss%p(:)-TRabs_E(i_trans))+conjg(RES)/(W_bss%p(:)+TRabs_E(i_trans))
          endif
-         if (what=="AH-IP") then
+         if ( index(what,"AH")>0 ) then
            RES=2._SP*Co*aimag(TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1))
            ACC(1)=ACC(1)+RES
          endif
        enddo
-       if (what=="EPS-IP")  Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)+ACC(:)
-       if (what=="AH-IP" )  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+cI*ACC(1)
+       if ( index(what,"EPS")>0 ) Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)+ACC(:)
+       if ( index(what,"AH") >0 ) B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+cI*ACC(1)
      endif
-     if (index(what,"BS")>0) then
+     if ( index(what,"BS")>0 ) then
        do i_trans=1,BSS_n_eig
          if (.not.PX_bs%element_1D(i_trans)) cycle
          RES=cZERO
@@ -354,26 +362,38 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
          endif
          if (l_EQ) RES=RES+Co*TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1)
          ! ANTI-RES part to be coded for EPS-BS.
-         if (what=="EPS-BS") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
-         if (ic==jc) diam(ic,jc)=diam(ic,jc)+RES/TRabs_E(i_trans)
-         ! This is a direct expression for the epsilon after removing the two terms 1/w2 and 1/w
-         !if (what=="EPS-BS") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES &
-         !&                                              /(W_bss%p(:)-TRabs_E(i_trans))/TRabs_E(i_trans)**2
-         if (what=="AH-BS")  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
+         if ( index(what,"EPS")>0 ) then
+           if (l_velocity_procedure) then
+             ! This is a direct expression for the epsilon after removing the two terms 1/w2 and 1/w
+             Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir) &
+             &                          -RES/(W_bss%p(:)-TRabs_E(i_trans))/TRabs_E(i_trans)**2
+           else
+             Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
+           endif
+           if (ic==jc .and. global_gauge=="velocity") diam(ic,jc)=diam(ic,jc)+RES/TRabs_E(i_trans)
+         endif
+         ! This includes also the ANTI-RES part via conjg(RES)
+         if ( index(what,"AH")>0 ) B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
        enddo
      endif
-     if (index(what,"EXC")>0) then
+     if ( index(what,"EXC")>0 ) then
        do i_trans=BSS_n_eig+1,BSS_n_eig+TRabs_N_Exc
          if (.not.PX_bs%element_1D(i_trans-BSS_n_eig)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
          if(RES==cZERO) cycle
          ! ANTI-RES part to be coded for EPS-BS.
-         if (what=="EPS-EXC") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
-         if (ic==jc) diam(ic,jc)=diam(ic,jc)+RES/TRabs_E(i_trans)
-         ! This is a direct expression for the epsilon after removing the two terms 1/w2 and 1/w
-         !if (what=="EPS-BS") Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES &
-         !&                                              /(W_bss%p(:)-TRabs_E(i_trans))/TRabs_E(i_trans)**2
-         if (what=="AH-EXC")  B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
+         if ( index(what,"EPS")>0 ) then
+           if (l_velocity_procedure) then
+             ! This is a direct expression for the epsilon after removing the two terms 1/w2 and 1/w
+             Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir) &
+             &                          -RES/(W_bss%p(:)-TRabs_E(i_trans))/TRabs_E(i_trans)**2
+           else
+             Epsilon_ij(:,i_dir,j_dir)=Epsilon_ij(:,i_dir,j_dir)-RES/(W_bss%p(:)-TRabs_E(i_trans))
+           endif
+           if (ic==jc .and. global_gauge=="velocity") diam(ic,jc)=diam(ic,jc)+RES/TRabs_E(i_trans)
+         endif
+         ! This includes also the ANTI-RES part via conjg(RES)
+         if ( index(what,"AH")>0 ) B_Hall(i_dir,j_dir)=B_Hall(i_dir,j_dir)+RES-conjg(RES)
        enddo
      endif
    end subroutine
