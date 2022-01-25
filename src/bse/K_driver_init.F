@@ -169,6 +169,11 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  l_BS_photolum  = STRING_match(BSE_prop,'photolum')
  l_BS_magnons   = STRING_match(BSE_prop,'magn') .and.n_spin>1
  !
+ if(l_BS_magnons.and.n_sp_pol==2) then
+   BS_res_K_exchange=.FALSE.
+   BS_n_g_exch=0
+ endif
+ !
  ! How ...
  !---------
  l_BS_esort     = STRING_match(BSE_prop,'esrt').and.(STRING_match(BSS_mode,'d').or.STRING_match(BSS_mode,'s').or.l_rpa_IP)

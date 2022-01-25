@@ -30,7 +30,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  use LOGO,         ONLY:pickup_a_random
  use drivers,      ONLY:l_bs_fxc,l_tddft,l_RIM_W
  use frequency,    ONLY:w_samp
- use electrons,    ONLY:levels,spin_occ,spin,n_spin,n_spinor
+ use electrons,    ONLY:levels,spin_occ,spin,n_spin,n_spinor,n_sp_pol
  use FFT_m,        ONLY:fft_size
  use interfaces,   ONLY:WF_load,WF_free,eval_G_minus_G
  use D_lattice,    ONLY:nsym,DL_vol,i_time_rev,i_space_inv,sop_inv,sop_tab
@@ -166,9 +166,9 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  ! Exchange
  !==========
  !
- load_O_X=BS_res_K_exchange.or.l_bs_fxc
+ load_O_X=(BS_res_K_exchange.or.l_bs_fxc)
  !
- if (load_O_X) call msg('r','[BSE] Exchange components ',BS_n_g_exch)
+ if (load_O_X)     call msg('r','[BSE] Exchange components ',BS_n_g_exch)
  !
  ! Oscillators Setup
  !===================
@@ -191,6 +191,8 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
      call msg('s','[TDDFT] ALDA Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
    endif
  endif
+ !
+ if (BS_K_is_ALDA) call msg('r','[BSE] ALDA     components ',BS_n_g_fxc)
  !
  call K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  !
