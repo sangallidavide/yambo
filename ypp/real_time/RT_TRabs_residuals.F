@@ -144,12 +144,12 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    call live_timing("Computing inter/intra exciton dipoles",TRAbs_N_Exc)
    !
-   fileroot="EE_res_"
+   fileroot="YPP-TR_EE_res_"
    !
    do i_dir=1,N_dirs
      do j_dir=1,N_dirs
        if (.not.TRabs_lEPS(i_dir,j_dir)) cycle
-       filename(i_dir,j_dir)=trim(fileroot)//TRabs_EPS_label(i_dir,j_dir)
+       filename(i_dir,j_dir)=trim(fileroot)//TRabs_EPS_label(i_dir,j_dir)//"_BS"
      enddo
    enddo
    !
