@@ -273,7 +273,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          !
          do i_dir=1,N_dirs
            DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_nn)
-           dip_tmp(4,i_dir)=dip_tmp(i_dip,i_dir)-conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv,i_l)
+           dip_tmp(4,i_dir)=dip_tmp(4,i_dir)+conjg(BS_mat(i_cv,i_l_ref))*conjg(DIP_dot)*BS_mat(i_cv,i_l)
          enddo
          !
        endif
