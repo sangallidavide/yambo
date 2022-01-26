@@ -40,6 +40,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use YPPm,            ONLY:BS_E,EXCITONS_n_user_states,EXCITONS_user_indexes
  use real_time,       ONLY:RT_bands
  use parallel_m,      ONLY:PAR_IND_DIPk_ibz,PAR_IND_VAL_BANDS_DIP,PAR_IND_CON_BANDS_DIP
+ use parallel_int,    ONLY:PP_redux_wait
  !
 #include<memory.h>
  !
@@ -175,16 +176,19 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    if (trim(global_gauge)=="velocity") then
      !
-     DIP_nn=cZERO
-     do i_spin=1,n_sp_pol
-       do i_kbz=1,Xk%nbz
-         if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
-         do i_v=BS_bands(1),Xen%nbf(i_spin)
-           if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
-           DIP_nn=DIP_nn+conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+     if (PAR_IND_CON_BANDS_DIP%element_1D(BSS_eh_table(1,3))) then
+       DIP_nn=cZERO
+       do i_spin=1,n_sp_pol
+         do i_kbz=1,Xk%nbz
+           i_kibz  = Xk%sstar(i_kbz,1)
+           if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+           do i_v=BS_bands(1),Xen%nbf(i_spin)
+             if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+             DIP_nn=DIP_nn+conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+           enddo
          enddo
        enddo
-     enddo
+     endif
      !
    endif
    !
@@ -288,11 +292,13 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        TRabs_RES_left(N_trans,i_dir,1) = TRabs_RES_left(N_trans,i_dir,1) +conjg(dip_tmp(5,i_dir))
      enddo
      !
+     call PP_redux_wait(dip_tmp)
+     !
      values(1)=TRabs_E(N_trans)*HA2EV
      do i_dir=1,N_dirs
        do j_dir=1,N_dirs
          if (.not.TRabs_lEPS(i_dir,j_dir)) cycle
-         values(2:6)=real(dip_tmp(:,i_dir)*conjg(dip_tmp(:,j_dir)),SP)
+         values(2:6)=real(dip_tmp(:,i_dir)*conjg(dip_tmp(:,j_dir)),SP)/TRabs_E(N_trans)**2
          call msg("o "//trim(filename(i_dir,j_dir)),'',values,INDENT=-2,USE_TABS=.TRUE.)
        enddo
      enddo
