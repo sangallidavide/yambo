@@ -71,16 +71,18 @@ subroutine SERIAL_SVD(n,M,mode,SVD_digits)
      endif
    enddo
    !
+   call M_by_M('c','c',n,WS%m1_cmplx,WS%m2_cmplx,M)
+   !
  elseif(index(mode,'uni')/=0)  then  
    !      
    ! Transform in a unitary matrix
    ! U= M1*I*M2
    !
+   call M_by_M('n','n',n,WS%m2_cmplx,WS%m1_cmplx,M)
+   !
  else
    call error('Error SVD mode ')
  endif
- !
- call M_by_M('c','c',n,WS%m1_cmplx,WS%m2_cmplx,M)
  !
  call LINEAR_ALGEBRA_WS_reset(WS)
  !

@@ -88,7 +88,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
    delta(ib,ib)=cONE
  enddo
  !
- deg_thresh=0.005/HA2EV
+ Dip%Energy_threshold=max(Dip%Energy_threshold,0.001/HA2EV)
+ deg_thresh=Dip%Energy_threshold
  !
  do i_sp_pol=1,n_sp_pol
    !
@@ -186,10 +187,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          !
          Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol) ,hermitian(U_r(:,:,istep)) )  &
 &                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)) )
-!&                             +matmul( U_l(:,:,istep), DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)            )  &
-!&                             -2*delta(:,:)
          !
-         Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
+         Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
          !
        enddo
        !
@@ -227,6 +226,25 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
          enddo
        enddo
      enddo
+     !
+     !=====
+     ! <v>
+     !=====
+     if(.not.Dip%force_v_g_space) then
+       do iv=Dip%ib(1),Dip%ib_lim(1) 
+         if(.not.PAR_IND_VAL_BANDS_DIP%element_1D(iv)) cycle
+         do ic=max(iv,Dip%ib_lim(2)),Dip%ib(2)
+           if(.not.PAR_IND_CON_BANDS_DIP%element_1D(ic)) cycle
+           Ev_m_Ec_KS   =Xen%E (iv,ik,i_sp_pol)-Xen%E (ic,ik,i_sp_pol)
+           if (allocated(Xen%Eo)) Ev_m_Ec_KS   =Xen%Eo(iv,ik,i_sp_pol)-Xen%Eo(ic,ik,i_sp_pol)
+           do idir=1,3
+             DIP_v(idir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(idir,ic,iv,ik_mem,i_sp_pol)*Ev_m_Ec_KS
+           enddo
+           !
+         enddo
+       enddo
+       !
+     endif
      !
      call live_timing(steps=1)
      !
