@@ -263,8 +263,8 @@ subroutine DIPOLE_IO(Xk,Xen,Dip,check_read_or_write,io_err,PAR_K_scheme_kind)
                den=Ev_m_Ec_QP
              endif
              !
-             if (abs(den)<=Dip%Energy_treshold) DIP_v(:,ic,iv,ik_mem,i_sp_pol)=cZERO
-             if (abs(den)> Dip%Energy_treshold) DIP_v(:,ic,iv,ik_mem,i_sp_pol)=DIP_v(:,ic,iv,ik_mem,i_sp_pol)*(num/den)
+             if (abs(den)<=Dip%Energy_threshold) DIP_v(:,ic,iv,ik_mem,i_sp_pol)=cZERO
+             if (abs(den)> Dip%Energy_threshold) DIP_v(:,ic,iv,ik_mem,i_sp_pol)=DIP_v(:,ic,iv,ik_mem,i_sp_pol)*(num/den)
              !
            enddo
          enddo

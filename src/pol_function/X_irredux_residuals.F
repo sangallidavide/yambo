@@ -122,7 +122,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
    !
    Z_eh_occ = Xen%f(iv,ikp,i_spin)*(spin_occ-Xen%f(ic,ik,i_spin))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
    !
-   if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_treshold) Z_eh_occ=1._SP
+   if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_threshold) Z_eh_occ=1._SP
    !
    if (l_X_term_vv) Z_eh_occ = Xen%f(iv,ikp,i_spin)*Xen%f(ic,ik,i_spin)/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
    !
@@ -271,7 +271,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
    !
  enddo loop_bare_grid
  !
- if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_treshold) then
+ if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_threshold) then
     ctmp=Xo_res(1,1)
     Xo_res(1,1)=ctmp/real(drude_n_states,SP)
  endif

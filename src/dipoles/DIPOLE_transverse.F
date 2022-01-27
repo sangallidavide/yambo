@@ -63,7 +63,7 @@ subroutine Dipole_transverse(Xen,Xk,Dip)
  complex(SP), allocatable     :: kbv(:,:,:,:)
  complex(SP), allocatable DEV_ATTR :: kbv_d(:,:,:,:)
  complex(SP)                  :: rho_spinor(3,n_spinor,n_spinor),rho(3),P2
- real(SP)                     :: Ev_m_Ev_KS,Dipole_Energy_treshold
+ real(SP)                     :: Ev_m_Ev_KS,Dipole_Energy_threshold
  !
  !I/O and external functions
  !
@@ -241,8 +241,8 @@ subroutine Dipole_transverse(Xen,Xk,Dip)
          ! define a different thr for val-val transitions
          ! used for XTerm (here Ev_m_Ev_KS may become very large)
          !
-         Dipole_Energy_treshold=Dip%Energy_treshold 
-         if(l_X_terminator.and.ic<=Dip%ib_lim(1)) Dipole_Energy_treshold=Dip%Energy_treshold_vv
+         Dipole_Energy_threshold=Dip%Energy_threshold 
+         if(l_X_terminator.and.ic<=Dip%ib_lim(1)) Dipole_Energy_threshold=Dip%Energy_threshold_vv
          !
          !=====
          ! <v>
@@ -274,8 +274,8 @@ subroutine Dipole_transverse(Xen,Xk,Dip)
            if (.not.allocated(Xen%Eo)) Ev_m_Ev_KS=Xen%E (iv,ik,i_sp_pol)-Xen%E (ic,ik,i_sp_pol)
            if (     allocated(Xen%Eo)) Ev_m_Ev_KS=Xen%Eo(iv,ik,i_sp_pol)-Xen%Eo(ic,ik,i_sp_pol)
            !
-           if (abs(Ev_m_Ev_KS)> Dipole_Energy_treshold) DIP_iR(:,ic,iv,ik_mem,i_sp_pol)=rho/Ev_m_Ev_KS
-           if (abs(Ev_m_Ev_KS)<=Dipole_Energy_treshold) DIP_iR(:,ic,iv,ik_mem,i_sp_pol)=cZERO
+           if (abs(Ev_m_Ev_KS)> Dipole_Energy_threshold) DIP_iR(:,ic,iv,ik_mem,i_sp_pol)=rho/Ev_m_Ev_KS
+           if (abs(Ev_m_Ev_KS)<=Dipole_Energy_threshold) DIP_iR(:,ic,iv,ik_mem,i_sp_pol)=cZERO
            !
          endif
          !

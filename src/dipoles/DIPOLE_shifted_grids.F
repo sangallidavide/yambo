@@ -229,7 +229,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
            Ev_m_Ec_KS   =Xen%E (iv,ik,i_sp_pol)-Xen%E (ic,ik,i_sp_pol)
            if (allocated(Xen%Eo)) Ev_m_Ec_KS   =Xen%Eo(iv,ik,i_sp_pol)-Xen%Eo(ic,ik,i_sp_pol)
            !
-           if (abs(Ev_m_Ec_KS)<=Dip%Energy_treshold .or. iv==ic) then
+           if (abs(Ev_m_Ec_KS)<=Dip%Energy_threshold .or. iv==ic) then
              call live_timing(steps=1)
              cycle
            endif
@@ -283,7 +283,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
              do ic=ic_min,Dip%ib(2)
                Ev_m_Ec_KS   =Xen%E (iv,ik,i_sp_pol)-Xen%E (ic,ik,i_sp_pol)
                if (allocated(Xen%Eo)) Ev_m_Ec_KS   =Xen%Eo(iv,ik,i_sp_pol)-Xen%Eo(ic,ik,i_sp_pol)
-               if (abs(Ev_m_Ec_KS)<=Dip%Energy_treshold .or. iv==ic) cycle
+               if (abs(Ev_m_Ec_KS)<=Dip%Energy_threshold .or. iv==ic) cycle
                DIP_v(ir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)*Ev_m_Ec_KS
              enddo
            endif
