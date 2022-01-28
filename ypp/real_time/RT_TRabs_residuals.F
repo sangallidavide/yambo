@@ -231,7 +231,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (i_v    /=i_v_p   ) cycle
          !
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_c_p,i_kibz,i_spin)
-         if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+         !if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
          if (abs(E_eh) <  TRabs_Eeh_treshold ) i_dip=3
          if (abs(E_eh) >= TRabs_Eeh_treshold ) i_dip=1
          !
@@ -258,7 +258,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (i_c    /=i_c_p   ) cycle
          !
          E_eh=Xen%E(i_v,i_kibz,i_spin)-Xen%E(i_v_p,i_kibz,i_spin)
-         if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+         !if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
          if (abs(E_eh) <  TRabs_Eeh_treshold ) i_dip=3
          if (abs(E_eh) >= TRabs_Eeh_treshold ) i_dip=2
          !
