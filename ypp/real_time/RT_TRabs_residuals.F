@@ -28,7 +28,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use units,           ONLY:HA2EV
  use com,             ONLY:msg,of_open_close
  use drivers,         ONLY:l_rt_carriers_in_use
- use R_lattice,       ONLY:bz_samp
+ use R_lattice,       ONLY:bz_samp,q0_def_norm
  use electrons,       ONLY:levels,n_sp_pol,spin,spin_occ
  use X_m,             ONLY:global_gauge
  use DIPOLES,         ONLY:DIP_rotated
@@ -58,7 +58,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  character(6)      :: DIP_kind
  character(schlen) :: fileroot,filename(3,3),headers(6)
  logical           :: l_gold_modes
- real(SP)          :: E_eh,values(6)
+ real(SP)          :: E_eh,values(6),fac
  complex(SP)       :: DIP_f,DIP_rot(3),f_eh(2),DIP_dot,DIP_NN(3),dip_tmp(5,3)
  !
  if(trim(global_gauge)=="length") then
@@ -294,11 +294,13 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      !
      call PP_redux_wait(dip_tmp)
      !
+     if (trim(global_gauge)=="velocity" ) fac=1._SP / TRabs_E(N_trans)**2
+     if (trim(global_gauge)=="length"   ) fac=1._SP / q0_def_norm**2
      values(1)=TRabs_E(N_trans)*HA2EV
      do i_dir=1,N_dirs
        do j_dir=1,N_dirs
          if (.not.TRabs_lEPS(i_dir,j_dir)) cycle
-         values(2:6)=real(dip_tmp(:,i_dir)*conjg(dip_tmp(:,j_dir)),SP)/TRabs_E(N_trans)**2
+         values(2:6)=real(dip_tmp(:,i_dir)*conjg(dip_tmp(:,j_dir)),SP)*fac
          call msg("o "//trim(filename(i_dir,j_dir)),'',values,INDENT=-2,USE_TABS=.TRUE.)
        enddo
      enddo
