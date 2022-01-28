@@ -59,7 +59,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
  integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
- real(SP)    :: deg_thresh
+ real(SP)    :: Ev_m_Ec_KS,deg_thresh
  !
  call timing("DIPOLE_buil_derk",OPR="start")
  !
