@@ -165,28 +165,34 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
            enddo
          enddo
          !
-         U_r(:,:,istep)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
-         U_l(:,:,istep)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
+         U_r(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
+         U_l(:,:,1)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
+         !
+         U_r(:,:,2)=U_r(:,:,1)
+         U_l(:,:,2)=U_l(:,:,1)
          !
          do ib=1,Dip%ib(2)
            do ibp=1,Dip%ib(2)
              if(deg_table_k(ibp,ib).or.deg_table_kp(ibp,ib)) cycle
-             U_r(ib,ibp,istep)=cZERO
+             U_r(ib,ibp,2)=cZERO
            enddo
          enddo
          !
          do ib=1,Dip%ib(2)
            do ibp=1,Dip%ib(2)
              if(deg_table_k(ibp,ib).or.deg_table_km(ibp,ib)) cycle
-             U_l(ib,ibp,istep)=cZERO
+             U_l(ib,ibp,2)=cZERO
            enddo
          enddo
-         ! 
-         call SERIAL_SVD(Dip%ib(2),U_r(:,:,istep),'uni',0)
-         call SERIAL_SVD(Dip%ib(2),U_l(:,:,istep),'uni',0)
          !
-         Der_k_red(:,:,istep)=+matmul(          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol) ,hermitian(U_r(:,:,istep)) )  &
-&                             -matmul(hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)),hermitian(U_l(:,:,istep)) )
+         !U_r(:,:,1)=U_r(:,:,2) !-U_r(:,:,2)
+         !U_l(:,:,1)=U_l(:,:,2) !-U_l(:,:,2)
+         ! 
+         call SERIAL_SVD(Dip%ib(2),U_r(:,:,2),'uni',0)
+         call SERIAL_SVD(Dip%ib(2),U_l(:,:,2),'uni',0)
+         !
+         Der_k_red(:,:,istep)=+matmul(U_r(:,:,1),hermitian(U_r(:,:,2)) )  &
+&                             -matmul(U_l(:,:,1),hermitian(U_l(:,:,2)) )
          !
          Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
          !
