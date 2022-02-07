@@ -78,8 +78,8 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  integer                      :: ik,ik_mem,ic_wf,iv_wf,iv_wf_sh,i_grp,ic,iv,in_d,iq,n_LT_steps,&
 &                                i_spinor,i_sp_pol,ir,grid_order(3),ic_min
  integer                      :: first_el(Dip%ib_lim(1)-Dip%ib(1)+1),n_of_el(Dip%ib_lim(1)-Dip%ib(1)+1),n_deg_grp
- complex(SP)                  :: rho,DIP_rotate(Dip%ib(1):Dip%ib_lim(1),Dip%ib(1):Dip%ib_lim(1)),&
-&                                DIP_tmp(Dip%ib_lim(2):Dip%ib(2),Dip%ib(1):Dip%ib_lim(1))
+ complex(SP)                  :: rho,DIP_O(Dip%ib(1):Dip%ib_lim(1),Dip%ib(1):Dip%ib_lim(1)),&
+&                                DIP_S(Dip%ib_lim(2):Dip%ib(2),Dip%ib(1):Dip%ib_lim(1)),DIP_D
  real(SP)                     :: Ev_m_Ec_KS,q_mod(3)
  !
  !ioDB1 shifted grids
@@ -182,8 +182,8 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
        !
        ! Notice that here I sum over the shifted subspace, assuming that it has equal or less degeneracies than the non shifted subspace
        !
-       DIP_tmp=cZERO
-       DIP_rotate=cZERO
+       DIP_S=cZERO
+       DIP_O=cZERO
        !
        do i_grp=1,n_deg_grp
        do in_d=first_el(i_grp)+Dip%ib(1)-1,first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1)-1
@@ -202,14 +202,14 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
            !
            if (iv_wf==0) call error(" Error in parallel wf distribution (Dipole iv)")
            !
-           ! DIP_rotate = < v,k+q | v,k >
+           ! DIP_O = < n,k+q | n,k > between connected bands only
            !
            do i_spinor=1,n_spinor
              !
              rho = Vstar_dot_V(wf_ng_eff,DEV_VAR(WF_shifted%c)(1:wf_ng_eff,i_spinor,iv_wf_sh), &
 &                                        DEV_VAR(WF%c)(1:wf_ng_eff,i_spinor,iv_wf))
              !
-             if(abs(rho)>1.E-3) DIP_rotate(in_d,iv)=DIP_rotate(in_d,iv)+conjg(rho)
+             if(abs(rho)>1.E-3) DIP_O(in_d,iv)=DIP_O(in_d,iv)+conjg(rho)
              !
            enddo
            !
@@ -239,7 +239,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
 &                                              DEV_VAR(WF%c)(1:wf_ng_eff,i_spinor,ic_wf))
            enddo
            !
-           DIP_tmp(ic,in_d)=rho/q0_shift_norm
+           DIP_S(ic,in_d)=rho/q0_shift_norm
            !
            call live_timing(steps=1)
            !
@@ -256,7 +256,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
            ! DEBUG <
            !rho=cZERO
            !do in_d=first_el(i_grp)+Dip%ib(1)-1,first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1)-1
-           !  rho=rho+abs(DIP_rotate(in_d,iv))**2
+           !  rho=rho+abs(DIP_O(in_d,iv))**2
            !enddo
            !ic=(first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1))-(first_el(i_grp)+Dip%ib(1))
            !if (abs(ic)<=0) write(*,*) i_sp_pol,ik,iq,iv,ic+1,abs(rho)
@@ -273,12 +273,15 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
              !
              if (abs(Ev_m_Ec_KS)>Dip%Energy_threshold) then
                do in_d=first_el(i_grp)+Dip%ib(1)-1,first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1)-1
-                 DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)+DIP_tmp(ic,in_d)*DIP_rotate(in_d,iv)
+                 DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)+DIP_S(ic,in_d)*DIP_O(in_d,iv)
                enddo
              else
+               ! This part needs to be fixed
                do in_d=first_el(i_grp)+Dip%ib(1)-1,first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1)-1
+                 DIP_D(1)=DIP_S(ic,in_d)-DIP_O(ic,in_d)
+                 DIP_D(2)=DIP_S(iv,in_d)-DIP_O(iv,in_d)
                  DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(ir,ic,iv,ik_mem,i_sp_pol) &
-                 &      +(DIP_tmp(ic,in_d)*DIP_rotate(in_d,iv)-conjg(DIP_rotate(in_d,ic)*DIP_tmp(iv,in_d)))/2._SP
+                 &      +(DIP_D(1)*DIP_O(in_d,iv)-conjg(DIP_O(in_d,ic)*DIP_D(2)))/2._SP
                enddo
              endif
              !
@@ -296,7 +299,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
                ! To check if something on the line below here can give that
                !if (abs(Ev_m_Ec_KS)<=Dip%Energy_threshold) then
                !  DIP_v(ir,ic,iv,ik_mem,i_sp_pol)=DIP_v(ir,ic,iv,ik_mem,i_sp_pol)+&
-               !  &    (E_shift(iq)%E(ic,ik,i_sp_pol)-Xen%E(iv,ik,i_sp_pol))/q0_shift_norm*abs(DIP_rotate(ic,iv))**2
+               !  &    (E_shift(iq)%E(ic,ik,i_sp_pol)-Xen%E(iv,ik,i_sp_pol))/q0_shift_norm*abs(DIP_O(ic,iv))**2
                !endif
              endif
              !
