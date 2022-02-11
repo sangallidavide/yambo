@@ -48,6 +48,7 @@ module YPP_real_time
  logical  :: l_NL_X
  logical  :: l_NL_exc
  logical  :: l_RT_abs
+ logical  :: l_RT_ARPES
  !
  ! RT post-processing (kind)
  !
