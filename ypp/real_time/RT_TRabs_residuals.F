@@ -57,7 +57,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
 &                     i_cv_p,i_v_p,i_c_p,i_kbz_p,i_spin_p,i_exc,i_exc_p,i_dip
  character(6)      :: DIP_kind
  character(schlen) :: fileroot,filename(3,3),headers(6)
- logical           :: l_gold_modes
+ logical           :: l_gold_modes,l_skip_intra
  real(SP)          :: E_eh,values(6),fac
  complex(SP)       :: DIP_f,DIP_rot(3),f_eh(2),DIP_dot,DIP_NN(3),dip_tmp(5,3)
  !
@@ -140,6 +140,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    call RT_TRabs_rotate_exciton(N_dirs,DIP_dir,DIP_kind,DIP_f,Xen,Xk)
    !
    call parser("TRabsGoldModes",l_gold_modes)
+   call parser("TRabsNoIntra",  l_skip_intra)
    !
    i_l_ref=EXCITONS_user_indexes(1)
    !
@@ -231,7 +232,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (i_v    /=i_v_p   ) cycle
          !
          E_eh=Xen%E(i_c,i_kibz,i_spin)-Xen%E(i_c_p,i_kibz,i_spin)
-         !if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+         if (abs(E_eh) < TRabs_Eeh_treshold .and. l_skip_intra) cycle
          if (abs(E_eh) <  TRabs_Eeh_treshold ) i_dip=3
          if (abs(E_eh) >= TRabs_Eeh_treshold ) i_dip=1
          !
@@ -258,7 +259,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (i_c    /=i_c_p   ) cycle
          !
          E_eh=Xen%E(i_v,i_kibz,i_spin)-Xen%E(i_v_p,i_kibz,i_spin)
-         !if (abs(E_eh) < TRabs_Eeh_treshold .and. trim(global_gauge)=="length") cycle
+         if (abs(E_eh) < TRabs_Eeh_treshold .and. l_skip_intra) cycle
          if (abs(E_eh) <  TRabs_Eeh_treshold ) i_dip=3
          if (abs(E_eh) >= TRabs_Eeh_treshold ) i_dip=2
          !
