@@ -128,6 +128,7 @@ subroutine INIT_ypp_load(defs)
  call it('r',defs,'Select_Fermi', '[R] NEQ DBs according to Fermi distribution')
  !
  call it('r',defs,'RTabs',        '[R] Transient absorption')
+ call it('r',defs,'RTARPES',      '[R] Transient ARPES')
  call it('r',defs,'RToccupations','[R] Analize time-dependent occupations')
  call it('r',defs,'RTlifetimes',  '[R] Analize time-dependent lifetimes')
  call it('r',defs,'RTdeltaRho',   '[R] Analize the density')

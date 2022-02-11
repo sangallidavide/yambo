@@ -23,16 +23,39 @@
 !
 subroutine RT_G_two_times_driver(en,kpt,qpt)
  !
+ use pars,           ONLY:SP
  use R_lattice,      ONLY:bz_samp
  use electrons,      ONLY:levels
+ use YPP_real_time,  ONLY:GreenF_T_and_W,RT_conf
+ use RT_control,     ONLY:RTibz_to_RT_k
+ use real_time,      ONLY:RT_nk
  !
- implicit none
+#include<memory.h>
  !
  type(levels)  :: en
  type(bz_samp) :: kpt,qpt
  !
+ ! Workspace
+ !
+ type(bz_samp) :: RT_k
+ real(SP) :: G_w_t_real(RT_conf%W_n_steps,RT_nk,2)
+ !real(SP),pointer, contiguous :: G_w_t_pt(:,:,:) => null()
+ !
  call RT_G_two_times_build(en,kpt,qpt)
  !
- call RT_G_two_times_interp_and_plot(en,kpt,qpt)
+ !!GF_size=(/2,size(GreenF_T_and_W%F_W,1),size(GreenF_T_and_W%F_W,2)/)
+ !GF_size=(/2,RT_conf%W_n_steps,RT_nk/)
+ !G_w_t_pt => linkC2R(GreenF_T_and_W%F_W,isize_loc)
+ !
+ G_w_t_real(:,:,1)=real(      GreenF_T_and_W%F_W, SP)
+ G_w_t_real(:,:,2)=real(aimag(GreenF_T_and_W%F_W),SP)
+ !
+ YAMBO_FREE(GreenF_T_and_W%F_W)
+ !
+ call RTibz_to_RT_k(RT_k)
+ !
+ call k_ibz2bz(RT_k,'iku',.TRUE.)
+ !
+ call RT_G_two_times_interp_and_plot(en,RT_k,RT_nk,G_w_t_real)
  !
 end subroutine RT_G_two_times_driver

@@ -35,7 +35,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use YPP_ELPH,      ONLY:l_eliashberg,l_gkkp,l_ph_ass_dos
 #endif
 #if defined _YPP_RT
- use YPP_real_time, ONLY:l_RT_abs
+ use YPP_real_time, ONLY:l_RT_abs,l_RT_ARPES
 #endif
  !
 #include<memory.h>
@@ -55,7 +55,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  l_flag=l_flag .or. l_eliashberg .or. l_gkkp .or. l_ph_ass_dos
 #endif
 #if defined _YPP_RT
- l_flag=l_flag .or. l_RT_abs
+ l_flag=l_flag .or. l_RT_abs .or. l_RT_ARPES
 #endif
  !
  if(.not.l_flag) return
@@ -72,7 +72,8 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  if (io_err/=0) then
    call warning("BSE databases not found.")
 #if defined _YPP_RT
-   if (l_RT_abs) call RT_transient_absorption(Xen,Xk,q)
+   ! IP Transient absorption 
+   if (l_RT_abs)   call RT_transient_absorption(Xen,Xk,q)
 #endif
    return
  endif
@@ -136,6 +137,10 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  ! Transient absorption 
  !======================
  if (l_RT_abs)     call RT_transient_absorption(Xen,Xk,q)
+ !
+ ! Transient ARPES 
+ !======================
+ if (l_RT_ARPES) call RT_transient_ARPES(Xen,Xk,q)
  !
 #endif
  !

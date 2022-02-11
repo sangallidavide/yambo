@@ -395,7 +395,39 @@ module R_lattice
      endif
      !
    end subroutine bz_samp_duplicate
+   !
+   subroutine bz_samp_duplicate_nosymm(BZi, BZo)
+     type(bz_samp), intent(in)    :: BZi
+     type(bz_samp), intent(inout) :: BZo
+     integer :: ik
      !
+     BZo%nibz  = BZi%nbz
+     BZo%nbz   = BZi%nbz
+     BZo%units = BZi%units
+     BZo%description = BZi%description
+     !
+     YAMBO_ALLOC(BZo%pt,(BZo%nibz,3))
+     BZo%pt(:,:) = BZi%ptbz(:,:)
+     !
+     YAMBO_ALLOC(BZo%nstar,(BZo%nibz))
+     BZo%nstar=1
+     !
+     YAMBO_ALLOC(BZo%weights,(BZo%nibz))
+     BZo%weights=1._SP
+     !
+     YAMBO_ALLOC(BZo%star,(BZo%nibz,1))
+     BZo%star=1
+     !
+     YAMBO_ALLOC(BZo%sstar,(BZo%nbz,2))
+     do ik=1,BZo%nbz
+       BZo%sstar(ik,1)=ik
+       BZo%sstar(ik,2)=1
+     enddo
+     !
+     YAMBO_ALLOC(BZo%ptbz,(BZo%nbz,3))
+     BZo%ptbz=BZi%ptbz
+   end subroutine bz_samp_duplicate_nosymm
+   !
    subroutine bz_samp_duplicate_Fg(FGi,FGo,N_coarse)
      type(bz_fine_grid), intent(in)  ::FGi
      type(bz_fine_grid), intent(out) ::FGo
