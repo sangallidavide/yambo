@@ -26,7 +26,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  use pars,            ONLY:SP,cONE,cI,cZERO,schlen
  use units,           ONLY:HA2EV
  use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm
- use D_lattice,       ONLY:lattice
+ use D_lattice,       ONLY:lattice,nsym
  use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat               !,BSS_n_eig
  use YPPm,            ONLY:BS_E,DIPs,EXCITONS_user_indexes   !,EXCITONS_n_user_states
@@ -146,6 +146,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  do i_w=1,RT_conf%W_n_steps
    odata=(/real(GreenF_T_and_W%W(i_w),SP)*HA2EV,real(-cI*PES(i_w),SP),real(PES(i_w),SP)/)
+   call msg('o '//trim(file_name),'',odata,INDENT=-2,USE_TABS=.true.)
  enddo
  !
  call of_open_close(trim(file_name))
@@ -172,17 +173,13 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  INTERPOLATE_use_symm=.false.
  !
- call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/1,NV/),k_nosymm,SEED_R3=ARPES_int)
+ call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
  call INTERPOLATION_driver_do("ARPES",ID_ARPES_int,CIRCUIT_k)
  !
  YAMBO_FREE(ARPES_int)
  !
- write(*,*) ID_bands,ID_ARPES_int
- write(*,*) size(INTERP_obj)
- !
  ID_ARPES=3
  YAMBO_ALLOC(INTERP_obj(ID_ARPES)%INTERP,(RT_conf%W_n_steps,CIRCUIT_K%nbz,2))
- !
  INTERP_obj(ID_ARPES)%INTERP=0._SP
  !
  do i_l=i_l_ref,i_l_ref
@@ -192,16 +189,16 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    do i_kibz=1,CIRCUIT_K%nbz
      do i_v=BS_bands(1),Xen%nbf(1)
        !
-       Ev=INTERP_obj(ID_bands)%SEED(i_v,i_kibz,1)
+       Ev=INTERP_obj(ID_bands)%INTERP(i_v,i_kibz,1)
        !
        do i_w=1,RT_conf%W_n_steps
          F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Ev+BS_E(i_l)),"r")
        enddo
        !
-       F_tmp=F_tmp*INTERP_obj(ID_ARPES_int)%INTERP(i_v,i_kbz,i_l)*N_l
+       F_tmp=F_tmp*INTERP_obj(ID_ARPES_int)%INTERP(i_v,i_kibz,i_l)*N_l
        !
-       INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,1)+aimag(F_tmp)
-       INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,2)+ real(F_tmp,SP)
+       INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)+aimag(F_tmp)
+       INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)+ real(F_tmp,SP)
        !
      enddo
    enddo
