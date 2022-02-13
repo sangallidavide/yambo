@@ -145,7 +145,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  call msg('o '//trim(file_name),"#",headings,INDENT=0,USE_TABS=.true.)
  !
  do i_w=1,RT_conf%W_n_steps
-   odata=(/real(GreenF_T_and_W%W(i_w),SP)*HA2EV,real(-cI*PES(i_w),SP),real(PES(i_w),SP)/)
+   odata=(/real(GreenF_T_and_W%W(i_w),SP)*HA2EV,real(cI*PES(i_w),SP),real(PES(i_w),SP)/)
    call msg('o '//trim(file_name),'',odata,INDENT=-2,USE_TABS=.true.)
  enddo
  !
@@ -197,7 +197,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
        !
        F_tmp=F_tmp*INTERP_obj(ID_ARPES_int)%INTERP(i_v,i_kibz,i_l)*N_l
        !
-       INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)+aimag(F_tmp)
+       INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)-aimag(F_tmp)
        INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)+ real(F_tmp,SP)
        !
      enddo
