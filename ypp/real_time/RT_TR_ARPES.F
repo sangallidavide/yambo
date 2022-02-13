@@ -26,15 +26,19 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  use pars,            ONLY:SP,cONE,cI,cZERO,schlen
  use units,           ONLY:HA2EV
  use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm
+ use D_lattice,       ONLY:lattice
  use BS,              ONLY:BS_K_dim,BS_bands
- use BS_solvers,      ONLY:BSS_eh_table,BS_mat !,BSS_n_eig
- use YPPm,            ONLY:BS_E,DIPs,EXCITONS_user_indexes !,EXCITONS_n_user_states
+ use BS_solvers,      ONLY:BSS_eh_table,BS_mat               !,BSS_n_eig
+ use YPPm,            ONLY:BS_E,DIPs,EXCITONS_user_indexes   !,EXCITONS_n_user_states
+ use YPPm,            ONLY:BANDS_path,BANDS_steps,CIRCUIT_k  !,USER_k
+ use YPP_interfaces,  ONLY:k_special
  use YPP_real_time,   ONLY:RT_conf,GreenF_T_and_W
  use parallel_m,      ONLY:PAR_IND_DIPk_ibz,PAR_IND_VAL_BANDS_DIP,PAR_IND_CON_BANDS_DIP
  use parallel_int,    ONLY:PP_redux_wait,PARALLEL_global_indexes
- use electrons,       ONLY:levels,spin
+ use electrons,       ONLY:levels,spin,n_sp_pol
  use com,             ONLY:msg,of_open_close
- use interpolate,     ONLY:INTERPOLATE_use_symm
+ use interpolate,     ONLY:INTERPOLATE_use_symm,INTERP_obj, &
+ &                         INTERPOLATION_driver_seed,INTERPOLATION_driver_do
  !
 #include<memory.h>
  !
@@ -42,9 +46,11 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  type(bz_samp), intent(inout) :: Xk,Xq
  !
  type(bz_samp)         :: k_nosymm
- integer               :: i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_sp_pol,i_w,io_err
- real(SP)              :: F_w_real(RT_conf%W_n_steps,Xk%nbz,2),dw
- complex(SP)           :: F_tmp(RT_conf%W_n_steps)
+ integer               :: i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_sp_pol,i_w,i_l_v, &
+ &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV
+ real(SP)              :: dw,Ev,N_l
+ complex(SP)           :: F_tmp(RT_conf%W_n_steps),PES(RT_conf%W_n_steps)
+ real(SP),allocatable  :: ARPES_int(:,:,:)
  !
  character(schlen)     :: headings(3),file_name
  real(SP)              :: odata(3)
@@ -80,7 +86,6 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !============
  call RT_TRabs_rotate_exciton("DIP_iR",cONE,Xen,Xk)
  !
- i_l_ref=EXCITONS_user_indexes(1)
  !
  ! Set the kpts
  !============
@@ -88,55 +93,130 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  call k_ibz2bz(Xk,'i',.true.)
  !
  call bz_samp_duplicate_nosymm(Xk,k_nosymm)
- ! 
- F_w_real=cZERO
  !
- do i_cvk = 1,BS_K_dim(1)
-   !
-   i_kbz    = BSS_eh_table(i_cvk,1)
-   i_v      = BSS_eh_table(i_cvk,2)
-   i_c      = BSS_eh_table(i_cvk,3)
-   i_sp_pol = spin(BSS_eh_table(i_cvk,:))
-   !
-   i_kibz   = Xk%sstar(i_kbz,1)
-   !
-   if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
-   if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
-   if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
-   !
-   do i_w=1,RT_conf%W_n_steps
-     F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kibz,i_sp_pol)+BS_E(i_l_ref)),"r")
+ i_l_ref=EXCITONS_user_indexes(1)
+ NV=Xen%nbf(1)-BS_bands(1)+1
+ !
+ YAMBO_ALLOC(ARPES_int,(BS_bands(1):Xen%nbf(1),Xk%nbz,i_l_ref:i_l_ref))   ! last dimension is for number of excitons
+ ! 
+ PES=cZERO
+ ARPES_int       =cZERO
+ !
+ do i_l=i_l_ref,i_l_ref
+   N_l=1._SP
+   do i_cvk = 1,BS_K_dim(1)
+     !
+     i_kbz    = BSS_eh_table(i_cvk,1)
+     i_v      = BSS_eh_table(i_cvk,2)
+     i_c      = BSS_eh_table(i_cvk,3)
+     i_sp_pol = spin(BSS_eh_table(i_cvk,:))
+     !
+     i_kibz   = Xk%sstar(i_kbz,1)
+     !
+     if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
+     if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+     if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+     !
+     ! Quantity to be interpolated
+     !
+     ARPES_int(i_v,i_kbz,i_l)=ARPES_int(i_v,i_kbz,i_l)+abs(BS_mat(i_cvk,i_l))**2
+     !
+     ! Constract the PES integrating over k
+     !
+     do i_w=1,RT_conf%W_n_steps
+       F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kibz,i_sp_pol)+BS_E(i_l)),"r")
+     enddo
+     !
+     F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_l
+     !
+     PES(:)=PES(:)+F_tmp(:)
+     !
    enddo
-   !
-   F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l_ref))**2
-   !
-   F_w_real(:,i_kbz,1)=F_w_real(:,i_kbz,1)+ real(F_tmp(:),SP)
-   F_w_real(:,i_kbz,2)=F_w_real(:,i_kbz,2)+aimag(F_tmp(:))
-   !
  enddo
  !
- call PP_redux_wait(F_w_real)
+ call PP_redux_wait(PES)
+ call PP_redux_wait(ARPES_int)
  !
- ! Print G(w) integrated over k
+ ! Print the integrated PES
  !
  file_name="G_w_integrated"
  call of_open_close(trim(file_name),'ot')
  headings=(/" E[eV]  ","Im[G(w)]","Re[G(w)]"/)
  call msg('o '//trim(file_name),"#",headings,INDENT=0,USE_TABS=.true.)
  !
- F_tmp=cZERO
- do i_kbz=1,k_nosymm%nibz
-   F_tmp(:)=F_tmp(:)+cmplx(F_w_real(:,i_kbz,1),F_w_real(:,i_kbz,2),kind=SP) 
- enddo
- !
  do i_w=1,RT_conf%W_n_steps
-   odata=(/real(GreenF_T_and_W%W(i_w),SP)*HA2EV,real(-cI*F_tmp(i_w),SP),real(F_tmp(i_w),SP)/)
-   call msg('o '//trim(file_name),'',odata,INDENT=-2,USE_TABS=.true.)
+   odata=(/real(GreenF_T_and_W%W(i_w),SP)*HA2EV,real(-cI*PES(i_w),SP),real(PES(i_w),SP)/)
  enddo
  !
  call of_open_close(trim(file_name))
  !
+ call section('=',"Loading special Points for the "//trim(lattice)//" lattice")
+ !============================================================================= 
+ !
+ call k_special()
+ !
+ call k_circuit_driver( BANDS_path, BANDS_steps )
+ !
+ call section('=','Interpolation@work: Circuit')
+ !============================================================================= 
+ !
+ ! First energies
+ !
+ call INTERPOLATION_driver_seed("E_K_PATH",ID_bands,BS_bands,Xk,SEED_E=Xen,NEAREST=.false.)
+ call INTERPOLATION_driver_do("E_K_PATH",ID_bands,CIRCUIT_k)
+ !
+ call plot_interpolated_values &
+ &   (Xk,Xen,0._SP,CIRCUIT_k,ID_bands,BS_bands,1,n_sp_pol,"interpolated","bands",0)
+ !
+ ! Then ARPES intensities
+ !
  INTERPOLATE_use_symm=.false.
- call RT_G_two_times_interp_and_plot(Xen,k_nosymm,k_nosymm%nibz,F_w_real)
+ !
+ call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/1,NV/),k_nosymm,SEED_R3=ARPES_int)
+ call INTERPOLATION_driver_do("ARPES",ID_ARPES_int,CIRCUIT_k)
+ !
+ YAMBO_FREE(ARPES_int)
+ !
+ write(*,*) ID_bands,ID_ARPES_int
+ write(*,*) size(INTERP_obj)
+ !
+ ID_ARPES=3
+ YAMBO_ALLOC(INTERP_obj(ID_ARPES)%INTERP,(RT_conf%W_n_steps,CIRCUIT_K%nbz,2))
+ !
+ INTERP_obj(ID_ARPES)%INTERP=0._SP
+ !
+ do i_l=i_l_ref,i_l_ref
+   !
+   N_l=1._SP
+   !
+   do i_kibz=1,CIRCUIT_K%nbz
+     do i_v=BS_bands(1),Xen%nbf(1)
+       !
+       Ev=INTERP_obj(ID_bands)%SEED(i_v,i_kibz,1)
+       !
+       do i_w=1,RT_conf%W_n_steps
+         F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Ev+BS_E(i_l)),"r")
+       enddo
+       !
+       F_tmp=F_tmp*INTERP_obj(ID_ARPES_int)%INTERP(i_v,i_kbz,i_l)*N_l
+       !
+       INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,1)+aimag(F_tmp)
+       INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kbz,2)+ real(F_tmp,SP)
+       !
+     enddo
+   enddo
+   !
+ enddo
+ 
+ !
+ call section('=','Plotting')
+ !============================================================================= 
+ !
+ if(CIRCUIT_k%nbz>0) call plot_interpolated_values(Xk,Xen,0._SP,CIRCUIT_k,&
+ &                                                  (/ID_ARPES/),(/1,RT_conf%W_n_steps/),1,(/2/),"interpolated","G_k_w",0)
+ !if(   USER_k%nbz>0) call plot_interpolated_values(Xk,Xen,0._SP,USER_k,   &
+ !&                                                  (/ID_ARPES/),(/1,NBW/),1,(/2/),"built_in",    "G_k_w",0)
+ !
+ call INTERPOLATION_driver_end(0)
  !
 end subroutine RT_transient_ARPES

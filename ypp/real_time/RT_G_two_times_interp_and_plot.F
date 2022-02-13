@@ -26,7 +26,7 @@ subroutine RT_G_two_times_interp_and_plot(en,kpt,NK,F_w_real)
  use pars,           ONLY:SP
  use YPP_interfaces, ONLY:k_special
  use YPPm,           ONLY:BANDS_path,BANDS_steps,CIRCUIT_k,USER_k
- use YPP_real_time,  ONLY:RT_conf,l_RT_G_two_times,l_RT_ARPES
+ use YPP_real_time,  ONLY:RT_conf,l_RT_G_two_times
  use electrons,      ONLY:levels
  use R_lattice,      ONLY:bz_samp
  use D_lattice,      ONLY:lattice
@@ -43,7 +43,7 @@ subroutine RT_G_two_times_interp_and_plot(en,kpt,NK,F_w_real)
  !
  integer  :: ID_RT
  !
- if (.not.(l_RT_G_two_times.or.l_RT_ARPES)) return
+ if (l_RT_G_two_times) return
  !
  call section('=',"Loading special Points for the "//trim(lattice)//" lattice")
  !============================================================================= 
