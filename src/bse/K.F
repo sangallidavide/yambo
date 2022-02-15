@@ -275,8 +275,8 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
      call msg('s','[BSE] Fxc components ',BS_n_g_fxc)
    endif
    YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
-   if(l_BS_magnons.and.n_spinor==2) then
-     ! In principle here there is a factor 4 between thei energy cutoff on the potential and the one of the kernel
+   if(n_spinor==2) then
+     ! In principle here there is a factor 4 between the energy cutoff on the potential and the one of the kernel
      ! The following line, or something similar, should be used here and before
      !QP_nG=G_index_energy_factor(BS_n_g_fxc,0.25_SP)
      ! However in practice the one on the kernel is never set 4 the potential, i.e. 16 times the one onf the WFs

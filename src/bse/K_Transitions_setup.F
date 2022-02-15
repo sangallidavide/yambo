@@ -59,7 +59,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  use DIPOLES,      ONLY:DIPOLE_t
  use parallel_m,   ONLY:PAR_IND_WF_b_and_k,PAR_IND_T_ordered,PAR_IND_T_groups,&
 &                       PAR_IND_T_Haydock,PP_indexes_reset
- use electrons,    ONLY:levels,n_sp_pol,n_full_bands,n_met_bands,i_sp_pol_majority,i_sp_pol_minority
+ use electrons,    ONLY:levels,n_sp_pol,n_full_bands,n_met_bands,i_spin_majority,i_spin_minority
  use com,          ONLY:msg
  use R_lattice,    ONLY:qindx_X,bz_samp
  use BS,           ONLY:l_BS_magnons,l_BS_photolum
@@ -155,8 +155,8 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
              i_sp_v=i_sp_c
              !
              if (l_BS_magnons.and.n_sp_pol==2) then
-               if(i_res_ares==1.and.i_sp_c==i_sp_pol_majority) cycle
-               if(i_res_ares==2.and.i_sp_c==i_sp_pol_minority) cycle
+               if(i_res_ares==1.and.i_sp_c==i_spin_majority) cycle
+               if(i_res_ares==2.and.i_sp_c==i_spin_minority) cycle
                i_sp_v=mod(i_sp_c,n_sp_pol)+1
              endif
              !

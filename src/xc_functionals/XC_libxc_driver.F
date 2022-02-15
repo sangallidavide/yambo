@@ -32,15 +32,13 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  use pars,           ONLY:SP,DP,IPL,pi,pi_DP,RZERO
  use R_lattice,      ONLY:bz_samp
  use D_lattice,      ONLY:DL_vol,alat
- use drivers,        ONLY:l_sc_run,l_real_time,l_nl_optics
+ use drivers,        ONLY:l_sc_run,l_real_time,l_nl_optics,l_bse
 #if defined _SC || defined _RT
  use hamiltonian,    ONLY:rho_n,magn_n
 #endif
  use electrons,      ONLY:levels,n_spin,n_spinor
  use FFT_m,          ONLY:fft_size
  use wrapper,        ONLY:V_dot_V
- use BS,             ONLY:l_BS_magnons
- use X_m,            ONLY:l_X_magn
  use xc_functionals, ONLY:E_xc,E_xc_val,magn,F_xc,V_xc,xc_setup_hyb,&
 &                         XC_LDA_C_KP,xc_fnctl_t,xc_setup_fnctl,xc_f03_func_end, &
 &                         xc_spin,xc_spin_map1, &
@@ -266,7 +264,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
          call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), v1rho(1,1))
          forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
        case(2)
-         if(l_BS_magnons.or.l_X_magn) then
+         if( l_bse ) then
            call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), v1rho(1,1))
            ! Needed to build F_xc_mat
            if(n_spinor==2) forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
@@ -294,7 +292,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
          call XC_eval_gga_potential(v1rho,v1sigma,drho)
        case(2)
          if (FUNCTIONAL==XC_HYB_GGA_XC_GAUPBE*XC_FACTOR) call error(' Fxc not coded for GAU-PBEP')
-         if( l_BS_magnons.or.l_X_magn) then
+         if( l_bse ) then
            call xc_f03_gga_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), sigma(1,1), v1rho(1,1), v1sigma(1,1))
            ! Yambo internal for V_xc, needed to build F_xc_mat
            if(n_spinor==2) call XC_eval_gga_potential(v1rho,v1sigma,drho)

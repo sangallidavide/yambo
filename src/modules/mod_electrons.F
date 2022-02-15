@@ -52,8 +52,8 @@ module electrons
  integer  :: n_spin_den
  logical  :: l_spin_orbit
  !
- integer  :: i_sp_pol_majority
- integer  :: i_sp_pol_minority
+ integer  :: i_spin_majority
+ integer  :: i_spin_minority
  !
  ! Average magnetization density
  !
@@ -282,12 +282,12 @@ module electrons
      !
      nb_ref=maxval(E%nbm)
      !
-     i_sp_pol_majority=1
-     i_sp_pol_minority=1
+     i_spin_majority=1
+     i_spin_minority=n_spin
      if(n_sp_pol==2) then
-       if(E%E(nb_ref,1,1)<=E%E(nb_ref,1,2)) i_sp_pol_majority=1
-       if(E%E(nb_ref,1,1)> E%E(nb_ref,1,2)) i_sp_pol_majority=2
-       i_sp_pol_minority=mod(i_sp_pol_majority,n_sp_pol)+1
+       if(E%E(nb_ref,1,1)<=E%E(nb_ref,1,2)) i_spin_majority=1
+       if(E%E(nb_ref,1,1)> E%E(nb_ref,1,2)) i_spin_majority=2
+       i_spin_minority=mod(i_spin_majority,n_sp_pol)+1
      endif
      !
    end subroutine

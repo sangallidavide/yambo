@@ -72,7 +72,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  call WF_apply_symm(is,WF_symm1) 
  call WF_apply_symm(os,WF_symm2)
  !
- ! This takes into account the different conventions between the definition of the spin indexes
+ ! This takes into account the different conventions in the definition of the spin indexes
  ! between yambo and the derivation of fxc in spin space for magnons
  ! This happens because in the yambo convention the left indexes "v sigma_v, c sigma_c, k" are inverted
  ! with respect to the standard convention, i.e. "c sigma_c, v sigma_v, k"
