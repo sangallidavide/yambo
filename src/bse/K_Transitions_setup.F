@@ -49,10 +49,11 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  use pars,         ONLY:SP
  use stderr,       ONLY:intc
  use com,          ONLY:isec
+ use parser_m,     ONLY:parser
  use BS_solvers,   ONLY:BSS_mode
  ! mode ="T"
  use BS,           ONLY:T_group,BS_bands,BS_T_grp,BS_nT_grps,BS_n_eh_spaces,&
-&                       BS_Blocks_and_Transitions_alloc,BS_perturbative_SOC
+&                       BS_Blocks_and_Transitions_alloc,BS_perturbative_SOC,BS_core_bands
  ! mode ="K"
  use BS,           ONLY:BS_K_dim,BS_H_dim,BS_nT_at_k,BS_K_coupling,  &
 &                       l_BS_ares_from_res,BS_n_eh_spaces,BS_res_ares_n_mat
@@ -80,7 +81,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  !
  character(1) :: sec
  real(SP)     :: E_eh,E_eh_SOC_corr(2/n_sp_pol),f_eh,f_eh_RES,f_eh_PL
- logical      :: l_trans_in_group,l_grp_to_grp
+ logical      :: l_trans_in_group,l_grp_to_grp,l_core_only
  integer      :: ikbz,ikpbz,iv,ic,ik,ikp,i_sp_v,i_sp_c,i_star,ib1,ib2,isp1,isp2,  &
 &                i_T_now,i_T_group_now,i_T_group_last,i_T_group_start,i_g,n_loops,i_loop,i_T_in_the_grp,i_res_ares,&
 &                BS_nT_at_k_tmp(Xk%nibz*2),V_bands(2),C_bands(2)
@@ -114,6 +115,13 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  !
  V_bands=(/BS_bands(1),maxval(Ken%nbm)/)
  C_bands=(/minval(Ken%nbf)+1,BS_bands(2)/)
+ !
+ call parser('BSECoreBands', l_core_only)
+ if (l_core_only) then
+   if (BS_core_bands(1)<V_bands(1) .or. BS_core_bands(2)>V_bands(2)) call error(" BSECoreBands range must fit in BSEbands range")
+   V_bands=(/BS_core_bands(1),BS_core_bands(2)/)
+ endif
+ !
 #if defined _RT
  ! Bands range. In the _RT case %nbf and %nbm turn metallic when carriers are used.
  if (l_rt_carriers_in_use.and.EQ_Transitions) then
