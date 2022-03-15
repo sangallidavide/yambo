@@ -53,6 +53,7 @@ module BS
  !
  ! Kind of response function
  !===========================
+ logical :: l_BS_core_hole
  logical :: l_BS_jdos
  logical :: l_BS_trace
  logical :: l_BS_abs
