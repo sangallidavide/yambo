@@ -63,7 +63,10 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
 #endif
  use X_m,            ONLY:Chi_prop,l_X_magn
  use BS,             ONLY:BSE_prop,l_BS_magnons,l_BS_dichroism,l_BS_photolum
-
+#if defined _SLEPC && !defined _NL
+ use BS_solvers,     ONLY:BSS_mode
+#endif
+ !
  use timing_m,       ONLY:timing
  !
  implicit none
@@ -93,6 +96,9 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  l_BS_dichroism= (index(BSE_prop,'dich')/=0)
  l_BS_photolum= (index(BSE_prop,'photolum')/=0)
  if (l_BS_dichroism.or.l_BS_magnons.or.l_X_magn) Dip%bands_ordered=.false.
+#if defined _SLEPC && !defined _NL
+ if ( index(BSS_mode,'s')/=0 )  Dip%bands_ordered=.false.
+#endif
  !
 #if defined _NL
  if (l_nl_optics) then
