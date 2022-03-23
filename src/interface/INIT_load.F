@@ -294,8 +294,10 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'BSEmod',  '[BSE] resonant/retarded/coupling',BSE_mode,case="a")
  call it(defs,'Lkind',   '[BSE] Lbar (default) / full',L_kind,verb_level=V_resp)
  call it(defs,'BSEBands','[BSK] Bands range',BS_bands)
- call it(defs,'BSECoreBands','[BSK] Bands range for Core Hole. If set higher energy bands are ignored in the hole channel',&
-&                                                                                            BS_core_bands,verb_level=V_resp)
+ call it(defs,'BSEHoleBands','[BSK] Bands range for Hole. If set, other bands are ignored in the hole channel',&
+&                                                                                            BS_core_bands(1:2),verb_level=V_resp)
+ call it(defs,'BSEElecBands','[BSK] Bands range for Electrons. If set other bands are ignored in the electrons channel',&
+&                                                                                            BS_core_bands(3:4),verb_level=V_resp)
  call it(defs,'BSENGBlk','[BSK] Screened interaction block size [if -1 uses all the G-vectors of W(q,G,Gp)]',BS_n_g_W,G_unit)
  call it(defs,'BSENGexx','[BSK] Exchange components',BS_n_g_exch,G_unit)
  call it(defs,'BSENGfxc','[BSK] Fxc components', BS_n_g_fxc,G_unit,verb_level=V_resp)

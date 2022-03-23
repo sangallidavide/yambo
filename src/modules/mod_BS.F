@@ -53,7 +53,8 @@ module BS
  !
  ! Kind of response function
  !===========================
- logical :: l_BS_core_hole
+ logical :: l_BS_fix_holes
+ logical :: l_BS_fix_elecs
  logical :: l_BS_jdos
  logical :: l_BS_trace
  logical :: l_BS_abs
@@ -72,7 +73,7 @@ module BS
  integer :: BS_IO_dim(2,4)
  integer :: MAX_BSK_LIN_size
  integer :: BS_bands(2)
- integer :: BS_core_bands(2)
+ integer :: BS_core_bands(4)
  integer :: BS_q(2)
  integer :: BS_identifier
  integer(IPL) :: BS_lin_size_compressed

@@ -54,7 +54,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  ! mode ="T"
  use BS,           ONLY:T_group,BS_bands,BS_T_grp,BS_nT_grps,BS_n_eh_spaces,&
 &                       BS_Blocks_and_Transitions_alloc,BS_perturbative_SOC,&
-&                       BS_core_bands,l_BS_core_hole
+&                       BS_core_bands,l_BS_fix_holes,l_BS_fix_elecs
  ! mode ="K"
  use BS,           ONLY:BS_K_dim,BS_H_dim,BS_nT_at_k,BS_K_coupling,  &
 &                       l_BS_ares_from_res,BS_n_eh_spaces,BS_res_ares_n_mat
@@ -117,10 +117,18 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  V_bands=(/BS_bands(1),maxval(Ken%nbm)/)
  C_bands=(/minval(Ken%nbf)+1,BS_bands(2)/)
  !
- call parser('BSECoreBands', l_BS_core_hole)
- if (l_BS_core_hole) then
-   if (BS_core_bands(1)<V_bands(1) .or. BS_core_bands(2)>V_bands(2)) call error(" BSECoreBands range must fit in BSEbands range")
+ call parser('BSEHoleBands', l_BS_fix_holes)
+ call parser('BSEElecBands', l_BS_fix_elecs)
+ if (l_BS_fix_holes.and.all(BS_core_bands(1:2)/=0)) then
+   if (BS_core_bands(1)<V_bands(1) .or. BS_core_bands(2)>V_bands(2)) &
+   &  call error(" BSECoreBands range must fit in BSEbands range for holes")
    V_bands=(/BS_core_bands(1),BS_core_bands(2)/)
+ endif
+ !
+ if (l_BS_fix_elecs.and.all(BS_core_bands(3:4)/=0)) then
+   if (BS_core_bands(3)<C_bands(1) .or. BS_core_bands(4)>C_bands(2)) &
+   &  call error(" BSECoreBands range must fit in BSEbands range for elecs")
+   C_bands=(/BS_core_bands(3),BS_core_bands(4)/)
  endif
  !
 #if defined _RT
