@@ -136,6 +136,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
        !
        if(trim(global_gauge)=='length')   para_term_w0=para_term_w0+res_abs*EXC_E(i_pert_SOC)/bare_qpg(1,1)**2
        if(trim(global_gauge)=='velocity') para_term_w0=para_term_w0+res_abs/EXC_E(i_pert_SOC)
+       !
      endif
      !
      if(l_BS_kerr) then
@@ -235,6 +236,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
  !
  if(l_BS_abs) then
    if (trim(global_gauge)=='velocity') then
+     ! DS. Note. The sum rule imposition does not work if neq occupations are loaded. Not sure why.
      if (     skip_cond_sum_rule) diam_term_used=diam_term_exact
      if (.not.skip_cond_sum_rule) diam_term_used=para_term_w0
    endif
