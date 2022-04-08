@@ -65,8 +65,6 @@ subroutine K_diago_driver(iq,W,X_static)
  use BS_solvers,     ONLY:BSS_slepc_matrix,Slepc_v,BS_HAYVEC_free
 #endif
  use BS,             ONLY:l_BS_kerr,l_BS_magnons,l_BS_photolum
- use MAGNONS,        ONLY:BSS_MAGN_free
- use PHOTOLUM,       ONLY:BSS_PL_free
  !
 #include<memory.h>
  ! 
@@ -321,9 +319,6 @@ subroutine K_diago_driver(iq,W,X_static)
 #if defined _SLEPC && !defined _NL
  if(l_slepc) call K_slepc_local_free()
 #endif
- !
- call BSS_PL_free( )
- call BSS_MAGN_free( )
  !
  call timing(trim(Solver)//' Solver',OPR='stop')
  !

@@ -28,6 +28,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  use parser_m,     ONLY:parser
  use parallel_m,   ONLY:PARALLEL_default_mode
  use stderr,       ONLY:STRING_match
+ use X_m,          ONLY:global_gauge
  use BS_solvers,   ONLY:BSS_eels_to_eps,BSS_mode,BSS_slepc_matrix,BSS_uses_DbGd,&
 &                       BSS_slepc_double_grp
  use BS,           ONLY:L_kind,BSE_mode,BS_K_is_ALDA,BS_dip_size,l_BSE_minimize_memory,BS_perturbative_SOC,&
@@ -207,7 +208,10 @@ subroutine K_driver_init(what,iq,Ken,Xk)
    BS_dip_size=2
    l_BS_abs=.TRUE.
  endif
- if (l_BS_photolum) l_BS_trace  = .false.
+ if (l_BS_photolum) then
+   l_BS_trace  = .true.
+   global_gauge="velocity"
+ endif
  if (l_BS_trace   ) BS_dip_size = 3
  !
  l_BS_optics=l_BS_abs.or.l_BS_kerr.or.l_BS_dichroism.or.l_BS_photolum

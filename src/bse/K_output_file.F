@@ -88,7 +88,7 @@ subroutine K_output_file(iq,mode)
  l_magn_out =l_BS_magnons  .and.((.not.l_Haydock).or.index(mode,"magn")>0).and.(.not.l_Inversion)
  l_kerr_out =l_BS_kerr     .and.((.not.l_Haydock).or.index(mode,"kerr")>0)
  l_dich_out =l_BS_dichroism.and.((.not.l_Haydock).or.index(mode,"dich")>0).and.(.not.l_Inversion)
- l_phot_out =l_BS_photolum .and.l_Inversion
+ l_phot_out =l_BS_photolum .and.(l_Inversion.or.l_IP)
  !
  l_print_col4=l_Haydock.or.(l_Inversion.and..not.K_diago_in_BS_mat)
  !
@@ -416,8 +416,8 @@ subroutine K_output_file(iq,mode)
      !
      ! PL: 2 (int) 3 (non int) 
      !
-     if (     l_IP) n_output_data=2 ; output_data(1:2)=(/real(PL(iw,1))*HA2EV,PL(iw,3)/)
-     if (.not.l_IP) n_output_data=3 ; output_data(1:3)=(/real(PL(iw,1))*HA2EV,PL(iw,2),PL(iw,3)/)
+     if (     l_IP) then ; n_output_data=2 ; output_data(1:2)=(/PL(iw,1)*HA2EV,PL(iw,3)/) ; endif
+     if (.not.l_IP) then ; n_output_data=3 ; output_data(1:3)=(/PL(iw,1)*HA2EV,PL(iw,2),PL(iw,3)/) ; endif
      call msg("o pl_",'',output_data(:n_output_data),INDENT=-2,USE_TABS=.TRUE.)
      !
    enddo

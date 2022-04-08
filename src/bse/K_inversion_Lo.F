@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine K_inversion_Lo(iq,W,E,k,Lo_dim,Lo_n_loop,Lo) 
+subroutine K_inversion_Lo(iq,W,E,k,Lo_dim,Lo) 
  !
  use pars,           ONLY:SP,cZERO,cI,pi,rZERO,schlen
  use R_lattice,      ONLY:bz_samp,bare_qpg
@@ -49,7 +49,7 @@ subroutine K_inversion_Lo(iq,W,E,k,Lo_dim,Lo_n_loop,Lo)
  type(w_samp),  intent(inout) :: W
  type(levels),  intent(in)    :: E
  type(bz_samp), intent(in)    :: k
- integer,       intent(in)    :: iq,Lo_dim,Lo_n_loop
+ integer,       intent(in)    :: iq,Lo_dim
  complex(SP),   intent(out)   :: Lo(BS_H_dim,W%n_freqs,Lo_dim)
  !
  ! Work Space
@@ -172,7 +172,7 @@ subroutine K_inversion_Lo(iq,W,E,k,Lo_dim,Lo_n_loop,Lo)
            if (BS_K_anti_resonant) then
              call X_GreenF_analytical(iq,transition,W,E,k,SF(:,2),"Ra","eh",.TRUE.,.FALSE.)
            endif
-           Lo(i_Lo_trans,:,i_Lo+Lo_n_loop)=BSS_PL_f(i_res)/BSS_eh_f(i_res)**2*aimag(W%p(1))/pi
+           Lo(i_Lo_trans,:,i_Lo)=BSS_PL_f(i_res)/BSS_eh_f(i_res)**2*aimag(W%p(1))/pi
          endif
          !
        else 

@@ -45,7 +45,7 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
  !
  type(PP_indexes)     ::px
  integer              ::i_l,i_c,i_K,i_lr,i_ll
- complex(SP)          ::P_x_fZ(2,BS_H_dim,3),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
+ complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
 &                       R_over_R_x_A(2,BS_H_dim),B(BS_H_dim)
  !
  ! Parallel indexes
@@ -76,12 +76,12 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
    !
    do i_c=1,3
      do i_K=1,BS_K_dim(1)
-       P_x_fZ(1,i_K,i_c)=conjg(BSS_dipoles_PL(i_K,i_c))*sqrt(BSS_eh_f(i_K))
-       P_x_fZ(2,i_K,i_c)=      BSS_dipoles_PL(i_K,i_c) *sqrt(BSS_eh_f(i_K))
+       P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(BSS_eh_f(i_K))
+       P_x_fZ(i_K,i_c,2)=      BSS_dipoles_PL(i_c,i_K) *sqrt(BSS_eh_f(i_K))
      enddo
      do i_K=BS_K_dim(1)+1,BS_H_dim
-       P_x_fZ(1,i_K,i_c)=cI*conjg(BSS_dipoles_PL(i_K,i_c))*sqrt(BSS_eh_f(i_K-BS_K_dim(1)))
-       P_x_fZ(2,i_K,i_c)=cI*      BSS_dipoles_PL(i_K,i_c) *sqrt(BSS_eh_f(i_K-BS_K_dim(1)))
+       P_x_fZ(i_K,i_c,1)=cI*conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(BSS_eh_f(i_K-BS_K_dim(1)))
+       P_x_fZ(i_K,i_c,2)=cI*      BSS_dipoles_PL(i_c,i_K) *sqrt(BSS_eh_f(i_K-BS_K_dim(1)))
      enddo
    enddo
    !
@@ -108,11 +108,11 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
        !
        ! Pi_x_R_x_adA_left =   sqrt(R) Pi_i* A^lr_i
        !
-       Pi_x_R_x_adA_left(i_c) =V_dot_V_omp(BS_H_dim,P_x_fZ(1,:,i_c),BS_V_right(:,i_lr))
+       Pi_x_R_x_adA_left(i_c) =V_dot_V_omp(BS_H_dim,P_x_fZ(:,i_c,1),BS_V_right(:,i_lr))
        !
        ! Pi_x_R_x_adA_right=   A^lr*_i Pi_i sqrt(R)  
        !
-       Pi_x_R_x_adA_right(i_c)=Vstar_dot_V_omp(BS_H_dim,BS_V_right(:,i_lr),P_x_fZ(2,:,i_c))
+       Pi_x_R_x_adA_right(i_c)=Vstar_dot_V_omp(BS_H_dim,BS_V_right(:,i_lr),P_x_fZ(:,i_c,2))
        !
      enddo
      !
@@ -130,7 +130,7 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
    !====================
    !
    do i_c=1,3
-     P_x_fZ(1,:,i_c)=BSS_dipoles_PL(:,i_c)*sqrt(BSS_eh_f(:))
+     P_x_fZ(:,i_c,1)=BSS_dipoles_PL(i_c,:)*sqrt(BSS_eh_f(:))
    enddo
    !
    do i_l=1,BS_K_dim(1)
@@ -151,7 +151,7 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
        !                                   
        ! Pi_x_R_x_adA_right =   Pi sqrt(R)  A^l_i
        !
-       Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_K_dim(1),BS_V_right(:,i_l),P_x_fZ(1,:,i_c))
+       Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_K_dim(1),BS_V_right(:,i_l),P_x_fZ(:,i_c,1))
        !
      enddo
      !
