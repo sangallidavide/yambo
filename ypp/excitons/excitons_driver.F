@@ -35,7 +35,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use YPP_ELPH,      ONLY:l_eliashberg,l_gkkp,l_ph_ass_dos
 #endif
 #if defined _YPP_RT
- use YPP_real_time, ONLY:l_RT_abs,l_RT_ARPES
+ use YPP_real_time, ONLY:l_RT_abs
 #endif
  !
 #include<memory.h>
@@ -55,7 +55,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  l_flag=l_flag .or. l_eliashberg .or. l_gkkp .or. l_ph_ass_dos
 #endif
 #if defined _YPP_RT
- l_flag=l_flag .or. l_RT_abs .or. l_RT_ARPES
+ l_flag=l_flag .or. l_RT_abs
 #endif
  !
  if(.not.l_flag) return
@@ -144,6 +144,6 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  call excitons_read(k,Xk,en,Xen,BSiq,"clean",io_err)
  !
- deallocate(EXCITONS_user_indexes)
+ if(.not.l_sort) deallocate(EXCITONS_user_indexes)
  !
 end subroutine

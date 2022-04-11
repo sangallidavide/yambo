@@ -26,7 +26,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  use parser_m,        ONLY:parser
  use units,           ONLY:HA2EV
  use pars,            ONLY:SP,cONE,cI,cZERO,schlen
- use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm
+ use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm,qindx_X
  use D_lattice,       ONLY:lattice,nsym
  use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
@@ -49,7 +49,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  type(bz_samp)         :: k_nosymm
  logical               :: l_full_expansion,l_single_exciton,l_exciton_distribution
- integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
+ integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_kmq,i_kmq_bz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
  &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV,NK,q_range(2),l_range(2)
  real(SP)              :: dw,Ev,N_lq,min_exc_E
  complex(SP)           :: F_tmp(RT_conf%W_n_steps),PES(RT_conf%W_n_steps)
@@ -134,8 +134,6 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    i_l_ref=EXCITONS_user_indexes(1)
    deallocate(EXCITONS_user_indexes)
    !
-   call excitons_read(Xk,Xk,Xen,Xen,1,"clean",io_err)
-   !
    q_range = (/BSiq,BSiq/)
    l_range= (/i_l_ref,i_l_ref/)
    !
@@ -171,10 +169,12 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !do iq_bz=q_range(1),q_range(2)
  do iq=q_range(1),q_range(2)
    !
-   call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
-   if (io_err==0) then
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",io_err)
+   if (.not.l_single_exciton) then
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
+     if (io_err==0) then
+       call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
+       call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",io_err)
+     endif
    endif
    !
    do i_l=l_range(1),l_range(2)
@@ -200,6 +200,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      i_kibz   = Xk%sstar(i_kbz,1)
      i_ks     = Xk%sstar(i_kbz,2)
      !
+     i_kmq_bz=qindx_X(iq,i_kbz,1)
+     i_kmq   =Xk%sstar(i_kmq_bz,1) 
+     !
      if ( (.not.l_full_expansion) .and. i_ks>1 ) cycle
      if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
      if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
@@ -215,7 +218,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      ! Constract the PES integrating over k
      !
      do i_w=1,RT_conf%W_n_steps
-       F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kibz,i_sp_pol)+BS_E(i_l)),"r")
+       F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kmq,i_sp_pol)+BS_E(i_l)),"r")
      enddo
      !
      F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_lq
