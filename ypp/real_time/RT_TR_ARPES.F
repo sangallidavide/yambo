@@ -61,6 +61,13 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  complex(SP),external      ::Lorentzian_FT
  !
+ call excitons_read(Xk,Xk,Xen,Xen,1,"check",io_err)
+ if (io_err==0) then
+   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvalues",io_err)
+   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvectors",io_err)
+ endif
+ !
+ !
  ! Start with bands interpolation
  !
  call section('=',"Loading special Points for the "//trim(lattice)//" lattice")
@@ -111,12 +118,6 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  do i_w = 1, RT_conf%W_n_steps
    GreenF_T_and_W%W(i_w)=cmplx((i_w-1)*dw+RT_conf%X_W_range(1),RT_conf%damp_factor)
  enddo
- !
- call excitons_read(Xk,Xk,Xen,Xen,1,"check",io_err)
- if (io_err==0) then
-   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvalues",io_err)   
-   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvectors",io_err)   
- endif
  !
  if (l_single_exciton) then
    !
