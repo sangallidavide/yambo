@@ -92,9 +92,11 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
  call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=DIPs)
  !
- ! ... I/O
- call DIPOLE_IO(Xk,Xen,DIPs,'read',io_err,'DIP')
- if (io_err/=0) return
+ if (l_single_exciton) then
+   ! ... I/O
+   call DIPOLE_IO(Xk,Xen,DIPs,'read',io_err,'DIP')
+   if (io_err/=0) return
+ endif
  !
  ! Frequency setup
  !============
@@ -128,8 +130,10 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    call excitons_get_user_states(BS_E_degs)
    call RT_TRabs_rotate_exciton("DIP_iR",cONE,Xen,Xk)
    deallocate(BS_E_degs)
-   !
    i_l_ref=EXCITONS_user_indexes(1)
+   deallocate(EXCITONS_user_indexes)
+   !
+   call excitons_read(Xk,Xk,Xen,Xen,1,"clean",io_err)
    !
    q_range = (/BSiq,BSiq/)
    l_range= (/i_l_ref,i_l_ref/)
@@ -137,10 +141,13 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  else if (l_exciton_distribution) then
    !
    min_exc_E=minval(real(BS_E)) ! I suppose the BSE eigenvalues are real
+   call excitons_read(Xk,Xk,Xen,Xen,1,"clean",io_err)
+   !
    do iq=2,Xq%nibz
      call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
      call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
      min_exc_E=min(min_exc_E,minval(real(BS_E))) ! I suppose the BSE eigenvalues are real
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
    enddo
    !
    q_range = (/1,Xq%nibz/)
@@ -162,24 +169,26 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  !do iq_bz=q_range(1),q_range(2)
  do iq=q_range(1),q_range(2)
- do i_l=l_range(1),l_range(2)
    !
-   ARPES_int = cZERO
-   !
-   if (l_single_exciton)       N_lq=1._SP
-   if (l_exciton_distribution) N_lq=bose_f(real(BS_E(i_l))-min_exc_E)
-   !
-   !if (l_single_exciton)       iq=iq_bz
-   !if (l_exciton_distribution) iq=                  ! ********* To Fix ************
-   !
-   if (iq>q_range(1)) then
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
-     if (io_err==0) then
-       call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
-       call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",io_err)
-     endif
+   call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
+   if (io_err==0) then
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",io_err)
    endif
    !
+   do i_l=l_range(1),l_range(2)
+     !
+     ARPES_int = cZERO
+     !
+     if (l_single_exciton)       N_lq=1._SP
+     if (l_exciton_distribution) N_lq=bose_f(real(BS_E(i_l))-min_exc_E)
+     !
+     if (N_lq<1.E-3) cycle
+     !
+     !if (l_single_exciton)       iq=iq_bz
+     !if (l_exciton_distribution) iq=                  ! ********* To Fix ************
+     !
+     !
    do i_cvk = 1,BS_K_dim(1)
      !
      i_kbz    = BSS_eh_table(i_cvk,1)
@@ -207,7 +216,6 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      do i_w=1,RT_conf%W_n_steps
        F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kibz,i_sp_pol)+real(BS_E(i_l))),"r")
      enddo
-     write(*,*) i_v,i_kibz,i_l,Xen%E(i_v,i_kibz,i_sp_pol),BS_E(i_l)
      !
      F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_lq
      !
@@ -258,10 +266,13 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
        !
      enddo
    enddo
+     !
+     call INTERPOLATION_driver_end(ID_ARPES_int)
+     !
+   enddo
    !
-   call INTERPOLATION_driver_end(ID_ARPES_int)
+   call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
    !
- enddo
  enddo
  !
  YAMBO_FREE(ARPES_int)
@@ -306,12 +317,6 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !if(   USER_k%nbz>0) call plot_interpolated_values(Xk,Xen,0._SP,USER_k,   &
  !&                                                  (/ID_ARPES/),(/1,NBW/),1,(/2/),"built_in",    "G_k_w",0)
  !
- !
- ! CLEAN
- !
- call excitons_read(Xk,Xk,Xen,Xen,1,"clean",io_err)
- !
- deallocate(EXCITONS_user_indexes)
  !
  call INTERPOLATION_driver_end(0)
  !

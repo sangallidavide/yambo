@@ -68,7 +68,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
      io_err=io_E_SOC_map(en,k,io_ID)
    endif
    !
-   YAMBO_ALLOC(BSqpts,(3,iq))
+   YAMBO_ALLOC(BSqpts,(3,iq:iq))
    !
    ! X type. Also used in PARALLEL setup
    !
