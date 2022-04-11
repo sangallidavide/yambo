@@ -83,7 +83,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !===================================
  if (l_sort) call excitons_sort_and_report(iq,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
  !
- call parser("State",l_flag)
+ call parser("States",l_flag)
  !
  if (l_flag) then
    !
