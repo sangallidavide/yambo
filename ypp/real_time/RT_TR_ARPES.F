@@ -215,7 +215,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      ! Constract the PES integrating over k
      !
      do i_w=1,RT_conf%W_n_steps
-       F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kibz,i_sp_pol)+real(BS_E(i_l))),"r")
+       F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kibz,i_sp_pol)+BS_E(i_l)),"r")
      enddo
      !
      F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_lq
