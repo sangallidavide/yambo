@@ -138,10 +138,6 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !======================
  if (l_RT_abs)     call RT_transient_absorption(Xen,Xk,q)
  !
- ! Transient ARPES 
- !======================
- if (l_RT_ARPES) call RT_transient_ARPES(Xen,Xk,q)
- !
 #endif
  !
  ! CLEAN

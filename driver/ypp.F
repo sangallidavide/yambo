@@ -245,9 +245,15 @@ integer function ypp(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_dir
  !
  l_flag=l_excitons.or.(l_dipoles.and.trim(DIPs_kind)=="EXCITONIC")
 #if defined _YPP_RT
- l_flag=l_flag.or.l_RT_abs.or.l_RT_ARPES
+ l_flag=l_flag.or.l_RT_abs
 #endif
  if (l_flag)    call excitons_driver(k,Xk,en,Xen,q)
+ !
+#if defined _YPP_RT
+ l_flag=l_RT_ARPES
+ !if (l_flag)    call RT_transient_ARPES(k,Xk,en,Xen,q)
+ if (l_flag)    call RT_transient_ARPES(Xen,Xk,q)
+#endif
  !
  l_flag=l_electrons
 #if defined _YPP_ELPH && !defined _YPP_RT
