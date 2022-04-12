@@ -24,6 +24,7 @@
 subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  use parser_m,        ONLY:parser
+ use stderr,          ONLY:intc
  use units,           ONLY:HA2EV
  use pars,            ONLY:SP,cONE,cI,cZERO,schlen
  use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm,qindx_X
@@ -51,12 +52,12 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  logical               :: l_full_expansion,l_single_exciton,l_exciton_distribution,warn
  integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_kmq,i_kmq_bz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
  &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV,NK,q_range(2),l_range(2)
- real(SP)              :: dw,Ev,N_lq,min_exc_E
+ real(SP)              :: dw,Ev,N_lq,Z,min_exc_E
  complex(SP)           :: F_tmp(RT_conf%W_n_steps),PES(RT_conf%W_n_steps)
  real(SP),allocatable  :: ARPES_int(:,:,:)
  integer, allocatable  :: BS_E_degs(:)
  !
- character(schlen)     :: headings(3),file_name
+ character(schlen)     :: headings(3),file_name,title
  real(SP)              :: odata(3)
  !
  complex(SP),external      ::Lorentzian_FT
@@ -172,7 +173,8 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  YAMBO_ALLOC(INTERP_obj(ID_ARPES)%INTERP,(RT_conf%W_n_steps,CIRCUIT_K%nibz,2))
  INTERP_obj(ID_ARPES)%INTERP=0._SP
  ! 
- PES       = cZERO
+ PES = cZERO
+ Z   = 0._SP
  !
  !do iq_bz=q_range(1),q_range(2)
  do iq=q_range(1),q_range(2)
@@ -195,6 +197,8 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      if (l_exciton_distribution) N_lq=boltzman_f(real(BS_E(i_l))-min_exc_E)
      !
      if (N_lq<1.E-3) cycle
+     !
+     Z=Z+N_lq
      !
      !if (l_single_exciton)       iq=iq_bz
      !if (l_exciton_distribution) iq=                  ! ********* To Fix ************
@@ -241,7 +245,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
    ! Then ARPES intensities
    !
-   call section('=','Interpolation@work: Bands Circuit')
+   title="ARPES@iq"//trim(intc(iq))
+   !
+   call section('=','Interpolation@work: '//trim(title))
    !============================================================================= 
    !
    if (l_full_expansion) then
@@ -250,14 +256,14 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      call k_ibz2bz(Xk,'i',.true.)
      call bz_samp_duplicate_nosymm(Xk,k_nosymm)
      !
-     call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
+     call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
      !
    else
      !
-     call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),Xk,SEED_R3=ARPES_int)
+     call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),Xk,SEED_R3=ARPES_int)
      !
    endif
-   call INTERPOLATION_driver_do("ARPES",ID_ARPES_int,CIRCUIT_k)
+   call INTERPOLATION_driver_do(trim(title),ID_ARPES_int,CIRCUIT_k)
    !
    i_karpes=0
    !
@@ -292,6 +298,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  YAMBO_FREE(ARPES_int)
  !
  call PP_redux_wait(PES)
+ !
+ PES=PES/Z
+ INTERP_obj(ID_ARPES)%INTERP=INTERP_obj(ID_ARPES)%INTERP/Z
  !
  ! Print the integrated PES
  !
