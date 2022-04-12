@@ -66,9 +66,9 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  iq = BSiq
  !
- call                excitons_read(k,Xk,en,Xen,BSiq,"check",io_err)
+ call                excitons_read(k,Xk,en,Xen,BSiq,"check",.true.,io_err)
  !
- if (io_err==0) call excitons_read(k,Xk,en,Xen,BSiq,"eigenvalues",io_err)
+ if (io_err==0) call excitons_read(k,Xk,en,Xen,BSiq,"eigenvalues",.true.,io_err)
  !
  if (io_err/=0) then
    call warning("BSE databases not found.")
@@ -114,7 +114,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  endif
 #endif
  !
- if(.not.l_sort)   call excitons_read(k,Xk,en,Xen,BSiq,"eigenvectors",io_err)
+ if(.not.l_sort)   call excitons_read(k,Xk,en,Xen,BSiq,"eigenvectors",.true.,io_err)
  ! 
  ! Exciton's spin
  !=====================
@@ -148,7 +148,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  ! CLEAN
  !
- call excitons_read(k,Xk,en,Xen,BSiq,"clean",io_err)
+ call excitons_read(k,Xk,en,Xen,BSiq,"clean",.true.,io_err)
  !
  if((.not.l_sort).and.l_flag) deallocate(EXCITONS_user_indexes)
  !

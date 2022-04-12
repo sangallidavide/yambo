@@ -48,7 +48,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  type(bz_samp), intent(inout) :: Xk,Xq
  !
  type(bz_samp)         :: k_nosymm
- logical               :: l_full_expansion,l_single_exciton,l_exciton_distribution
+ logical               :: l_full_expansion,l_single_exciton,l_exciton_distribution,warn
  integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_kmq,i_kmq_bz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
  &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV,NK,q_range(2),l_range(2)
  real(SP)              :: dw,Ev,N_lq,min_exc_E
@@ -61,10 +61,12 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  complex(SP),external      ::Lorentzian_FT
  !
- call excitons_read(Xk,Xk,Xen,Xen,1,"check",io_err)
+ warn=.false.
+ !
+ call excitons_read(Xk,Xk,Xen,Xen,1,"check",warn,io_err)
  if (io_err==0) then
-   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvalues",io_err)
-   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvectors",io_err)
+   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvalues",warn,io_err)
+   call excitons_read(Xk,Xk,Xen,Xen,1,"eigenvectors",warn,io_err)
  endif
  !
  !
@@ -142,17 +144,17 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  else if (l_exciton_distribution) then
    !
    min_exc_E=minval(real(BS_E)) ! I suppose the BSE eigenvalues are real
-   call excitons_read(Xk,Xk,Xen,Xen,1,"clean",io_err)
+   call excitons_read(Xk,Xk,Xen,Xen,1,"clean",warn,io_err)
    !
    do iq=2,Xq%nibz
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"check",warn,io_err)
      if (io_err/=0) then
-       call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
+       call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
        cycle
      endif
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",warn,io_err)   
      min_exc_E=min(min_exc_E,minval(real(BS_E))) ! I suppose the BSE eigenvalues are real
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
    enddo
    !
    q_range = (/1,Xq%nibz/)
@@ -176,13 +178,13 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  do iq=q_range(1),q_range(2)
    !
    if (.not.l_single_exciton) then
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"check",warn,io_err)
      if (io_err/=0) then
-       call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
+       call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
        cycle
      endif
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
-     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",io_err)
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",warn,io_err)   
+     call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",warn,io_err)
    endif
    !
    do i_l=l_range(1),l_range(2)
@@ -283,7 +285,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
    enddo
    !
-   call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
+   call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
    !
  enddo
  !

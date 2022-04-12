@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
+subroutine excitons_read(k,Xk,en,Xen,iq,what,verbose,io_err)
  !
  use pars,          ONLY:pi
  use R_lattice,     ONLY:bz_samp
@@ -42,6 +42,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
  type(levels)  ::Xen,en
  integer, intent(in) :: iq
  integer, intent(out):: io_err
+ logical, intent(in) :: verbose
  character(*)        :: what
  !
  ! Work Space
@@ -81,7 +82,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    io_err=io_BSS_diago(iq,1,io_ID,Xbsk)
    !
    if (io_err/=0) then
-     call msg('s','ndb.BS_diago_Q'//trim(intc(iq))//' not found')
+     if(verbose) call msg('s','ndb.BS_diago_Q'//trim(intc(iq))//' not found')
      return
    endif
    !

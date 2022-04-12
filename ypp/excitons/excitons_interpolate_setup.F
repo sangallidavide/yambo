@@ -55,19 +55,19 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,ID_INTERP_EXC,report)
  !
  call section('*','Excitons Interpolation')
  !
- call excitons_read(k,Xk,en,Xen,1,"clean",io_err)
+ call excitons_read(k,Xk,en,Xen,1,"clean",.true.,io_err)
  !
  ! Read all eigenvalues and eigenvectors
  !
  do iq=1,q%nibz
    call msg('s','Reading excitons at @ Q-index #',iq)
-   call excitons_read(k,Xk,en,Xen,iq,"check",io_err)
-   call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",io_err)
+   call excitons_read(k,Xk,en,Xen,iq,"check",.false.,io_err)
+   call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",.false.,io_err)
    do i_c=1,EXCITONS_n_user_states
      i_l=EXCITONS_user_indexes(i_c)
      BS_all_E(i_c,iq)=BS_E(i_l)
    enddo
-   call excitons_read(k,Xk,en,Xen,iq,"clean",io_err)
+   call excitons_read(k,Xk,en,Xen,iq,"clean",.false.,io_err)
    !
  enddo
  !
