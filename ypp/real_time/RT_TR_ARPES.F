@@ -38,7 +38,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  use parallel_int,    ONLY:PP_redux_wait,PARALLEL_global_indexes
  use electrons,       ONLY:levels,spin,n_sp_pol
  use com,             ONLY:msg,of_open_close
- use functions,       ONLY:bose_f !,boltzman_f,Lorentzian_func
+ use functions,       ONLY:bose_f,boltzman_f !,Lorentzian_func
  use interpolate,     ONLY:INTERPOLATE_use_symm,INTERP_obj, &
  &                         INTERPOLATION_driver_seed,INTERPOLATION_driver_do
  !
@@ -182,7 +182,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      ARPES_int = cZERO
      !
      if (l_single_exciton)       N_lq=1._SP
-     if (l_exciton_distribution) N_lq=bose_f(real(BS_E(i_l))-min_exc_E)
+     if (l_exciton_distribution) N_lq=boltzman_f(real(BS_E(i_l))-min_exc_E)
      !
      if (N_lq<1.E-3) cycle
      !
