@@ -144,7 +144,10 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
    do iq=2,Xq%nibz
      call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
-     if (io_err/=0) cycle
+     if (io_err/=0) then
+       call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
+       cycle
+     endif
      call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
      min_exc_E=min(min_exc_E,minval(real(BS_E))) ! I suppose the BSE eigenvalues are real
      call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
@@ -172,7 +175,10 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
    if (.not.l_single_exciton) then
      call excitons_read(Xk,Xk,Xen,Xen,iq,"check",io_err)
-     if (io_err/=0) cycle
+     if (io_err/=0) then
+       call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",io_err)
+       cycle
+     endif
      call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvalues",io_err)   
      call excitons_read(Xk,Xk,Xen,Xen,iq,"eigenvectors",io_err)
    endif

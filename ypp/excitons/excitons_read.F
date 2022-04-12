@@ -80,7 +80,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    io_err=io_BSS_diago(iq,1,io_ID,Xbsk)
    !
    if (io_err/=0) then
-     call warning('ndb.BS_diago not found')
+     call warning('ndb.BS_diago_Q'//trim(intc(iq))//' not found')
      return
    endif
    !
