@@ -24,6 +24,7 @@
 subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  use pars,          ONLY:SP,pi,schlen
+ use parser_m,      ONLY:parser
  use R_lattice,     ONLY:bz_samp
  use stderr,        ONLY:intc
  use electrons,     ONLY:levels,spin
@@ -82,15 +83,20 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !===================================
  if (l_sort) call excitons_sort_and_report(iq,BS_R_right,BS_E,BS_E_SOC_corr=BS_E_SOC_corr)
  !
- ! Sort energies to find degenerate states
- !========================================
- YAMBO_ALLOC(BS_E_degs,(BSS_n_eig))
- call excitons_find_degeneracies(BS_E,BS_E_degs)
+ call parser("States",l_flag)
  !
- ! Define the USER set of excitonic states
- !=========================================
- if(.not.l_sort) call excitons_get_user_states(BS_E_degs)
- !
+ if (l_flag) then
+   !
+   ! Sort energies to find degenerate states
+   !========================================
+   YAMBO_ALLOC(BS_E_degs,(BSS_n_eig))
+   call excitons_find_degeneracies(BS_E,BS_E_degs)
+   !
+   ! Define the USER set of excitonic states
+   !=========================================
+   if(.not.l_sort) call excitons_get_user_states(BS_E_degs)
+   !
+ endif
  !
  ! Exciton dispersion interpolation
  ! =======================================
@@ -144,6 +150,6 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  call excitons_read(k,Xk,en,Xen,BSiq,"clean",io_err)
  !
- if(.not.l_sort) deallocate(EXCITONS_user_indexes)
+ if((.not.l_sort).and.l_flag) deallocate(EXCITONS_user_indexes)
  !
 end subroutine
