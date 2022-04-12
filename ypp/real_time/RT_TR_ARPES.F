@@ -91,7 +91,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  call parser("FullExpansion", l_full_expansion)
  call parser("States",        l_single_exciton)
- call parser("BoseTemp",l_exciton_distribution)
+ call parser("EXCTemp", l_exciton_distribution)
+ !
+ if (.not. (l_single_exciton .or. l_exciton_distribution ) ) call error(" Select either Exc states or Exc temp in input")
  !
  ! Par Setup
  !============

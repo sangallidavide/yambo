@@ -219,7 +219,7 @@ module functions
      real(SP), intent(in):: Eb
      real(SP)            :: boltzman_f
      !
-     real(SP) :: E_small=0.002/HA2EV  ! Threashold for degenerate excitons
+     real(SP) :: E_small=0.001/HA2EV  ! Threashold for degenerate excitons
      real(SP) :: T_small=1._SP/HA2KEL
      !
      if(abs(Eb)>E_small.and.abs(Boltz_Temp)>T_small) then

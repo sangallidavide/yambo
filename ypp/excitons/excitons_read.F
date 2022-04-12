@@ -26,6 +26,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
  use pars,          ONLY:pi
  use R_lattice,     ONLY:bz_samp
  use stderr,        ONLY:intc
+ use com,           ONLY:msg
  use X_m,           ONLY:X_reset
  use QP_CTL_m,      ONLY:QP_apply
  use electrons,     ONLY:levels,n_spin,n_sp_pol,spin
@@ -80,7 +81,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    io_err=io_BSS_diago(iq,1,io_ID,Xbsk)
    !
    if (io_err/=0) then
-     call warning('ndb.BS_diago_Q'//trim(intc(iq))//' not found')
+     call msg('s','ndb.BS_diago_Q'//trim(intc(iq))//' not found')
      return
    endif
    !
