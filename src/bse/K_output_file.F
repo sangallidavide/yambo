@@ -88,7 +88,7 @@ subroutine K_output_file(iq,mode)
  l_magn_out =l_BS_magnons  .and.((.not.l_Haydock).or.index(mode,"magn")>0).and.(.not.l_Inversion)
  l_kerr_out =l_BS_kerr     .and.((.not.l_Haydock).or.index(mode,"kerr")>0)
  l_dich_out =l_BS_dichroism.and.((.not.l_Haydock).or.index(mode,"dich")>0).and.(.not.l_Inversion)
- l_phot_out =l_BS_photolum .and.(l_Inversion.or.l_IP)
+ l_phot_out =l_BS_photolum .and.(l_Diago.or.l_Inversion.or.l_IP)
  !
  l_print_col4=l_Haydock.or.(l_Inversion.and..not.K_diago_in_BS_mat)
  !

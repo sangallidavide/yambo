@@ -73,7 +73,7 @@ module PHOTOLUM
      BSS_dipoles_PL = cZERO
      f_PL_dim=BS_H_dim
      if(BS_H_dim==BS_K_dim(1)) f_PL_dim=2*BS_K_dim(1)
-     YAMBO_ALLOC(BSS_PL_f,(BS_H_dim))
+     YAMBO_ALLOC(BSS_PL_f,(f_PL_dim))
      BSS_PL_f = rZERO
    end subroutine
    !
