@@ -204,88 +204,89 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !if (l_exciton_distribution) iq=                  ! ********* To Fix ************
      !
      !
-   do i_cvk = 1,BS_K_dim(1)
-     !
-     i_kbz    = BSS_eh_table(i_cvk,1)
-     i_v      = BSS_eh_table(i_cvk,2)
-     i_c      = BSS_eh_table(i_cvk,3)
-     i_sp_pol = spin(BSS_eh_table(i_cvk,:))
-     !
-     i_kibz   = Xk%sstar(i_kbz,1)
-     i_ks     = Xk%sstar(i_kbz,2)
-     !
-     i_kmq_bz=qindx_X(iq,i_kbz,1)
-     i_kmq   =Xk%sstar(i_kmq_bz,1) 
-     !
-     if ( (.not.l_full_expansion) .and. i_ks>1 ) cycle
-     if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
-     if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
-     if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
-     !
-     if(     l_full_expansion) i_karpes=i_kbz
-     if(.not.l_full_expansion) i_karpes=i_kibz
-     !
-     ! Quantity to be interpolated
-     !
-     ARPES_int(i_v,i_karpes,1)=ARPES_int(i_v,i_karpes,1)+abs(BS_mat(i_cvk,i_l))**2
-     !
-     ! Constract the PES integrating over k
-     !
-     do i_w=1,RT_conf%W_n_steps
-       F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kmq,i_sp_pol)+BS_E(i_l)),"r")
-     enddo
-     !
-     F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_lq
-     !
-     PES(:)=PES(:)+F_tmp(:)
-     !
-   enddo
-   !
-   call PP_redux_wait(ARPES_int)
-   !
-   ! Then ARPES intensities
-   !
-   title="ARPES@iq"//trim(intc(iq))
-   !
-   call section('=','Interpolation@work: '//trim(title))
-   !============================================================================= 
-   !
-   if (l_full_expansion) then
-     !
-     INTERPOLATE_use_symm=.false.
-     call k_ibz2bz(Xk,'i',.true.)
-     call bz_samp_duplicate_nosymm(Xk,k_nosymm)
-     !
-     call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
-     !
-   else
-     !
-     call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),Xk,SEED_R3=ARPES_int)
-     !
-   endif
-   call INTERPOLATION_driver_do(trim(title),ID_ARPES_int,CIRCUIT_k)
-   !
-   i_karpes=0
-   !
-   do i_kibz=1,CIRCUIT_K%nibz
-     !
-     if (all(abs(CIRCUIT_K%pt(i_kibz,:))<1.E-5_SP)) i_karpes=i_kibz
-     !
-     do i_v=BS_bands(1),Xen%nbf(1)
+     do i_cvk = 1,BS_K_dim(1)
        !
-       Ev=INTERP_obj(ID_bands)%INTERP(i_v,i_kibz,1)
+       i_kbz    = BSS_eh_table(i_cvk,1)
+       i_v      = BSS_eh_table(i_cvk,2)
+       i_c      = BSS_eh_table(i_cvk,3)
+       i_sp_pol = spin(BSS_eh_table(i_cvk,:))
+       !
+       i_kibz   = Xk%sstar(i_kbz,1)
+       i_ks     = Xk%sstar(i_kbz,2)
+       !
+       i_kmq_bz=qindx_X(iq,i_kbz,1)
+       i_kmq   =Xk%sstar(i_kmq_bz,1) 
+       !
+       if ( (.not.l_full_expansion) .and. i_ks>1 ) cycle
+       if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
+       if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
+       if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
+       !
+       if(     l_full_expansion) i_karpes=i_kbz
+       if(.not.l_full_expansion) i_karpes=i_kibz
+       !
+       ! Quantity to be interpolated
+       !
+       ARPES_int(i_v,i_karpes,1)=ARPES_int(i_v,i_karpes,1)+abs(BS_mat(i_cvk,i_l))**2
+       !
+       ! Constract the PES integrating over k
        !
        do i_w=1,RT_conf%W_n_steps
-         F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Ev+BS_E(i_l)),"r")
+         F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kmq,i_sp_pol)+BS_E(i_l)),"r")
        enddo
        !
-       F_tmp=F_tmp*INTERP_obj(ID_ARPES_int)%INTERP(i_v,i_kibz,1)*N_lq
+       F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_lq
        !
-       INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)+ real(F_tmp,SP)
-       INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)-aimag(F_tmp)
+       PES(:)=PES(:)+F_tmp(:)
        !
      enddo
-   enddo
+     !
+     call PP_redux_wait(ARPES_int)
+     !
+     ! Then ARPES intensities
+     !
+     title="ARPES@iq"//trim(intc(iq))
+     !
+     call section('=','Interpolation@work: '//trim(title))
+     !============================================================================= 
+     !
+     if (l_full_expansion) then
+       !
+       INTERPOLATE_use_symm=.false.
+       call k_ibz2bz(Xk,'i',.true.)
+       call bz_samp_duplicate_nosymm(Xk,k_nosymm)
+       !
+       call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
+       !
+     else
+       !
+     call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),Xk,SEED_R3=ARPES_int)
+       !
+     endif
+     !
+     call INTERPOLATION_driver_do(trim(title),ID_ARPES_int,CIRCUIT_k)
+     !
+     i_karpes=0
+     !
+     do i_kibz=1,CIRCUIT_K%nibz
+       !
+       if (all(abs(CIRCUIT_K%pt(i_kibz,:))<1.E-5_SP)) i_karpes=i_kibz
+       !
+       do i_v=BS_bands(1),Xen%nbf(1)
+         !
+         Ev=INTERP_obj(ID_bands)%INTERP(i_v,i_kibz,1)
+         !
+         do i_w=1,RT_conf%W_n_steps
+           F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Ev+BS_E(i_l)),"r")
+         enddo
+         !
+         F_tmp=F_tmp*INTERP_obj(ID_ARPES_int)%INTERP(i_v,i_kibz,1)*N_lq
+         !
+         INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,1)+ real(F_tmp,SP)
+         INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)-aimag(F_tmp)
+         !
+       enddo
+     enddo
      !
      call INTERPOLATION_driver_end(ID_ARPES_int)
      !
