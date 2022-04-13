@@ -182,7 +182,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
                endif
                !
                i_T_now=i_T_now+1
-               i_T_group_now=T_group(i_T_now)
+               i_T_group_now=T_group(i_T_now,ik)
                !
                if (i_loop==1) BS_T_grp(i_T_group_now)%size=BS_T_grp(i_T_group_now)%size+1
                !

@@ -24,10 +24,10 @@
 subroutine PARALLEL_Transitions_grouping()
  !
  use pars,          ONLY:SP
- use BS,            ONLY:BS_nT_at_k,BS_nT_grps,BS_T_grp_1st_el,BS_n_eh_spaces
+ use BS,            ONLY:BS_nT_at_k,BS_nT_grps,BS_nT_grps_at_k,BS_T_grp_1st_el_at_k,BS_n_eh_spaces
  use BS_solvers,    ONLY:BSS_mode
  use parallel_int,  ONLY:PP_redux_wait
- use parallel_m,    ONLY:PAR_IND_eh,PAR_BS_nT_col_grps,PAR_COM_eh_INDEX,&
+ use parallel_m,    ONLY:PAR_IND_eh,PAR_BS_nT_col_grps,PAR_COM_eh_INDEX,myid,&
 &                        PAR_IND_T_groups,PAR_IND_Kk_ibz,PAR_BS_T_grps_index,&
 &                        PAR_COM_Xk_ibz_INDEX,PAR_IND_T_Haydock,PP_indexes_reset
  use R_lattice,     ONLY:nXkibz
@@ -38,7 +38,7 @@ subroutine PARALLEL_Transitions_grouping()
  ! Work Space
  !
  logical              :: l_check
- integer              :: i_k,i_k_r,i_t_at_k,n_GRP,i_Tgrp,it_ref,i_counter,i_res_ares
+ integer              :: i_k,i_k_r,i_t_at_k,n_GRP,i_Tgrp,i_Tgrp_at_k,it_ref,i_counter,i_res_ares
  integer, allocatable :: GRP_data(:)
  integer, allocatable :: GRP_index(:)
  !
@@ -47,26 +47,27 @@ subroutine PARALLEL_Transitions_grouping()
  ! In this subroutine I distribute the eh transitions within each k. The COMM for this indexing is PAR_COM_eh_INDEX.
  ! Once the group of transitions are build-up the goal is to map them in the total world of transitions groups.
  !
- n_GRP=nXkibz*PAR_COM_eh_INDEX%n_CPU*BS_n_eh_spaces
+ n_GRP=PAR_COM_eh_INDEX%n_CPU*BS_n_eh_spaces
  !
- YAMBO_ALLOC(BS_T_grp_1st_el,(n_GRP))
+ YAMBO_ALLOC(BS_T_grp_1st_el_at_k,(n_GRP,nXkibz))
+ allocate(BS_nT_grps_at_k(nXkibz))
  allocate(GRP_data(n_GRP),GRP_index(n_GRP))
  !
  ! Here PAR_BS_nT_grps is the number of groups without taking into account the k-parallelization.
- ! This is done to define properly the BS_T_grp_1st_el array
+ ! This is done to define properly the BS_T_grp_1st_el_at_k array
  !
- BS_T_grp_1st_el=0
+ BS_T_grp_1st_el_at_k=0
  PAR_BS_nT_col_grps =0
  !
  i_counter=0
- it_ref=PAR_COM_eh_INDEX%CPU_id+1+PAR_COM_Xk_ibz_INDEX%CPU_id*PAR_COM_eh_INDEX%n_CPU
+ it_ref=PAR_COM_eh_INDEX%CPU_id+1
  !
  do i_res_ares=1,BS_n_eh_spaces
  if(i_res_ares==1) i_counter=it_ref
- if(i_res_ares==2) i_counter=it_ref+nXkibz*PAR_COM_eh_INDEX%n_CPU
+ if(i_res_ares==2) i_counter=it_ref+PAR_COM_eh_INDEX%n_CPU
  do i_k=1,nXkibz
    i_k_r=i_k+(i_res_ares-1)*nXkibz
-   ! 
+   !
    if (.not.PAR_IND_Kk_ibz%element_1D(i_k) ) cycle
    !
    do i_t_at_k=1,BS_nT_at_k(i_k_r)
@@ -80,31 +81,36 @@ subroutine PARALLEL_Transitions_grouping()
      !
      PAR_BS_nT_col_grps = PAR_BS_nT_col_grps +1
      !
-     BS_T_grp_1st_el(i_counter)=i_t_at_k+sum(BS_nT_at_k(:i_k_r-1))
-     !
-     i_counter=i_counter+PAR_COM_eh_INDEX%n_CPU*PAR_COM_Xk_ibz_INDEX%n_CPU
+     BS_T_grp_1st_el_at_k(i_counter,i_k)=i_t_at_k+sum(BS_nT_at_k(:i_k_r-1))
      !
    enddo
  enddo
  enddo
  !
- call PP_redux_wait(BS_T_grp_1st_el,COMM=PAR_COM_Xk_ibz_INDEX%COMM)
- call PP_redux_wait(BS_T_grp_1st_el,COMM=PAR_COM_eh_INDEX%COMM)
+ call PP_redux_wait(BS_T_grp_1st_el_at_k,COMM=PAR_COM_Xk_ibz_INDEX%COMM)
+ call PP_redux_wait(BS_T_grp_1st_el_at_k,COMM=PAR_COM_eh_INDEX%COMM)
  !
  ! ALL k are diveded in BS_nT_grps groups of transitions and each CPU takes PAR_BS_nT_grps of them
  !
- GRP_data(:)=BS_T_grp_1st_el(:)
+ BS_nT_grps=0
+ BS_nT_grps_at_k=0
  !
- call sort(GRP_data,indx=GRP_index)
- !
- BS_nT_grps     =0
- BS_T_grp_1st_el=0
- !
- do i_Tgrp=1,n_GRP
-   if (GRP_data(i_Tgrp)>0._SP) then
-     BS_nT_grps=BS_nT_grps+1
-     BS_T_grp_1st_el(BS_nT_grps)=GRP_data(i_Tgrp)
-   endif
+ do i_k=1,nXkibz
+   !
+   GRP_data(:)=BS_T_grp_1st_el_at_k(:,i_k)
+   !
+   call sort(GRP_data,indx=GRP_index)
+   !
+   BS_T_grp_1st_el_at_k(:,i_k)=0
+   !
+   do i_Tgrp=1,n_GRP
+     if (GRP_data(i_Tgrp)>0._SP) then
+       BS_nT_grps=BS_nT_grps+1
+       BS_nT_grps_at_k(i_k)=BS_nT_grps_at_k(i_k)+1
+       BS_T_grp_1st_el_at_k(BS_nT_grps_at_k(i_k),i_k)=GRP_data(i_Tgrp)
+     endif
+   enddo
+   !
  enddo
  !
  ! Groups index
@@ -143,8 +149,9 @@ subroutine PARALLEL_Transitions_grouping()
      !
      it_ref=i_t_at_k+sum(BS_nT_at_k(:i_k_r-1))
      !
-     do i_Tgrp=1,BS_nT_grps
-       if (BS_T_grp_1st_el(i_Tgrp)==it_ref) then
+     do i_Tgrp_at_k=1,BS_nT_grps_at_k(i_k)
+       if (BS_T_grp_1st_el_at_k(i_Tgrp_at_k,i_k)==it_ref) then
+         i_Tgrp=i_Tgrp_at_k+sum(BS_nT_grps_at_k(:i_k-1))
          PAR_IND_T_groups%element_1D(i_Tgrp)=.true.
          PAR_IND_T_groups%n_of_elements(PAR_COM_eh_INDEX%CPU_id+1)=&
 &                                         PAR_IND_T_groups%n_of_elements(PAR_COM_eh_INDEX%CPU_id+1)+1

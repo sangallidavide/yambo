@@ -27,7 +27,7 @@ subroutine K_observables(WHAT,W)
  use X_m,           ONLY:X_alloc,Epsilon_ii,Joint_DOS,BS_E_sorted
  use frequency,     ONLY:w_samp
  use BS_solvers,    ONLY:BSS_n_freqs
- use BS,            ONLY:l_BS_abs,l_BS_jdos,l_BS_esort
+ use BS,            ONLY:l_BS_abs,l_BS_jdos,l_BS_esort,BS_H_dim
  use BS_solvers,    ONLY:B_Hall
  use PHOTOLUM,      ONLY:PL,PL_init
  use BS,            ONLY:l_BS_kerr,l_BS_magnons,l_BS_anomalous_Hall,l_BS_dichroism,l_BS_photolum
@@ -78,7 +78,7 @@ subroutine K_observables(WHAT,W)
    endif
    !
    if(l_BS_esort) then
-     YAMBO_ALLOC(BS_E_sorted,(1000,9,2))
+     YAMBO_ALLOC(BS_E_sorted,(BS_H_dim,9,2))
      BS_E_sorted=cZERO
    endif
    !
