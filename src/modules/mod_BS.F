@@ -392,6 +392,7 @@ module BS
      YAMBO_FREE(BS_nT_at_k)
      YAMBO_FREE(PAR_BS_T_grps_index)
      YAMBO_FREE(BS_T_grp_1st_el_at_k)
+     YAMBO_FREE(BS_nT_grps_at_k)
      !
      do iT=1,BS_nT_grps
        !

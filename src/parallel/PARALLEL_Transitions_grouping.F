@@ -50,7 +50,7 @@ subroutine PARALLEL_Transitions_grouping()
  n_GRP=PAR_COM_eh_INDEX%n_CPU*BS_n_eh_spaces
  !
  YAMBO_ALLOC(BS_T_grp_1st_el_at_k,(n_GRP,nXkibz))
- allocate(BS_nT_grps_at_k(nXkibz))
+ YAMBO_ALLOC(BS_nT_grps_at_k,(nXkibz))
  allocate(GRP_data(n_GRP),GRP_index(n_GRP))
  !
  ! Here PAR_BS_nT_grps is the number of groups without taking into account the k-parallelization.
