@@ -25,6 +25,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  use parser_m,        ONLY:parser
  use stderr,          ONLY:intc
+ use vec_operate,     ONLY:sort
  use units,           ONLY:HA2EV
  use pars,            ONLY:SP,cONE,cI,cZERO,schlen
  use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm,qindx_X
@@ -51,8 +52,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  type(bz_samp)         :: k_nosymm
  logical               :: l_full_expansion,l_single_exciton,l_exciton_distribution,warn
  integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_kmq,i_kmq_bz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
- &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV,NK,q_range(2),l_range(2)
- real(SP)              :: dw,Ev,N_lq,Z,min_exc_E
+ &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV,NK,q_range(2),l_range(2),                               &
+ &                        EXC_table(1000,2),N_exc,j_exc,EXC_indx(1000)
+ real(SP)              :: dw,Ev,Z,min_exc_E,N_lq,EXC_N_lq(1000)
  complex(SP)           :: F_tmp(RT_conf%W_n_steps),PES(RT_conf%W_n_steps)
  real(SP),allocatable  :: ARPES_int(:,:,:)
  integer, allocatable  :: BS_E_degs(:)
@@ -175,6 +177,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  ! 
  PES = cZERO
  Z   = 0._SP
+ N_exc = 0
  !
  !do iq_bz=q_range(1),q_range(2)
  do iq=q_range(1),q_range(2)
@@ -198,11 +201,17 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
      if (N_lq<1.E-3) cycle
      !
+     N_exc=N_exc+1
      Z=Z+N_lq
+     !
+     j_exc=N_exc
+     if(N_exc>1000) j_exc=minloc(EXC_N_lq,1)
+     !
+     EXC_table(j_exc,:)=(/i_l,iq/)
+     EXC_N_lq(j_exc)   =N_lq
      !
      !if (l_single_exciton)       iq=iq_bz
      !if (l_exciton_distribution) iq=                  ! ********* To Fix ************
-     !
      !
      do i_cvk = 1,BS_K_dim(1)
        !
@@ -245,7 +254,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
      ! Then ARPES intensities
      !
-     title="ARPES@iq"//trim(intc(iq))
+     title="ARPES@iq"//trim(intc(iq))//"@i_l"//trim(intc(i_l))
      !
      call section('=','Interpolation@work: '//trim(title))
      !============================================================================= 
@@ -302,6 +311,22 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  PES=PES/Z
  INTERP_obj(ID_ARPES)%INTERP=INTERP_obj(ID_ARPES)%INTERP/Z
+ !
+ ! Print the excitonic weights
+ !
+ call sort(arrin=EXC_N_lq(:N_exc),indx=EXC_indx(:N_exc))
+ !
+ file_name="Exc_weights"
+ call of_open_close(trim(file_name),'ot')
+ headings=(/"N_lq"," iq ","i_l "/)
+ call msg('o '//trim(file_name),"#",headings,INDENT=0,USE_TABS=.true.)
+ !
+ do j_exc=N_exc,1,-1
+   odata=(/EXC_N_lq(j_exc)/Z,real(EXC_table(EXC_indx(j_exc),1),SP),real(EXC_table(EXC_indx(j_exc),2),SP)/)
+   call msg('o '//trim(file_name),'',odata,INDENT=-2,USE_TABS=.true.)
+ enddo
+ !
+ call of_open_close(trim(file_name))
  !
  ! Print the integrated PES
  !
