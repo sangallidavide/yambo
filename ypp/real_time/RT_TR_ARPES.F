@@ -259,21 +259,23 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
      title="iq="//trim(intc(iq))//", il="//trim(intc(i_l))
      !
+     call msg("s","ARPES @ "//trim(title))
+     !
      if (l_full_expansion) then
        !
        INTERPOLATE_use_symm=.false.
        call k_ibz2bz(Xk,'i',.true.)
        call bz_samp_duplicate_nosymm(Xk,k_nosymm)
        !
-       call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
+       call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),k_nosymm,SEED_R3=ARPES_int)
        !
      else
        !
-     call INTERPOLATION_driver_seed(trim(title),ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),Xk,SEED_R3=ARPES_int)
+     call INTERPOLATION_driver_seed("ARPES",ID_ARPES_int,(/BS_bands(1),Xen%nbf(1)/),Xk,SEED_R3=ARPES_int)
        !
      endif
      !
-     call INTERPOLATION_driver_do(trim(title),ID_ARPES_int,CIRCUIT_k)
+     call INTERPOLATION_driver_do("ARPES",ID_ARPES_int,CIRCUIT_k)
      !
      i_karpes=0
      !
