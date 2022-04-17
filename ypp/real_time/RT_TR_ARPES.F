@@ -165,6 +165,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
  endif
  !
+ call section('=','ARPES Interpolation ')
+ !============================================================================= 
+ !
  NV=Xen%nbf(1)-BS_bands(1)+1
  NK=Xk%nibz
  if (l_full_expansion) NK=Xk%nbz
@@ -254,10 +257,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
      ! Then ARPES intensities
      !
-     title="ARPES@iq"//trim(intc(iq))//"@i_l"//trim(intc(i_l))
-     !
-     call section('=','Interpolation@work: '//trim(title))
-     !============================================================================= 
+     title="iq="//trim(intc(iq))//", il="//trim(intc(i_l))
      !
      if (l_full_expansion) then
        !
