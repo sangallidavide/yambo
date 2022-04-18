@@ -308,6 +308,8 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
    call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
    !
+   call live_timing(steps=1)
+   !
  enddo
  !
  call live_timing()
