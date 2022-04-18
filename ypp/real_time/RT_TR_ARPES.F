@@ -304,11 +304,11 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
      call INTERPOLATION_driver_end(ID_ARPES_int)
      !
+     call live_timing(steps=1)
+     !
    enddo
    !
    call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
-   !
-   call live_timing(steps=1)
    !
  enddo
  !
