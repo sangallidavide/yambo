@@ -327,7 +327,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  file_name="Exc_weights"
  call of_open_close(trim(file_name),'ot')
- headings=(/"N_lq"," iq ","i_l "/)
+ headings=(/"N_lq","i_l "," iq "/)
  call msg('o '//trim(file_name),"#",headings,INDENT=0,USE_TABS=.true.)
  !
  do j_exc=N_exc,1,-1
