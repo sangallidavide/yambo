@@ -31,7 +31,7 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
  use LIVE_t,         ONLY:live_timing
  use BS,             ONLY:BS_H_dim,BS_K_dim
- use BS_solvers,     ONLY:BSS_eh_f
+ use BS_solvers,     ONLY:BSS_eh_f,BSS_n_eig
  use PHOTOLUM,       ONLY:BSS_dipoles_PL,BSS_PL_f
  !
  implicit none
@@ -65,6 +65,8 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
  ! Live-Timing
  !
  call live_timing('PL    residuals',px%n_of_elements(myid+1))
+ write(*,*) "BS_H_dim", BS_H_dim
+ write(*,*) "BSS_n_eig", BSS_n_eig
  !
  ! Non-Hermitian residual
  !========================
@@ -133,13 +135,18 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
      P_x_fZ(:,i_c,1)=BSS_dipoles_PL(i_c,:)*sqrt(BSS_eh_f(:))
    enddo
    !
+   write(*,*) 'BS_K_dim(1)', BS_K_dim(1)
+   write(*,*) 'shape(BSS_eh_f)', shape(BSS_eh_f)
+   write(*,*) 'shape(BS_V_right)', shape(BS_V_right)
+   write(*,*) 'shape(BSS_PL_f)', shape(BSS_PL_f)
+   !
    do i_l=1,BS_K_dim(1)
      !
      if (.not.px%element_1D(i_l)) cycle
      !                       
      ! R_over_R_x_A = R<_j/R_j A^l_j
      !
-     R_over_R_x_A(1,:) =  BSS_PL_f(1:BS_K_dim(1)) *BS_V_right(:,i_l)/BSS_eh_f(:)
+     R_over_R_x_A(1,1:BS_K_dim(1)) =  BSS_PL_f(1:BS_K_dim(1)) *BS_V_right(1:BS_K_dim(1),i_l)/BSS_eh_f(1:BS_K_dim(1))
      R_over_R_x_A(2,:) =  BSS_PL_f(BS_K_dim(1)+1:)*BS_V_right(:,i_l)/BSS_eh_f(:)
      !
      ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
