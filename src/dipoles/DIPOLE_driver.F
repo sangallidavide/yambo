@@ -95,7 +95,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  l_BS_magnons= (index(BSE_prop,'magn')/=0)
  l_BS_dichroism= (index(BSE_prop,'dich')/=0)
  l_BS_photolum= (index(BSE_prop,'photolum')/=0)
- if (l_BS_dichroism.or.l_BS_magnons.or.l_X_magn) Dip%bands_ordered=.false.
+ if (l_BS_dichroism.or.l_BS_magnons.or.l_BS_photolum.or.l_X_magn) Dip%bands_ordered=.false.
 #if defined _SLEPC && !defined _NL
  if ( index(BSS_mode,'s')/=0 )  Dip%bands_ordered=.false.
 #endif
