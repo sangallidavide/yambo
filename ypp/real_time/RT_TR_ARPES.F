@@ -28,7 +28,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  use vec_operate,     ONLY:sort
  use units,           ONLY:HA2EV
  use pars,            ONLY:SP,cONE,cI,cZERO,schlen
- use R_lattice,       ONLY:bz_samp,bz_samp_duplicate_nosymm,qindx_X
+ use R_lattice,       ONLY:bz_samp,bz_samp_duplicate,bz_samp_duplicate_nosymm,bz_samp_reset,qindx_X
  use D_lattice,       ONLY:lattice,nsym
  use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
@@ -50,9 +50,9 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  type(levels),  intent(in)    :: Xen
  type(bz_samp), intent(inout) :: Xk,Xq
  !
- type(bz_samp)         :: k_nosymm
+ type(bz_samp)         :: k_nosymm,CIRCUIT_kmq
  logical               :: l_full_expansion,l_single_exciton,l_exciton_distribution,warn
- integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_kmq,i_kmq_bz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
+ integer               :: iq,iq_bz,i_l,i_l_ref,i_c,i_v,i_cvk,i_kibz,i_kbz,i_kmq_ibz,i_kmq_bz,i_karpes,i_ks,i_sp_pol,i_w,i_l_v, &
  &                        io_err,ID_ARPES,ID_ARPES_int,ID_bands,NV,NK,q_range(2),l_range(2),                               &
  &                        EXC_table(1000,2),N_exc,j_exc,EXC_indx(1000)
  real(SP)              :: dw,Ev,Z,min_exc_E,N_lq,EXC_N_lq(1000)
@@ -82,15 +82,6 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  call k_special()
  !
  call k_circuit_driver( BANDS_path, BANDS_steps )
- !
- call section('=','Interpolation@work: Bands Circuit')
- !============================================================================= 
- !
- call INTERPOLATION_driver_seed("E_K_PATH",ID_bands,BS_bands,Xk,SEED_E=Xen,NEAREST=.false.)
- call INTERPOLATION_driver_do("E_K_PATH",ID_bands,CIRCUIT_k)
- !
- call plot_interpolated_values &
- &   (Xk,Xen,0._SP,CIRCUIT_k,ID_bands,BS_bands,1,n_sp_pol,"interpolated","bands",0)
  !
  ! Now move to excitonic ARPES
  !==============================
@@ -185,8 +176,28 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  call live_timing("ARPES Interpolation",(q_range(2)-q_range(1)+1)*(l_range(2)-l_range(1)+1))
  !
+ call INTERPOLATION_driver_seed("E_K_PATH",ID_bands,BS_bands,Xk,SEED_E=Xen,NEAREST=.false.,QUIET=l_exciton_distribution)
+ !
  !do iq_bz=q_range(1),q_range(2)
  do iq=q_range(1),q_range(2)
+   !
+   ! Bands interpolation
+   !
+   call bz_samp_reset(CIRCUIT_kmq)
+   call bz_samp_duplicate(CIRCUIT_k,CIRCUIT_kmq)
+   !
+   do i_kibz=1,CIRCUIT_K%nibz
+     CIRCUIT_kmq%pt(i_kibz,:)=CIRCUIT_k%pt(i_kibz,:)-Xq%pt(iq,:)
+   enddo
+   !
+   call INTERPOLATION_driver_do("E_K_PATH",ID_bands,CIRCUIT_kmq)
+   !
+   if (iq==q_range(1)) then
+     call plot_interpolated_values &
+     &   (Xk,Xen,0._SP,CIRCUIT_k,ID_bands,BS_bands,1,n_sp_pol,"interpolated","bands",0)
+   endif
+   !
+   ! ARPES interpolation
    !
    if (.not.l_single_exciton) then
      call excitons_read(Xk,Xk,Xen,Xen,iq,"check",warn,io_err)
@@ -233,8 +244,8 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
        i_kibz   = Xk%sstar(i_kbz,1)
        i_ks     = Xk%sstar(i_kbz,2)
        !
-       i_kmq_bz=qindx_X(iq,i_kbz,1)
-       i_kmq   =Xk%sstar(i_kmq_bz,1) 
+       i_kmq_bz = qindx_X(iq,i_kbz,1)
+       i_kmq_ibz= Xk%sstar(i_kmq_bz,1) 
        !
        if ( (.not.l_full_expansion) .and. i_ks>1 ) cycle
        if (.not. PAR_IND_CON_BANDS_DIP%element_1D(i_c)) cycle
@@ -251,7 +262,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
        ! Constract the PES integrating over k
        !
        do i_w=1,RT_conf%W_n_steps
-         F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kmq,i_sp_pol)+BS_E(i_l)),"r")
+         F_tmp(i_w)=Lorentzian_FT(GreenF_T_and_W%W(i_w),(Xen%E(i_v,i_kmq_ibz,i_sp_pol)+BS_E(i_l)),"r")
        enddo
        !
        F_tmp=F_tmp*abs(BS_mat(i_cvk,i_l))**2*N_lq
@@ -300,17 +311,21 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
          INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)=INTERP_obj(ID_ARPES)%INTERP(:,i_kibz,2)-aimag(F_tmp)
          !
        enddo
-     enddo
+     enddo !i_k circuit
      !
      call INTERPOLATION_driver_end(ID_ARPES_int)
      !
      call live_timing(steps=1)
      !
-   enddo
+   enddo ! i_lambda
    !
    call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
    !
- enddo
+   YAMBO_FREE(INTERP_obj(ID_bands)%INTERP)
+   !
+ enddo  ! iq
+ !
+ call INTERPOLATION_driver_end(ID_bands)
  !
  call live_timing()
  !
