@@ -667,7 +667,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
    endif
    !
    if (l_RT_abs) then
-     call initactivate(1," TRabsExcPol TRabsNexc TRabsVelFullExpr TRabsGoldModes")
+     call initactivate(1," TRabsExcPol TRabsNexc TRabsVelFullExpr TRabsGoldModes TRabsNExc")
      call initactivate(1,"TRabsOBS TRabsDIPdir TRabsDIPplane TRabsMODE TRabsEtresh")
    endif
    !
