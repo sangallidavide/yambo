@@ -23,7 +23,7 @@
 !
 subroutine exciton_WFs(Xk,BS_E_degs,iq)
  !
- use pars,          ONLY:SP,cZERO,pi
+ use pars,          ONLY:SP,cZERO,pi,schlen
  use R_lattice,     ONLY:bz_samp,qindx_X
  use units,         ONLY:BO2ANG
  use stderr,        ONLY:intc
@@ -57,6 +57,7 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
  integer           :: iv,ic,ikbz,ikibz,is,neh,i1,i2,i_l,i_lambda,j_lambda,i_sp_pol,ir,ir_hole,j1,&
 &                     n_lambda_deg,neh1,iv1,ic1,ikbz1,ikibz1,i_sp_pol1,is1
  integer           :: ikpbz,ikp,isp,i_deg
+ character(schlen) :: exc_index_msg
  real(SP)          :: r_hole_rlu(3),kp_dot_r_h,k_dot_r_e
  complex(SP)       :: wf_,wf_vc(BS_H_dim),WF1_ir(n_spinor),WF2_ir(n_spinor),phase,B_coeff
  !
@@ -159,7 +160,10 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
    !
    if (i_deg>1) cycle
    !
-   call live_timing('ExcWF@'//trim(intc(j_lambda)),px%n_of_elements(myid+1))  
+   if (n_lambda_deg==1) exc_index_msg=trim(intc(j_lambda))
+   if (n_lambda_deg> 1) exc_index_msg=trim(intc(j_lambda))//'-'//trim(intc(j_lambda+n_lambda_deg-1))
+
+   call live_timing('ExcWF@'//trim(exc_index_msg),px%n_of_elements(myid+1))  
    !
    v2plot  =0._SP
    !
@@ -300,9 +304,11 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
    !
    ! PLOT
    !
-   if (use_cube)      output_fname='exc_qpt'//trim(intc(iq))//"_"//trim(intc(plot_dim))//'d_'//trim(intc(j_lambda))//'.cube'
-   if (use_xcrysden)  output_fname='exc_qpt'//trim(intc(iq))//"_"//trim(intc(plot_dim))//'d_'//trim(intc(j_lambda))//'.xsf'
-   if (use_gnuplot)   output_fname='exc_qpt'//trim(intc(iq))//"_"//trim(intc(plot_dim))//'d_'//trim(intc(j_lambda))
+   output_fname='exc_qpt'//trim(intc(iq))//"_"//trim(intc(plot_dim))//'d_'//trim(exc_index_msg)
+   !
+   if (use_cube)      output_fname=trim(output_fname)//'.cube'
+   if (use_xcrysden)  output_fname=trim(output_fname)//'.xsf'
+   if (use_gnuplot)   output_fname=trim(output_fname)
    !
    if (use_cube) then 
      call of_open_close(trim(output_fname),'o')
