@@ -82,6 +82,9 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    global_gauge="length"
  endif
  !
+ if (index(L_kind,'L')==0) L_kind="L"//trim(L_kind)
+ call msg('s','[BSE] Response kind is ',trim(L_kind))
+ !
  ! Energy points
  !===============
  call W_reset(W_bss)
@@ -146,12 +149,8 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    ! If the Coulomb cutoff is used and the system is 1D or 2D eps and eels are different at finite q
    if (l_col_cut.and.(l_1D.or.l_2D)) then
      if(iq==1) BSS_eels_to_eps=.false.
-     if(iq/=1) BSS_eels_to_eps=trim(L_kind)=="full"
+     if(iq/=1) BSS_eels_to_eps=(index(L_kind,"full")>0)
    endif
-   !
-   ! BSS output arrays
-   !===================
-   call K_observables("ALLOC",W_bss)
    !
    if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) then
      !
@@ -198,6 +197,10 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !
    !... Blocks build-up
    if (.not.l_rpa_IP) call K_blocks()
+   !
+   ! BSS output arrays
+   !===================
+   call K_observables("ALLOC",W_bss)
    !
    ! Wave Functions distribution 
    !=============================

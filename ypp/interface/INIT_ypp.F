@@ -59,7 +59,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  use YPP_real_time,  ONLY:l_RealTime,l_RT_dos,l_RT_abs,l_RT_bands,l_RT_DBs,l_RT_density,l_RT_G_two_times,&
 &                         l_RT_energy,l_RT_lifetimes,l_RT_occupations,l_RT_time,l_RT_X,l_RTpump_Fermi,&
 &                         l_RTpump_energy,Eh_pumped_pair_n_BZ_regions,Eh_pumped_pair_BZ_regions,&
-&                         l_NL_X,l_NL_exc,RT_conf
+&                         l_NL_X,l_NL_exc,RT_conf,l_RT_ARPES
  use real_time,      ONLY:RT_bands
 #endif
 #if defined _YPP_NL 
@@ -336,6 +336,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
        l_RT_density     =STRING_match(rstr_piece(i1+1),'d')
        l_RT_G_two_times =STRING_match(rstr_piece(i1+1),'g')
        l_RT_abs         =STRING_match(rstr_piece(i1+1),'a')
+       l_RT_ARPES       =STRING_match(rstr_piece(i1+1),'p')
        !
        l_rtplot=.TRUE.
        !
@@ -371,6 +372,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  if (l_RT_X)           call initactivate(1,'RT_X')
  !
  if (l_RT_abs)         call initactivate(1,'RTabs')
+ if (l_RT_ARPES)       call initactivate(1,'RTARPES')
  if (l_RT_occupations) call initactivate(1,'RToccupations')
  if (l_RT_lifetimes)   call initactivate(1,'RTlifetimes')
  if (l_RT_density)     call initactivate(1,'RTdeltaRho')
@@ -463,6 +465,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  l_RTpump_Fermi     = runlevel_is_on('Select_Fermi')
  !
  l_RT_abs           = runlevel_is_on('RTabs')
+ l_RT_ARPES         = runlevel_is_on('RTARPES')
  l_RT_occupations   = runlevel_is_on('RToccupations')
  l_RT_lifetimes     = runlevel_is_on('RTlifetimes')
  l_RT_density       = runlevel_is_on('RTdeltaRho')
@@ -565,7 +568,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  ! Interpolation
  l_flag=(l_dipoles.and.trim(DIPs_kind)=="IP").or.(l_electrons.and.l_dos).or.l_bands.or.(l_excitons.and.l_interp)
 #if defined _YPP_RT
- l_flag=l_flag.or.(l_RealTime.and.(l_RT_bands.or.l_RT_dos.or.l_RT_G_two_times))
+ l_flag=l_flag.or.(l_RealTime.and.(l_RT_bands.or.l_RT_dos.or.l_RT_G_two_times.or.l_RT_ARPES))
 #endif
  if (l_flag) call initactivate(1,"INTERP_mode INTERP_Shell_Fac INTERP_NofNN")
  !
@@ -578,7 +581,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  if (l_excitons.and.l_interp) call initactivate(1,"BANDS_steps cooIn cooOut")
  l_flag=l_bands
 #if defined _YPP_RT
- l_flag=l_bands.or.l_RT_bands.or.l_RT_G_two_times
+ l_flag=l_bands.or.l_RT_bands.or.l_RT_G_two_times.or.l_RT_ARPES
 #endif
  if (l_flag) then
    call initactivate(1,"OutputAlat cooIn cooOut NormN NelFac")
@@ -633,7 +636,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  !
  if (l_RealTime) then
    !
-   l_flag=l_RT_occupations.or.l_RT_abs
+   l_flag=l_RT_occupations.or.l_RT_abs.or.l_RT_ARPES
    if (l_flag)      call init_RT_ctl_switch('G')
    l_flag=l_RT_occupations.or.l_RT_density.or.l_RT_lifetimes.or.l_RT_abs.or.l_RT_G_two_times
    if (l_flag)      call initactivate(1,"TimeStep TimeRange")
@@ -656,8 +659,15 @@ subroutine INIT_ypp(E,instr,FINALIZE)
    endif
    if ((l_RT_dos.or.l_RT_time).and.n_spinor==2) call initactivate(1,'WFReference')
    !
+   if (l_RT_abs.or.l_RT_ARPES) then
+     call CPU_activate("DIP")
+     call initactivate(1,"EnRngeRt ETStpsRt DampFactor")
+     call initactivate(1,"Gauge States En_treshold BSQindex")
+     call initactivate(1," TRabsExcPol TRabsNexc EXCTemp")
+   endif
+   !
    if (l_RT_abs) then
-     call initactivate(1,"BSQindex EnRngeRt ETStpsRt DampFactor")
+     call initactivate(1," TRabsExcPol TRabsNexc TRabsVelFullExpr TRabsGoldModes")
      call initactivate(1,"TRabsOBS TRabsDIPdir TRabsDIPplane TRabsMODE TRabsEtresh")
    endif
    !
@@ -754,7 +764,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  l_flag=l_bands
  !
 #if defined _YPP_RT
- l_flag=l_flag.or.l_RT_bands.or.l_RT_G_two_times
+ l_flag=l_flag.or.l_RT_bands.or.l_RT_G_two_times.or.l_RT_ARPES
 #endif
  !
  if (l_flag) call USER_vector_handle("BANDS_kpts")

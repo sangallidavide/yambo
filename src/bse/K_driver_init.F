@@ -61,10 +61,11 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  !
  ! L_kind check
  !==============
- if (trim(L_kind)/="Lbar".and.trim(L_kind)/="full")  call error('set Lkind = Lbar or full ')
+ if (index(L_kind,"Lbar")==0.and.index(L_kind,"full")==0.and.index(L_kind,"Ltilde")==0) &
+&         call error('set Lkind = Lbar or Lfull or Ltilde')
  !
- if (trim(L_kind)=="full".and.(STRING_match(BSE_mode,'causal').or.STRING_match(BSE_mode,'retarded'))) then
-   call warning(' Lkind=full with retarded leads to bad epsilon. Use either resonant or coupling. Setting resonant. ')
+ if (index(L_kind,"full")>0.and.(STRING_match(BSE_mode,'causal').or.STRING_match(BSE_mode,'retarded'))) then
+   call warning(' Lkind=Lfull with retarded leads to bad epsilon. Use either resonant or coupling. Setting resonant. ')
    BSE_mode="resonant"
  endif
  !
@@ -124,7 +125,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  ! Need to convert eels to epsilon ? (part A, part B in K_driver)
  !================================================================
  ! If the Coulomb cutoff is not used (ie the system is 3D) eps/=eps^-1
- if (.not.l_col_cut)          BSS_eels_to_eps=trim(L_kind)=="full"
+ if (.not.l_col_cut)          BSS_eels_to_eps=(index(L_kind,"full")>0)
  ! If the Coulomb cutoff is     used and the system is 0D  eps= eps^-1=1 since vbar=0
  if (     l_col_cut.and.l_0D) BSS_eels_to_eps=.false.
  ! If the Coulomb cutoff is     used and the system is 1D or 2D it depends on the q-point (see part B)
@@ -170,6 +171,19 @@ subroutine K_driver_init(what,iq,Ken,Xk)
      call parser('FxcRetarded',FXC_is_retarded)
    endif
  endif
+ !
+ ! Remove exchange if computing the irreducible response
+ if (index(L_kind,"Ltilde")>0) then
+   BS_res_K_exchange=.FALSE.
+   BS_cpl_K_exchange=.FALSE.
+ endif
+#if defined _PHEL
+ ! [EXCPH]: Allow code to go back to different Lkind calculations after Ltilde
+ if (index(L_kind,"Ltilde")==0.and.(.not.l_bs_fxc).and.(BS_res_K_exchange.eqv..FALSE.)) then
+   BS_res_K_exchange=.TRUE.
+   BS_cpl_K_exchange=BS_res_K_exchange
+ endif
+#endif
  !
  ! CORE Logicals
  !===============

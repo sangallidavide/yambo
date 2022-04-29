@@ -24,11 +24,12 @@
 subroutine INIT_ypp_load(defs)
  !
  use it_tools,      ONLY:it
- use it_m,          ONLY:initdefs,E_unit,G_unit,V_general,V_RL,&
+ use it_m,          ONLY:initdefs,E_unit,G_unit,V_general,V_RL,V_real_time,&
 &                        Time_unit,Bfield_unit,V_real_time,T_unit,V_nl_optics,V_io,V_sc
  use wave_func,     ONLY:wf_ng
  use LIVE_t,        ONLY:nhash
- use D_lattice,     ONLY:Tel,Bose_Temp
+ use X_m,           ONLY:global_gauge
+ use D_lattice,     ONLY:Tel,Bose_Temp,Boltz_Temp
  use R_lattice,     ONLY:BZ_FineGd_mode
  use electrons,     ONLY:n_spinor
  use interpolate,   ONLY:INTERP_shell_factor,INTERP_mode,NN_n_of_nearest
@@ -47,8 +48,7 @@ subroutine INIT_ypp_load(defs)
  use YPP_real_time, ONLY:RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,Rho_deph,&
 &                        Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,X_kind,Eh_pumped_pair_energy,&
 &                        Eh_pumped_pair_BZ_width,Eh_mu,Eh_temp,h_mu_autotune_thr,TRabsWHAT,TRabsDIP_plane,&
-&                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold
-
+&                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold,TRabs_Exc_Pol,TRabs_N_exc
  use real_time,     ONLY:RT_bands
 #endif
 #if defined _YPP_SC
@@ -71,6 +71,14 @@ subroutine INIT_ypp_load(defs)
  ! ... from C_driver
  !
  call INIT_C_driver_runlevels(defs)
+ !
+ !=======
+ ! CPU's
+ !=======
+ !
+#if defined _MPI 
+ call CPU_structure_load(defs)
+#endif
  !
  ! ... derived
  !=============
@@ -120,6 +128,7 @@ subroutine INIT_ypp_load(defs)
  call it('r',defs,'Select_Fermi', '[R] NEQ DBs according to Fermi distribution')
  !
  call it('r',defs,'RTabs',        '[R] Transient absorption')
+ call it('r',defs,'RTARPES',      '[R] Transient ARPES')
  call it('r',defs,'RToccupations','[R] Analize time-dependent occupations')
  call it('r',defs,'RTlifetimes',  '[R] Analize time-dependent lifetimes')
  call it('r',defs,'RTdeltaRho',   '[R] Analize the density')
@@ -194,7 +203,7 @@ subroutine INIT_ypp_load(defs)
  call it('f',defs,'SkipFermiFIT','[NEGF] Do a Fermi Fit of occupations (and lifetimes ratio)')
  call it('f',defs,'SeparateEH',  '[NEGF] Separate electrons from holes in the data file') 
  !
- ! TRANSIENT ABSORPTION
+ ! TRANSIENT ABSORPTION and ARPES
  !
  call it(defs,'TRabsOBS',&
 &             '[RT] RT observable. It can be a combination of (abs)bsorption, (trans)mission, (refl)ectivity, (kerr)err',TRabsWHAT)
@@ -202,6 +211,12 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'TRabsDIPdir',   '[RT] Dipole reference direction. Defines the internal `x` axis',TRabsDIP_dir)
  call it(defs,'TRabsMODE',     '[RT] TRabs mode. It can be a combination of cv,vv,cc,ip,eq',TRabsMODE)
  call it(defs,'TRabsEtresh',   '[RT] Treshold imposed on the e/h pairs energy',TRabs_Eeh_treshold,unit=E_unit)
+ call it(defs,'TRabsExcPol',   '[RT] Polarization of the exciton in the initial state',TRabs_Exc_Pol)
+ call it(defs,'TRabsNExc',     '[RT] Index of the last exciton considered for inter/intra excitons transitions',TRabs_N_Exc)
+ call it(defs,'EXCTemp'       ,'[EXCPH] Excitonic Temperature (for luminescence spectra)',Boltz_Temp,T_unit)
+ call it(defs,'Gauge' ,        '[RT] Gauge (length|velocity)',global_gauge)
+ call it('f',defs,'TRabsVelFullExpr','[RT] Use explicit expression with the terms 1/w2 and 1/w',verb_level=V_real_time)
+ call it('f',defs,'TRabsGoldModes',  '[RT] Include transitions at zero energy',verb_level=V_real_time)
  !
 #endif
  !

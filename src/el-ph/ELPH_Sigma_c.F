@@ -398,7 +398,7 @@ subroutine ELPH_Sigma_c(en,k,q,qp)
          !
          ! ELPH_GreenF evaluate real and imaginary part of the electron-phonon self-energy
          !
-         call ELPH_GreenF(i_qp,ob,ok,iq_bz,iq_ibz,iq_mem,il,elph_gkkp_sq,en,k,q,Sc_W(i_qp),q_weight(iq_bz))
+         call ELPH_Sigma_c_engine(i_qp,ob,ok,iq_bz,iq_ibz,iq_mem,il,elph_gkkp_sq,en,k,q,Sc_W(i_qp),q_weight(iq_bz))
          !
        enddo
        !
@@ -416,7 +416,7 @@ subroutine ELPH_Sigma_c(en,k,q,qp)
  !
  ! Debye energy
  !
- call msg('nr','[Ph] Debye energy         ',(/PH_W_debye*HA2EV,PH_W_debye*HA2THZ/),"[ev/ThZ]")
+ call msg('nrs','[Ph] Debye energy         ',(/PH_W_debye*HA2EV,PH_W_debye*HA2THZ/),"[ev/ThZ]")
  !
  ! Here I use the Cardona-Allen g^2 F functions to evaluate their integrated value.
  ! I also calculate the full frequency dependent self-energy
