@@ -55,7 +55,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  ! Work space
  !
  type(w_samp)            :: W_bss
- integer                 :: N_cv_trans,N_cc_trans,N_vv_trans,N_cc_vv_trans,N_trans,N_trans_real,i_T,io_err,i_trans,&
+ integer                 :: N_cv_trans,N_cc_trans,N_vv_trans,N_cc_vv_trans,N_trans,N_trans_real,i_T,io_err,i_trans,i_shift,&
 &                           nb(2),N_DIP_dirs,i_dir,j_dir,N_res,N_files,DIP_dir_table(3),ic,jc
  real(SP)                :: DIP_dir(3,3),Co,Time
  complex(SP)             :: diam(3,3)
@@ -83,8 +83,8 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  l_ABS     = STRING_match(TRabsWHAT,"abs") ! To add more derived quantities: kerr, transmission, reflectivity...
  l_cv      = STRING_match(TRabsMODE,"cv")
- l_cc      = STRING_match(TRabsMODE,"cc")
- l_vv      = STRING_match(TRabsMODE,"vv")
+ l_cc      = STRING_match(TRabsMODE,"cc") .and. .not.l_neq_exc
+ l_vv      = STRING_match(TRabsMODE,"vv") .and. .not.l_neq_exc
  l_EQ      = STRING_match(TRabsMODE,"eq")
  !
  ! Pre-setup of carrier components and Time evolution parameters
@@ -204,13 +204,13 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  ! ... Residuals 
  N_res=1
- if (l_BS) N_res=N_res+1
+ if (l_BS.and. ((.not.l_neq_exc).or.l_EQ) ) N_res=N_res+1
  YAMBO_ALLOC(TRabs_RES_left ,(N_trans*N_res,N_DIP_dirs,2)) ! (BSE/IP or BSE/EXC, i_dir , Res/delta_Res)
  YAMBO_ALLOC(TRabs_RES_right,(N_trans*N_res,N_DIP_dirs,2))
  !
  ! ... Energies
  N_res=1
- if (l_neq_exc) N_res=N_res+1
+ if (l_neq_exc.and.l_EQ) N_res=N_res+1
  YAMBO_ALLOC(TRabs_E,(N_trans*N_res))
  !
  ! ... Observables 
@@ -261,9 +261,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    !
    N_trans_real=0
    if (l_BS) then
-     call RT_TRabs_residuals("BSE",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
+     if((.not.l_neq_exc).or.l_EQ) call RT_TRabs_residuals("BSE",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      ! Inter and intra excitons transitions
-     if(l_neq_exc) call RT_TRabs_residuals("EXC",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
+     if(      l_neq_exc         ) call RT_TRabs_residuals("EXC",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    else
      ! IP spectrum
      if (l_cc) call RT_TRabs_residuals("cv IP",N_trans_real,N_DIP_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
@@ -377,7 +377,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        enddo
      endif
      if ( index(what,"EXC")>0 ) then
-       do i_trans=BSS_n_eig+1,BSS_n_eig+TRabs_N_Exc
+       i_shift=0
+       if(l_EQ) i_shift=BSS_n_eig
+       do i_trans=i_shift+1,i_shift+TRabs_N_Exc
          if (.not.PX_bs%element_1D(i_trans-BSS_n_eig)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
          if(RES==cZERO) cycle
