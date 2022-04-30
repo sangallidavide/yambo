@@ -79,10 +79,11 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  ! Dimensions, Constant, Logicals and allocs
  !
  l_BS      = BS_K_dim(1)> 0
- l_neq_exc = l_BS.and.EXCITONS_n_user_states>0
  !
  l_ABS     = STRING_match(TRabsWHAT,"abs") ! To add more derived quantities: kerr, transmission, reflectivity...
- l_cv      = STRING_match(TRabsMODE,"cv")
+ !
+ l_neq_exc = STRING_match(TRabsMODE,"inter-exc") .and. EXCITONS_n_user_states>0 .and. l_BS
+ l_cv      = STRING_match(TRabsMODE,"cv") .or.       l_neq_exc
  l_cc      = STRING_match(TRabsMODE,"cc") .and. .not.l_neq_exc
  l_vv      = STRING_match(TRabsMODE,"vv") .and. .not.l_neq_exc
  l_EQ      = STRING_match(TRabsMODE,"eq")
@@ -117,7 +118,11 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  ! vv ( RT_bands(1) - nbf ) -> ( same )
  ! cc ( nbm+1 - RT_bands(2) ) -> ( same )
  !
- if (l_BS) then
+ if (l_neq_exc) then
+   DIPs%ib =BS_bands
+   !DIPs%bands_ordered=.false.
+   N_cv_trans=BSS_n_eig
+ else if (l_BS) then
    DIPs%ib   =BS_bands
    N_cv_trans=BSS_n_eig
  else
@@ -145,7 +150,14 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    call PARALLEL_index(PX_ip,(/N_trans/))
  endif
  !
- if (l_cv) call msg('s','[TR-ABS] cv (EQ)  transitions :',N_cv_trans)
+ if (l_cv) then
+    if (l_neq_exc) then
+      if (l_EQ) call msg('s','[TR-ABS] BSE (EQ) transitions :',N_cv_trans)
+                call msg('s','[TR-ABS] EXC-EXC  transitions :',N_cv_trans)
+    else
+           call msg('s','[TR-ABS] cv  (EQ) transitions :',N_cv_trans)
+    endif
+ endif
  if (l_cc) call msg('s','[TR-ABS] cc (NEQ) transitions :',N_cc_trans)
  if (l_vv) call msg('s','[TR-ABS] vv (NEQ) transitions :',N_vv_trans)
  call msg('s','[TR-ABS] Total    transitions :',N_trans)
