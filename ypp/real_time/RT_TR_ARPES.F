@@ -174,7 +174,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  Z   = 0._SP
  N_exc = 0
  !
- call live_timing("ARPES Interpolation",(q_range(2)-q_range(1)+1)*(l_range(2)-l_range(1)+1))
+ if(l_exciton_distribution) call live_timing("ARPES Interpolation",(q_range(2)-q_range(1)+1)*(l_range(2)-l_range(1)+1))
  !
  call INTERPOLATION_driver_seed("E_K_PATH",ID_bands,BS_bands,Xk,SEED_E=Xen,NEAREST=.false.,QUIET=l_exciton_distribution)
  !
@@ -199,7 +199,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
    ! ARPES interpolation
    !
-   if (.not.l_single_exciton) then
+   if (l_exciton_distribution) then
      call excitons_read(Xk,Xk,Xen,Xen,iq,"check",warn,io_err)
      if (io_err/=0) then
        call excitons_read(Xk,Xk,Xen,Xen,iq,"clean",warn,io_err)
@@ -218,7 +218,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      if (l_exciton_distribution) N_lq=boltzman_f(real(BS_E(i_l))-min_exc_E)
      !
      if (N_lq<1.E-3) then
-       call live_timing(steps=1)
+       if (l_exciton_distribution) call live_timing(steps=1)
        cycle
      endif
      !
@@ -315,7 +315,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
      !
      call INTERPOLATION_driver_end(ID_ARPES_int)
      !
-     call live_timing(steps=1)
+     if (l_exciton_distribution) call live_timing(steps=1)
      !
    enddo ! i_lambda
    !
@@ -327,7 +327,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  !
  call INTERPOLATION_driver_end(ID_bands)
  !
- call live_timing()
+ if (l_exciton_distribution) call live_timing()
  !
  YAMBO_FREE(ARPES_int)
  !
