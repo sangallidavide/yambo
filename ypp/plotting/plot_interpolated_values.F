@@ -201,7 +201,7 @@ subroutine plot_interpolated_values(Xk,Xen,Ef,LOCAL_k,IDs,dims,nquantities,nfile
    nval=ndims+1
  endif
  !
- if (nval > nval_max) then
+ if (nval > nval_max .and. plot_BANDS) then
    call warning(" number of values for output file exceeds 21 and is reduced")
    nval=nval_max
  endif
