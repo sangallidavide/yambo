@@ -254,7 +254,7 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_f,Xen,Xk)
  !
  ! Step 5: Check new excitonic dipoles
  !
- DIP_ver(:,:EXCITONS_n_user_states)=cZERO
+ DIP_exc(:,:EXCITONS_n_user_states)=cZERO
  !
  do i_exc=1,EXCITONS_n_user_states
    !
@@ -280,15 +280,17 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_f,Xen,Xk)
      !
      DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
      !
-     DIP_ver(:,i_exc)= DIP_ver(:,i_exc)+conjg(DIP_rot(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
+     DIP_exc(:,i_exc)= DIP_exc(:,i_exc)+conjg(DIP_rot(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
      !
    enddo
    !
-   DIP_ver(:,i_exc) = DIP_ver(:,i_exc)/v_norm_c(DIP_ver(:,i_exc))
-   !
  enddo
  !
- call PP_redux_wait(DIP_ver)
+ call PP_redux_wait(DIP_exc)
+ !
+ do i_exc=1,EXCITONS_n_user_states
+   DIP_ver(:,i_exc)=DIP_exc(:,i_exc)/v_norm_c(DIP_exc(:,i_exc))
+ enddo
  !
  call msg("s","Excitonic dipole projections after rotation ")
  do i_exc=1,EXCITONS_n_user_states
