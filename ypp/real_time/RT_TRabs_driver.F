@@ -25,6 +25,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  use drivers,         ONLY:l_rt_carriers_in_use
  use pars,            ONLY:SP,pi,cZERO,rZERO,schlen,DP,cI
+ use stderr,          ONLY:intc
  use parser_m,        ONLY:parser
  use R_lattice,       ONLY:bz_samp,q0_def_norm,d3k_factor
  use electrons,       ONLY:levels,spin,spin_occ
@@ -100,6 +101,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  if (l_neq_exc) then
    if(TRabs_N_Exc==0) TRabs_N_Exc=BSS_n_eig
+   if(TRabs_N_Exc> BSS_n_eig) then
+     TRabs_N_Exc=BSS_n_eig
+     call warning(" Number of excitons in the sum reduced to"//trim(intc(BSS_n_eig)))
+   endif
    RT_conf%T_n_steps=1
  endif
  !
@@ -392,7 +397,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
        i_shift=0
        if(l_EQ) i_shift=BSS_n_eig
        do i_trans=i_shift+1,i_shift+TRabs_N_Exc
-         if (.not.PX_bs%element_1D(i_trans-BSS_n_eig)) cycle
+         if (.not.PX_bs%element_1D(i_trans-i_shift)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
          if(RES==cZERO) cycle
          ! ANTI-RES part to be coded for EPS-BS.
