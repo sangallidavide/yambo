@@ -137,7 +137,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  ! -------------
  if (index(what,"EXC")>0) then
    !
-   call RT_TRabs_rotate_exciton(DIP_kind,DIP_f,Xen,Xk)
+   call RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
    !
    call parser("TRabsGoldModes",l_gold_modes)
    call parser("TRabsNoIntra",  l_skip_intra)

@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_f,Xen,Xk)
+subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
  !
  ! In Intra/Inter excitons absorption the system is initially in an excitonic state
  ! The state is chosen setting in input the excitonic state and the polarization
@@ -52,6 +52,7 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_f,Xen,Xk)
  type(levels),  intent(in) :: Xen
  type(bz_samp), intent(in) :: Xk
  complex(SP),   intent(in) :: DIP_f
+ real(SP),   intent(inout) :: DIP_dir(3,3)
  !
  ! Work space
  !
@@ -169,6 +170,8 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_f,Xen,Xk)
      exit
    enddo
  enddo
+ !
+ DIP_dir=real(transpose(E_ver),SP)
  !
  call msg("s","Projection versors ")
  do i_dir=1,3
