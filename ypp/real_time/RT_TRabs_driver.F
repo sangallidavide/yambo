@@ -217,6 +217,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  call DIPOLE_IO(Xk,Xen,DIPs,'read',io_err,'DIP')
  if (io_err/=0) return
  !
+ if (l_neq_exc.and.DIPs%bands_ordered) &
+ &  call error(" Dipoles database must be generated with bands_ordered=.false. for inter-exciton transitions")
+ !
  ! Allocations
  !
  ! ... Residuals 
