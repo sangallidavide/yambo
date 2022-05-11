@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM DS
@@ -334,6 +334,7 @@ subroutine INIT_activate()
    endif
    call initactivate(1,'XTermKind')
    call initactivate(1,'XTermEn')
+   call initactivate(1,'OptDipAverage')
  endif
  !
  ! ACFDT
@@ -549,11 +550,15 @@ subroutine INIT_activate()
  if (l_nl_optics) then
    call initactivate(1,'FFTGvecs NLBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
    if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps')
-   call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd EvalCurrent InducedField HARRLvcs EXXRLvcs') 
-   call initactivate(1,'Gauge RADLifeTime ExtF_Dir ExtF_Int ExtF_Width ExtF_kind')
-   if(l_nl_p_and_p) call initactivate(1,'ExtF_Freq ExtF_Tstart ExtF2_Dir ExtF2_Freq ExtF2_Int ExtF2_Width ExtF2_kind ExtF2_Tstart')
+   call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd EvalCurrent InducedField FrPolPerdic') 
+   call initactivate(1,'Gauge RADLifeTime HARRLvcs EXXRLvcs') 
    call init_QP_ctl_switch('G')
  endif
+ !
+ do i1=1,n_ext_fields
+   call Afield_activate(i1)
+ enddo
+ !
 #endif
  !
 #if defined _SC
@@ -575,7 +580,7 @@ subroutine INIT_activate()
  !
  contains
    !
-#if defined _RT
+#if defined _RT || defined _NL
    !
    subroutine Afield_activate(i1)
      integer     ::i1

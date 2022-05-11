@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -85,7 +85,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  use RT_occupations,ONLY:RT_RTA_temp,RT_RTA_chem
  use RT_lifetimes,  ONLY:RT_life_extrap_times_INPUT
  use real_time,     ONLY:RT_step, Integrator_name, RAD_LifeTime, Phase_LifeTime, &
-&                        NE_tot_time,RT_bands,RT_deph_Range,                     &
+&                        NE_tot_time,RT_bands,RT_deph_range,                     &
 &                        RT_ave_dephasing,RT_eh_en,RT_scatt_tresh,Gr_kind,       &
 &                        NE_MEM_treshold,NE_time_step_update_jump_INPUT,         &
 &                        two_alpha,DbGd_EE_percent,NE_time_step_update_jump,     &
@@ -352,6 +352,10 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'PF_alpha','[TDDFT] PF alpha factor approximation: CUR/EMP/RBO/JGM',FXC_PF_alpha)
  call it(defs,'LRC_beta', '[TDDFT] LRC beta factor',FXC_LRC_beta,verb_level=V_resp)
  !
+ ! Optics: Q=0 directions average
+ !
+ call it('f',defs,'OptDipAverage', '[Xd] Average Xd along the non-zero Electric Field directions',verb_level=V_resp)
+ !
  ! Optics: large Q momenta
  !
  call it(defs,'Qdirection', '[Xd] Transferred momentum direction (iku)',q_plus_G_direction,verb_level=V_resp)
@@ -378,8 +382,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  !
  ! RIM
  !
- call it(defs,'Em1Anys', '[RIM] X Y Z Static Inverse dielectric matrix',&
-&                         RIM_epsm1,verb_level=V_RL)
+ call it(defs,'Em1Anys', '[RIM] X Y Z Static Inverse dielectric matrix Anysotropy',RIM_epsm1,verb_level=V_RL)
  call it(defs,'IDEm1Ref','[RIM] Dielectric matrix reference component 1(x)/2(y)/3(z)',&
 &                         RIM_id_epsm1_reference,verb_level=V_RL)
  call it(defs,'RandQpts','[RIM] Number of random q-points in the BZ',RIM_n_rand_pts)
@@ -419,7 +422,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'TwoAlpha',   '[RT] C_nk ~ alpha*Gamma_nk^2 ',two_alpha,Verb_level=V_real_time)
  call it(defs,'GrKind',     '[RT] G-ret kind: Lorentzian (QP)/ Hyperbolic QP_secant (HS)',Gr_kind,Verb_level=V_real_time)
  call it(defs,'RADLifeTime','[RT] Radiative life-time (if negative Yambo sets it equal to Phase_LifeTime in NL)', &
-&         RAD_LifeTime,unit=Time_unit(1),Verb_level=V_real_time)
+&         RAD_LifeTime,unit=Time_unit(1))
  call it(defs,'RADmagnific','[RT] Radiative life-time magnification',RAD_magnification,Verb_level=V_real_time)
  call it(defs,'PhLifeTime', '[RT] Constant Dephasing Time',Phase_LifeTime,unit=Time_unit(1))
  call it(defs,'DephTRange', '[RT] Time range in which Dephasing is applied',RT_deph_range,unit=Time_unit(1),Verb_level=V_real_time)
@@ -639,6 +642,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it('f',defs,'DipBandsALL','[DIP] Compute all bands range, not only valence and conduction',verb_level=V_resp)
 #if defined _NL || defined _ELECTRIC
  call it('f',defs,'EvPolarization','[DIP] Evaluate Polarization (require DipApproach=Covariant)',verb_level=V_resp)
+ call it('f',defs,'FrPolPerdic','[DIP] Force periodicity of polarization respect to the external field')
 #endif
 #if defined _RT
  call it('f',defs,'SPINprojected', '[DIP] Project the spin dipoles in the c/v channels ',verb_level=V_real_time)

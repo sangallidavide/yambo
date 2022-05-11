@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -91,7 +91,7 @@ module X_output
      real(SP)           :: Q_plus_G_pt(3)
      character(msg_len) :: message(13)
      character(schlen)  :: unit_msg
-     integer,  optional :: ig
+     integer            :: ig
      real(SP), optional :: Qprime(3)
      !
      if (iq==1.and.ig==1) then

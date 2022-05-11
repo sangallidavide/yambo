@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): CA
@@ -74,8 +74,6 @@ subroutine ELPH_double_grid(k,E,q)
  !
  call section('+','PH-Double Grid initialization')
  !
- if(elph_nb/=E%nb) call warning('Number of bands in the GKKP different from the total number of bands!')
- !
  ! Expand the Coarse Grid 
  !========================
  call k_build_up_BZ_tables(q)
@@ -97,6 +95,8 @@ subroutine ELPH_double_grid(k,E,q)
  call msg('rs','GKKP database : '//db_name)
  !
  if(.not.elph_use_q_grid) call error('Random q-grid not implemented yet ')
+ !
+ if(elph_nb/=E%nb) call warning('Nypp/el-ph/ELPH_double_grid.Fumber of bands in the GKKP different from the total number of bands!')
  !
  call E_reset(PH_freqs)
  PH_freqs%nb=ph_modes
