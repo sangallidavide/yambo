@@ -35,10 +35,13 @@ module EXCPH
  !
  ! ... GKKP & EXC-PH Interaction
  !
+ logical  :: l_const_elph,l_abs_elph,l_abs_exc 
  complex(SP), allocatable :: EXCPH_Gkkp(:,:,:)
  real(SP),    allocatable :: EXCPH_Gkkp_sq(:,:,:)
+ integer                  :: n_exc_in
  integer                  :: EXCPH_states(2)
  integer                  :: EXCPH_sum(2)
+ real(SP), allocatable    :: EXCPH_q(:,:)
  character(schlen)        :: EXCPH_kind
  !
  ! L_in and L_out paths
@@ -52,8 +55,8 @@ module EXCPH
  character(schlen)       :: L_kind_out 
  !
  ! ExcPH gkkp
- ! 
- complex(SP), allocatable :: A_rot(:,:),Xi(:,:,:)
+ !
+ complex(SP), allocatable :: A_rot(:,:),Xi(:,:)
  integer,     allocatable :: BSS_eh_table_m1(:,:,:),BSS_eh_table_m1_in(:,:,:),k_plus_q_table(:,:)
  complex(SP), allocatable :: BS_E_in(:),BS_E(:)
  real(SP),    allocatable :: BS_all_E(:,:)
@@ -97,6 +100,12 @@ module EXCPH
  ! DB Q-mapping in case symmetries are removed
  !
  integer, allocatable :: DB_Q_map(:)
+ !
+ ! Control flags
+ !
+ logical       :: l_DbGd_WEIGHTs ! Double-Grid for Satellite weights
+ logical       :: l_DbGd_PH_only ! Double-Grid only for phonon energies
+ logical       :: l_no_matrix_elements  ! Set EXC-PH matrix elements to 1 (in lifetime and satellites)
  !
  contains
    !      
@@ -148,7 +157,7 @@ module EXCPH
      implicit none
      YAMBO_ALLOC(EXCPH_Gkkp,(ph_modes,EXCPH_sum(1):EXCPH_sum(2),EXCPH_states(1):EXCPH_states(2)))
      YAMBO_ALLOC(EXCPH_Gkkp_sq,(ph_modes,EXCPH_sum(1):EXCPH_sum(2),EXCPH_states(1):EXCPH_states(2)))
-     YAMBO_ALLOC(Xi,(BS_H_dim,EXCPH_sum(1):EXCPH_sum(2),2))    
+     YAMBO_ALLOC(Xi,(BS_H_dim,2))    
      EXCPH_gkkp          =cZERO
      EXCPH_gkkp_sq       =rZERO
    end subroutine EXCPH_gkkp_alloc   
@@ -179,7 +188,7 @@ module EXCPH
      YAMBO_ALLOC_P(BS_R_left,(BSS_n_eig))
      YAMBO_ALLOC_P(BS_R_right,(BSS_n_eig))
      YAMBO_ALLOC(BS_R,(BSS_n_eig))
-     YAMBO_ALLOC(BS_E_in,(BSS_n_eig))
+     YAMBO_ALLOC(BS_E_in,(EXCPH_states(1):EXCPH_states(2)))
      YAMBO_ALLOC(BS_all_E,(BSS_n_eig,q%nibz))
    end subroutine alloc_EXC
    !
@@ -192,7 +201,6 @@ module EXCPH
     type(bz_samp) ::q
     !
     integer :: iq,idb
-    logical :: re_ordered
     !
     YAMBO_ALLOC(DB_Q_map,(q%nbz))
     !
@@ -208,7 +216,6 @@ module EXCPH
     enddo
     if(any(DB_Q_map==0)) call error("Q-point not found in gkkp_expanded DBs")
     !
-    re_ordered=.FALSE.
     do iq=1,q%nbz
       if(DB_Q_map(iq)/=iq) then
         call warning('Q-points in Yambo and gkkp_expanded DBs have a different order !')

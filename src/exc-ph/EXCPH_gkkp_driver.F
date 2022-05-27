@@ -41,22 +41,25 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  !
  use pars,           ONLY:SP,cZERO,rZERO,schlen
  use electrons,      ONLY:levels,n_sp_pol
- use R_lattice,      ONLY:bz_samp,qindx_B_load
+ use R_lattice,      ONLY:bz_samp,qindx_B !_load
  use D_lattice,      ONLY:nsym
+ use parser_m,       ONLY:parser
  use X_m,            ONLY:X_t
  use BS_solvers,     ONLY:BS_mat,BSS_eh_table,BS_H_dim,BSS_n_eig
- use BS,             ONLY:BS_H_dim,BS_bands,L_kind,BS_res_ares_n_mat,BS_K_dim
- use ELPH,           ONLY:ph_modes,elph_branches
+ use BS,             ONLY:BS_H_dim,BS_bands,BS_res_ares_n_mat,BS_K_dim,BSqpts
+ use ELPH,           ONLY:elph_branches,Q_io_map,l_GKKP_expanded_DB_exists
  use IO_m,           ONLY:NONE,OP_APP_CL,OP_RD_CL,DUMP,OP_RD,RD_CL_IF_END,OP_WR_CL,deliver_IO_error_message, &
 &                         REP,VERIFY,WR_CL,OP_WR,WR_CL_IF_END
  use IO_int,         ONLY:io_control
  use EXCPH,          ONLY:BS_mat_in,BSS_eh_table_in,EXCPH_gkkp,EXCPH_gkkp_sq,BS_E_in,BS_E,BSS_eh_table_m1_in,&
-&                         EXCPH_states,EXCPH_sum,EXCPH_kind,BSS_eh_table_m1,k_plus_q_table,Xi,build_Q_map, &
+&                         EXCPH_states,EXCPH_sum,EXCPH_kind,BSS_eh_table_m1,k_plus_q_table,Xi,build_Q_map,EXCPH_q, &
 &                         BS_Sat_E,BS_Sat_E_PH_abs,BS_Sat_WEIGHT,BS_Sat_WEIGHT_PH_abs,Sat_alloc,Sat_free,DB_Q_map, &
-&                         EXCPH_gkkp_alloc,EXCPH_gkkp_free,EXCPH_Renorm,EXCPH_Renorm_PH_abs,Renorm_alloc,Renorm_free
+&                         EXCPH_gkkp_alloc,EXCPH_gkkp_free,EXCPH_Renorm,EXCPH_Renorm_PH_abs,Renorm_alloc,Renorm_free,&
+&                         l_const_elph,l_abs_elph,l_abs_exc,n_exc_in
  use LIVE_t,         ONLY:live_timing
  use timing_m,       ONLY:timing
  use com,            ONLY:msg
+ use R_lattice,      ONLY:RIM_ng,RIM_n_rand_pts
  !
 #include<memory.h>
  !
@@ -66,21 +69,38 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  !
  ! Work Space
  !
- integer, external :: io_ELPH,io_EXCPH_gkkp
- integer  :: ID_gkkp,ID_exc_gkkp,io_err
+ integer, external :: io_ELPH,io_EXCPH_gkkp,io_RIM
+ integer  :: ID_gkkp,ID_exc_gkkp,io_err,io_ID
  integer  :: il,iq,i1,i_star,iq_bz,iq_s,iq_db,elph_branches_save(2)
  real(SP), allocatable  :: max_Sat_weight(:)
  integer,  allocatable  :: max_Sat_pos(:,:)
+ ! Debug
+ !integer :: ik
+ !open(1, file='K_grid_bz.dat')
  !
  call section('*','Excitonic gkkp')
  !======================================
  !
+ ! Define n_exc_in
+ !
+ n_exc_in=EXCPH_states(2)-EXCPH_states(1)+1
+ !
  ! Check if Lout and Lin are present
  ! and read their kind
  ! 
+ ! Load RIM if present
+ !
+ call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/1/),MODE=DUMP,ID=io_ID)
+ io_err=io_RIM(io_ID)
+ !
+ if(io_err==0) call msg('sr','RIM found and loaded')
+ !
  call EXCPH_load_L(1,X,'check','Lout')
  call EXCPH_load_L(1,X,'check','Lin')
  !
+ call parser('ConstElph',l_const_elph)
+ call parser('AbsElph',  l_abs_elph)
+ call parser('AbsExc',   l_abs_exc)
  !
  ! Build Q_map
  elph_branches_save  =elph_branches
@@ -90,8 +110,11 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  !
  ! I build the map only in the case without symmetries
  if(io_err==0) then
+   l_GKKP_expanded_DB_exists=.true.
+   call ELPH_databases_grids_map(k,q)
    call k_ibz2bz(q,"i",.false.)
    call build_Q_map(q)
+   call k_ibz2bz(q,"d",.false.)
  endif
  !
  ! Check if exciton-phonon matrix elements have been already calculated
@@ -123,9 +146,16 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  max_Sat_weight=rZERO
  max_Sat_pos   =0
  !
+ ! Debug
+ !call k_ibz2bz(k,"i",.false.)
+ !do ik=1,k%nbz
+ !!  write (1,*) k%ptbz(ik,:)
+ !enddo
+ !close(1)
+ !
  ! K plus q table
  !
- !call build_k_plus_q_table()
+ call build_k_plus_q_table()
  !
  ! BSS_eh_table_m1
  !
@@ -134,7 +164,7 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  ! Save the Lin in information
  ! 
  BS_mat_in         =BS_mat(:,EXCPH_states(1):EXCPH_states(2))
- BSS_eh_table_in   =BSS_eh_table(EXCPH_states(1):EXCPH_states(2),:)
+ BSS_eh_table_in   =BSS_eh_table
  BSS_eh_table_m1_in=BSS_eh_table_m1
  BS_E_in           =BS_E
  !
@@ -156,9 +186,14 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  call Sat_alloc()
  call Renorm_alloc()
  !
+ ! Get q-point coordinates in the q-BZ
+ YAMBO_ALLOC(EXCPH_q,(q%nbz,3))
+ call get_excph_q_momenta()
+ !
  ! Main q-loop
  !
- call live_timing('Excitonic Gkkp',q%nibz*ph_modes)
+ !call k_ibz2bz(k,"i",.false.)
+ call live_timing('Excitonic Gkkp',q%nbz*(elph_branches(2)-elph_branches(1)+1))
  !
  do iq=1,q%nibz
    ! 
@@ -173,9 +208,9 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      EXCPH_gkkp          =cZERO
      EXCPH_gkkp_sq       =rZERO
      !
-     do il=1,ph_modes
+     do il=elph_branches(1),elph_branches(2)
        !
-       call  EXCPH_gkkp_eval(iq,iq_s,iq_bz,il,E,k,q,X,ID_gkkp)
+       call  EXCPH_gkkp_eval(iq_s,iq_bz,il,k,q,ID_gkkp)
        !
        call live_timing(steps=1)
        !
@@ -188,7 +223,8 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      BS_Sat_WEIGHT       =rZERO
      BS_Sat_WEIGHT_PH_abs=rZERO
      !
-     iq_db=DB_Q_map(iq_bz)
+     !iq_db=DB_Q_map(iq_bz)
+     iq_db=Q_io_map(iq_bz)
      call  EXCPH_eval_sat(iq_bz,q)
      !
      ! Find the maximum weight of the satellites
@@ -210,6 +246,10 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
    !
  enddo
  !
+ ! [FP] DEBUG
+ ! call compare_qindxC_table()
+ ! [FP] END DEBUG
+ !
  call live_timing( )
  !
  call BSE_free()
@@ -220,6 +260,7 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  call EXCPH_gkkp_report()
  YAMBO_FREE(max_Sat_weight)
  YAMBO_FREE(max_Sat_pos)
+ YAMBO_FREE(EXCPH_q)
  ! 
  call Sat_free()
  call Renorm_free()
@@ -239,17 +280,18 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      YAMBO_ALLOC(BSS_eh_table,(BS_H_dim,3+n_sp_pol-1))
      YAMBO_ALLOC(BSS_eh_table_m1,(k%nbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2)))
      YAMBO_ALLOC(BS_E,(BSS_n_eig))
-     !AMBO_ALLOC(k_plus_q_table,(k%nbz,q%nbz))
+     YAMBO_ALLOC(k_plus_q_table,(k%nbz,q%nbz))
+     YAMBO_ALLOC(BSqpts,(3,q%nibz))
      !
      YAMBO_ALLOC(BS_E_in,(BSS_n_eig))
-     YAMBO_ALLOC(BS_mat_in,(BS_H_dim,BSS_n_eig))
+     YAMBO_ALLOC(BS_mat_in,(BS_H_dim,EXCPH_states(1):EXCPH_states(2)))
      YAMBO_ALLOC(BSS_eh_table_in,(BS_H_dim,3+n_sp_pol-1))
      YAMBO_ALLOC(BSS_eh_table_m1_in,(k%nbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2)))
      !
      BS_mat=cZERO
      BS_E=cZERO
      !
-     !k_plus_q_table  = 0
+     k_plus_q_table  = 0
      BSS_eh_table    = 0
      BSS_eh_table_m1 = 0
      !
@@ -270,49 +312,70 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      YAMBO_FREE(BSS_eh_table_in)
      YAMBO_FREE(BSS_eh_table_m1_in)
      YAMBO_FREE(BS_E)
-     !AMBO_FREE(k_plus_q_table)
+     YAMBO_FREE(k_plus_q_table)
+     YAMBO_FREE(BSqpts)
    end subroutine BSE_free
+   !
+   subroutine get_excph_q_momenta()
+     !    
+     integer iq,i_star,iq_s,iq_bz
+     !
+     call k_ibz2bz(q,"i",.false.)
+     !
+!     write(*,*)
+!     write(*,*) 'Excitoni q-list in the BZ '
+     do iq=1,q%nibz
+       !
+       do i_star=1,q%nstar(iq)
+         !
+         iq_s=q%star(iq,i_star)
+         iq_bz = q%k_table(iq, iq_s)
+!         write(*,*) iq_bz,q%ptbz(iq_bz,:)
+         !
+         EXCPH_q(iq_bz,:) = q%ptbz(iq_bz,:)
+         !
+       enddo
+     enddo
+     !
+     call k_ibz2bz(q,"d",.false.)
+     !
+   end subroutine get_excph_q_momenta
    !
    subroutine build_k_plus_q_table()
      !      
      use parallel_int,        ONLY:PARALLEL_global_indexes
      use R_lattice,           ONLY:bse_scattering
      !
-     integer, external ::qindx_B_init,qindx_B_close,io_QINDX 
-     integer :: qindx_ID,qindx_ID_frag,qindx_tmp(2),ID,io_err
+     !integer, external ::qindx_B_init,qindx_B_close,io_QINDX 
+     !integer :: qindx_ID,qindx_ID_frag,qindx_tmp(2),ID,io_err
+     integer, external ::io_QINDX 
+     integer :: ID,io_err
      integer :: ik_bz,iq_bz,ip_bz
      !
      if(.not.bse_scattering) call error(' Please run setup with BSEscatt flag ')
      !
-     call PARALLEL_global_indexes(E,k,q,"BZ_Indexes")
-     call PARALLEL_SETUP_K_scheme("BZINDX")
+     call PARALLEL_SETUP_K_scheme("Kdef")
      !
      ! here qindx_B is allocated
-     !
-     call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1,5/),ID=ID)
+     call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/5/),ID=ID)
      io_err=io_QINDX(k,q,ID)
      if (io_err/=0) then
        call msg('s',"Missing k/q scattering database")
        call error("Please run a setup with the BSEscatt flag activated")
      endif
      !
-     io_err=qindx_B_init(qindx_ID,qindx_ID_frag)
-     if(io_err/=0) call error("Error reading qindx_B")
-     !
      call live_timing('K plus q table',k%nbz)
      do ik_bz=1,k%nbz
        call live_timing(steps=1)
        IQ_bz_loop: do iq_bz=1,q%nbz
          do ip_bz=1,k%nbz
-           qindx_tmp=qindx_B_load(ip_bz,ik_bz,qindx_ID_frag)
-           if (qindx_tmp(1)==iq_bz) then
+           if (qindx_B(ik_bz,ip_bz,1)==iq_bz) then
              k_plus_q_table(ik_bz,iq_bz)=ip_bz
              cycle IQ_bz_loop
            endif
          enddo
        enddo IQ_bz_loop
      enddo
-     qindx_tmp=qindx_B_close(qindx_ID,qindx_ID_frag)
      call live_timing( )
      !
    end subroutine build_k_plus_q_table
@@ -335,6 +398,48 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      call live_timing( )
      !
    end subroutine build_inverse_eh_table
+   !
+   subroutine compare_qindxC_table()
+     !
+     ! [FP] DEBUG FUNCTION (to be removed?)
+     !
+     use R_lattice, ONLY:qindx_C
+     !
+     integer :: ik_plus_iq_C, ik_plus_iq_tbl, ik_bz
+     integer :: iq,i_star,iq_s,iq_bz
+     !
+     !call build_k_plus_q_table()
+     call k_ibz2bz(q,"i",.false.)
+     call k_ibz2bz(k,"i",.false.)
+     !
+     do ik_bz=1, k%nbz
+       write(*,*) ik_bz,k%ptbz(ik_bz,:)
+     enddo
+     !
+     do iq=1,q%nibz
+       !
+       do i_star=1,q%nstar(iq)
+         !
+         iq_s=q%star(iq,i_star)
+         iq_bz = q%k_table(iq, iq_s)
+         !
+         do ik_bz=1, k%nbz
+           !
+           ik_plus_iq_C   = qindx_C(ik_bz,iq_bz,1)
+           ik_plus_iq_tbl = k_plus_q_table(ik_bz,iq_bz)
+           write(*,*) k%ptbz(ik_bz,:),q%ptbz(iq_bz,:)
+           write(*,*) k%ptbz(ik_plus_iq_C,:),ik_plus_iq_C
+           write(*,*) k%ptbz(ik_plus_iq_tbl,:),ik_plus_iq_tbl
+           !
+         enddo
+         !
+       enddo
+     enddo
+     !
+     call k_ibz2bz(q,"d",.false.)
+     call k_ibz2bz(k,"d",.false.)
+     !
+   end subroutine compare_qindxC_table
    !
    subroutine EXCPH_gkkp_report()
      use stderr,        ONLY:intc

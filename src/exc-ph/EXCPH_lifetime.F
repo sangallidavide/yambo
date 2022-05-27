@@ -23,21 +23,21 @@
 !
 !> @brief Calculate exciton non-radiative life-time induced by phonon-scattering
 !!
-subroutine EXCPH_lifetime(E,k,q,X)
+subroutine EXCPH_lifetime(k,q,X)
  !
  use units,          ONLY:HA2EV,HA2CMm1
  use pars,           ONLY:SP,cZERO,rZERO,schlen,pi
  use electrons,      ONLY:levels
  use R_lattice,      ONLY:bz_samp
- use D_lattice,      ONLY:nsym
  use parser_m,       ONLY:parser
  use com,            ONLY:msg,of_open_close
  use X_m,            ONLY:X_t
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:manage_action,OP_RD,REP,RD_CL_IF_END,DUMP
- use EXCPH,          ONLY:EXCPH_sum,EXCPH_states,BS_E,BS_all_E,BS_E_in,L_damping, &
-&                         alloc_EXC,free_EXC,EXC_LifeTime,min_EXC_E,EXCPH_Gkkp_sq,DB_Q_map 
- use ELPH,           ONLY:PH_freqs,use_PH_DbGd,elph_branches,FAN_deltaE_treshold
+ use EXCPH,          ONLY:EXCPH_sum,EXCPH_states,BS_E,BS_all_E,BS_E_in,L_damping,n_exc_in, &
+&                         alloc_EXC,free_EXC,EXC_LifeTime,min_EXC_E,EXCPH_Gkkp_sq,DB_Q_map,l_no_matrix_elements
+ use ELPH,           ONLY:use_PH_DbGd,elph_branches,FAN_deltaE_treshold,Q_io_map
+ use vec_operate,    ONLY:degeneration_finder
  use frequency,      ONLY:w_samp
  use stderr,         ONLY:intc
  !
@@ -49,16 +49,23 @@ subroutine EXCPH_lifetime(E,k,q,X)
  !
  ! Work space
  !
- integer :: ID_exc_gkkp,ID_gkkp,io_err
+ integer  :: ID_exc_gkkp,ID_gkkp,io_err
  integer, external :: io_EXCPH_gkkp,io_ELPH
- integer :: iq,iq_s,iq_bz,i_alpha,i_beta,il,i_star,iq_db
- integer :: elph_branches_save(2)
- integer :: min_pos(1)
+ integer  :: iq,iq_s,iq_bz,i_alpha,j_alpha,i_beta,il,i_star,iq_db,igrp
+ integer  :: elph_branches_save(2)
+ integer  :: min_pos(1),first_exc_grp(n_exc_in),n_of_exc_grp(n_exc_in),n_deg_grp
+ logical  :: l_keep_deg
+ real(SP) :: ExcPhM,EXC_life_average
+ !
+ call parser('NoMatrxEl',l_no_matrix_elements)
+ call parser('KeepDeg',  l_keep_deg)
  !
  call section('*','EXCPH-LifTime')
  !
  call k_build_up_BZ_tables(k)
  call k_build_up_BZ_tables(q)
+ !
+ call k_ibz2bz(q,"i",.false.)
  !
  ! Load excitonic energies 
  !
@@ -71,11 +78,12 @@ subroutine EXCPH_lifetime(E,k,q,X)
  ! Load excitonic energies 
  !
  call EXCPH_load_L(1,X,'eigenvalues','Lin')
- BS_E_in(:)=BS_E(:) ! L_in can be different from L_out 
+ BS_E_in(:)=BS_E(EXCPH_states(1):EXCPH_states(2)) ! L_in can be different from L_out 
  !
  do iq=1,q%nibz
    call EXCPH_load_L(iq,X,'eigenvalues','Lout')
    BS_all_E(:,iq)=real(BS_E(:)) ! I suppose the BSE eigenvalues are real
+   !write(*,*) iq,BS_all_E(:,iq)
  enddo
  !
  ! Load the Exciton-phonon elements and phonon energies
@@ -117,7 +125,8 @@ subroutine EXCPH_lifetime(E,k,q,X)
    io_err=io_EXCPH_gkkp(ID_exc_gkkp,'gkkp')
    if(io_err/=0) call error('excph_gkkp databases not found!')
    !
-   iq_db=DB_Q_map(iq_bz)
+   !iq_db=DB_Q_map(iq_bz)
+   iq_db=Q_io_map(iq_bz)
    call io_control(ACTION=RD_CL_IF_END,COM=REP,SEC=(/1+iq_db/),MODE=DUMP,ID=ID_gkkp)
    io_err=io_ELPH(ID_gkkp,'gkkp_expanded no_matrix_elements')
    if(io_err/=0) call error('gkkp_expanded databases not found!')
@@ -128,10 +137,16 @@ subroutine EXCPH_lifetime(E,k,q,X)
        !
        do il=elph_branches(1),elph_branches(2)
          !
+         ExcPhM=EXCPH_Gkkp_sq(il,i_beta,i_alpha)
+         if(l_no_matrix_elements) ExcPhM=1._SP 
+         !
          if(use_PH_DbGd) then
-           EXC_LifeTime(i_alpha)=EXC_LifeTime(i_alpha)+EXCPH_Gkkp_sq(il,i_beta,i_alpha)*DbGrid_pole()
+           EXC_LifeTime(i_alpha)=EXC_LifeTime(i_alpha)+ExcPhM*DbGrid_pole()
          else
-           EXC_LifeTime(i_alpha)=EXC_LifeTime(i_alpha)+EXCPH_Gkkp_sq(il,i_beta,i_alpha)*Simple_pole()
+           EXC_LifeTime(i_alpha)=EXC_LifeTime(i_alpha)+ExcPhM*Simple_pole()
+           ! DS Debug <
+           ! write(100+i_alpha,*) i_alpha,EXC_LifeTime(i_alpha)
+           ! DS Debug >
          endif
          !
        enddo
@@ -143,7 +158,19 @@ subroutine EXCPH_lifetime(E,k,q,X)
  enddo
  enddo
  !
- EXC_LifeTime=EXC_LifeTime*2._SP*pi/real(q%nbz)
+ ! Perform average
+ !
+ call degeneration_finder(real(BS_E_in(EXCPH_states(1):EXCPH_states(2))),n_exc_in,first_exc_grp, &
+ &        n_of_exc_grp,n_deg_grp,0.001/HA2EV,Include_single_values=.true.)
+ !
+ do igrp=1,n_deg_grp
+   j_alpha=first_exc_grp(igrp)+EXCPH_states(1)-1
+   i_alpha=first_exc_grp(igrp)+n_of_exc_grp(igrp)+EXCPH_states(1)-2
+   EXC_life_average=sum(EXC_LifeTime(j_alpha:i_alpha))/real(n_of_exc_grp(igrp),SP)
+   EXC_LifeTime(j_alpha:i_alpha)=EXC_life_average
+ enddo
+ !
+ EXC_LifeTime=EXC_LifeTime*2._SP*pi/real(q%nbz,SP)
  !
  ! Print output and write on file
  !
@@ -158,8 +185,9 @@ subroutine EXCPH_lifetime(E,k,q,X)
   !
   function Simple_pole()
     use EXCPH,          ONLY:min_EXC_E,DB_Q_map
-    use ELPH,           ONLY:FAN_deltaE_treshold,PH_freqs_sq
+    use ELPH,           ONLY:FAN_deltaE_treshold,PH_freqs_sq,Q_io_map
     use functions,      ONLY:bose_f,boltzman_f,Lorentzian_func
+    use units,          ONLY:HA2EV
     implicit none
     !
     real(SP) :: Simple_pole
@@ -172,9 +200,17 @@ subroutine EXCPH_lifetime(E,k,q,X)
     E_alpha=real(BS_E_in(i_alpha),SP)
     E_beta =BS_all_E(i_beta,iq)
     !
-    iq_db=DB_Q_map(iq_bz)
+    iq_db=Q_io_map(iq_bz)
     ph_E=sqrt(abs(PH_freqs_sq(iq_db,il)))
+    !
     if(ph_E<FAN_deltaE_treshold) return
+    !
+    ! Remove degenerate states E(alpha,iq_in)=E(beta,iq_in) [currently iq_in=1]
+    !
+    ! if(iq_db==1.and.abs(E_alpha-E_beta)<FAN_deltaE_treshold .and. .not.l_keep_deg) return
+    ! if(iq_db==1.and.i_alpha==i_beta) return
+    !
+    if(abs(E_alpha-E_beta-ph_E)<FAN_deltaE_treshold.or.abs(E_alpha-E_beta+ph_E)<FAN_deltaE_treshold) return
     !
     N_bose  =bose_f(ph_E)
     !
@@ -183,18 +219,22 @@ subroutine EXCPH_lifetime(E,k,q,X)
     Simple_pole=(1._SP+N_bose+F_boltz)*Lorentzian_func(E_alpha-E_beta-ph_E,L_damping) &
 &                    +(N_bose-F_boltz)*Lorentzian_func(E_alpha-E_beta+ph_E,L_damping)
     !
+    ! DEBUG <
+    ! write(200+i_alpha,*) E_alpha*HA2EV,E_beta*HA2EV,ph_E*HA2EV
+    ! DEBUG >
+    !
   end function Simple_Pole
   !
   function DbGrid_pole()
     use EXCPH,          ONLY:min_EXC_E_DbGd,EXC_E_DbGd
-    use ELPH,           ONLY:FAN_deltaE_treshold
+    use ELPH,           ONLY:FAN_deltaE_treshold,PH_freqs,PH_freqs_sq,Q_io_map
     use functions,      ONLY:bose_f,boltzman_f,Lorentzian_func
     implicit none
     !
     real(SP) :: DbGrid_pole
     real(SP) :: E_alpha,E_beta
     real(SP) :: ph_E,N_bose,F_boltz
-    integer  :: nq_around,iq_fg
+    integer  :: nq_around,iq_fg,iE_fg
     real(SP) :: weight_dbgd
     real(SP), external :: get_ph_E_DbGd
     !
@@ -207,12 +247,32 @@ subroutine EXCPH_lifetime(E,k,q,X)
     !
     do iq_fg=q%FGbz%k_range(iq_bz,1),q%FGbz%k_range(iq_bz,2)
       !
-      ph_E=get_ph_E_DbGd(il,iq_fg,iq_bz,q)
+      if(iq_fg==q%FGbz%k_range(iq_bz,1)) then
+        iq_db=Q_io_map(iq_bz)
+        ph_E=sqrt(abs(PH_freqs_sq(iq_db,il)))
+        !
+        ! If there is the double-grid I read the gamma phonons from there
+        ! because they include the LO-TO splitting and the acustic sum rule
+        !
+        if(iq_bz==1) ph_E=PH_freqs%FG%E(il,1,1)
+        !
+      else
+        iE_fg=q%FGbz%E_map(iq_fg)                      ! Map w(q) from BZ to IBZ
+        ph_E =PH_freqs%FG%E(il,iE_fg,1)                ! w(q_db) phonon energy in the D-Grid
+      endif
+      !
       if(ph_E<FAN_deltaE_treshold) cycle
       !
-      N_bose  =bose_f(ph_E)
-      !
       E_beta=EXC_E_DbGd(i_beta,iq_fg)
+      !
+      ! Remove degenerate states E(alpha,iq_in)=E(beta,iq_fg(iq_in)) [currently iq_in=1]
+      !
+      ! if(iq==1.and.abs(E_alpha-E_beta)<FAN_deltaE_treshold .and. .not.l_keep_deg) return
+      ! if(iq==1.and.i_alpha==i_beta) return
+      !
+      if(abs(E_alpha-E_beta-ph_E)<FAN_deltaE_treshold.or.abs(E_alpha-E_beta+ph_E)<FAN_deltaE_treshold) return
+      !
+      N_bose  =bose_f(ph_E)
       F_boltz=boltzman_f(E_beta-min_EXC_E_DbGd)  ! Bose function? Boltzman function?
       !
       DbGrid_pole=DbGrid_pole+(1._SP+N_bose+F_boltz)*Lorentzian_func(E_alpha-E_beta-ph_E,L_damping) &
@@ -226,17 +286,18 @@ subroutine EXCPH_lifetime(E,k,q,X)
   !
   subroutine print_and_write()
     use pars,           ONLY:schlen
-    use OUTPUT_simple,  ONLY:OUTPUT_add_column
+    use OUTPUT,         ONLY:OUTPUT_driver
     use stderr,         ONLY:real2ch,intc,log2ch
     !
     implicit none
     !
     character(schlen) :: what='QP'
     !
-    call OUTPUT_add_column(what,action="reset")
-    call OUTPUT_add_column(what,action="open")
-    call OUTPUT_add_column(what,ORDER=(/"Eo"/))
-    call OUTPUT_add_column(what,ORDER=(/"Width [me"/))
+    call OUTPUT_driver(what,action="reset")
+    call OUTPUT_driver(what,action="open")
+    !
+    call OUTPUT_driver(what,ORDER=(/"Eo"/))
+    call OUTPUT_driver(what,ORDER=(/"Width [me"/))
     !
     call msg('rs','Exciton lifetimes:')
     !
@@ -251,16 +312,16 @@ subroutine EXCPH_lifetime(E,k,q,X)
     !
     do i_alpha=EXCPH_states(1),EXCPH_states(2)
       !
-      call OUTPUT_add_column(what,TITLES=(/"Band   "/),I_VALUES=(/i_alpha/))
-      call OUTPUT_add_column(what,TITLES=(/"E"/),R_VALUES=(/real(BS_E_in(i_alpha))/),UNIT="eV")
-      call OUTPUT_add_column(what,TITLES=(/"Width"/),R_VALUES=(/EXC_LifeTime(i_alpha)/),UNIT="meV")
-      call OUTPUT_add_column(what,action="write")
+      call OUTPUT_driver(what,TITLES=(/"Band   "/),I_VALUES=(/i_alpha/))
+      call OUTPUT_driver(what,TITLES=(/"E"/),R_VALUES=(/real(BS_E_in(i_alpha))/),UNIT="eV")
+      call OUTPUT_driver(what,TITLES=(/"Width"/),R_VALUES=(/EXC_LifeTime(i_alpha)/),UNIT="meV")
+      call OUTPUT_driver(what,action="write")
       !
       call msg('rs','Exciton ['//trim(intc(i_alpha))//'] Lifetime: ',EXC_LifeTime(i_alpha)*HA2EV*1000._SP,'meV')
       !
     enddo  
     !
-    call OUTPUT_add_column(what,action="close")
+    call OUTPUT_driver(what,action="close")
     !
   end subroutine 
   !
