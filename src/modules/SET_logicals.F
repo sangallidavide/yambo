@@ -77,6 +77,11 @@ subroutine SET_logicals()
  io_SC          =.TRUE.
  io_BS_K        =.TRUE.
  !
+#if defined _NL
+ io_CARRIERs    =.FALSE.
+ io_GF          =.FALSE.
+#endif
+ !
  ch_piece=' '
  call STRING_split(DBs_IO_control_string,ch_piece)
  !

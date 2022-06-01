@@ -49,7 +49,7 @@ subroutine NL_start_and_restart(E,k,Dip)
  use parallel_m,     ONLY:master_cpu
  use nl_optics,      ONLY:Correlation,IPA,E_full,full_rho,V_bands,TDDFT,n_freqs_todo,NL_LRC_alpha,NL_bands, &
 &                         V_xc_0,NL_initial_P,l_use_DIPOLES,n_frequencies,freqs_done,JGM,E_xc_0,I_relax,l_use_DIPOLES, &
-&                         VAL_BANDS,l_eval_CURRENT,NL_initial_J,NL_P
+&                         VAL_BANDS,l_eval_CURRENT,NL_initial_J,NL_P,l_pump_and_probe
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,NONE,file_is_present,VERIFY
  use parallel_int,   ONLY:PP_redux_wait
@@ -65,6 +65,7 @@ subroutine NL_start_and_restart(E,k,Dip)
  !
  ! Working space
  !
+ logical :: RESTART
  integer :: i1,ib,i_f,i_sp_pol
  integer :: ID,io_NonLinear
  integer, external::io_NL
@@ -185,6 +186,27 @@ subroutine NL_start_and_restart(E,k,Dip)
  !
  n_freqs_todo=n_frequencies-count(freqs_done)
  if(n_freqs_todo/=n_frequencies) call msg('s','RESTART, remaining frequencies ',n_freqs_todo)
+ !
+ if (l_pump_and_probe.and.RESTART) then
+   !
+   call RT_IO_type_time_steps("RESTART")
+   !!
+   !call msg( 'nr','---RESTART report---')
+   !!
+   !call msg('s','[RESTART] Number of steps done         ',real(NE_i_time)/real(NE_steps)*100._SP,"[o/o]")
+   !call msg('r','Number of steps done              ',real(NE_i_time)/real(NE_steps)*100._SP,"[o/o]")
+   !call msg('r','Time reached                      ',real(NE_i_time-1)*RT_step*AUT2FS,"[fs]")
+   !call msg('r','Time step                         ',RT_dyn_step*AUT2FS,"[fs]")
+   !!
+   !call msg('r',  'dT Update Interval                ',NE_time_step_update_jump*AUT2FS,"[fs]")
+   !call msg('r',  'Lifetimes inter/intr times        ',RT_life_extrap_times*AUT2FS,"[fs]")
+   !call msg('r',  'T cache step  of J,P,M            ',CACHE_OBS_INTERVAL_time*AUT2FS,"[fs]")
+   !call msg('r',  'T between I/O of J,P,M            ',OBS_RT_IO_t%INTERVAL_time*AUT2FS,"[fs]")
+   !call msg('r',  '          I/O of carriers         ',CARR_RT_IO_t%INTERVAL_time*AUT2FS,"[fs]")
+   !call msg('r',  '          I/O of   WFs            ',Gless_RESTART_RT_IO_t%INTERVAL_time*AUT2FS,"[fs]")
+   !call msg('r',  '               outputs            ',OUTPUT_RT_IO_t%INTERVAL_time*AUT2FS,"[fs]")
+   !
+ endif
  !
 end subroutine NL_start_and_restart
 

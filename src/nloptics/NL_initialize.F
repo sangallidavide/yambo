@@ -36,7 +36,7 @@ subroutine NL_initialize(E,k)
  use fields,         ONLY:Efield,Efield_strength,n_ext_fields,EtoT
  use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field, &
 &                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime
- use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t
+ use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free
  use nl_optics,      ONLY:l_use_DIPOLES,EULER,EULEREXP,RK2,RK4,RK2EXP,RK4EXP,HEUN,INVINT,Integrator,CRANK_NICOLSON, &
 &                         NL_damping,NL_correlation,Correlation,NL_er,NL_estep,n_frequencies,IPA,TDDFT,HARTREE,LRC,JGM, &
 &                         LRCW,SEX,HF,eval_dG,eval_COLLISIONS,NL_bands,NL_verb_name,VERB_HIGH,VERB_LOW,NL_verbosity, &
@@ -320,14 +320,12 @@ subroutine NL_initialize(E,k)
  ! frequencies is supported
  !
  RT_dyn_step=RT_step
- OBS_RT_IO_t%INTERVAL_time     =RT_step
- OBS_RT_IO_t%INTERVAL_time_INPUT=RT_step
- call SETUP_RT_IO_type(OBS_RT_IO_t,who="OBS",what="INIT")
- YAMBO_ALLOC(OBS_RT_IO_t%Time,(NE_steps))
- do NE_i_time=1,NE_steps
-   Time=real(NE_i_time-1,SP)*RT_step
-   OBS_RT_IO_t%Time(NE_i_time)=Time
- enddo
+ !
+ ! I/O steps
+ !===========
+ call RT_IO_type_time_steps("INIT")
+ !
+ call RT_control_alloc("all")
  !
  ! WFs sampling
  ! =========================
