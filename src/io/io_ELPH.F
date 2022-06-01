@@ -27,7 +27,7 @@ integer function io_ELPH(ID,what)
  use IO_m,           ONLY:io_sec,read_is_on,frag_ELPH
  use IO_int,         ONLY:io_connect,io_disconnect,io_fragment,&
 &                         io_bulk,io_header
- use ELPH,           ONLY:ph_modes,elph_nb,PH_freqs_sq,l_GKKP_hosts_bare_dV,l_GKKP_hosts_DW,&
+ use ELPH,           ONLY:ph_modes,elph_nb,PH_freqs_sq,l_GKKP_hosts_bare_dV,l_GKKP_DW,&
 &                         PH_pol_vector,GKKP,elph_grids_are_expanded,GKKP,GKKP_bare
  use stderr,         ONLY:intc
  use interfaces,     ONLY:ELPH_alloc
