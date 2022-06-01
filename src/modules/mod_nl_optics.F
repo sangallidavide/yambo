@@ -26,7 +26,7 @@ module nl_optics
  use descriptors,     ONLY:IO_desc
  use pars,            ONLY:SP,schlen,lchlen
  use electrons,       ONLY:levels
- use real_time,       ONLY:NE_steps
+ use real_time,       ONLY:NE_steps,dG_lesser
  !
 #include<memory.h>
  !
@@ -76,9 +76,6 @@ module nl_optics
  complex(SP), allocatable :: VAL_BANDS(:,:,:,:)
  !
  real(SP),    allocatable :: full_rho(:)       ! density of all bands from 1:SC_bands(2)
- !
- ! Density matrix
- complex(SP), allocatable :: dG(:,:,:) 
  !
  ! Integrator Variables
  !
@@ -196,10 +193,13 @@ module nl_optics
      !
      if(Correlation==TDDFT.or.Correlation==JGM) then
        YAMBO_ALLOC(V_xc_0,(fft_size,n_spin))
-     endif          
+     endif
+     !
+     if(l_use_Hxc_collisions.or.l_pump_and_probe) then
+       YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,1))
+     endif
      !
      if(l_use_Hxc_collisions) then
-       YAMBO_ALLOC(dG,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk))
        YAMBO_ALLOC(RT_Vnl_xc,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,n_sp_pol))
      endif          
      !
@@ -275,8 +275,11 @@ module nl_optics
      YAMBO_FREE(E_ks_t)
      YAMBO_FREE(V_bands_t)
      !
+     if(l_use_Hxc_collisions.or.l_pump_and_probe) then
+       YAMBO_FREE(dG_lesser)
+     endif
+     !
      if(l_use_Hxc_collisions) then
-       YAMBO_FREE(dG)
        YAMBO_FREE(RT_Vnl_xc)
      endif
      !

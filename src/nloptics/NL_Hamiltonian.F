@@ -37,12 +37,12 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
  use X_m,            ONLY:global_gauge,X_t
  use fields,         ONLY:A_ext,A_tot,Efield
  use real_time,      ONLY:eval_DFT,eval_HARTREE,l_RT_induced_Field,rho_reference,&
-&                         Ho_plus_Sigma,RT_Vnl_xc,RT_nbands         
+&                         Ho_plus_Sigma,RT_Vnl_xc,RT_nbands,dG_lesser
  use wave_func,      ONLY:WF
  use xc_functionals, ONLY:V_xc,XC_potential_driver
  use nl_optics,      ONLY:Correlation,V_xc_0,full_rho,IPA,E_full,LRC,JGM,LRCW,l_use_DIPOLES,NL_LRC_alpha,   &
-&                         NL_initial_P,E_tot,E_ext,E_ks,E_xc_0,I_relax,Alpha_ED,dG,eval_dG, & 
-&                         NL_bands,VAL_BANDS,NL_P
+&                         NL_initial_P,E_tot,E_ext,E_ks,E_xc_0,I_relax,Alpha_ED,eval_dG, & 
+&                         NL_bands,VAL_BANDS,NL_P,l_pump_and_probe
  use global_XC,      ONLY:WF_xc_functional,WF_kind
  use parallel_m,     ONLY:PAR_IND_Xk_ibz,PAR_Xk_ibz_index
  use wrapper_omp,    ONLY:M_plus_alpha_M_omp
@@ -173,8 +173,8 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
  !
  ! Evaluate the G_lesser if using TD-SEX or TD-HF and than add COLLISIONS
  ! ======================================================
- if(eval_dG)              call NL_build_dG_lesser(E,V_bands,dG)
- if(l_use_Hxc_collisions) call COLLISIONS_compose_nl(dG)
+ if(eval_dG.or.l_pump_and_probe) call NL_build_dG_lesser(E,V_bands,dG_lesser(:,:,:,1))
+ if(l_use_Hxc_collisions) call COLLISIONS_compose_nl(dG_lesser(:,:,:,1))
  !
  ! Build the Hamiltonian
  ! =====================
