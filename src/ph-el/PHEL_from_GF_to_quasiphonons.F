@@ -112,7 +112,7 @@ subroutine PHEL_from_GF_to_quasiphonons(il,iq,ph_freq,QPH)
  do iw=1,QPH%N_D_freqs
    W=real( QPH%W(iw) ) + cI*0.1_SP/1000._SP/HA2EV
    if (trim(QPH%what)=="FULL") then
-     QPH%D(iw)=D_from_PI(cmplx(ph_freq),PHEL_qp%PI(il,iq,iw)-PI_ref,W)
+     QPH%D(iw)=D_from_PI(cmplx(ph_freq,kind=SP),PHEL_qp%PI(il,iq,iw)-PI_ref,W)
    else if (.not.trim(QPH%what)=="DDFPT)") then
      QPH%D(iw)=D_from_POLE_and_GAMMA(QPH%Pole,QPH%Gamma,QPH%Residual,W)
    endif

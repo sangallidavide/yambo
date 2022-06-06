@@ -3,11 +3,11 @@ SC_objects = load_SC_components.o io_SC_components.o variables_SC.o io_KB_real_s
 #endif
 #if defined _RT 
 RT_objects = io_RT_components.o io_RT_components_G_lesser.o io_RT_components_header.o io_RT_components_OBS.o \
-             io_RT_components_V_bands.o io_RT_components_Reference.o io_RT_components_TIME_points.o \
+             io_RT_components_Reference.o io_RT_components_TIME_points.o \
              variables_RT_static.o variables_RT_dynamic.o io_KB_real_space.o
 #endif
 #if defined _NL 
-NL_objects = variables_NL.o io_NL.o
+NL_objects = variables_NL.o io_NL.o io_RT_components_V_bands.o
 #endif
 #if defined _ELPH 
 ELPH_objects = variables_ELPH.o io_ELPH.o io_gFsq.o
