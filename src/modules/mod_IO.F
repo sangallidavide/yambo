@@ -53,6 +53,7 @@ module IO_m
  logical           :: io_OBSERVABLES
  logical           :: io_CARRIERs
  logical           :: io_GF
+ logical           :: io_V_bands
  logical           :: io_SC
  logical           :: io_BS_K
  logical           :: io_SCREEN

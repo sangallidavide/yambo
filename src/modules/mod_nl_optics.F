@@ -70,7 +70,7 @@ module nl_optics
  ! WFs and Density
  !
  ! Bands in terms of Kohn-Sham orbitals
- complex(SP), allocatable :: V_bands(:,:,:,:)  ! time-dependent valence bands
+ complex(SP), allocatable, target :: V_bands(:,:,:,:)  ! time-dependent valence bands
  ! 
  ! Time-dependent Valence bands in real-space
  complex(SP), allocatable :: VAL_BANDS(:,:,:,:)
