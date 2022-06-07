@@ -222,13 +222,17 @@ subroutine NL_driver(E,X,k,q,Dip)
      cycle
    endif
    !
-   ! Re-initialization
-   ! ================
-   V_bands=cZERO
-   do i_sp_pol=1,n_sp_pol
-     forall(i1=1:E%nbf(n_sp_pol)) V_bands(i1,i1,:,i_sp_pol)=cONE
-   enddo
-   if(WF_sample%ison) V_bands_t = cZERO
+   if (.not.l_pump_and_probe) then
+     !
+     ! Re-initialization
+     ! ================
+     V_bands=cZERO
+     do i_sp_pol=1,n_sp_pol
+       forall(i1=1:E%nbf(n_sp_pol)) V_bands(i1,i1,:,i_sp_pol)=cONE
+     enddo
+     if(WF_sample%ison) V_bands_t = cZERO
+     !
+   endif
    !
    ! Efield
    ! ================
@@ -236,7 +240,7 @@ subroutine NL_driver(E,X,k,q,Dip)
    !
    l_dynamics_is_over=.false.
    !
-   NE_i_time=0
+   if(.not.l_pump_and_probe) NE_i_time=0
    N_sample_size=0
    !
    do while(.not.l_dynamics_is_over)
@@ -269,13 +273,12 @@ subroutine NL_driver(E,X,k,q,Dip)
        !
      else
        !
-     !
-     ! Store Variables
-     !
-     NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
-     E_ext_t(NE_i_time,:)=E_ext
-     E_tot_t(NE_i_time,:)=E_tot
-     E_ks_t (NE_i_time,:)=E_ks
+       ! Store Variables
+       !
+       NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
+       E_ext_t(NE_i_time,:)=E_ext
+       E_tot_t(NE_i_time,:)=E_tot
+       E_ks_t (NE_i_time,:)=E_ks
        !
      endif
      !

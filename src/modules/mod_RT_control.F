@@ -279,6 +279,7 @@ module RT_control
        YAMBO_FREE(OBS_RT_IO_t%Time)
        YAMBO_FREE(CARR_RT_IO_t%Time)
        YAMBO_FREE(Gless_RESTART_RT_IO_t%Time)
+       YAMBO_FREE(Vbands_RT_IO_t%Time)
      endif
      !
    end subroutine RT_control_free

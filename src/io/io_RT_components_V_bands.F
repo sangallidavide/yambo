@@ -25,14 +25,11 @@ subroutine io_RT_components_V_bands(ID,T_size)
  !
  use pars,           ONLY:SP,schlen
  use drivers,        ONLY:l_nl_p_and_p
- use R_lattice,      ONLY:nkibz
- use stderr,         ONLY:intc
  use iso_c_binding,  ONLY:C_LOC,C_F_POINTER
  use IO_int,         ONLY:def_variable_bulk,io_variable_bulk
- use IO_m,           ONLY:io_sec,io_unit,netcdf_call,nf90_sync
  use electrons,      ONLY:n_sp_pol,n_full_bands
  use RT_control,     ONLY:Vbands_RT_IO_t,NE_i_start_time,SAVE_Vb_history
- use real_time,      ONLY:RT_bands,RT_nbands,NE_i_time!,RT_dyn_step,RT_step
+ use real_time,      ONLY:RT_bands,NE_i_time!,RT_dyn_step,RT_step
  use nl_optics,      ONLY:V_bands
  use netcdf,         ONLY:NF90_UNLIMITED
  use QP_m,           ONLY:QP_nk
@@ -41,9 +38,7 @@ subroutine io_RT_components_V_bands(ID,T_size)
  !
  integer, intent(in)  :: ID,T_size
  !
- logical           :: l_H_rot,l_H_sig,l_H_EQ
- integer           :: ib,i_sp_pol,i_mem,i_mem_sorted,VAR_SZ(6),IPOS(6),&
-&                     PAR_G_k_range_ibz(2),k_range(2),ip,TMP_VAR_SZ
+ integer           :: VAR_SZ(6),IPOS(6)
  character(schlen) :: dim_names(6)
  complex(SP),pointer :: tmp_link(:,:,:,:,:)
  !
@@ -56,7 +51,7 @@ subroutine io_RT_components_V_bands(ID,T_size)
  dim_names(1:5)  =[character(schlen) :: 'complex', 'NL_bands','nb_full','QP_nk','n_sp_pol']
  IPOS(1:5)=1
  !
- VAR_SZ(6)    = 1
+ VAR_SZ(6)    = T_size
  dim_names(6) ='V_bands_IO_time_step'
  IPOS(6)=Vbands_RT_IO_t%N
  ! 
@@ -68,11 +63,11 @@ subroutine io_RT_components_V_bands(ID,T_size)
  ! 
  ! Variable Definitions...
  !-------------------------
- if( NE_i_time==NE_i_start_time.or..not.l_nl_p_and_p) then
+ if( NE_i_time==NE_i_start_time .or. .not.l_nl_p_and_p) then
    if (SAVE_Vb_history) VAR_SZ(6)    = NF90_UNLIMITED
    !call def_variable_bulk(ID,"V_bands",4,VAR_SZ,SP,dim_names=dim_names,par_io_kind='collective',silent=.true.)
    call def_variable_bulk(ID,"V_bands",4,VAR_SZ,SP,dim_names=dim_names,silent=.true.)
-   VAR_SZ(6)    = 1
+   VAR_SZ(6)    = T_size
  endif
  !
  ! Variable I/O...

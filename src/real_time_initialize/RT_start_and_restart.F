@@ -132,7 +132,7 @@ subroutine RT_start_and_restart(E,k,q)
  ! Perform a first I/O to check which DBs are present.
  !=====================================================
  RESTART=.FALSE.
- do i_db=1,N_RT_databases
+ do i_db=1,N_RT_databases-2
    COM_MODE=NONE
    if (i_db==RT_return_db_ID("G_lesser_RESTART_K_section").or.i_db==RT_return_db_ID("G_lesser_K_section")) cycle
    if (i_db==RT_return_db_ID("G_lesser_RESTART")) COM_MODE=REP
