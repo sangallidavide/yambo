@@ -42,7 +42,7 @@ subroutine NL_driver(E,X,k,q,Dip)
  use nl_optics,      ONLY:n_frequencies,Correlation,IPA,NL_alloc,NL_free,V_bands,eval_dG,NL_J,NL_initial_J, &
 &                         NL_estep,NL_er,Integrator,l_use_DIPOLES,NL_P_t,JGM,TDDFT,NL_P,l_pump_and_probe, &
 &                         E_ext_t,E_tot_t,E_ks_t,E_ks,E_tot,E_ext,freqs_done,n_freqs_todo,l_eval_CURRENT,&
-&                         HF,SEX,NL_bands,NL_nbands,WF_sample,V_bands_t,NL_alloc_k_distributed
+&                         HF,SEX,NL_bands,NL_nbands,V_bands_t,NL_alloc_k_distributed
  use real_time,      ONLY:RT_step,NE_steps,NE_i_time,NE_time,RT_nbands,RT_bands,eval_DFT,RT_P,RT_ind_J,&
 &                         dG_lesser
  use IO_m,           ONLY:io_COLLs
@@ -230,7 +230,6 @@ subroutine NL_driver(E,X,k,q,Dip)
      do i_sp_pol=1,n_sp_pol
        forall(i1=1:E%nbf(n_sp_pol)) V_bands(i1,i1,:,i_sp_pol)=cONE
      enddo
-     if(WF_sample%ison) V_bands_t = cZERO
      !
    endif
    !

@@ -41,7 +41,7 @@ subroutine NL_initialize(E,k)
  use nl_optics,      ONLY:l_use_DIPOLES,EULER,EULEREXP,RK2,RK4,RK2EXP,RK4EXP,HEUN,INVINT,Integrator,CRANK_NICOLSON, &
 &                         NL_damping,NL_correlation,Correlation,NL_er,NL_estep,n_frequencies,IPA,TDDFT,HARTREE,LRC,JGM, &
 &                         LRCW,SEX,HF,eval_dG,eval_COLLISIONS,NL_bands,NL_verb_name,VERB_HIGH,VERB_LOW,NL_verbosity, &
-&                         n_order,WF_sample,NL_set_WF_sample,NL_INIT_WF_sample,l_eval_CURRENT,l_pump_and_probe,DephMult
+&                         l_eval_CURRENT,l_pump_and_probe,DephMult
  use electric,       ONLY:l_force_SndOrd,l_P_periodic
  use parser_m,       ONLY:parser
  use stderr,         ONLY:intc
@@ -53,7 +53,7 @@ subroutine NL_initialize(E,k)
  !
  ! Working space
  !
- real(SP) :: Time, WF_sample_range(2),W_0,T_0,sigma 
+ real(SP) :: Time, W_0,T_0,sigma 
  integer  :: i1
  !
  ! Parser
@@ -330,18 +330,6 @@ subroutine NL_initialize(E,k)
  !
  call RT_control_alloc("all")
  !
- ! WFs sampling
- ! =========================
- !
- call NL_INIT_WF_sample(WF_sample)
- WF_sample_range  = (/OBS_RT_IO_t%Time(NE_steps) - EtoT(E=NL_er(1))+5._SP*RT_step,OBS_RT_IO_t%Time(NE_steps)/)
- call NL_set_WF_sample(WF_sample,n_order,RT_step,WF_sample_range,v=E%nbf,k=k%nibz)
- if (Efield(1)%ef_name/='SOFTSIN'.and.Efield(1)%ef_name/='SIN') WF_sample%ison = .false.
- if (n_order > 0) then
-   if (WF_sample%ison.eqv..false.) call warning('WF sampling switched off (only available with SOFTSIN/SIN field')
-   if (WF_sample%n_order < n_order) call warning('WF sampling analysis order set to the maximum of 7')
- end if
- !
  ! LOG
  ! ===
  !
@@ -370,6 +358,5 @@ subroutine NL_initialize(E,k)
  call msg( 'r', 'Force Snd Order Dipoles    ',l_force_SndOrd)
  call msg( 'r', 'Evaluate Current           ',l_eval_CURRENT)
  call msg( 'r', 'Enforce periodic pol.      ',l_P_periodic)
- call msg( 'r', 'WF sampling                ',WF_sample%ison) 
  !
 end subroutine NL_initialize

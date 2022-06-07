@@ -97,7 +97,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #endif
 #if defined _NL
  use nl_optics,     ONLY:NL_bands,NL_damping,NL_correlation,NL_er,n_frequencies,NL_LRC_alpha, &
-&                        NL_verb_name,n_order
+&                        NL_verb_name
 #endif 
 #if defined _NL | defined _SC
  use fields,        ONLY:Efield
@@ -449,7 +449,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #elif defined _RT
  IO_times=(/CARR_RT_IO_t%INTERVAL_time_INPUT,Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT,OUTPUT_RT_IO_t%INTERVAL_time_INPUT/)
 #endif
- call it(defs,'IOtime',      '[RT] Time between two consecutive I/O (CARRIERs - GF - OUTPUT)',IO_times,unit=Time_unit(1))
+ call it(defs,'IOtime',      '[RT] Time between two consecutive I/O (CARRIERs - GF/WF - OUTPUT)',IO_times,unit=Time_unit(1))
  CARR_RT_IO_t%INTERVAL_time_INPUT             =IO_times(1)
  Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT    =IO_times(2)
  Gless_RT_IO_t%INTERVAL_time_INPUT            =IO_times(2)
@@ -534,8 +534,6 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it('f',defs,'FrSndOrd','[NL] Force second order in Covariant Dipoles',verb_level=V_nl_optics)
  call it('f',defs,'EvalCurrent','[NL] Evaluate the current')
  call it('f',defs,'SaveVbhistory',  '[RT] Save the history of the wave-functions function',Verb_level=V_nl_optics)
- !
- call it(defs,'NLSampleWF',  '[NL] Sample the WFs (sampling NL order)',n_order,verb_level=V_nl_optics)
  !
 #endif
  !

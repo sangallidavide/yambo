@@ -120,7 +120,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 #endif
 #if defined _NL
  use nl_optics,  ONLY:NL_correlation,NL_er,n_frequencies,NL_damping,NL_LRC_alpha,         &
-&                     NL_verb_name,NL_bands,n_order,NL_desc
+&                     NL_verb_name,NL_bands,NL_desc
  use fields,     ONLY:Efield,Efield_reset
 #endif
 #if defined _SC
@@ -686,7 +686,6 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  NL_correlation="IPA"
  NL_er         =(/0.2_SP,8._SP/)/HA2EV
  n_frequencies =1
- n_order    = 0
  NL_damping    =0.2_SP/HA2EV
  NL_LRC_alpha  =0._SP
  !
