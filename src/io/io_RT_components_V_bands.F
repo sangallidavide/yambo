@@ -31,7 +31,7 @@ subroutine io_RT_components_V_bands(ID,T_size)
  use IO_int,         ONLY:def_variable_bulk,io_variable_bulk
  use IO_m,           ONLY:io_sec,io_unit,netcdf_call,nf90_sync
  use electrons,      ONLY:n_sp_pol,n_full_bands
- use RT_control,     ONLY:Vbands_RT_IO_t,NE_i_start_time,RT_do_IO
+ use RT_control,     ONLY:Vbands_RT_IO_t,NE_i_start_time,SAVE_Vb_history
  use real_time,      ONLY:RT_bands,RT_nbands,NE_i_time!,RT_dyn_step,RT_step
  use nl_optics,      ONLY:V_bands
  use netcdf,         ONLY:NF90_UNLIMITED
@@ -57,7 +57,6 @@ subroutine io_RT_components_V_bands(ID,T_size)
  IPOS(1:5)=1
  !
  VAR_SZ(6)    = 1
- if (RT_do_IO("V_bands_K_section")) VAR_SZ(6)    = NF90_UNLIMITED
  dim_names(6) ='V_bands_IO_time_step'
  IPOS(6)=Vbands_RT_IO_t%N
  ! 
@@ -70,8 +69,10 @@ subroutine io_RT_components_V_bands(ID,T_size)
  ! Variable Definitions...
  !-------------------------
  if( NE_i_time==NE_i_start_time.or..not.l_nl_p_and_p) then
+   if (SAVE_Vb_history) VAR_SZ(6)    = NF90_UNLIMITED
    !call def_variable_bulk(ID,"V_bands",4,VAR_SZ,SP,dim_names=dim_names,par_io_kind='collective',silent=.true.)
    call def_variable_bulk(ID,"V_bands",4,VAR_SZ,SP,dim_names=dim_names,silent=.true.)
+   VAR_SZ(6)    = 1
  endif
  !
  ! Variable I/O...

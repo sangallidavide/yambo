@@ -287,8 +287,8 @@ subroutine RT_databases_IO(E,DO_IT)
    !
    if (RT_do_it('Vb').or.DO_IT) then
      !
-     Vbands_RT_IO_t%N=1
-     if (SAVE_Vb_history) Vbands_RT_IO_t%N=Vbands_RT_IO_t%N+1
+     if (.not.SAVE_Vb_history) Vbands_RT_IO_t%N=1
+     if (     SAVE_Vb_history) Vbands_RT_IO_t%N=Vbands_RT_IO_t%N+1
      Vbands_RT_IO_t%Time(Vbands_RT_IO_t%N)=NE_time
      !
      IO_ACT=manage_action(OP_IF_START_APP_CL_IF_END,NE_i_time,NE_i_start_time,NE_steps)
@@ -301,8 +301,8 @@ subroutine RT_databases_IO(E,DO_IT)
      ! (PARALLEL) k-SECTION 3
      !
      !call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/3/),ID=RT_DB_ID(idb_Vb_k),COMM=PAR_COM_Xk_ibz_INDEX,DO_IT=HEAD_k_CPU)
-     call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/3/),ID=RT_DB_ID(idb_Vb_k),DO_IT=master_cpu)
-     io_Vb=io_RT_components("V_bands",RT_DB_ID(idb_Vb_k))
+     call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/3/),ID=RT_DB_ID(idb_Vb_k))
+     io_Vb=io_RT_components("V_bands_K_section",RT_DB_ID(idb_Vb_k))
      !
    endif
    !
