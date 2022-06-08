@@ -26,10 +26,11 @@ subroutine io_RT_components_V_bands(ID,T_size)
  use pars,           ONLY:SP,schlen
  use drivers,        ONLY:l_nl_p_and_p
  use iso_c_binding,  ONLY:C_LOC,C_F_POINTER
+ use IO_m,           ONLY:read_is_on,write_is_on
  use IO_int,         ONLY:def_variable_bulk,io_variable_bulk
  use electrons,      ONLY:n_sp_pol,n_full_bands
  use RT_control,     ONLY:Vbands_RT_IO_t,NE_i_start_time,SAVE_Vb_history
- use real_time,      ONLY:RT_bands,NE_i_time!,RT_dyn_step,RT_step
+ use real_time,      ONLY:RT_bands,RT_nbands,NE_i_time!,RT_dyn_step,RT_step
  use nl_optics,      ONLY:V_bands
  use netcdf,         ONLY:NF90_UNLIMITED
  use QP_m,           ONLY:QP_nk
@@ -38,28 +39,24 @@ subroutine io_RT_components_V_bands(ID,T_size)
  !
  integer, intent(in)  :: ID,T_size
  !
- integer           :: VAR_SZ(6),IPOS(6)
+ integer           :: VAR_SZ(6),IPOS(6),nbf
  character(schlen) :: dim_names(6)
- complex(SP),pointer :: tmp_link(:,:,:,:,:)
+ !complex(SP),pointer :: tmp_link(:,:,:,:,:)
+ complex(SP)       :: tmp_var(RT_nbands,maxval(n_full_bands),QP_nk,n_sp_pol,1)
  !
  ! Setup
  !=======
  !
- ! Variables SIZE and strings...
- !-------------------------------
- VAR_SZ(1:5)=(/2,RT_bands(2),maxval(n_full_bands),QP_nk,n_sp_pol/)
- dim_names(1:5)  =[character(schlen) :: 'complex', 'NL_bands','nb_full','QP_nk','n_sp_pol']
+ ! Variables SIZE and names...
+ !----------------------------
+ nbf=maxval(n_full_bands)
+ VAR_SZ(1:5)=(/2,RT_nbands,nbf,QP_nk,n_sp_pol/)
+ dim_names(1:5)  =[character(schlen) :: 'complex', 'RT_nbands','nb_full','QP_nk','n_sp_pol']
  IPOS(1:5)=1
  !
  VAR_SZ(6)    = T_size
  dim_names(6) ='V_bands_IO_time_step'
- IPOS(6)=Vbands_RT_IO_t%N
- ! 
- ! Sizes...
- !----------
- !ik = maxval(io_sec(ID,:))-2
- !k_range      =(/1,QP_nk/)
- !G_IO_steps   =Vbands_RT_IO_t%INTERVAL_steps/nint(RT_dyn_step/RT_step)
+ IPOS(6)      = Vbands_RT_IO_t%N
  ! 
  ! Variable Definitions...
  !-------------------------
@@ -72,11 +69,13 @@ subroutine io_RT_components_V_bands(ID,T_size)
  !
  ! Variable I/O...
  !-----------------
- call C_F_POINTER(C_LOC(V_bands),tmp_link,VAR_SZ(2:6))
- call io_variable_bulk(ID,4,C5=tmp_link,IPOS=IPOS)
- nullify(tmp_link)
+ ! This does not work since the variable is not contiguous
+ !call C_F_POINTER(C_LOC(V_bands(RT_bands(1):RT_bands(2),1:nbf,1:QP_nk,1:n_sp_pol)),tmp_link,VAR_SZ(2:6))
+ !call io_variable_bulk(ID,4,C5=tmp_link,IPOS=IPOS)
+ !nullify(tmp_link)
  !
- ! In case of frequent I/O this gives a significant slowdown of the simulation
- ! if (G_IO_steps>=10) call netcdf_call(nf90_sync(io_unit(ID)),ID)
+ if (write_is_on(ID)) tmp_var(:,:,:,:,1) = V_bands(RT_bands(1):RT_bands(2),1:nbf,1:QP_nk,1:n_sp_pol)
+ call io_variable_bulk(ID,4,C5=tmp_var,IPOS=IPOS)
+ if (read_is_on(ID)) V_bands(RT_bands(1):RT_bands(2),1:nbf,1:QP_nk,1:n_sp_pol) = tmp_var(:,:,:,:,1)
  !
 end subroutine io_RT_components_V_bands

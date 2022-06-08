@@ -207,7 +207,6 @@ subroutine NL_start_and_restart(E,k,Dip)
      COM_MODE=NONE
      if (i_db==RT_return_db_ID("V_bands_K_section")) cycle
      if (i_db==RT_return_db_ID("V_bands")) COM_MODE=REP
-     write(*,*) i_db
      call io_control(ACTION=OP_RD_CL,COM=COM_MODE,SEC=(/1/),MODE=VERIFY,ID=RT_DB_ID(i_db))
      io_err(i_db)=io_RT_components(trim(RT_DB_name(i_db)),RT_DB_ID(i_db))
    enddo
