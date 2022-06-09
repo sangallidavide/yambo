@@ -66,8 +66,6 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  real(SP) :: local_exx_fraction 
  real(DP) :: exsr
  !
- integer(SP) :: size_IPL_s
- !
  ! XC routines arrays
  !
  real(SP) :: spin_rho_SP(fft_size,n_spin),rho(fft_size)
@@ -255,24 +253,23 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  end if
  !
  size_IPL=int(fft_size,kind=IPL)
- size_IPL_s = size_IPL
  !
  do ixc = 1,2
    if (fnctl(ixc)%id == 0) cycle
    if (fnctl(ixc)%family==XC_FAMILY_LDA) then 
      select case(ORDER)
        case(0)
-         call xc_f03_lda_exc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), tmp_exc(1))
+         call xc_f03_lda_exc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), tmp_exc(1))
          E_xc = E_xc + real(tmp_exc,SP)    
        case(1)
-         call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), v1rho(1,1))
+         call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), v1rho(1,1))
          forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
        case(2)
          if( l_BS_magnons) then
-           call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), v1rho(1,1))
+           call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), v1rho(1,1))
            if(n_spinor==2) forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
          endif
-         call xc_f03_lda_fxc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), v2rho2(1,1))
+         call xc_f03_lda_fxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), v2rho2(1,1))
          ! Yambo internal for Kxc
          call XC_eval_lda_kernel(v1rho,v2rho2)
      end select
@@ -281,10 +278,10 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
         if(FUNCTIONAL==XC_HYB_GGA_XC_GAUPBE*XC_FACTOR) call XC_eval_pbegaux(spin_rho_DP(1,1), sigma(1,1), exsr,vx1(1,1),vx2(1,1))
      select case(ORDER)
        case(0)
-         call xc_f03_gga_exc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), sigma(1,1), tmp_exc(1))
+         call xc_f03_gga_exc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), sigma(1,1), tmp_exc(1))
          E_xc = E_xc + real(tmp_exc,SP)    
        case(1)
-         call xc_f03_gga_vxc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), sigma(1,1), v1rho(1,1), v1sigma(1,1))
+         call xc_f03_gga_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), sigma(1,1), v1rho(1,1), v1sigma(1,1))
          if (FUNCTIONAL==XC_HYB_GGA_XC_GAUPBE*XC_FACTOR.and.ixc==1) then
            !GAUPBE short energy part of the x potential,factor 2 in vx2 for
            !consistency qith QE
@@ -296,11 +293,11 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
        case(2)
          if (FUNCTIONAL==XC_HYB_GGA_XC_GAUPBE*XC_FACTOR) call error(' Fxc not coded for GAU-PBEP')
          if( l_BS_magnons) then
-           call xc_f03_gga_vxc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), sigma(1,1), v1rho(1,1), v1sigma(1,1))
+           call xc_f03_gga_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), sigma(1,1), v1rho(1,1), v1sigma(1,1))
            ! Yambo internal for V_xc
            if(n_spinor==2) call XC_eval_gga_potential(v1rho,v1sigma,drho)
          endif
-         call xc_f03_gga_fxc(fnctl(ixc)%conf, size_IPL_s, spin_rho_DP(1,1), sigma(1,1), v2rho2(1,1), v2rhosigma(1,1), v2sigma2(1,1))
+         call xc_f03_gga_fxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), sigma(1,1), v2rho2(1,1), v2rhosigma(1,1), v2sigma2(1,1))
          ! Yambo internal for Kxc
          call XC_eval_gga_kernel(v1rho,v1sigma,v2rho2,v2rhosigma,v2sigma2)
      end select
