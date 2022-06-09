@@ -212,7 +212,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
    !
    K_INV_EPS%spectra(:,1)=Epsilon_ii(:,2)
    if (l_BS_photolum) then
-     K_INV_PL%spectra(:,1)=PL(:,2)
+     K_INV_PL%spectra(:,1)=cmplx(PL(:,2),0._SP,kind=SP)
      !
      call io_control(ACTION=OP_WR_CL,COM=NONE,SEC=(/1,2,3,4/),ID=ID)
      i_err=io_BSS_invert(iq,W,ID)
@@ -264,7 +264,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  ! I/O [after full inversion]
  !=====
  K_INV_EPS%spectra(:,1)=Epsilon_ii(:,2)
- if (l_BS_photolum) K_INV_PL%spectra(:,1)=PL(:,2)
+ if (l_BS_photolum) K_INV_PL%spectra(:,1)=cmplx(PL(:,2),0._SP,kind=SP)
  !
  if (l_BS_photolum) then
    call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1,2,3,4/),ID=ID)

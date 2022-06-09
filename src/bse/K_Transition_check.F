@@ -28,7 +28,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  use X_m,          ONLY:global_gauge
  use DIPOLES,      ONLY:DIPOLE_t
  use electrons,    ONLY:levels,n_sp_pol,filled_tresh,spin_occ
- use BS,           ONLY:BS_not_const_eh_f,BS_perturbative_SOC,BS_eh_en,l_BS_magnons
+ use BS,           ONLY:BS_not_const_eh_f,BS_perturbative_SOC,BS_eh_en,l_BS_magnons,l_BS_photolum
 #if defined _RT
  use drivers,      ONLY:l_rt_carriers_in_use
  use RT_control,   ONLY:NEQ_Residuals,NEQ_Kernel,EQ_Transitions,EQ_NoOcc
@@ -88,16 +88,9 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
 #if defined _RT
  if (l_rt_carriers_in_use.and.allocated(Ken%fo)) then
    !
-   write(*,*) 'EQ_Transitions', EQ_Transitions
-   write(*,*) 'NEQ_Kernel', NEQ_Kernel
-   write(*,*) 'NEQ_Residuals', NEQ_Residuals
-   !
    if (     EQ_Transitions) f_eh_REF=(Ken%fo(iv,ikp,i_sp_v)-Ken%fo(ic,ik ,i_sp_c))/spin_occ
    if (.not.EQ_Transitions) f_eh_REF=(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
-   if (     NEQ_Kernel    ) then
-     f_eh =(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
-     write(*,*)'checking f_eh', f_eh, Ken%f (iv,ikp,i_sp_v), Ken%f (ic,ik ,i_sp_c), iv, ic, ik, i_sp_c
-   endif
+   if (     NEQ_Kernel    ) f_eh =(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
    if (.not.NEQ_Kernel    ) f_eh =(Ken%fo(iv,ikp,i_sp_v)-Ken%fo(ic,ik ,i_sp_c))/spin_occ
    if (     NEQ_Residuals ) f_eh_RES=(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
    if (.not.NEQ_Residuals ) f_eh_RES=(Ken%fo(iv,ikp,i_sp_v)-Ken%fo(ic,ik ,i_sp_c))/spin_occ
@@ -136,6 +129,8 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  !   However they contribute to the JDOS. We need to take only the E>0 component,
  ! since the E<0 component is then accounted for by the anti-resonant part
  if ( f_eh_REF==0._SP .and. E_eh*(-1._SP)**(i_res_ares-1)<0._SP ) K_Transition_check=.FALSE.
+ !   f_eh=0 transitions give issue in PL. Removed in this case
+ if (l_BS_photolum .and. f_eh_REF==0._SP) K_Transition_check=.FALSE.
  !
 #if defined _RT
  !
