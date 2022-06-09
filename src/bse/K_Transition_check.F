@@ -88,9 +88,16 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
 #if defined _RT
  if (l_rt_carriers_in_use.and.allocated(Ken%fo)) then
    !
+   write(*,*) 'EQ_Transitions', EQ_Transitions
+   write(*,*) 'NEQ_Kernel', NEQ_Kernel
+   write(*,*) 'NEQ_Residuals', NEQ_Residuals
+   !
    if (     EQ_Transitions) f_eh_REF=(Ken%fo(iv,ikp,i_sp_v)-Ken%fo(ic,ik ,i_sp_c))/spin_occ
    if (.not.EQ_Transitions) f_eh_REF=(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
-   if (     NEQ_Kernel    ) f_eh =(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
+   if (     NEQ_Kernel    ) then
+     f_eh =(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
+     write(*,*)'checking f_eh', f_eh, Ken%f (iv,ikp,i_sp_v), Ken%f (ic,ik ,i_sp_c), iv, ic, ik, i_sp_c
+   endif
    if (.not.NEQ_Kernel    ) f_eh =(Ken%fo(iv,ikp,i_sp_v)-Ken%fo(ic,ik ,i_sp_c))/spin_occ
    if (     NEQ_Residuals ) f_eh_RES=(Ken%f (iv,ikp,i_sp_v)-Ken%f (ic,ik ,i_sp_c))/spin_occ
    if (.not.NEQ_Residuals ) f_eh_RES=(Ken%fo(iv,ikp,i_sp_v)-Ken%fo(ic,ik ,i_sp_c))/spin_occ

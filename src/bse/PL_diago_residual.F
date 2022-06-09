@@ -44,9 +44,9 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
  ! Workspace
  !
  type(PP_indexes)     ::px
- integer              ::i_l,i_c,i_K,i_lr,i_ll
+ integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
  complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
-&                       R_over_R_x_A(2,BS_H_dim),B(BS_H_dim)
+&                       R_over_R_x_A(2,BS_K_dim(1)),B(BS_H_dim)
  !
  ! Parallel indexes
  !
@@ -140,25 +140,34 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
    write(*,*) 'shape(BS_V_right)', shape(BS_V_right)
    write(*,*) 'shape(BSS_PL_f)', shape(BSS_PL_f)
    !
-   do i_l=1,BS_K_dim(1)
+   do i_l=1,2!BS_K_dim(1)
      !
      if (.not.px%element_1D(i_l)) cycle
      !                       
      ! R_over_R_x_A = R<_j/R_j A^l_j
      !
-     R_over_R_x_A(1,1:BS_K_dim(1)) =  BSS_PL_f(1:BS_K_dim(1)) *BS_V_right(1:BS_K_dim(1),i_l)/BSS_eh_f(1:BS_K_dim(1))
-     R_over_R_x_A(2,:) =  BSS_PL_f(BS_K_dim(1)+1:)*BS_V_right(:,i_l)/BSS_eh_f(:)
+     if (i_l == 1) write(*,*) 'BSS_PL_f', dot_product(BSS_PL_f(1:BS_K_dim(1)),BSS_PL_f(1:BS_K_dim(1)))
+     if (i_l == 1) write(*,*) 'BS_V_right', dot_product(BS_V_right(1:BS_K_dim(1),1),BS_V_right(1:BS_K_dim(1),1))
+     if (i_l == 1) write(*,*) 'BSS_eh_f', dot_product(BSS_eh_f(1:BS_K_dim(1)),BSS_eh_f(1:BS_K_dim(1)))
      !
+     do ik=1,BS_K_dim(1)
+       R_over_R_x_A(1,ik) =  BSS_PL_f(ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik)
+       write(*,*) ik, R_over_R_x_A(1,ik), BSS_PL_f(ik),BS_V_right(ik,i_l),BSS_eh_f(ik)
+     enddo
+!     R_over_R_x_A(1,1:BS_K_dim(1)) =  BSS_PL_f(1:BS_K_dim(1))*BS_V_right(1:BS_K_dim(1),i_l)/BSS_eh_f(1:BS_K_dim(1))
+     R_over_R_x_A(2,1:BS_K_dim(1)) =  BSS_PL_f(BS_K_dim(1)+1:)*BS_V_right(BS_K_dim(1)+1:,i_l)/BSS_eh_f(BS_K_dim(1)+1:)
+     !
+     if (i_l == 1) write(*,*) 'R_over_R_x_A(1,1)', R_over_R_x_A(1,1)
      ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
      !
-     adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(:,i_l)),R_over_R_x_A(1,:))
-     adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(:,i_l)),R_over_R_x_A(2,:))
+     adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(1:BS_K_dim(1),i_l)),R_over_R_x_A(1,1:BS_K_dim(1)))
+     adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(BS_K_dim(1)+1:,i_l)),R_over_R_x_A(2,BS_K_dim(1)+1:))
      !
      do i_c=1,3
        !                                   
        ! Pi_x_R_x_adA_right =   Pi sqrt(R)  A^l_i
        !
-       Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_K_dim(1),BS_V_right(:,i_l),P_x_fZ(:,i_c,1))
+       Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_H_dim,BS_V_right(:,i_l),P_x_fZ(:,i_c,1))
        !
      enddo
      !
@@ -167,6 +176,7 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
      !
      BS_R_PL(:,i_l)=dot_product(Pi_x_R_x_adA_right,Pi_x_R_x_adA_right)*adA_x_R_over_R_x_A(:)
      !
+     if (i_l == 1) write(*,*) BS_R_PL(:,i_l)
      call live_timing(steps=1)
      !
    enddo
