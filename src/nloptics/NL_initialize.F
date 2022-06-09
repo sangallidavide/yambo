@@ -155,20 +155,21 @@ subroutine NL_initialize(E,k)
    !
  enddo
  !
- if((Efield(1)%ef_name/='none').and.Efield(2)%ef_name/='none') then
+ if(((Efield(1)%ef_name/='none').and.Efield(2)%ef_name/='none').or.n_frequencies==1) then
    l_pump_and_probe=.true.
    l_NE_with_fields=.true.
+   call msg('sl','[NL] Variables NLEnSteps and NLEnRange are ignored ')
    call msg('sr','[NL] Pump and probe configuration: verbosity set to high')
-   if(n_frequencies/=1) call error("NLEnSteps /=1 not compatible with Pump and Probe!!! ")
+   if(n_frequencies/=1) call error("NLEnSteps /=1 not compatible with Pump and Probe ")
    NL_verbosity=VERB_HIGH
  elseif((Efield(1)%ef_name/='none').and.Efield(2)%ef_name=='none') then
    call msg('sr','[NL] Non-linear optics configuration')
  else
-   call error(" Please set at least one external field ! ")
+   call error(" Please set at least one external field")
  endif
  !
  if(Efield(1)%ef_name/='SOFTSIN'.and.Efield(1)%ef_name/='SIN') &
-    call warning(' Non-linear optics properties can be obtained with SOFTSIN/SIN fields only!')
+    call warning(' Non-linear optics properties can be obtained with SOFTSIN/SIN fields only')
  !
  ! For short pulses field (PULSE, QSSIN, QSFIELD, SPULSE)
  ! calcualte the T_0
@@ -205,7 +206,7 @@ subroutine NL_initialize(E,k)
      !  
      ! Run length is 6*Phase_lifeTime + 4 fs for response analysis
      !
-     if(NL_damping<zero_dfl) call error(" Error damping=0 and NLtime<0!! ") 
+     if(NL_damping<zero_dfl) call error(" Error damping=0 and NLtime<0 ") 
      !
      ! Dephasing Time
      !
@@ -226,7 +227,7 @@ subroutine NL_initialize(E,k)
      call msg('sr','Dephasing                   ',Phase_LifeTime*AUT2FS,"[fs]")
      !
    else
-     call error("Negative total simulation time! ")
+     call error("Negative total simulation time ")
    endif
    ! 
  else
