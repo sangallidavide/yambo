@@ -74,8 +74,8 @@ subroutine RT_X_response(en,k,q)
    !--------------------------------------------------
    ! Database
    !
-   allocate(Pol(N_pumps+N_probes))
-   allocate(Curr(N_pumps+N_probes))
+   allocate(Pol(N_pumps+N_probes+1))
+   allocate(Curr(N_pumps+N_probes+1))
    !
    call IO_temporary_jobdir_and_strings("ALL","SAVE")
    !
@@ -83,8 +83,13 @@ subroutine RT_X_response(en,k,q)
      Pol(1)%title ="polarization"
      Curr(1)%title="current"
    else
-     Pol(1)%title ="probe-polarization"
-     Curr(1)%title="probe-current"
+     !
+     ! Here the assumption is that
+     ! - run 1 contains both the pump(s) and the probe. Probe is Field1
+     ! - run 2 contains only the pump(s)
+     !
+     Pol(1)%title ="pump-probe-polarization"
+     Curr(1)%title="pump-probe-current"
      Pol(2)%title ="pump-polarization"
      Curr(2)%title="pump-current"
      if (.not.STRING_same(Pump_path,"default")) call IO_temporary_jobdir_and_strings("JOBSTR",Pump_path)
@@ -106,6 +111,12 @@ subroutine RT_X_response(en,k,q)
    if (N_pumps>0) then
      call RT_OBSERVABLES_damp_and_write(Pol(2),RT_conf,l_skip_OBS_IO)
      call RT_OBSERVABLES_damp_and_write(Curr(2),RT_conf,l_skip_OBS_IO)
+     Pol(3)%title ="probe-polarization"
+     Curr(3)%title="probe-current"
+     Pol(3)%F_t =Pol(1)%F_t -Pol(2)%F_t
+     Curr(3)%F_t=Curr(1)%F_t-Curr(2)%F_t
+     call RT_OBSERVABLES_damp_and_write(Pol(3),RT_conf,l_skip_OBS_IO)
+     call RT_OBSERVABLES_damp_and_write(Curr(3),RT_conf,l_skip_OBS_IO)
    endif
    !
    if ( l_RT_pol ) then

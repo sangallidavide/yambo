@@ -72,15 +72,17 @@ integer function variables_RT_static(ID)
  ! ELPH_vars
  !
 #if defined _ELPH
- call def_variable_elemental(ID,VAR="ELPH_vars",VAR_SZ=5,VAR_KIND=IP+100,MENU=0) 
- call io_variable_elemental(ID,L0=l_elph_scatt,&
-&   VAR=" [E-P] Electron-phonon", CHECK=.true.,OP=(/"=="/),DESCRIPTOR=RT_desc)
- call io_variable_elemental(ID,L0=l_RT_iterative_ELPH_lifetimes,&
-&   VAR=" [E-P] Iterative time evolution   ", CHECK=.true.,OP=(/"=="/),DESCRIPTOR=RT_desc)
- call io_variable_elemental(ID, &
-&   VAR=" [E-P] Branches",I1=elph_branches,CHECK=.true.,OP=(/"==","=="/),DESCRIPTOR=RT_desc)
- call io_variable_elemental(ID, &
-&   VAR=" [E-P] GF`s Memory steps",I0=G_MEM_steps,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=RT_desc)
+ if (.not.  (read_is_on(ID) .and. .not.variable_exist(ID,"ELPH_vars")) ) then
+   call def_variable_elemental(ID,VAR="ELPH_vars",VAR_SZ=5,VAR_KIND=IP+100,MENU=0) 
+   call io_variable_elemental(ID,L0=l_elph_scatt,&
+&     VAR=" [E-P] Electron-phonon", CHECK=.true.,OP=(/"=="/),DESCRIPTOR=RT_desc)
+   call io_variable_elemental(ID,L0=l_RT_iterative_ELPH_lifetimes,&
+&     VAR=" [E-P] Iterative time evolution   ", CHECK=.true.,OP=(/"=="/),DESCRIPTOR=RT_desc)
+   call io_variable_elemental(ID, &
+&     VAR=" [E-P] Branches",I1=elph_branches,CHECK=.true.,OP=(/"==","=="/),DESCRIPTOR=RT_desc)
+   call io_variable_elemental(ID, &
+&     VAR=" [E-P] GF`s Memory steps",I0=G_MEM_steps,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=RT_desc)
+ endif
 #endif
  !
  ! E-E_vars

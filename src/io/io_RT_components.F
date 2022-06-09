@@ -210,9 +210,13 @@ integer function io_RT_components(what,ID)
  !=======================
  if (RT_do_IO("ANY_G")) call io_RT_components_G_lesser(ID_frag,T_size)
  !
+#if defined _NL
+ !
  ! Vbands
  !========
  if (RT_do_IO("ANY_Vb")) call io_RT_components_V_bands(ID_frag,T_size)
+ !
+#endif
  !
  ! Carrier components
  !====================
