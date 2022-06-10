@@ -184,12 +184,14 @@ module RT_control
      !
      if (what=="ANY_G".and.(RT_current_DB_identifier==5.or.RT_current_DB_identifier==6)) RT_do_IO=.TRUE.
      if (what=="ANY_G".and.(RT_current_DB_identifier==10.or.RT_current_DB_identifier==11)) RT_do_IO=.TRUE.
+     if (what=="ANY_K_section".and.(RT_current_DB_identifier==6.or.RT_current_DB_identifier==11)) RT_do_IO=.TRUE.
      if (what=="G_lesser_RESTART".and.RT_current_DB_identifier==5) RT_do_IO=.TRUE.
      if (what=="G_lesser_RESTART_K_section".and.RT_current_DB_identifier==6) RT_do_IO=.TRUE.
      if (what=="G_lesser".and.        RT_current_DB_identifier==10) RT_do_IO=.TRUE.
      if (what=="G_lesser_K_section".and.        RT_current_DB_identifier==11) RT_do_IO=.TRUE.
      !
      if (what=="ANY_Vb".and.(RT_current_DB_identifier==12.or.RT_current_DB_identifier==13)) RT_do_IO=.TRUE.
+     if (what=="ANY_K_section".and.      RT_current_DB_identifier==13) RT_do_IO=.TRUE.
      if (what=="V_bands".and.            RT_current_DB_identifier==12) RT_do_IO=.TRUE.
      if (what=="V_bands_K_section".and.  RT_current_DB_identifier==13) RT_do_IO=.TRUE.
      !
