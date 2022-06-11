@@ -147,7 +147,9 @@ subroutine NL_initialize(E,k)
    !
    Efield(i1)%versor        =normalize_v(Efield(i1)%versor)
    Efield(i1)%amplitude     =Efield_strength(Efield(i1)%intensity,'AU')
-   Efield(i1)%t_initial_indx=nint(Efield(i1)%t_initial/RT_step)+1
+   ! t_initial_indx cannot be 1, a previouss time step is always needed
+   ! see definition of "step_case" in function "theta_function" in src/modules/mod_functions.F
+   Efield(i1)%t_initial_indx=max(nint(Efield(i1)%t_initial/RT_step)+1,2)
    Efield(i1)%t_initial     =real(Efield(i1)%t_initial_indx-1)*RT_step
    Efield(i1)%ef_pol        ="linear"
    !
