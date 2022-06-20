@@ -333,6 +333,13 @@ subroutine NL_initialize(E,k)
  !
  call RT_control_alloc("all")
  !
+ if(.not.l_pump_and_probe) then
+   do NE_i_time=1,NE_steps
+     Time=real(NE_i_time-1,SP)*RT_step
+     OBS_RT_IO_t%Time(NE_i_time)=Time
+   enddo
+ endif
+ !
  ! LOG
  ! ===
  !
