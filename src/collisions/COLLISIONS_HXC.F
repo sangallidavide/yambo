@@ -120,9 +120,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  N_g_vecs_C =0
  iGo_max    =maxval(qindx_S(:,:,2))
  !
- if(COLLISIONS_HXC_local                      ) N_g_vecs_H  = QP_ng_SH
- if(COLLISIONS_HXC_MB                         ) N_g_vecs_X  = QP_ng_Sx
- if(COLLISIONS_HXC_MB .or.l_use_COH_collisions) N_g_vecs_C  = QP_ng_Sc
+ if (COLLISIONS_HXC_local) N_g_vecs_H  = QP_ng_SH
+ if (COLLISIONS_HXC_MB   ) N_g_vecs_X  = QP_ng_Sx
+ if (l_compute_screening ) N_g_vecs_C  = QP_ng_Sc
  !
  call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_H,"SH")
  call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_X,"SF")
