@@ -45,6 +45,7 @@ subroutine NL_driver(E,X,k,q,Dip)
 &                         HF,SEX,NL_bands,NL_nbands,V_bands_t,NL_alloc_k_distributed
  use real_time,      ONLY:RT_step,NE_steps,NE_i_time,NE_time,RT_nbands,RT_bands,eval_DFT,RT_P,RT_ind_J,&
 &                         dG_lesser
+ use RT_control,     ONLY:OBS_RT_IO_t
  use IO_m,           ONLY:io_COLLs
  use parallel_int,   ONLY:PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use parallel_m,     ONLY:PAR_IND_freqs,PAR_IND_freqs_ID,PAR_IND_Xk_ibz
@@ -65,7 +66,7 @@ subroutine NL_driver(E,X,k,q,Dip)
  !
  integer           :: i_f,i1,i_sp_pol,N_sample_size,wf_ng_save,io_err
  logical           :: l_dynamics_is_over
- real(SP)          :: OBSERVABLES(25)
+ real(SP)          :: OBSERVABLES(25),Time
  !
  ! In Non-Linear NL_bands always equal to RT_bands
  ! ==============================================
@@ -268,16 +269,15 @@ subroutine NL_driver(E,X,k,q,Dip)
        !=====================
        call RT_output_and_IO_driver('write',E,k,OBSERVABLES)
        !
-     else
-       !
-       ! Store Variables
-       !
-       NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
-       E_ext_t(NE_i_time,:)=E_ext
-       E_tot_t(NE_i_time,:)=E_tot
-       E_ks_t (NE_i_time,:)=E_ks
-       !
      endif
+     !
+     ! Store Variables
+     !
+     NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
+     E_ext_t(NE_i_time,:)=E_ext
+     E_tot_t(NE_i_time,:)=E_tot
+     E_ks_t (NE_i_time,:)=E_ks
+     !
      !
      call NL_output(NE_i_time,i_f)
      !

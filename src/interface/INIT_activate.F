@@ -554,11 +554,12 @@ subroutine INIT_activate()
    call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd EvalCurrent InducedField FrPolPerdic') 
    call initactivate(1,'Gauge RADLifeTime HARRLvcs EXXRLvcs') 
    call init_QP_ctl_switch('G')
+   !
+   do i1=1,n_ext_fields
+     call Afield_activate(i1)
+   enddo
+   !
  endif
- !
- do i1=1,n_ext_fields
-   call Afield_activate(i1)
- enddo
  !
 #endif
  !

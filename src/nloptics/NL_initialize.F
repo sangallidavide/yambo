@@ -160,7 +160,7 @@ subroutine NL_initialize(E,k)
  if(((Efield(1)%ef_name/='none').and.Efield(2)%ef_name/='none').or.n_frequencies==1) then
    l_pump_and_probe=.true.
    l_NE_with_fields=.true.
-   call msg('sl','[NL] Variables NLEnSteps and NLEnRange are ignored ')
+   call msg('s','[NL] Variables NLEnSteps and NLEnRange are ignored ')
    call msg('sr','[NL] Pump and probe configuration: verbosity set to high')
    if(n_frequencies/=1) call error("NLEnSteps /=1 not compatible with Pump and Probe ")
    NL_verbosity=VERB_HIGH
@@ -333,12 +333,12 @@ subroutine NL_initialize(E,k)
  !
  call RT_control_alloc("all")
  !
- if(.not.l_pump_and_probe) then
-   do NE_i_time=1,NE_steps
-     Time=real(NE_i_time-1,SP)*RT_step
-     OBS_RT_IO_t%Time(NE_i_time)=Time
-   enddo
- endif
+! if(.not.l_pump_and_probe) then
+ do NE_i_time=1,NE_steps
+   Time=real(NE_i_time-1,SP)*RT_step
+   OBS_RT_IO_t%Time(NE_i_time)=Time
+ enddo
+ !endif
  !
  ! LOG
  ! ===
