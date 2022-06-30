@@ -48,9 +48,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
  use IO_m,          ONLY:OP_RD_CL,REP,VERIFY,NONE,io_COLLs
  use X_m,           ONLY:X_ALLOC_elemental,X_mat,X_t
- use interfaces,    ONLY:WF_load
+ use interfaces,    ONLY:WF_load,eval_G_minus_G
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
- use R_lattice,     ONLY:qindx_S,bz_samp,g_rot,minus_G
+ use R_lattice,     ONLY:qindx_S,bz_samp,g_rot,minus_G,G_m_G
  use hamiltonian,   ONLY:B_mat_index
  use fft_m,         ONLY:fft_size
  !
@@ -65,7 +65,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  !
  integer                 :: i_coll,first_coll,last_coll,ig1,ig2,iqbz,iqibz,alloc_err,iqs,iGo_max,NG_max,NG_XC,LOCAL_COMM(2),&
 &                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,&
-&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,bands_to_load(2),n_colls
+&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,bands_to_load(2),n_colls,n_GmG
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
  !
  type(elemental_collision):: isc_XC,iscp_XC,isc_H,iscp_H
@@ -133,6 +133,18 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  NG_max=maxval((/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  NG_XC =max(N_g_vecs_X,N_g_vecs_C)
  !
+ ! DEBUG <
+ ! 2022/06/30 DS: This is a check for consistency with BSE
+ ! - In the BSE case the elemental collisions are always computed with iqs=1 and iqG=1
+ !   and later there are symmetry operations with G_m_G which require to increase the O_ng (i.e. NG_XC)
+ ! - In the RT/SC collisions case the symmetries and the Go shifts are directly handled by scatter Gamp
+ !   via fft_g_table. So it is not needed to increase NG_XC
+ !if (COLLISIONS_HXC_MB) then
+ !  n_GmG=eval_G_minus_G(NG_XC,iGo_max)
+ !  NG_XC=maxval(G_m_G)
+ !endif
+ ! DEBUG >
+ !
  call msg('s', '['//trim(H_potential)//'] Plane waves (H,X,C) ',(/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  !
  ! WFs
@@ -149,28 +161,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  !
  if (COLLISIONS_HXC_local) then
    !
-   iscp_H%qs   =1
-   iscp_H%iqref=0
-   iscp_H%ngrho=N_g_vecs_H
-   !
-   isc_H%qs    =1
-   isc_H%iqref =0
-   isc_H%ngrho =N_g_vecs_H
-   !
    call elemental_collision_alloc(isc_H ,NG=N_g_vecs_H,NG_GAMP=(/N_g_vecs_H,    1   /),TITLE='HARTREE')
    call elemental_collision_alloc(iscp_H,NG=N_g_vecs_H,                                TITLE='HARTREE')
    !
    YAMBO_ALLOC(rhotw_tmp,(N_g_vecs_H))
    !
  endif
- !
- iscp_XC%qs   =1
- iscp_XC%iqref=0
- iscp_XC%ngrho=NG_XC
- !
- isc_XC%qs    =1
- isc_XC%iqref =0
- isc_XC%ngrho =NG_XC
  !
  call elemental_collision_alloc(iscp_XC,NG=NG_XC,NG_GAMP=(/N_g_vecs_X,  1  /),TITLE=trim(H_potential))
  !
@@ -312,6 +308,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
      i_sp    = COH_collisions%state(i_coll,4)
    endif   
    !
+   i_k_s      = 1
+   !
    if( l_HXC_collisions )     HXC_COLL_element(1)%v3_c=cZERO
    if( l_use_COH_collisions ) COH_COLL_element(1)%v3_c=cZERO
    !
@@ -390,8 +388,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
      iscp_H%qs  = 1
      !
      call scatter_Gamp(isc_H,'x')
-     !
-     i_k_s      = 1
      !
      isc_H%is  =(/i_n,i_k,i_k_s,i_sp/)
      isc_H%os  =(/i_m,i_k,i_k_s,i_sp/)
@@ -528,27 +524,21 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
        iqibz    =q%sstar(iqbz,1)
        iqs      =q%sstar(iqbz,2)
        !
-       isc_XC%qs   =(/0,iqibz,iqs/)
-       iscp_XC%qs  =(/0,iqibz,iqs/)
-       !
-       i_k_s   = 1
-       !
        i_kmq_bz =qindx_S(i_k,iqbz,1)
        i_kmq_G0 =qindx_S(i_k,iqbz,2)
        !
        i_kmq   = k%sstar(i_kmq_bz,1)
        i_kmq_s = k%sstar(i_kmq_bz,2)
        !
+       isc_XC%qs  =(/i_kmq_G0,iqibz,iqs/)
        isc_XC%is  =(/i_n,i_k,  i_k_s,  i_sp/)
        isc_XC%os  =(/0  ,i_kmq,i_kmq_s,i_sp/)
        !
+       iscp_XC%qs =(/i_kmq_G0,iqibz,iqs/)
        iscp_XC%is =(/i_m,i_k,  i_k_s,  i_sp/)
        iscp_XC%os =(/0,  i_kmq,i_kmq_s,i_sp/)
        !
-       isc_XC%qs(1) =i_kmq_G0
-       iscp_XC%qs(1)=i_kmq_G0
-       !
-       if (iqibz/=isc_XC%iqref) call scatter_Gamp(iscp_XC,'x')
+       if (iqibz/=iscp_XC%iqref) call scatter_Gamp(iscp_XC,'x')
        !
        if( iqibz/=isc_XC%iqref .and. l_compute_screening) then
          !
