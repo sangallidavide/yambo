@@ -133,7 +133,7 @@ subroutine OSCLL_eval(q,k,en)
          !
          isc%is  =(/i_n,i_k,i_k_s,i_k_sp/)
          isc%os  =(/i_m,i_kmq,i_kmq_s,i_kmq_sp/)
-         call scatter_Bamp(isc)            
+         call DEV_SUB(scatter_Bamp)(isc)            
          OSCLL_k(i_n,i_m,iqbz,:)=isc%rhotw(:ng_oscll)
          !
        enddo
