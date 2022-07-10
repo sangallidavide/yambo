@@ -42,7 +42,7 @@ subroutine LSEX_potential(q,X,Xw)
  use stderr,              ONLY:intc
  use parallel_int,        ONLY:PP_redux_wait
  !
- implicit none
+#include<memory.h>
  !
  type(bz_samp), intent(in) :: q
  type(w_samp)              :: Xw
