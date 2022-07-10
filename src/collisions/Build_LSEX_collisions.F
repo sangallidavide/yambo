@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2015 the LUMEN team
+!        Copyright (C) 2000-2022 the LUMEN team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): CA

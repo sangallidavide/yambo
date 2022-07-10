@@ -110,6 +110,7 @@ module collision_ext
  integer :: ng_oscll                  ! number of G-vectors in the Oscillators
  complex(SP), allocatable :: W(:,:,:) ! screened interaction
  complex(SP), allocatable :: OSCLL(:,:,:,:,:) ! Oscillators
+ complex(SP), allocatable :: OSCLL_k(:,:,:,:) ! Oscillators in k, just for the evaluation
  !
  contains
    !
