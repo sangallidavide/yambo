@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2015-2017 the LUMEN team
+!        Copyright (C) 2015-2022 the Yambo team
 !
 ! Authors (see AUTHORS file for details): CA
 ! 
