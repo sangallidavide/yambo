@@ -112,7 +112,6 @@ module nl_optics
  integer, parameter :: LRCW   = 6
  integer, parameter :: HF     = 7
  integer, parameter :: SEX    = 8
- integer, parameter :: LSEX   = 9
  !
  logical :: eval_COLLISIONS
  logical :: eval_dG
