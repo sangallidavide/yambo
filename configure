@@ -11801,7 +11801,7 @@ fi
 # check for MKL
 #
 if test -d "${MKLROOT}" &&  test x"$try_fft_libs" = "x" ; then
-   tty_fft_incdir="${MKLROOT}/include"
+   try_fft_incdir="${MKLROOT}/include"
    mkl_libdir="${MKLROOT}/lib/intel64"
    case "${FCKIND}" in
    *gfortran* )
@@ -13354,6 +13354,7 @@ $as_echo "already compiled" >&6; } ;
       #
     elif test "$IO_LIB_VER" = "serial" && test -e "${NETCDF_HDF5_PAR_PATH}/lib/libhdf5.a"; then
       #
+      compile_hdf5="no" ;
       IO_LIB_VER="parallel";
       HDF5_LIBS="${NETCDF_HDF5_PAR_PATH}/lib/libhdf5_hl_fortran.a ${NETCDF_HDF5_PAR_PATH}/lib/libhdf5_fortran.a ${NETCDF_HDF5_PAR_PATH}/lib/libhdf5_hl.a ${NETCDF_HDF5_PAR_PATH}/lib/libhdf5.a" ;
       HDF5_INCS="${IFLAG}${NETCDF_HDF5_PAR_PATH}/include" ;
@@ -13811,9 +13812,8 @@ $as_echo "already compiled" >&6; } ;
       #
     elif test "$IO_LIB_VER" = "serial" && test -e "${NETCDF_HDF5_PAR_PATH}/lib/libnetcdf.a" && test -e "${NETCDF_HDF5_PAR_PATH}/lib/libnetcdff.a" && test -e "${NETCDF_HDF5_PAR_PATH}/lib/libhdf5.a"; then
       #
+      compile_netcdf="no" ;
       IO_LIB_VER="parallel";
-      HDF5_LIBS="${NETCDF_HDF5_PAR_PATH}/lib/libhdf5_hl_fortran.a ${NETCDF_HDF5_PAR_PATH}/lib/libhdf5_fortran.a ${NETCDF_HDF5_PAR_PATH}/lib/libhdf5_hl.a ${NETCDF_HDF5_PAR_PATH}/lib/libhdf5.a" ;
-      HDF5_INCS="${IFLAG}${NETCDF_HDF5_PAR_PATH}/include" ;
       NETCDF_LIBS="${NETCDF_HDF5_PAR_PATH}/lib/libnetcdf.a" ;
       NETCDF_INCS="${IFLAG}${NETCDF_HDF5_PAR_PATH}/include" ;
       NETCDFF_LIBS="${NETCDF_HDF5_PAR_PATH}/lib/libnetcdff.a" ;

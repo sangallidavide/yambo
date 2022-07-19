@@ -131,7 +131,7 @@ module nl_optics
  ! 
  ! Dephasing time (in units of NL_damping) 
  !
- integer, parameter :: DephMult=4 
+ integer, parameter :: DephMult=5 
  !
  ! Databases input/output
  !
