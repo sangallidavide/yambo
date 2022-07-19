@@ -201,13 +201,11 @@ subroutine NL_driver(E,X,k,q,Dip)
    !
    call RT_output_and_IO_driver('open',E,k,OBSERVABLES)
    !
- else
+ endif
  !
  ! Initialize IO
  ! ==================
  call NL_databases_IO(0,'write')
-   !
- endif
  !
  ! Start-Up & Timing
  !===================
@@ -270,16 +268,14 @@ subroutine NL_driver(E,X,k,q,Dip)
        !=====================
        call RT_output_and_IO_driver('write',E,k,OBSERVABLES)
        !
-     else
-       !
-       ! Store Variables
-       !
-       NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
-       E_ext_t(NE_i_time,:)=E_ext
-       E_tot_t(NE_i_time,:)=E_tot
-       E_ks_t (NE_i_time,:)=E_ks
-       !
      endif
+     !
+     ! Store Variables
+     !
+     NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
+     E_ext_t(NE_i_time,:)=E_ext
+     E_tot_t(NE_i_time,:)=E_tot
+     E_ks_t (NE_i_time,:)=E_ks
      !
      call NL_output(NE_i_time,i_f)
      !
@@ -293,9 +289,9 @@ subroutine NL_driver(E,X,k,q,Dip)
    !
    if (l_pump_and_probe) then
      call RT_output_and_IO_driver('close',E,k,OBSERVABLES)
-   else
-     call NL_databases_IO(i_f,'write')
    endif
+   !
+   call NL_databases_IO(i_f,'write')
    !
    if(stop_now(.false.)) exit
    !
