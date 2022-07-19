@@ -153,6 +153,7 @@ module collision_el
          !
        endif
        ggw%ngrho=NG
+       ggw%iqref=0
      endif
      if (present(NG_GAMP)) then
        if (all((/NG_GAMP>0/))) then

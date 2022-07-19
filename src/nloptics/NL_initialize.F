@@ -54,7 +54,7 @@ subroutine NL_initialize(E,k)
  ! Working space
  !
  real(SP) :: Time, W_0,T_0,sigma 
- integer  :: i1
+ integer  :: i1,n_active_fields
  !
  ! Parser
  ! ============
@@ -123,7 +123,8 @@ subroutine NL_initialize(E,k)
  !
  ! This part of the code works with only one field
  !
- n_ext_fields=2
+ n_ext_fields=3
+ n_active_fields=0
  !
  do i1=1,n_ext_fields
    !
@@ -155,22 +156,24 @@ subroutine NL_initialize(E,k)
    !
    call Check_symmetries(Efield(i1)%versor,"electric")
    !
+   n_active_fields=n_active_fields+1
+   !
  enddo
  !
- if(((Efield(1)%ef_name/='none').and.Efield(2)%ef_name/='none').or.n_frequencies==1) then
+ if(n_active_fields==0) call error('Not valid external field present!')
+ !
+ if(n_active_fields>1.or.n_frequencies==1) then
    l_pump_and_probe=.true.
    l_NE_with_fields=.true.
-   call msg('sl','[NL] Variables NLEnSteps and NLEnRange are ignored ')
+   call msg('s','[NL] Variables NLEnSteps and NLEnRange are ignored ')
    call msg('sr','[NL] Pump and probe configuration: verbosity set to high')
    if(n_frequencies/=1) call error("NLEnSteps /=1 not compatible with Pump and Probe ")
    NL_verbosity=VERB_HIGH
- elseif((Efield(1)%ef_name/='none').and.Efield(2)%ef_name=='none') then
+ elseif((Efield(1)%ef_name/='none').and.all(Efield(2:3)%ef_name=='none')) then
    call msg('sr','[NL] Non-linear optics configuration')
- else
-   call error(" Please set at least one external field")
  endif
  !
- if(Efield(1)%ef_name/='SOFTSIN'.and.Efield(1)%ef_name/='SIN') &
+ if(.not.l_pump_and_probe.and.Efield(1)%ef_name/='SOFTSIN'.and.Efield(1)%ef_name/='SIN') &
     call warning(' Non-linear optics properties can be obtained with SOFTSIN/SIN fields only')
  !
  ! For short pulses field (PULSE, QSSIN, QSFIELD, SPULSE)
@@ -333,12 +336,12 @@ subroutine NL_initialize(E,k)
  !
  call RT_control_alloc("all")
  !
- if(.not.l_pump_and_probe) then
-   do NE_i_time=1,NE_steps
-     Time=real(NE_i_time-1,SP)*RT_step
-     OBS_RT_IO_t%Time(NE_i_time)=Time
-   enddo
- endif
+! if(.not.l_pump_and_probe) then
+ do NE_i_time=1,NE_steps
+   Time=real(NE_i_time-1,SP)*RT_step
+   OBS_RT_IO_t%Time(NE_i_time)=Time
+ enddo
+ !endif
  !
  ! LOG
  ! ===
