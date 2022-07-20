@@ -100,7 +100,7 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL,COLL_element,C
            store_it=abs(COLL_element(1)%v3_c(i1,i2,i3))>=COLLISIONS_max*COLLISIONS_cutoff .or. COLLISIONS_cutoff<0.0
          endif
 #if defined _PAR_IO
-         if (.not.store_it) then
+         if ((.not.store_it).and.io_COLLs) then
            COLL_element(1)%v3_c(i1,i2,i3)=cZERO
            store_it=.true.
          endif
