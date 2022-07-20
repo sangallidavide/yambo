@@ -444,7 +444,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
            !
            ! The occupation factor here is already contained in the density matrix (?)
            !
-           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=M_ij/spin_occ
+           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=-M_ij/spin_occ
            !
          enddo
        enddo
@@ -489,7 +489,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        if (k%sstar(i_p_bz,2)/=1) cycle
        !
        do i_mp=COLL_bands(1),COLL_bands(2)
-         do i_np=COLL_bands(1),COLL_bands(2)
+         do i_np=i_mp,COLL_bands(2)
            !
            if ( COLLISIONS_CV_only .and. (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
            if ( COLLISIONS_CV_only .and. (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
