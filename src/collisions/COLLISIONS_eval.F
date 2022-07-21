@@ -273,7 +273,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  !
  contains
    !
-   subroutine CHECK_and_ALLOC(COLL)
+   subroutine CHECK_and_ALLOC(COLL_grp)
      !
 #include<collisions.h>
      !
@@ -286,27 +286,27 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      !
      integer :: i_coll
      !
-     type(COLLISIONS_group) :: COLL
+     type(COLLISIONS_group) :: COLL_grp
      !
      IO_err=-1
      !
      if (io_COLLs) then
-       COLL%IO_status=-1
+       COLL_grp%IO_status=-1
        call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1/),MODE=VERIFY,ID=ID)
-       IO_err=io_COLLs_header(ID,COLL)
+       IO_err=io_COLLs_header(ID,COLL_grp)
 #if defined _PAR_IO
        call io_control(ACTION=OP_RD,COM=REP,SEC=(/1/),ID=ID)
-       io_err=io_COLLISIONS(ID,COLL)
+       io_err=io_COLLISIONS(ID,COLL_grp)
        if(io_err==0) then
          call warning(" Restarting from previous database")
-         do i_coll=1,COLL%N
-           IO_ACT=manage_action(RD_CL_IF_END,i_coll,1,COLL%N)
+         do i_coll=1,COLL_grp%N
+           IO_ACT=manage_action(RD_CL_IF_END,i_coll,1,COLL_grp%N)
            call io_control(ACTION=IO_ACT,COM=REP,SEC=(/4/),ID=ID)
-           io_err=io_COLLISIONS(ID,COLL,i_coll=i_coll)
+           io_err=io_COLLISIONS(ID,COLL_grp,i_coll=i_coll)
          enddo
        endif
 #endif
-       if (any(COLL%IO_status/=1)) IO_err=-1
+       if (any(COLL_grp%IO_status/=1)) IO_err=-1
      endif
      !
      ! In case io_Colls is /=0 all CPU have to sincronize before starting
@@ -317,15 +317,15 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      if (IO_err==0) return
      !
      if (io_COLLs) then
-       call COLLISIONS_alloc_and_free(trim(COLL%name),"collision","alloc",1)
-       call COLLISIONS_alloc_and_free(trim(COLL%name),"v3 table","alloc",1)
+       call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"collision","alloc",1)
+       call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"v3 table","alloc",1)
      else
-       call COLLISIONS_alloc_and_free(trim(COLL%name),"collision","alloc",0)
-       if (COLL%kind==QP_SE_GW_NEQ.or.COLL%kind==QP_SE_GW_QED) then
-         call COLLISIONS_alloc_and_free(trim(COLL%name),"v3","alloc distribute",0)
+       call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"collision","alloc",0)
+       if (COLL_grp%kind==QP_SE_GW_NEQ.or.COLL_grp%kind==QP_SE_GW_QED) then
+         call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"v3","alloc distribute",0)
        else
-         call COLLISIONS_alloc_and_free(trim(COLL%name),"v3","alloc",1)
-         call COLLISIONS_alloc_and_free(trim(COLL%name),"table","alloc",0)
+         call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"v3","alloc",1)
+         call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"table","alloc",0)
        endif
      endif
      !

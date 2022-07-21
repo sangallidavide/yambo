@@ -319,7 +319,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      i_m     = COH_collisions%state(i_coll,2)
      i_k     = COH_collisions%state(i_coll,3)
      i_sp    = COH_collisions%state(i_coll,4)
-   endif   
+   endif
    !
    if( l_HXC_collisions )     HXC_COLL_element(1)%v3_c=cZERO
    if( l_use_COH_collisions ) COH_COLL_element(1)%v3_c=cZERO
