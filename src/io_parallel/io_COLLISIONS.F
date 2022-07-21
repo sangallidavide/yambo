@@ -21,11 +21,12 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
+integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  !
  use pars,          ONLY:schlen,IP,SP
  use iso_c_binding, ONLY:C_LOC,C_F_POINTER
- use collision_ext, ONLY:COLLISIONS_element,COLLISIONS_group,LAST_COLL_sync,PAR_COLL_min
+ use collision_ext, ONLY:COLLISIONS_element,COLLISIONS_group,LAST_COLL_sync,PAR_COLL_min,&
+&                        COLLISIONS_CV_only
  use IO_m,          ONLY:io_sec,io_status,IO_OUTDATED_DB,read_is_on,IO_mode,io_unit,&
 &                        VERIFY,io_extension,write_is_on,nf90_sync,netcdf_call
  use IO_int,        ONLY:io_connect,io_header,io_elemental,ver_is_gt_or_eq,io_fragment, &
@@ -40,7 +41,7 @@ integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
 #include<memory.h>
  !
  integer, intent(inout)            ::ID
- type(COLLISIONS_group)            ::COLL
+ type(COLLISIONS_group)            ::COLL_grp
  type(COLLISIONS_element),optional, target :: COLL_element
  integer, intent(in)     ,optional         :: i_coll_
  !
@@ -49,7 +50,7 @@ integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
  !
  character(1)      :: TMP_VAR(1)
  character(schlen) :: db_name
- integer           :: i_coll,stat
+ integer           :: i_coll,stat,N(3)
  logical           :: def1,def2,io2,io3,io4,file_sync
  !
  call timing('io_COLLISIONS',OPR='start')
@@ -60,7 +61,7 @@ integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
  if (present(COLL_element)) i_coll=COLL_element%I
  if (present(i_coll_))      i_coll=i_coll_
  !
- call COLLISIONS_dbname(COLL%kind,db_name)
+ call COLLISIONS_dbname(COLL_grp%kind,db_name)
  !
  io_COLLISIONS=io_connect(desc=trim(db_name),type=2,ID=ID)
  !
@@ -75,7 +76,18 @@ integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
  !
  if (def1) then
    call def_variable_bulk(ID,'N_COLLISIONS_STATES',1,(/1/),IP+100,par_io_kind='independent')
-   if (write_is_on(ID)) COLL_element%N=(COLL%D(3,2)-COLL%D(3,1)+1)*(COLL%D(2,2)-COLL%D(2,1)+1)*(COLL%D(1,2)-COLL%D(1,1)+1)
+   if (write_is_on(ID)) then
+     if (COLLISIONS_CV_only) then
+       N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
+       N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,3)        ! Nc
+       N(3)=COLL_grp%D(2,4)-COLL_grp%D(2,1)+1      ! Nv
+     else
+       N(1)=COLL_grp%D(3,2)-COLL_grp%D(3,1)+1
+       N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,1)+1
+       N(3)=COLL_grp%D(1,2)-COLL_grp%D(1,1)+1
+     endif
+     COLL_element%N=N(1)*N(2)*N(3)
+   endif
  endif
  !
  if (io2 .and. (write_is_on(ID).or.read_is_on(ID))) then     
@@ -84,42 +96,40 @@ integer function io_COLLISIONS(ID,COLL,COLL_element,i_coll_)
  !
  if (io3.or.def2) then
    !
-   if(COLL%kind==QP_SE_GW_NEQ.or.COLL%kind==QP_SE_GW_QED) then
+   if(COLL_grp%kind==QP_SE_GW_NEQ.or.COLL_grp%kind==QP_SE_GW_QED) then
      ! Real collisions
-     if(def2) call def_variable_bulk(ID,'COLLISIONS_v',2,(/COLL_element%N,COLL%N/),SP,par_io_kind='independent')
+     if(def2) call def_variable_bulk(ID,'COLLISIONS_v',2,(/COLL_element%N,COLL_grp%N/),SP,par_io_kind='independent')
      if(io3 ) then
-       call C_F_POINTER(C_LOC(COLL_element%v_r),tmp_link_real,(/COLL_element%N,1/))
+       call C_F_POINTER(C_LOC(COLL_element%v_r(:COLL_element%N)),tmp_link_real,(/COLL_element%N,1/))
        call  io_variable_bulk(ID,2,R2=tmp_link_real,IPOS=(/1,i_coll/))
        nullify(tmp_link_real)
      endif
    else
      ! Complex collisions
-     if(def2) call def_variable_bulk(ID,'COLLISIONS_v',2,(/2,COLL_element%N,COLL%N/),SP,par_io_kind='independent')
+     if(def2) call def_variable_bulk(ID,'COLLISIONS_v',2,(/2,COLL_element%N,COLL_grp%N/),SP,par_io_kind='independent')
      if(io3 ) then
-       call C_F_POINTER(C_LOC(COLL_element%v_c),tmp_link_complex,(/COLL_element%N,1/))
+       call C_F_POINTER(C_LOC(COLL_element%v_c(:COLL_element%N)),tmp_link_complex,(/COLL_element%N,1/))
        call  io_variable_bulk(ID,2,C2=tmp_link_complex,IPOS=(/1,1,i_coll/))
        nullify(tmp_link_complex)
      endif
    endif
    !
-   ! This should be used for restart like in BSE ...
-   ! if(BS_blk(i_block)%mat(i1,i2)==YAMBO_CMPLX_NO_FILL) cycle
-   ! BS_blk(i_block)%done(i1,i2)='t'
+   ! Here I could set it to "t" only when COLL_element%v_c/=0 or COLL_element%v_r/=0 ?
    if(io3.and.read_is_on(ID)) COLL_element%table='t'
    !
  endif
  !
- if (def1) call def_variable_bulk(ID,'COLLISIONS_DONE',3,(/COLL%N/),0,par_io_kind='independent')
+ if (def1) call def_variable_bulk(ID,'COLLISIONS_DONE',3,(/COLL_grp%N/),0,par_io_kind='independent')
  !
  if (io4) then
    if (write_is_on(ID)) then
-     COLL%IO_status(i_coll)=1
+     COLL_grp%IO_status(i_coll)=1
      TMP_VAR="t"
    endif
    call io_variable_bulk(ID,3,CH1=TMP_VAR(1:1),IPOS=[i_coll])
    if (read_is_on(ID)) then
-     COLL%IO_status(i_coll)=-1
-     if(TMP_VAR(1)=="t") COLL%IO_status(i_coll)=1
+     COLL_grp%IO_status(i_coll)=-1
+     if(TMP_VAR(1)=="t") COLL_grp%IO_status(i_coll)=1
    endif
  endif
  !

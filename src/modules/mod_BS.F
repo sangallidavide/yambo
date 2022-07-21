@@ -90,17 +90,27 @@ module BS
  ! Resonant/Antiresonant handling
  !================================
  !
- ! The BS kernel, in general, is composed of two resonant (K_r,R and K_c,R) and two anti-resonant (K_r,A and K_c,A) 
- ! blocks.
+ ! The the "standard" convention for the BSE kernel is
  !
- !      |  K_r,R(q)          cI*K_c,R(q)  |  
- !  K = |                                 | (1)
- !      | cI*K_c,A(q)        K_r,A^*(q)   |
+ !      |   K_R(q)       K_C(q)  |     |   K_R(q)          K_C(q)       |  
+ !  K = |                        |  =  |                                |  (1a)
+ !      |   K_Q(q)       K_A(q)  |     | -K_C^\dag(-q)   -K_R^\dag(-q)  |
+ ! 
+ ! Here we use the one with the square root of the occupation factors
+ ! The BS kernel, in general, is composed of resonant K_R, couplnig K_C, anti-resonant K_A and anti-coupling K_Q) blocks.
+ !
+ !       |   K_R(q)         cI*Kt_C(q)  |      |   K_R(q)           cI*Kt_C(q)       |
+ !  Kt = |                              |  =   |                                     |  (1b)
+ !       |  cI*Kt_Q(q)         K_A(q)   |      | -[cI*Kt_C(-q)]^\dag   -K_R^\dag(-q) |
+ !
+ ! with 
+ !
  !
  ! In general we have
  !
- !  K_c,A(q) = - (K_c,R(-q))^*   (2)
- !  K_r,A(q) = - (K_r,R(-q))^*   (3)
+ !  K_Q(q)  = -K_C(-q)^\dag   (2a)
+ !  Kt_Q(q) =  Kt_C(-q)^\dag  (2b)  [ This means cI*Kt_Q(q) = -[cI*K_C(-q)]^* ]
+ !  K_A(q)  = -K_R(-q)^\dag   (3)
  !
  ! But in some cases (2) and (3) do not hold
  !
@@ -118,8 +128,8 @@ module BS
  !
  ! In addition
  !
- ! --> no coupling = 2 BSE matrices (K_r,R(q) and K_r,A^*(q)) --> BS_res_ares_n_mat=2
- ! -->    coupling = 1 BSE matrix with all 4 blocks  in (1)   --> BS_res_ares_n_mat=1
+ ! --> no coupling = 2 BSE matrices (K_R(q) and K_A^*(q))  --> BS_res_ares_n_mat=2
+ ! -->    coupling = 1 BSE matrix with all 4 blocks in (1) --> BS_res_ares_n_mat=1
  !
  ! Summary
  !=========

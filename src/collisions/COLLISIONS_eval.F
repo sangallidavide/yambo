@@ -49,10 +49,11 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  use collision_ext,  ONLY:COLLISIONS_parallel_SC_structure,COLLISIONS_group,&
 &                        COH_collisions,HXC_collisions,P_collisions,GW_NEQ_collisions,COLLISIONS_naming
  use X_m,            ONLY:X_t
+ use BS_solvers,     ONLY:io_BSS_diago
  use plasma,         ONLY:EH_gas
  use frequency,      ONLY:w_samp
  use IO_int,         ONLY:io_control
- use IO_m,           ONLY:OP_RD_CL,OP_RD,RD_CL_IF_END,VERIFY,REP,io_COLLs,manage_action
+ use IO_m,           ONLY:OP_RD_CL,OP_RD,RD_CL_IF_END,VERIFY,REP,NONE,DUMP,io_COLLs,manage_action
  use parallel_m,     ONLY:PAR_IND_G_k,PAR_IND_Bp_mat,PAR_IND_Plasma
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use interfaces,     ONLY:WF_free
@@ -67,8 +68,11 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  !
  ! WorkSpace
  !
- integer       :: ID,IO_err,IO_ACT
+ logical       :: l_collisions_from_bse,l_tmp
+ integer       :: ID,IO_err,IO_err_BS,IO_ACT,ID_tmp
  character(20) :: PAR_ch,FREE_ch
+ !
+ integer, external :: io_BS_header
  !
  call timing('COLLISIONS_eval',OPR='start')
  !
@@ -139,9 +143,32 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
    if(l_use_Hxc_collisions) call CHECK_and_ALLOC(HXC_collisions)
    if(l_use_COH_collisions) call CHECK_and_ALLOC(COH_collisions)
    !
+   if (l_use_Hxc_collisions) then
+     !
+     ! Check if I can use the BSE kernel for the collisions
+     !
+     call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,ID=ID_tmp)
+     IO_err_BS=io_BS_header(1,X(2),ID_tmp,"full")
+     !
+     if (IO_err_BS==0) then 
+       call set_BS_blks()
+       call K_restart(1,X(2),ID_tmp,ID_tmp,ID_tmp,l_tmp)
+     endif
+     !
+     ! I need the BSS_eh_table
+     !
+     call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,SEC=(/1/),ID=ID_tmp)
+     IO_err_BS=io_BSS_diago(1,1,ID_tmp,X(2))
+     !
+     call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/3/),ID=ID_tmp)
+     IO_err_BS=io_BSS_diago(1,1,ID_tmp,X(2))
+     call build_inverse_eh_table()
+     !
+   endif
+   !
    if (IO_err/=0) then
      !
-     call COLLISIONS_HXC(X(2),Xk,E,k,q,Xw(2))
+     call COLLISIONS_HXC(X(2),Xk,E,k,q,Xw(2),IO_err_BS)
      !
      ! COHSEX clean
      !--------------
@@ -246,7 +273,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  !
  contains
    !
-   subroutine CHECK_and_ALLOC(COLL)
+   subroutine CHECK_and_ALLOC(COLL_grp)
      !
 #include<collisions.h>
      !
@@ -259,27 +286,27 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      !
      integer :: i_coll
      !
-     type(COLLISIONS_group) :: COLL
+     type(COLLISIONS_group) :: COLL_grp
      !
      IO_err=-1
      !
      if (io_COLLs) then
-       COLL%IO_status=-1
+       COLL_grp%IO_status=-1
        call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1/),MODE=VERIFY,ID=ID)
-       IO_err=io_COLLs_header(ID,COLL)
+       IO_err=io_COLLs_header(ID,COLL_grp)
 #if defined _PAR_IO
        call io_control(ACTION=OP_RD,COM=REP,SEC=(/1/),ID=ID)
-       io_err=io_COLLISIONS(ID,COLL)
+       io_err=io_COLLISIONS(ID,COLL_grp)
        if(io_err==0) then
          call warning(" Restarting from previous database")
-         do i_coll=1,COLL%N
-           IO_ACT=manage_action(RD_CL_IF_END,i_coll,1,COLL%N)
+         do i_coll=1,COLL_grp%N
+           IO_ACT=manage_action(RD_CL_IF_END,i_coll,1,COLL_grp%N)
            call io_control(ACTION=IO_ACT,COM=REP,SEC=(/4/),ID=ID)
-           io_err=io_COLLISIONS(ID,COLL,i_coll=i_coll)
+           io_err=io_COLLISIONS(ID,COLL_grp,i_coll=i_coll)
          enddo
        endif
 #endif
-       if (any(COLL%IO_status/=1)) IO_err=-1
+       if (any(COLL_grp%IO_status/=1)) IO_err=-1
      endif
      !
      ! In case io_Colls is /=0 all CPU have to sincronize before starting
@@ -290,18 +317,89 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      if (IO_err==0) return
      !
      if (io_COLLs) then
-       call COLLISIONS_alloc_and_free(trim(COLL%name),"collision","alloc",1)
-       call COLLISIONS_alloc_and_free(trim(COLL%name),"v3 table","alloc",1)
+       call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"collision","alloc",1)
+       call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"v3 table","alloc",1)
      else
-       call COLLISIONS_alloc_and_free(trim(COLL%name),"collision","alloc",0)
-       if (COLL%kind==QP_SE_GW_NEQ.or.COLL%kind==QP_SE_GW_QED) then
-         call COLLISIONS_alloc_and_free(trim(COLL%name),"v3","alloc distribute",0)
+       call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"collision","alloc",0)
+       if (COLL_grp%kind==QP_SE_GW_NEQ.or.COLL_grp%kind==QP_SE_GW_QED) then
+         call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"v3","alloc distribute",0)
        else
-         call COLLISIONS_alloc_and_free(trim(COLL%name),"v3","alloc",1)
-         call COLLISIONS_alloc_and_free(trim(COLL%name),"table","alloc",0)
+         call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"v3","alloc",1)
+         call COLLISIONS_alloc_and_free(trim(COLL_grp%name),"table","alloc",0)
        endif
      endif
      !
-   end subroutine
+   end subroutine CHECK_and_ALLOC
    !
-end subroutine
+end subroutine COLLISIONS_eval
+!
+!
+subroutine set_BS_blks()
+ !
+ use pars,         ONLY:cZERO
+ use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat,BSK_IO_mode
+ use BS_solvers,   ONLY:BSS_eh_table
+ !
+#include<memory.h>
+ !
+ integer   :: i_block
+ !
+ BS_res_ares_n_mat=1
+ n_BS_blks=BS_K_dim(1)*2
+ n_BS_blks_min=n_BS_blks
+ !
+ allocate(BS_blk(n_BS_blks))
+ BS_blk(:)%size(1)=1
+ !
+ do i_block=1,BS_K_dim(1)
+   BS_blk(i_block)%size(2)=BS_K_dim(1)-i_block+1
+   BS_blk(i_block)%coordinate(:)=i_block
+   BS_blk(i_block)%mode="R"
+ enddo
+ do i_block=BS_K_dim(1)+1,2*BS_K_dim(1)
+   BS_blk(i_block)%size(2)=2*BS_K_dim(1)-i_block+1
+   BS_blk(i_block)%coordinate(:)=i_block-BS_K_dim(1)
+   BS_blk(i_block)%mode="C"
+ enddo
+ !
+ do i_block=1,n_BS_blks
+   YAMBO_ALLOC(BS_blk(i_block)%mat,(BS_blk(i_block)%size(1),BS_blk(i_block)%size(2)))
+   allocate(BS_blk(i_block)%done(BS_blk(i_block)%size(1),BS_blk(i_block)%size(2)))
+   BS_blk(i_block)%mat=cZERO
+   BS_blk(i_block)%done(:,:)="f"
+ enddo
+ !
+ allocate(BSS_eh_table(n_BS_blks,5))
+ !
+end subroutine set_BS_blks
+!
+!
+subroutine build_inverse_eh_table()
+ !
+ use electrons,       ONLY:n_sp_pol
+ use R_lattice,       ONLY:nXkbz
+ use BS,              ONLY:BS_bands,BS_K_dim
+ use BS_solvers,      ONLY:BSS_eh_table,BSS_eh_table_m1
+ !
+ implicit none
+ !
+ integer :: i_H,ik_bz,iv,ic,i_sp_c,i_sp_v
+ !
+ allocate(BSS_eh_table_m1(nXkbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol,n_sp_pol))
+ !call live_timing('BSE inverse eh-table',BS_H_dim)
+ do i_H=1,2*BS_K_dim(1)
+   !
+   ik_bz    = BSS_eh_table(i_H,1)
+   iv       = BSS_eh_table(i_H,2)
+   ic       = BSS_eh_table(i_H,3)
+   i_sp_c   = BSS_eh_table(i_H,4)
+   i_sp_v   = BSS_eh_table(i_H,5)
+   !
+   if (i_H<=BS_K_dim(1)) BSS_eh_table_m1(ik_bz,iv,ic,i_sp_c,i_sp_v)=i_H
+   if (i_H> BS_K_dim(1)) BSS_eh_table_m1(ik_bz,ic,iv,i_sp_c,i_sp_v)=i_H
+   !call live_timing(steps=1)
+   !
+ enddo
+ !call live_timing( )
+ !
+end subroutine build_inverse_eh_table

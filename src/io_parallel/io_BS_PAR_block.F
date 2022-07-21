@@ -206,7 +206,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
    stat = nf90_sync(io_unit(ID))
    call netcdf_call(stat,ID)
  endif
- !   
+ !
  call timing('io_BS',OPR='stop')
  !
 end subroutine

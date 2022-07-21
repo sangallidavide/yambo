@@ -27,8 +27,8 @@ subroutine COLLISIONS_compose_rt(dG_in)
  ! 
  use pars,             ONLY:SP,cZERO,cI
  use drivers,          ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_exx,l_sc_hartree
- use collision_ext,    ONLY:HXC_COLL_element,COLL_bands,HXC_collisions
- use electrons,        ONLY:spin
+ use collision_ext,    ONLY:HXC_COLL_element,COLL_bands,HXC_collisions,COLLISIONS_CV_only
+ use electrons,        ONLY:spin,n_met_bands,n_full_bands
  use R_lattice,        ONLY:nXkibz
  use parallel_int,     ONLY:PP_redux_wait
  use parallel_m,       ONLY:PAR_COM_Xk_ibz_INDEX,PAR_COM_Q_INDEX,&
@@ -100,6 +100,9 @@ subroutine COLLISIONS_compose_rt(dG_in)
      !
      do ibp=COLL_bands(1),COLL_bands(2)
        do ib=COLL_bands(1),COLL_bands(2)
+         !
+         if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp> maxval(n_met_bands) ) ) cycle
+         if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
          !
          if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='f') cycle
          !
