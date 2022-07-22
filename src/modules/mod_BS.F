@@ -244,6 +244,7 @@ module BS
    !--------------
    complex(SP), allocatable      :: mat(:,:)
    character, allocatable        :: done(:,:)
+   integer, allocatable          :: table(:,:)
    !
    ! Oscillators...
    !
@@ -398,6 +399,7 @@ module BS
        if(.not.allocated(BS_blk(iB)%mat)) cycle
        YAMBO_FREE(BS_blk(iB)%mat)
        deallocate(BS_blk(iB)%done)
+       if(allocated(BS_blk(iB)%table)) deallocate(BS_blk(iB)%table)
      enddo
    end subroutine
    !

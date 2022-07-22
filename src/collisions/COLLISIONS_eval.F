@@ -49,7 +49,6 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  use collision_ext,  ONLY:COLLISIONS_parallel_SC_structure,COLLISIONS_group,&
 &                        COH_collisions,HXC_collisions,P_collisions,GW_NEQ_collisions,COLLISIONS_naming
  use X_m,            ONLY:X_t
- use BS_solvers,     ONLY:io_BSS_diago
  use plasma,         ONLY:EH_gas
  use frequency,      ONLY:w_samp
  use IO_int,         ONLY:io_control
@@ -153,16 +152,8 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      if (IO_err_BS==0) then 
        call set_BS_blks()
        call K_restart(1,X(2),ID_tmp,ID_tmp,ID_tmp,l_tmp)
+       call build_inverse_eh_table()
      endif
-     !
-     ! I need the BSS_eh_table
-     !
-     call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,SEC=(/1/),ID=ID_tmp)
-     IO_err_BS=io_BSS_diago(1,1,ID_tmp,X(2))
-     !
-     call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/3/),ID=ID_tmp)
-     IO_err_BS=io_BSS_diago(1,1,ID_tmp,X(2))
-     call build_inverse_eh_table()
      !
    endif
    !
@@ -338,11 +329,10 @@ subroutine set_BS_blks()
  !
  use pars,         ONLY:cZERO
  use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat,BSK_IO_mode
- use BS_solvers,   ONLY:BSS_eh_table
  !
 #include<memory.h>
  !
- integer   :: i_block
+ integer   :: iB
  !
  BS_res_ares_n_mat=1
  n_BS_blks=BS_K_dim(1)*2
@@ -351,25 +341,27 @@ subroutine set_BS_blks()
  allocate(BS_blk(n_BS_blks))
  BS_blk(:)%size(1)=1
  !
- do i_block=1,BS_K_dim(1)
-   BS_blk(i_block)%size(2)=BS_K_dim(1)-i_block+1
-   BS_blk(i_block)%coordinate(:)=i_block
-   BS_blk(i_block)%mode="R"
+ do iB=1,BS_K_dim(1)
+   BS_blk(iB)%size(2)=BS_K_dim(1)-iB+1
+   BS_blk(iB)%coordinate(:)=iB
+   BS_blk(iB)%mode="R"
  enddo
- do i_block=BS_K_dim(1)+1,2*BS_K_dim(1)
-   BS_blk(i_block)%size(2)=2*BS_K_dim(1)-i_block+1
-   BS_blk(i_block)%coordinate(:)=i_block-BS_K_dim(1)
-   BS_blk(i_block)%mode="C"
- enddo
- !
- do i_block=1,n_BS_blks
-   YAMBO_ALLOC(BS_blk(i_block)%mat,(BS_blk(i_block)%size(1),BS_blk(i_block)%size(2)))
-   allocate(BS_blk(i_block)%done(BS_blk(i_block)%size(1),BS_blk(i_block)%size(2)))
-   BS_blk(i_block)%mat=cZERO
-   BS_blk(i_block)%done(:,:)="f"
+ do iB=BS_K_dim(1)+1,2*BS_K_dim(1)
+   BS_blk(iB)%size(2)=2*BS_K_dim(1)-iB+1
+   BS_blk(iB)%coordinate(:)=iB-BS_K_dim(1)
+   BS_blk(iB)%mode="C"
  enddo
  !
- allocate(BSS_eh_table(n_BS_blks,5))
+ do iB=1,n_BS_blks
+   YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+   allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+   BS_blk(iB)%mat=cZERO
+   BS_blk(iB)%done(:,:)="f"
+   if (BS_blk(iB)%coordinate(1)==BS_blk(iB)%coordinate(2)) then 
+     allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
+     bs_blk(iB)%table=0
+   endif
+ enddo
  !
 end subroutine set_BS_blks
 !
@@ -378,8 +370,8 @@ subroutine build_inverse_eh_table()
  !
  use electrons,       ONLY:n_sp_pol
  use R_lattice,       ONLY:nXkbz
- use BS,              ONLY:BS_bands,BS_K_dim
- use BS_solvers,      ONLY:BSS_eh_table,BSS_eh_table_m1
+ use BS,              ONLY:BS_bands,BS_K_dim,BS_blk
+ use BS_solvers,      ONLY:BSS_eh_table_m1
  !
  implicit none
  !
@@ -387,16 +379,16 @@ subroutine build_inverse_eh_table()
  !
  allocate(BSS_eh_table_m1(nXkbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol,n_sp_pol))
  !call live_timing('BSE inverse eh-table',BS_H_dim)
+
  do i_H=1,2*BS_K_dim(1)
    !
-   ik_bz    = BSS_eh_table(i_H,1)
-   iv       = BSS_eh_table(i_H,2)
-   ic       = BSS_eh_table(i_H,3)
-   i_sp_c   = BSS_eh_table(i_H,4)
-   i_sp_v   = BSS_eh_table(i_H,5)
+   ik_bz    = BS_blk(i_H)%table(1,1)
+   iv       = BS_blk(i_H)%table(2,1)
+   ic       = BS_blk(i_H)%table(3,1)
+   i_sp_c   = BS_blk(i_H)%table(4,1)
+   i_sp_v   = BS_blk(i_H)%table(5,1)
    !
-   if (i_H<=BS_K_dim(1)) BSS_eh_table_m1(ik_bz,iv,ic,i_sp_c,i_sp_v)=i_H
-   if (i_H> BS_K_dim(1)) BSS_eh_table_m1(ik_bz,ic,iv,i_sp_c,i_sp_v)=i_H
+   BSS_eh_table_m1(ik_bz,iv,ic,i_sp_c,i_sp_v)=i_H
    !call live_timing(steps=1)
    !
  enddo
