@@ -618,7 +618,10 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        !
        BS_blk(i_block)%done(i_Tk,i_Tp)="t"
        !
-       if (H_pos(1)==H_pos(2)) BS_blk(i_block)%table(:,i_Tk)=(/i_p_bz,i_v_p,i_c_p,i_p_sp_pol_c,i_p_sp_pol_v/)
+       if (H_pos(1)==H_pos(2)) then
+         if (.not.mode_now=="C") BS_blk(i_block)%table(:,i_Tk)=(/i_p_bz,i_v_p,i_c_p,i_p_sp_pol_c,i_p_sp_pol_v/)
+         if (     mode_now=="C") BS_blk(i_block)%table(:,i_Tk)=(/i_p_bz,i_c_p,i_v_p,i_p_sp_pol_c,i_p_sp_pol_v/)
+       endif
        !
      enddo   ! i_Tk
    enddo     ! i_Tp
