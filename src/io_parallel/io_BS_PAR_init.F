@@ -26,7 +26,7 @@ integer function io_BS_PAR_init(iq,ID,mode)
  use stderr,        ONLY:intc,real2ch,STRING_remove
  use com,           ONLY:msg
  use pars,          ONLY:IP,IPL,SP,schlen,lchlen,max_io_vars_open
- use BS,            ONLY:BS_K_dim,BS_IO_dim,BS_K_coupling,l_BSE_kernel_complete,&
+ use BS,            ONLY:BS_K_dim,BS_H_dim,BS_IO_dim,BS_K_coupling,l_BSE_kernel_complete,&
 &                        BSK_IO_mode,MAX_BSK_LIN_size,BS_lin_size_compressed,BS_K_cutoff,     &
 &                        BS_res_ares_n_mat,l_BS_ares_from_res,BS_n_eh_spaces
  use IO_m,          ONLY:io_BS_K,io_file,write_is_on,read_is_on
@@ -39,11 +39,15 @@ integer function io_BS_PAR_init(iq,ID,mode)
  !
  ! Workspace
  !
- character(schlen) :: db_name,ch_tmp,dim_names(3,3),BSK_IO_local
- character(lchlen) :: ch(8,max_io_vars_open)
- logical           :: def_var, io_var
- integer(IPL)      :: BS_lin_size
- integer           :: n_vars, i1,i2, i_rep,i_var, BSK_n_dims,n_replica
+ integer, parameter :: n_max_vars=3      ! maximum number is 3 modes (R,C,A)
+ integer, parameter :: n_kind_vars=2     ! mat, done
+ integer, parameter :: n_max_tot_vars=6  ! maximum number is n_max_vars times 2 kinds
+ !
+ character(schlen)  :: db_name,ch_tmp,dim_names(3,n_max_vars),BSK_IO_local
+ character(lchlen)  :: ch(n_max_vars,max_io_vars_open-1)
+ logical            :: def_var, io_var
+ integer(IPL)       :: BS_lin_size
+ integer            :: n_vars,i1,i2,i_rep,i_var, BSK_n_dims,n_replica
  !
  io_BS_PAR_init=-1
  !
@@ -161,12 +165,17 @@ integer function io_BS_PAR_init(iq,ID,mode)
        BS_IO_dim(1,i_var)=BS_IO_dim(2,i_var)
      endif
      if(trim(mode)=="full" .or. trim(mode)=="compressed_mat") &
-&           call def_variable_bulk(ID,trim(ch(i_var,i_rep)),         1+(i_var-1)*2+(i_rep-1)*8,&
+&           call def_variable_bulk(ID,trim(ch(i_var,i_rep)),         1+(i_var-1)*n_kind_vars+(i_rep-1)*n_max_tot_vars,&
 &                [2,BS_IO_dim(1:BSK_n_dims,i_var)],SP,dim_names(1:BSK_n_dims+1,i_var),par_io_kind='independent')
      if(                        trim(mode)=="compressed_head") &
-&           call def_variable_bulk(ID,trim(ch(i_var,i_rep))//"_DONE",2+(i_var-1)*2+(i_rep-1)*8,&
+&           call def_variable_bulk(ID,trim(ch(i_var,i_rep))//"_DONE",2+(i_var-1)*n_kind_vars+(i_rep-1)*n_max_tot_vars,&
 &                BS_IO_dim(1:BSK_n_dims,i_var) , 0,dim_names(2:BSK_n_dims+1,i_var),par_io_kind='independent')
    enddo
  enddo
+ !
+ if(trim(mode)=="full" .or. trim(mode)=="compressed_mat") then
+   dim_names(1:2,1)=[character(schlen) :: "n_transition_variables","BS_H_dim"]
+   call def_variable_bulk(ID,"BS_TABLE",max_io_vars_open,[5,BS_H_dim],SP,dim_names(1:2,1),par_io_kind='independent')
+ endif
  !
 end function io_BS_PAR_init

@@ -29,9 +29,10 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  ! For each block only the upper triangular part is written
  ! Each block has a status variables indicating if the matrix element was already calculated
  !
- use pars,          ONLY:IP,IPL,SP,schlen
+ use pars,          ONLY:IP,IPL,SP,schlen,max_io_vars_open
+ use iso_c_binding, ONLY:C_LOC,C_F_POINTER
  use stderr,        ONLY:STRING_remove
- use BS,            ONLY:BS_blk,BSK_IO_mode,MAX_BSK_LIN_size,n_BS_blks_min
+ use BS,            ONLY:BS_blk,BSK_IO_mode,MAX_BSK_LIN_size,n_BS_blks_min,BS_K_dim
  use timing_m,      ONLY:timing
  use IO_m,          ONLY:io_unit,netcdf_call,nf90_sync,&
 &                        write_is_on,read_is_on,io_BS_K,YAMBO_CMPLX_NO_FILL
@@ -45,9 +46,12 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  !
  ! Work Space
  !
+ integer, parameter :: n_max_tot_vars=6  ! see io_BS_PAR_init
+ !
  character(schlen)   :: BSK_IO_local
  logical             :: lwrite(3),file_sync
- integer             :: x1,x2,VAR_IDs(2),stat,ID_now(2)
+ integer,   pointer  :: tmp_link(:,:)
+ integer             :: x1,x2,VAR_IDs(2),ID_table,stat,ID_now(2)
  integer             :: n2,i1,i2,idx1,idx2,imax,i_rep(2),ilast
  integer(IPL)        :: idx
  !
@@ -59,6 +63,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  !
  ! Get the type of block that we want to write 
  !
+ ID_table=max_io_vars_open
  select case(BS_blk(i_block)%mode)
  case("R")
    VAR_IDs=(/1,2/)
@@ -132,8 +137,8 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
      !
      if(idx1+int(imax,IPL)-1<=MAX_BSK_LIN_size) then
        ! Block is all in one variable
-       ID_now(1)=VAR_IDs(2)+(i_rep(1)-1)*8
-       ID_now(2)=VAR_IDs(1)+(i_rep(1)-1)*8
+       ID_now(1)=VAR_IDs(2)+(i_rep(1)-1)*n_max_tot_vars
+       ID_now(2)=VAR_IDs(1)+(i_rep(1)-1)*n_max_tot_vars
        if(lwrite(1)) call io_variable_bulk(ID,ID_now(1), CH1=BS_blk(i_block)%done(:imax,i2), IPOS=[  idx1] )
        if(lwrite(2)) call io_variable_bulk(ID,ID_now(2),  C1=BS_blk(i_block)%mat(:imax,i2),  IPOS=[1,idx1] )
        if(lwrite(3)) call io_variable_bulk(ID,ID_now(2),  C1=TMP_IO_VAR,                     IPOS=[1,idx1] )
@@ -141,20 +146,20 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
        ! Block is split
        ilast=MAX_BSK_LIN_size-idx1+1
        if(lwrite(1)) then
-         ID_now(1)=VAR_IDs(2)+(i_rep(1)-1)*8
-         ID_now(2)=VAR_IDs(2)+(i_rep(2)-1)*8
+         ID_now(1)=VAR_IDs(2)+(i_rep(1)-1)*n_max_tot_vars
+         ID_now(2)=VAR_IDs(2)+(i_rep(2)-1)*n_max_tot_vars
          call io_variable_bulk(ID,ID_now(1), CH1=BS_blk(i_block)%done(:ilast,i2),       IPOS=[  idx1] )
          call io_variable_bulk(ID,ID_now(2), CH1=BS_blk(i_block)%done(ilast+1:imax,i2), IPOS=[     1] )
        endif
        if(lwrite(2)) then
-         ID_now(1)=VAR_IDs(1)+(i_rep(1)-1)*8
-         ID_now(2)=VAR_IDs(1)+(i_rep(2)-1)*8
+         ID_now(1)=VAR_IDs(1)+(i_rep(1)-1)*n_max_tot_vars
+         ID_now(2)=VAR_IDs(1)+(i_rep(2)-1)*n_max_tot_vars
          call io_variable_bulk(ID,ID_now(1),  C1=BS_blk(i_block)%mat(:ilast,i2),        IPOS=[1,idx1] )
          call io_variable_bulk(ID,ID_now(2),  C1=BS_blk(i_block)%mat(ilast+1:imax,i2),  IPOS=[1,   1] )
        endif
        if(lwrite(3)) then
-         ID_now(1)=VAR_IDs(1)+(i_rep(1)-1)*8
-         ID_now(2)=VAR_IDs(1)+(i_rep(2)-1)*8
+         ID_now(1)=VAR_IDs(1)+(i_rep(1)-1)*n_max_tot_vars
+         ID_now(2)=VAR_IDs(1)+(i_rep(2)-1)*n_max_tot_vars
          call io_variable_bulk(ID,ID_now(1),  C1=TMP_IO_VAR(:ilast),                    IPOS=[1,idx1] )
          call io_variable_bulk(ID,ID_now(2),  C1=TMP_IO_VAR(ilast+1:imax),              IPOS=[1,   1] )
        endif
@@ -195,6 +200,12 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
          BS_blk(i_block)%done(i1,i2)='t'
        enddo
      enddo
+   endif
+   if (x1==x2) then
+     if (BS_blk(i_block)%mode=="C" .or. BS_blk(i_block)%mode=="A") x1=x1+BS_K_dim(1)
+     call C_F_POINTER(C_LOC(BS_blk(i_block)%table),tmp_link,(/5,BS_blk(i_block)%size(1)/))
+     call io_variable_bulk(ID, ID_table,  I2=tmp_link, IPOS=(/1,x1/) )
+     nullify(tmp_link)
    endif
    !
  end select
