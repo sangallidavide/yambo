@@ -112,8 +112,8 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
      i_rep(1)=1+int((idx-int(1,IPL))/int(MAX_BSK_LIN_size,IPL),IP)
      ! if idx+imax  > MAX_BSK_LIN_size switch to the next variable
      i_rep(2)=1+int((idx+int(imax-2,IPL))/int(MAX_BSK_LIN_size,IPL),IP)
-     ! I need both the previous two because a block can be written
-     ! part on linear variable, part on the next
+     ! I need both because a block can be written
+     ! part on a variable, part on the next
      !
      idx1= int(idx-int(MAX_BSK_LIN_size,IPL)*int(i_rep(1)-1,IPL),IP)
      !
@@ -201,14 +201,15 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
        enddo
      enddo
    endif
-   if (x1==x2) then
-     if (BS_blk(i_block)%mode=="C" .or. BS_blk(i_block)%mode=="A") x1=x1+BS_K_dim(1)
-     call C_F_POINTER(C_LOC(BS_blk(i_block)%table),tmp_link,(/5,BS_blk(i_block)%size(1)/))
-     call io_variable_bulk(ID, ID_table,  I2=tmp_link, IPOS=(/1,x1/) )
-     nullify(tmp_link)
-   endif
    !
  end select
+ !
+ if (x1==x2) then
+   if (BS_blk(i_block)%mode=="C" .or. BS_blk(i_block)%mode=="A") x1=x1+BS_K_dim(1)
+   call C_F_POINTER(C_LOC(BS_blk(i_block)%table),tmp_link,(/5,BS_blk(i_block)%size(1)/))
+   call io_variable_bulk(ID, ID_table,  I2=tmp_link, IPOS=(/1,x1/) )
+   nullify(tmp_link)
+ endif
  !
  ! nf90_sync is performed up to n_BS_blks_min and at steps of 5% of BSE kernel
  file_sync= i_block<=n_BS_blks_min .and. mod(i_block,max(1,n_BS_blks_min/20))==0 .and. index(BSK_IO_mode,"norestart")==0

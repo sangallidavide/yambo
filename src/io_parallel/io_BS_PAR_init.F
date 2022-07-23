@@ -109,10 +109,18 @@ integer function io_BS_PAR_init(iq,ID,mode)
    if(trim(BSK_IO_local)=="1D_linear" .or. trim(BSK_IO_local)=="compressed_head" ) then
      dim_names(2:3,1)=[ 'BS_K_linearized1', 'BS_K_linearized2' ]
      BS_LIN_size=int(BS_K_dim(1),kind=IPL)*int(BS_K_dim(1)+1,kind=IPL)/int(2,kind=IPL)
+     if(BS_n_eh_spaces==2) then
+       call error(" 1D_linear / compressed IO not available with full mode")
+     else if (BS_K_coupling) then
+       dim_names(2:3,2) = dim_names(2:3,1)
+     endif
    endif
    if(trim(BSK_IO_local)=="compressed_mat") then
      dim_names(2:3,1)=[ 'BS_K_compressed1', 'BS_K_compressed2' ]
      BS_LIN_size=BS_lin_size_compressed
+     if(BS_n_eh_spaces==2.or.BS_K_coupling) then
+       call error(" compressed IO not available with full mode or with coupling")
+     endif
    endif
    !
    if(trim(BSK_IO_local)=="1D_linear" )                                                 ch_tmp="_LINEARIZED"
@@ -131,6 +139,7 @@ integer function io_BS_PAR_init(iq,ID,mode)
    BS_LIN_size=BS_LIN_size-int(MAX_BSK_LIN_size,IPL)*int(n_replica-1,IPL)
    !
    BS_IO_dim(2,1)=int(BS_LIN_size,IP)
+   if (BS_K_coupling) BS_IO_dim(:,2)=BS_IO_dim(:,1)
    !
  case("2D_standard")
    !
