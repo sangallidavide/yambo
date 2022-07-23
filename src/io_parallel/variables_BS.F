@@ -32,7 +32,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
 &                        BS_K_coupling,BS_res_K_exchange,BS_res_K_corr,&
 &                        BS_n_g_exch,BS_n_g_W,BS_eh_en,BS_eh_win,BS_W_is_diagonal,&
 &                        BS_K_is_ALDA,BS_cpl_K_exchange,BSE_L_kind,&
-&                        BS_cpl_K_corr,BSqpts,BS_perturbative_SOC
+&                        BS_cpl_K_corr,BS_qpt,BS_perturbative_SOC
  use IO_m,          ONLY:io_status,variable_exist,write_is_on
  use IO_int,        ONLY:def_variable_elemental,io_variable_elemental,ver_is_gt_or_eq
  use descriptors,   ONLY:IO_desc,IO_desc_reset
@@ -60,9 +60,9 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  call io_variable_elemental(ID,VAR="[K] Identifier",I0=BS_identifier,DESCRIPTOR=desc)
  !
  if(iq>1) then
-   call def_variable_elemental(ID,"Q-point",3,SP,0)
-   call io_variable_elemental(ID,VAR="[K] Q-point",&
-&                             R1=BSqpts(:,iq),CHECK=.true.,OP=(/"==","==","=="/),DESCRIPTOR=desc)
+   call def_variable_elemental(ID,"BS_Q",3,SP,0)
+   call io_variable_elemental(ID,VAR="[K] BS Q-point",&
+&                             R1=BS_qpt(:,iq),CHECK=.true.,OP=(/"==","==","=="/),DESCRIPTOR=desc)
  endif
  !
  call def_variable_elemental(ID,"Dimension",1,IP+100,0)
@@ -192,8 +192,6 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
    !
  endif
  !
-#if defined _PAR_IO
- !
  ! Check if BSE kernel is written in triangular form
  !
  if (write_is_on(ID).or.variable_exist(ID,"BSE_KERNEL_IO_MODE")) then
@@ -202,8 +200,6 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  else
    BSK_IO_mode="2D_standard"
  endif
- !
-#endif
  !
  if (ver_is_gt_or_eq(ID,revision=20415)) then
    call def_variable_elemental(ID,"X_kind",1,0,0)

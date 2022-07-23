@@ -150,9 +150,10 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      IO_err_BS=io_BS_header(1,X(2),ID_tmp,"full")
      !
      if (IO_err_BS==0) then 
-       call set_BS_blks()
+       call set_BS_blks(Xk)
        call K_restart(1,X(2),ID_tmp,ID_tmp,ID_tmp,l_tmp)
-       call build_inverse_eh_table()
+       call build_inverse_BS_eh_table(Xk)
+       call build_BS_kpt_map(Xk)
      endif
      !
    endif
@@ -325,12 +326,15 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
 end subroutine COLLISIONS_eval
 !
 !
-subroutine set_BS_blks()
+subroutine set_BS_blks(Xk)
  !
  use pars,         ONLY:cZERO
- use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat,BSK_IO_mode
+ use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat,BSK_IO_mode,BS_kpt_bz
+ use R_lattice,    ONLY:bz_samp
  !
 #include<memory.h>
+ !
+ type(bz_samp), intent(in) :: Xk
  !
  integer   :: iB
  !
@@ -363,21 +367,26 @@ subroutine set_BS_blks()
    endif
  enddo
  !
+ YAMBO_ALLOC(BS_kpt_bz,(3,Xk%nbz))
+ !
 end subroutine set_BS_blks
 !
 !
-subroutine build_inverse_eh_table()
+subroutine build_inverse_BS_eh_table(Xk)
  !
  use electrons,       ONLY:n_sp_pol
- use R_lattice,       ONLY:nXkbz
+ use R_lattice,       ONLY:bz_samp
  use BS,              ONLY:BS_bands,BS_K_dim,BS_blk
  use BS_solvers,      ONLY:BSS_eh_table_m1
  !
  implicit none
  !
+ type(bz_samp), intent(in) :: Xk
+ !
  integer :: i_H,ik_bz,iv,ic,i_sp_c,i_sp_v
  !
- allocate(BSS_eh_table_m1(nXkbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol,n_sp_pol))
+ allocate(BSS_eh_table_m1(Xk%nbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol,n_sp_pol))
+ BSS_eh_table_m1=0
  !call live_timing('BSE inverse eh-table',BS_H_dim)
 
  do i_H=1,2*BS_K_dim(1)
@@ -394,4 +403,36 @@ subroutine build_inverse_eh_table()
  enddo
  !call live_timing( )
  !
-end subroutine build_inverse_eh_table
+end subroutine build_inverse_BS_eh_table
+!
+!
+subroutine build_BS_kpt_map(Xk)
+ !
+ use pars,           ONLY:SP
+ use BS,             ONLY:BS_K_io_map,BS_kpt_bz
+ use R_lattice,      ONLY:bz_samp
+ use vec_operate,    ONLY:v_is_zero,rlu_v_is_zero,c2a
+ use zeros,          ONLY:k_rlu_zero
+ !
+ implicit none
+ !
+ type(bz_samp), intent(in) :: Xk
+ !
+ integer  :: ik1,ik2
+ real(SP) :: tmp_kpt(3)
+ !
+ allocate(BS_K_io_map(Xk%nbz))
+ BS_K_io_map=0
+ !
+ call k_ibz2bz(Xk,'i',.false.)
+ do ik1=1,Xk%nbz
+   do ik2=1,Xk%nbz
+     call c2a(v_in=Xk%ptbz(ik1,:)-BS_kpt_bz(:,ik2),v_out=tmp_kpt,mode="ki2a")
+     if (.not.rlu_v_is_zero(tmp_kpt,zero_=k_rlu_zero)) cycle
+     BS_K_io_map(ik1)=ik2
+     exit
+   enddo
+ enddo
+ call k_ibz2bz(Xk,'d',.false.)
+ !
+end subroutine build_BS_kpt_map

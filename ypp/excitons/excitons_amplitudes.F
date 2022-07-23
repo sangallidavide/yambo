@@ -33,7 +33,7 @@ subroutine excitons_amplitudes(Xk,Xen,q,BS_E_degs,iq)
 &                         DIPs_direction,l_dipoles,BSiq
  use BS_solvers,     ONLY:BS_mat,BSS_eh_table,BSS_desc,BSS_n_eig
  use DIPOLES,        ONLY:DIP_rotated,DIP_alloc,DIPOLES_reset
- use BS,             ONLY:BS_H_dim,BS_bands,BSqpts
+ use BS,             ONLY:BS_H_dim,BS_bands,BS_qpt
  use com,            ONLY:msg
  use vec_operate,    ONLY:sort,v_norm
  use interfaces,     ONLY:DESC_write
@@ -74,7 +74,7 @@ subroutine excitons_amplitudes(Xk,Xen,q,BS_E_degs,iq)
    ! ... IO
    call DIPOLE_IO(Xk,Xen,DIPs,'read ',io_err,'DIP')
    !
-   DIPs_direction=BSqpts(:,BSiq)/v_norm(BSqpts(:,BSiq))
+   DIPs_direction=BS_qpt(:,BSiq)/v_norm(BS_qpt(:,BSiq))
    !
  endif
  !

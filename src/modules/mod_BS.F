@@ -85,7 +85,9 @@ module BS
  real(SP):: BS_max_val
  real(SP):: BS_K_cutoff
  real(SP),allocatable :: BS_K_cutoff_done(:)
- real(SP),allocatable :: BSqpts(:,:)
+ real(SP),allocatable :: BS_qpt(:,:)
+ real(SP),allocatable :: BS_kpt_bz(:,:)
+ integer,allocatable :: BS_K_io_map(:)
  !
  ! Resonant/Antiresonant handling
  !================================

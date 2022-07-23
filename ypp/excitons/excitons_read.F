@@ -32,7 +32,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
  use IO_int,        ONLY:io_control,io_disconnect
  use IO_m,          ONLY:OP_RD_CL,DUMP,NONE,REP,VERIFY
  use BS_solvers,    ONLY:BSS_eh_table,BSS_write_eig_2_db,io_BSS_diago,BS_mat,BSS_n_eig
- use BS,            ONLY:BS_H_dim,BS_K_dim,BS_bands,BS_K_coupling,BSqpts
+ use BS,            ONLY:BS_H_dim,BS_K_dim,BS_bands,BS_K_coupling,BS_qpt
  use YPPm,          ONLY:BS_R_left,BS_R_right,BS_E,BS_E_SOC_corr,BS_R_PL,BS_R_kerr,Xbsk   
  !
 #include<memory.h>
@@ -68,7 +68,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
      io_err=io_E_SOC_map(en,k,io_ID)
    endif
    !
-   YAMBO_ALLOC(BSqpts,(3,iq))
+   YAMBO_ALLOC(BS_qpt,(3,iq))
    !
    ! X type. Also used in PARALLEL setup
    !
@@ -159,7 +159,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    YAMBO_FREE(BS_E)
    YAMBO_FREE(BSS_eh_table)
    YAMBO_FREE(BS_mat)
-   YAMBO_FREE(BSqpts)
+   YAMBO_FREE(BS_qpt)
    if(associated(BS_E_SOC_corr)) then
      YAMBO_FREE_P(BS_E_SOC_corr)
    endif

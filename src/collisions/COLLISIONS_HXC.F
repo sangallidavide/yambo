@@ -212,7 +212,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
    !
  else
    !
-   call k_build_up_BZ_tables(Xk)
    ! to add here or somewhere else checks on the consistency of the parameters ...
    !
  endif
@@ -390,11 +389,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !
      use electrons,     ONLY:spin_occ
      use pars,          ONLY:cI
-     use BS,            ONLY:BS_blk,BS_K_dim
+     use BS,            ONLY:BS_blk,BS_K_dim,BS_K_io_map
      use BS_solvers,    ONLY:BSS_eh_table_m1
      !
      complex(SP)  :: M_ij
-     integer      :: i_BSE,j_BSE
+     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz
      !
      do i_p=1,Xk%nibz
        do i_mp=COLL_bands(1),COLL_bands(2)
@@ -403,8 +402,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
            if ( COLLISIONS_CV_only .and. (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
            if ( COLLISIONS_CV_only .and. (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
            !
-           i_BSE=BSS_eh_table_m1(Xk%k_table(i_k,1),i_m,i_n,i_sp,i_sp)
-           j_BSE=BSS_eh_table_m1(Xk%k_table(i_p,1),i_mp,i_np,i_sp,i_sp)
+           i_k_bz=BS_K_io_map(k%k_table(i_k,1))
+           i_p_bz=BS_K_io_map(k%k_table(i_p,1))
+           !
+           i_BSE=BSS_eh_table_m1(i_k_bz,i_m,i_n,i_sp,i_sp)
+           j_BSE=BSS_eh_table_m1(i_p_bz,i_mp,i_np,i_sp,i_sp)
            !
            if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
