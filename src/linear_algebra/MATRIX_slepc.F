@@ -243,6 +243,9 @@ subroutine MATRIX_slepc(M_slepc,l_target_energy,n_eig,V_right,V_left,E_real,E_cm
  call msg( 'sr', '[SLEPC] Stopping condition tolerance      ', real(tol,SP) )
  call msg( 'sr', '[SLEPC] Stopping condition max iterations ', int(maxit) )
 
+ !Set monitor
+ call EPSMonitorSet(eps,MyEPSMonitor,0,PETSC_NULL_FUNCTION,ierr)
+
  ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  !     Solve the eigensystem
  ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,9 +256,6 @@ subroutine MATRIX_slepc(M_slepc,l_target_energy,n_eig,V_right,V_left,E_real,E_cm
  call msg( 'sr', '[SLEPC] Number of eigenvalues        [NEV]', int(nev) )
  call msg( 'sr', '[SLEPC] Max. subspace size of solver [NCV]', int(ncv) )
  call msg( 'sr', '[SLEPC] Max. allowed dim             [MPD]', int(mpd) )
-
- !Set monitor
- call EPSMonitorSet(eps,MyEPSMonitor,0,PETSC_NULL_FUNCTION,ierr)
  !
 
  ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
