@@ -388,6 +388,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      ! Yambo uses the BSE matrix  with the square root of the occupations
      ! The real time collisions must be constructed with the standard form
      ! This requires a cI factor in the coupling terms
+     ! Moreover, since the occupation factors are contained in the density matrix,
+     ! there is a -1 factor for "C", "Q" and "A"
      !
      use electrons,     ONLY:spin_occ
      use pars,          ONLY:cI
@@ -421,38 +423,39 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
              !
              ! Coupling block
              j_BSE=j_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) M_ij=       BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1)*cI
+             if(j_BSE>=i_BSE) M_ij=       BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1)*(-cI)
              ! Coupling is symmetric
-             if(j_BSE< i_BSE) M_ij=       BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1)*cI
+             if(j_BSE< i_BSE) M_ij=       BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1)*(-cI)
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
              ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1))*cI
+             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1))*(-cI)
              ! anti-Coupling is symmetric
-             if(j_BSE< i_BSE) M_ij=-conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1))*cI
+             if(j_BSE< i_BSE) M_ij=-conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1))*(-cI)
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
              !
              ! Anti-resonant from resonant: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
              j_BSE=j_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE)%mat(1,j_BSE-i_BSE+1))
+             if(j_BSE>=i_BSE) M_ij= conjg(BS_blk(i_BSE)%mat(1,j_BSE-i_BSE+1))
              ! anti-resonant is hermitian
-             if(j_BSE< i_BSE) M_ij=      -BS_blk(j_BSE)%mat(1,i_BSE-j_BSE+1)
+             if(j_BSE< i_BSE) M_ij=       BS_blk(j_BSE)%mat(1,i_BSE-j_BSE+1)
              !
            endif
            !
-           ! The occupation factor here is already contained in the density matrix (?)
+           ! The occupation factor here is already contained in the density matrix
            !
-           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=-M_ij/spin_occ
+           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)= M_ij/spin_occ
            !
          enddo
        enddo
      enddo
      !
    end subroutine map_BSE_to_HXC_collisions
+   !
    !
    subroutine compute_Hartree_collisions()
      !
@@ -596,7 +599,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !                       /        /        \
      !                      /                   \
      !                     /     G_{np,mp}       \
-     !     (i_n,i_k,1)-->--.---------->----------.---->----(i_m,i_k,1)
+     !     (i_n,i_k,1)-->--.--   ----->-----   --.---->----(i_m,i_k,1)
      !                          (i_kmq,i_kmq_s)
      !
      !
@@ -631,10 +634,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        iscp_XC%is =(/i_m,i_k,  i_k_s,  i_sp/)
        iscp_XC%os =(/0,  i_kmq,i_kmq_s,i_sp/)
        !
-       isc_XC%qs(1) =i_kmq_G0
-       iscp_XC%qs(1)=i_kmq_G0
+       ! These are used in the wrong way since they are used to construct
+       ! M_{k,k+q}(q)=M_{k,p+G}(q) in place of M_{k,p}(q-G)
+       isc_XC%qs(1) =1 !i_kmq_G0
+       iscp_XC%qs(1)=1 !i_kmq_G0
        !
-       if (iqibz/=isc_XC%iqref) call scatter_Gamp(iscp_XC,'x')
+       if (iqibz/=isc_XC%iqref)  call scatter_Gamp(iscp_XC,'x')
        !
        if( iqibz/=isc_XC%iqref .and. l_compute_screening) then
          !
@@ -675,6 +680,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
          !
          do i_np=COLL_bands(1),COLL_bands(2)
            !
+           !
            if ( COLLISIONS_CV_only .and. (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
            if ( COLLISIONS_CV_only .and. (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
            !
@@ -698,6 +704,10 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
              enddo
              !$omp end parallel do
            endif
+           !
+           ! DEBUG <
+           !write(201,*) i_n,i_m,i_k,i_np,i_mp,i_kmq,iqbz,iqibz,i_kmq_G0,isc_XC%rhotw(1),iscp_XC%gamp(1,1),conjg(iscp_XC%rhotw(1))
+           ! DEBUG >
            !
            pre_factor2=cZERO
            if(index(H_potential,"COH")>0.or.index(H_potential,"SEX")>0) then 

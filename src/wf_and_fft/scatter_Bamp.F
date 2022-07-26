@@ -23,7 +23,7 @@
 !
 subroutine DEV_SUB(scatter_Bamp)(isc)
  !
- ! rhotw(G)=<ib ik_is i_sp| e^[I(RsG-G0).r] | ob ok_os o_sp>   
+ ! rhotw(G)=<ib ik_is i_sp| e^[I(RsG-G0).r]e^[Iq.r] | ob ok_os o_sp>   
  !
  !  is(3)=(ib,ik,is,i_sp) --<--:--<-- os(3)=(ob,ok,os,o_sp)
  !                             :
