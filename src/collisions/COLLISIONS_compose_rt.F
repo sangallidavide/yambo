@@ -31,7 +31,7 @@ subroutine COLLISIONS_compose_rt(dG_in)
  use electrons,        ONLY:spin,n_met_bands,n_full_bands
  use R_lattice,        ONLY:nXkibz
  use parallel_int,     ONLY:PP_redux_wait
- use parallel_m,       ONLY:PAR_COM_Xk_ibz_INDEX,PAR_COM_Q_INDEX,&
+ use parallel_m,       ONLY:PAR_COM_Xk_ibz_INDEX,PAR_COM_Q_INDEX,PAR_COM_Xk_ibz_A2A,&
 &                           PAR_IND_Xk_ibz,PAR_IND_Bp_mat,PAR_G_k_range
  use hamiltonian,      ONLY:B_mat_index
  use real_time,        ONLY:RTibz,RT_Vnl_xc,RT_bands
@@ -48,7 +48,7 @@ subroutine COLLISIONS_compose_rt(dG_in)
  !
  if(.not.l_sc_fock.and..not.l_sc_coh.and..not.l_sc_sex.and..not.l_sc_exx.and..not.l_sc_hartree) return
  !
- call timing('COLLISIONS (compose)',OPR='start')
+ call timing('COLLISIONS (G average)',OPR='start')
  !
  G_avg=cZERO
  !
@@ -67,7 +67,7 @@ subroutine COLLISIONS_compose_rt(dG_in)
    !
  enddo
  !
- call timing('COLLISIONS (compose)',OPR='stop')
+ call timing('COLLISIONS (G average)',OPR='stop')
  !
  call timing('COLLISIONS (redux)',OPR='start')
  !
@@ -120,14 +120,18 @@ subroutine COLLISIONS_compose_rt(dG_in)
    !
  enddo
  !
- ! All 2 All
- !===========
+ call timing('COLLISIONS (compose)',OPR='stop')
  !
- call PP_redux_wait(RT_Vnl_xc)
+ call timing('COLLISIONS (redux)',OPR='start')
+ !
+ ! Redux over bands
+ !==================
+ call PP_redux_wait(RT_Vnl_xc,COMM=PAR_COM_Xk_ibz_A2A%COMM)
  !
  ! Symmetrization
  !================
  do i_k=1,nXkibz
+   if (.not.PAR_IND_Xk_ibz%element_1D(i_k) ) cycle
    do i_n=COLL_bands(1),COLL_bands(2)
      RT_Vnl_xc(i_n,i_n,i_k,:)= real(RT_Vnl_xc(i_n,i_n,i_k,:))
      do i_m=i_n+1,COLL_bands(2)
@@ -136,6 +140,10 @@ subroutine COLLISIONS_compose_rt(dG_in)
    enddo
  enddo
  !
- call timing('COLLISIONS (compose)',OPR='stop')
+ ! Redux over kpts (is this needed?)
+ !====================================
+ !call PP_redux_wait(RT_Vnl_xc,COMM=PAR_COM_Xk_ibz_INDEX%COMM)
+ !
+ call timing('COLLISIONS (redux)',OPR='stop')
  !
 end subroutine COLLISIONS_compose_rt
