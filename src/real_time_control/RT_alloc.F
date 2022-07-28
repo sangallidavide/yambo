@@ -39,7 +39,7 @@ subroutine RT_alloc(en,what)
 &                         Ho_plus_Sigma,H_EQ,H_pseudo_eq,RT_Vnl_xc,HARTREE0,XC0,G_lesser_reference,&
 &                         dG_lesser,G_lesser,MEM_pointer,G_MEM_steps,REF_V_xc_sc,REF_V_hartree_sc,rho_reference,&
 &                         magn_reference,RT_bands,RT_nk,l_RT_is_WFfree,l_RT_rotate_DM,&
-&                         l_velocity_gauge_corr
+&                         l_velocity_gauge_corr,dG_avg
  !
 #include<memory.h>
  !
@@ -88,7 +88,9 @@ subroutine RT_alloc(en,what)
    !
    if(l_use_Hxc_collisions) then
      YAMBO_ALLOC(RT_Vnl_xc,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol))
-     RT_Vnl_xc=(0._SP,0._SP)
+     RT_Vnl_xc=cZERO
+     YAMBO_ALLOC(dG_avg,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz))
+     dG_avg=cZERO
    endif
    !
    YAMBO_ALLOC(HARTREE0,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol))

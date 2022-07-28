@@ -60,8 +60,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  use real_time,      ONLY:Ho_plus_Sigma,l_NE_with_fields,REF_V_xc_sc, &
 &                         rho_reference,magn_reference,RT_Vnl_xc,H_EQ,         &
 &                         l_RT_RWA,eval_HARTREE,eval_DFT,RTibz,RT_potential,      &
-&                         RT_bands,RT_nbands,    &
-&                         l_update_SOC,l_velocity_gauge_corr
+&                         RT_bands,RT_nbands,dG_avg,l_update_SOC,l_velocity_gauge_corr
  use fields,         ONLY:gauge_field
  use wave_func,      ONLY:WF
  use parallel_m,     ONLY:PAR_IND_Xk_ibz,PAR_COM_Xk_ibz_A2A,PAR_G_k_range
@@ -182,7 +181,8 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  !======================================================
  if (l_use_Hxc_collisions) then
    !
-   call COLLISIONS_compose_rt(dG_in)
+   call Build_dG_avg(dG_in,dG_avg)
+   call COLLISIONS_compose_rt(dG_avg)
    !
    ! Add RT_Vnl_xc to Ho_plus_Sigma 
    !---------------------------------

@@ -31,7 +31,7 @@ subroutine RT_free( )
  use ELPH,           ONLY:Q_io_map,GKKP_ep_sq,GKKP_pe_sq
  use hamiltonian,    ONLY:H_free
  use xc_functionals, ONLY:E_xc
- use real_time,      ONLY:DbGd_EE_scatt_table,RT_TIME_status,REF_V_xc_sc,&
+ use real_time,      ONLY:DbGd_EE_scatt_table,RT_TIME_status,REF_V_xc_sc,dG_avg,&
 &                         Ho_plus_Sigma,H_EQ,H_pseudo_eq,RT_Vnl_xc,HARTREE0,XC0,G_lesser_reference,&
 &                         dG_lesser,G_lesser,MEM_pointer,REF_V_xc_sc,REF_V_hartree_sc,rho_reference,&
 &                         magn_reference,DbGd_EE_scatt_table,RT_TIME_status,REF_V_xc_sc,&
@@ -70,6 +70,7 @@ subroutine RT_free( )
  YAMBO_FREE(H_EQ)
  YAMBO_FREE(H_pseudo_eq)
  YAMBO_FREE(RT_Vnl_xc)
+ YAMBO_FREE(dG_avg)
  !
  YAMBO_FREE(HARTREE0)
  YAMBO_FREE(XC0)
