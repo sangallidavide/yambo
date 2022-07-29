@@ -634,10 +634,16 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        iscp_XC%is =(/i_m,i_k,  i_k_s,  i_sp/)
        iscp_XC%os =(/0,  i_kmq,i_kmq_s,i_sp/)
        !
+       ! DS 2022/07/29
        ! These are used in the wrong way since they are used to construct
-       ! M_{k,k+q}(q)=M_{k,p+G}(q) in place of M_{k,p}(q-G)
-       isc_XC%qs(1) =1 !i_kmq_G0
-       iscp_XC%qs(1)=1 !i_kmq_G0
+       ! M_{k,k+q}=M_{k,p+G} in place of M_{k,p}
+       ! Setting these to 1 should give M_{k,p}. At least I get hermitian collisions.
+       ! However the G shift needs to be accounted for somehow in (?)
+       ! a. gamp
+       ! b. X_mat
+       !
+       isc_XC%qs(1) =i_kmq_G0
+       iscp_XC%qs(1)=i_kmq_G0
        !
        if (iqibz/=isc_XC%iqref)  call scatter_Gamp(iscp_XC,'x')
        !

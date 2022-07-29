@@ -49,6 +49,9 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  integer   :: ic,i1,i2,i3,i_cycle,io_err,i_ref
  logical   :: store_it,l_HXC,l_GW_NEQ,l_QED_P,l_COH
  real(SP)  :: COLLISIONS_max
+ ! DEBUG <
+ !complex(SP) :: Mij
+ ! DEBUG >
  !
 #if defined _PAR_IO
  integer, external :: io_COLLs_header
@@ -118,6 +121,14 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
            COLL_element(i_ref)%table(i1,i2,i3)='t'
            if (l_HXC   .or.l_COH   ) COLL_element(i_ref)%v_c(ic) = COLL_element(1)%v3_c(i1,i2,i3)
            if (l_GW_NEQ.or.l_QED_P ) COLL_element(i_ref)%v_r(ic) = COLL_element(1)%v3_r(i1,i2,i3)
+           !
+           ! DEBUG <
+           !Mij=COLL_element(1)%v3_c(i1,i2,i3)
+           !if (abs( real(Mij))<1.e-10) Mij=cmplx(0._SP,aimag(Mij),kind=SP)
+           !if (abs(aimag(Mij))<1.e-10) Mij=cmplx(real(Mij),0._SP,kind=SP)
+           !!
+           !write(100,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,real(Mij),aimag(Mij)
+           ! DEBUG >
            !
          endif
          !
