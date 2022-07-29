@@ -69,7 +69,7 @@ subroutine XCo_Hartree_Fock(E,k,Xk,q,mode)
  !
  !QP list
  !
- integer              :: ik,ikp,iGp,i_sp_pol
+ integer              :: ik,ikp,ikp_s,ikp_bz,i_sp_pol
 
  !
  ! Resets & basis setup
@@ -155,7 +155,7 @@ subroutine XCo_Hartree_Fock(E,k,Xk,q,mode)
 #if !defined _CUDA
    !  !!! num_threads(n_outthr)
    !$omp parallel default(shared), &
-   !$omp          private(isc,iscp,local_rhotw,iq,iq_ibz,is_ibz,ikp,iGp,jb), reduction(+:DP_sx)
+   !$omp          private(isc,iscp,local_rhotw,iq,iq_ibz,is_ibz,ikp,ikp_s,ikp_bz,jb), reduction(+:DP_sx)
 #endif
    !
    call OPENMP_update(master_thread)
@@ -202,14 +202,20 @@ subroutine XCo_Hartree_Fock(E,k,Xk,q,mode)
      ! m   =QP_table(i_qp,2)
      ! k   =QP_table(i_qp,3)
      !
-     ikp=k%sstar(qindx_S(ik,iq,1),1)
-     iGp=k%sstar(qindx_S(ik,iq,1),2)
+     ! Note DS 2022/07/29 : i_kp_Go is not used.
+     ! This is related to issue with HSEX collisions in real-time.
+     ! See comments in COLLISIONS_HXC and in QP_ppa_cohsex
+     !i_kp_Go=qindx_S(i_k,iqbz,2)
+     ikp_bz=qindx_S(ik,iq,1)
      !
-     isc%is =(/ib, ik , 1 ,i_sp_pol/)
-     isc%os(2:)=(/ ikp,iGp,i_sp_pol/)
-     iscp%is=(/ibp,ik , 1 ,i_sp_pol/)
+     ikp  =k%sstar(ikp_bz,1)
+     ikp_s=k%sstar(ikp_bz,2)
      !
-     isc%qs(1)=qindx_S(ik,iq,2)
+     isc%is =(/ib, ik , 1   ,i_sp_pol/)
+     isc%os(2:)=(/ ikp,ikp_s,i_sp_pol/)
+     iscp%is=(/ibp,ik , 1   ,i_sp_pol/)
+     !
+     isc%qs(1)=ikp_bz
      iscp%qs=isc%qs
      !
      if (pp_is_uspp) then

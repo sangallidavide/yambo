@@ -637,8 +637,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        ! DS 2022/07/29
        ! These are used in the wrong way since they are used to construct
        ! M_{k,k+q}=M_{k,p+G} in place of M_{k,p}
-       ! Setting these to 1 should give M_{k,p}. At least I get hermitian collisions.
-       ! However the G shift needs to be accounted for somehow in (?)
+       ! Setting i_kmq_G=1 (i.e. G=0) should give M_{k,p}.
+       ! Doing so I get hermitian collisions but with a -1 compared to the ones from BSE. To verify the results.
+       ! In the subrtouine QP_ppa_cohsex and XCo_Hartree_Fock, this index is not used. See comments there.
+       !
+       ! Should the G shift needs to be accounted for somehow in (?)
        ! a. gamp
        ! b. X_mat
        !
