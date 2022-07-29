@@ -43,7 +43,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
  ! Work Space
  !
  integer           :: i_coll,i_comp,i_coll_mem,i_spin,i_n,i_m,i_kmq,ib,ibp,i_k
- logical           :: do_collisions(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2))
+ logical           :: do_collisions(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),2)
  !
  if(.not.l_sc_fock.and..not.l_sc_coh.and..not.l_sc_sex.and..not.l_sc_exx.and..not.l_sc_hartree) return
  !
@@ -55,8 +55,9 @@ subroutine COLLISIONS_compose_rt(dG_avg)
    do ib=COLL_bands(1),COLL_bands(2)
      if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp>maxval(n_met_bands) )  ) cycle
      if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
+     do_collisions(ib,ibp,1)=.true.
      if (.not.PAR_IND_Bp_mat%element_1D( B_mat_index(ib,ibp,COLL_bands) ) ) cycle
-     do_collisions(ib,ibp)=.true.
+     do_collisions(ib,ibp,2)=.true.
    enddo
  enddo
  !
@@ -84,11 +85,13 @@ subroutine COLLISIONS_compose_rt(dG_avg)
      do ibp=COLL_bands(1),COLL_bands(2)
        do ib=COLL_bands(1),COLL_bands(2)
          !
-         if (.not.do_collisions(ib,ibp)) cycle
+         if (.not.do_collisions(ib,ibp,1)) cycle
          !
          if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='f') cycle
          !
          i_comp=i_comp+1
+         !
+         if (.not.do_collisions(ib,ibp,2)) cycle
          !
          RT_Vnl_xc(i_n,i_m,i_k,i_spin)=RT_Vnl_xc(i_n,i_m,i_k,i_spin) &
 &                                      -cI*HXC_COLL_element(i_coll_mem)%v_c(i_comp)*dG_avg(ib,ibp,i_kmq)
