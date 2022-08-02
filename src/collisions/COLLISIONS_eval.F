@@ -329,7 +329,8 @@ end subroutine COLLISIONS_eval
 subroutine set_BS_blks(Xk)
  !
  use pars,         ONLY:cZERO
- use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat,BSK_IO_mode,BS_kpt_bz
+ use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat, &
+&                       BSK_IO_mode,BS_kpt_bz,l_BSE_kernel_full
  use R_lattice,    ONLY:bz_samp
  !
 #include<memory.h>
@@ -346,25 +347,31 @@ subroutine set_BS_blks(Xk)
  BS_blk(:)%size(1)=1
  !
  do iB=1,BS_K_dim(1)
-   BS_blk(iB)%size(2)=BS_K_dim(1)-iB+1
-   BS_blk(iB)%coordinate(:)=iB
-   BS_blk(iB)%mode="R"
+   BS_blk(iB            )%coordinate(1)=iB
+   BS_blk(iB+BS_K_dim(1))%coordinate(1)=iB
+   BS_blk(iB            )%mode="R"
+   BS_blk(iB+BS_K_dim(1))%mode="C"
  enddo
- do iB=BS_K_dim(1)+1,2*BS_K_dim(1)
-   BS_blk(iB)%size(2)=2*BS_K_dim(1)-iB+1
-   BS_blk(iB)%coordinate(:)=iB-BS_K_dim(1)
-   BS_blk(iB)%mode="C"
- enddo
+ !
+ if (l_BSE_kernel_full) then
+   BS_blk(:)%size(2)=BS_K_dim(1)
+   BS_blk(:)%coordinate(2)=1
+ else
+   do iB=1,BS_K_dim(1)
+     BS_blk(iB            )%size(2)=BS_K_dim(1)-iB+1
+     BS_blk(iB+BS_K_dim(1))%size(2)=BS_K_dim(1)-iB+1
+     BS_blk(iB            )%coordinate(2)=iB
+     BS_blk(iB+BS_K_dim(1))%coordinate(2)=iB
+   enddo
+ endif
  !
  do iB=1,n_BS_blks
    YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
    allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
    BS_blk(iB)%mat=cZERO
    BS_blk(iB)%done(:,:)="f"
-   if (BS_blk(iB)%coordinate(1)==BS_blk(iB)%coordinate(2)) then 
-     allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
-     bs_blk(iB)%table=0
-   endif
+   allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
+   bs_blk(iB)%table=0
  enddo
  !
  YAMBO_ALLOC(BS_kpt_bz,(3,Xk%nbz))
