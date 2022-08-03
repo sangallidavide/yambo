@@ -134,6 +134,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  NG_max=maxval((/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  NG_XC =max(N_g_vecs_X,N_g_vecs_C)
  !
+ if (COLLISIONS_HXC_MB) then
+   n_GmG=eval_G_minus_G(NG_XC,iGo_max)
+   NG_XC=maxval(G_m_G)
+ endif
+ !
  call msg('s', '['//trim(H_potential)//'] Plane waves (H,X,C) ',(/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  !
  ! WFs
@@ -174,7 +179,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
    isc_XC%iqref =0
    isc_XC%ngrho =NG_XC
    !
-   call elemental_collision_alloc(iscp_XC,NG=NG_XC,NG_GAMP=(/N_g_vecs_X,  1  /),TITLE=trim(H_potential))
+   call elemental_collision_alloc(iscp_XC,NG=NG_XC,NG_GAMP=(/NG_XC,  1  /),TITLE=trim(H_potential))
    !
    if (l_compute_screening) then
      !
@@ -387,9 +392,17 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !
      ! Yambo uses the BSE matrix  with the square root of the occupations
      ! The real time collisions must be constructed with the standard form
-     ! This requires a cI factor in the coupling terms
+     ! This requires a cI factor in the coupling terms.
      ! Moreover, since the occupation factors are contained in the density matrix,
-     ! there is a -1 factor for "C", "Q" and "A"
+     ! there is a -1 factor for "Q" and "A"
+     !
+     ! The excitonic matrix contains the occupations and it is pseudo-hermitian.
+     !  R      iC       R  iC 
+     ! -(iC)*  -R*  =  iC* -R*
+     !
+     ! The collisions do not contain the occupations and the matrix is hermitian.
+     !   R   C
+     !   C*  R*
      !
      use electrons,     ONLY:spin_occ
      use pars,          ONLY:cI
@@ -410,8 +423,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
            i_p_bz=BS_K_io_map(k%k_table(i_p,1))
            !
            ! To double check if the indexes need to be inverted in the table ...
-           i_BSE=BSS_eh_table_m1(i_k_bz,i_m,i_n,i_sp,i_sp)
-           j_BSE=BSS_eh_table_m1(i_p_bz,i_mp,i_np,i_sp,i_sp)
+           i_BSE=BSS_eh_table_m1(i_k_bz,i_n,i_m,i_sp,i_sp)
+           j_BSE=BSS_eh_table_m1(i_p_bz,i_np,i_mp,i_sp,i_sp)
            !
            if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
@@ -443,12 +456,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
              i_BSE=i_BSE-BS_K_dim(1)
              if (l_BSE_kernel_full) then
                ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
-               M_ij=-conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE))*(-cI)
+               M_ij= conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE))*(-cI)
              else
                ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
-               if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1))*(-cI)
+               if(j_BSE>=i_BSE) M_ij= conjg(BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1))*(-cI)
                ! anti-Coupling is symmetric
-               if(j_BSE< i_BSE) M_ij=-conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1))*(-cI)
+               if(j_BSE< i_BSE) M_ij= conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1))*(-cI)
              endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
@@ -565,7 +578,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
                enddo
              endif
              !
-             HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=4._SP*pi*pre_factor1+Co*pre_factor2
+             HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=4._SP*pi*conjg(pre_factor1)+Co*pre_factor2
              !
              call live_timing(steps=1)
              !
@@ -657,17 +670,17 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        !
        ! DS 2022/07/29
        ! The G shifts "i_kmq_G0" are need to construct M_{k,p}.
-       ! Without them the matrix M_{k,k+q}=M_{k,p+G} would be obtained
        ! The same procedure is applyed in the BSE subroutines.
        !
        ! However, for some reason, I get a non hermitian matrix, i.e. K_{nmk,n'm'k'} /= K^*_{n'm'k',nmk}
-       ! due to a "-1" factor in the real part of some matrix elements
+       ! due to a "-1" factor in the real part of some matrix elements.
        ! This issue was never seen in the BSE, since the hermiticity is imposed there.
        ! However, implementing the option to compute the full BSE blocks, i.e. without imposing 
        ! the hermiticity, the issue is there as well.
        !
-       ! Setting i_kmq_G0=1 (i.e. G=0) is even worse.
-       ! Again consistent results are obtained between BSE and collisions
+       ! Without them the matrix M_{k,k+q}=M_{k,p+G} would be obtained
+       ! Indeed setting i_kmq_G0=1 (i.e. G=0) the results are very bad.
+       ! Both in the BSE and in the collisions, i.e. the matrix is not at all hermitian.
        !
        ! In the subrtouine QP_ppa_cohsex and XCo_Hartree_Fock.
        ! There the difference M_{k,k+q} vs M_{k,p} maybe non crucial, since
@@ -676,7 +689,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        isc_XC%qs(1) =i_kmq_G0
        iscp_XC%qs(1)=i_kmq_G0
        !
-       if (iqibz/=isc_XC%iqref)  call scatter_Gamp(iscp_XC,'x')
+       if (iqibz/=isc_XC%iqref) call scatter_Gamp(iscp_XC,'x')
        !
        if( iqibz/=isc_XC%iqref .and. l_compute_screening) then
          !
@@ -727,7 +740,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
            !
            isc_XC%os(1)=i_np
            !
-           if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os)) then
+           if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os).or.any(isc_XC%qs/=iscp_XC%qs)) then
              call scatter_Bamp(isc_XC)
            else
              isc_XC%rhotw=iscp_XC%rhotw
@@ -737,16 +750,18 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
            if(index(H_potential,"FOCK")>0.or.index(H_potential,"SEX")>0) then 
              !$omp parallel do default(shared), private(ig1), reduction(+:pre_factor1)
              do ig1=1,N_g_vecs_X
-               ig2=ig1 !G_m_G(ig1,minus_G(i_kmq_G0))
-               pre_factor1=pre_factor1+isc_XC%rhotw(ig2)*iscp_XC%gamp(ig2,1)*conjg(iscp_XC%rhotw(ig2))
+               ig2=G_m_G(ig1,minus_G(i_kmq_G0))
+               pre_factor1=pre_factor1+conjg(isc_XC%rhotw(ig2))*iscp_XC%gamp(ig2,1)*iscp_XC%rhotw(ig2)
              enddo
              !$omp end parallel do
            endif
            !
            ! DEBUG <
+           !ig2=G_m_G(1,minus_G(i_kmq_G0))
            !if ( (i_n==5 .and. i_m==9 .and. i_k==2 .and.  i_np==5 .and. i_mp==10 .and. i_kmq==1)  .or. &
            !&    (i_n==5 .and. i_m==10 .and. i_k==1 .and.  i_np==5 .and. i_mp==9 .and. i_kmq==2)  )    &
-           !& write(201,*) i_n,i_m,i_k,i_np,i_mp,i_kmq,iqbz,iqibz,i_kmq_G0,isc_XC%rhotw(1),iscp_XC%gamp(1,1),conjg(iscp_XC%rhotw(1))
+           !& write(201,*) i_n,i_m,i_k,i_np,i_mp,i_kmq,iqbz,iqibz,i_kmq_G0, &
+           !&              conjg(isc_XC%rhotw(ig2)),iscp_XC%gamp(ig2,1),iscp_XC%rhotw(ig2)
            ! DEBUG >
            !
            pre_factor2=cZERO
@@ -754,7 +769,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
              !$omp parallel do default(shared), private(ig1,ig2), reduction(+:pre_factor2)
              do ig1=1,N_g_vecs_C
                do ig2=1,N_g_vecs_C
-                 pre_factor2=pre_factor2+isc_XC%rhotw(ig2)*EM1s(ig2,ig1)*conjg(iscp_XC%rhotw(ig1))
+                 pre_factor2=pre_factor2+conjg(isc_XC%rhotw(ig2))*EM1s(ig2,ig1)*conjg(iscp_XC%rhotw(ig1))
                enddo
              enddo
              !$omp end parallel do
