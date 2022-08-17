@@ -75,6 +75,8 @@ subroutine X_pre_setup(Xen,Xk,X)
  ! response function is accessed in G-G' mode. Here I ensure that all G-G' are in the
  ! range provided externally
  !
+ if (l_cohsex) call parser("UseEbands",COHSEX_use_empties)
+ !
  if ((l_cohsex.and..not.COHSEX_use_empties).or.l_X_terminator) then
      X%ng=eval_G_minus_G(X%ng,0,COMM=PAR_COM_WORLD)
      call warning(' Response block size reduced to '//intc(X%ng) &
