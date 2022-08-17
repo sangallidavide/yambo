@@ -388,7 +388,7 @@ subroutine INIT_activate()
      call initactivate(1,'BoseCut ShiftedPaths')
      !
      if (l_gw0) then
-       if (.not.l_cohsex.or.COHSEX_use_empties) call initactivate(1,'GbndRnge') 
+       if ((.not.l_cohsex).or.COHSEX_use_empties) call initactivate(1,'GbndRnge') 
        if (.not.l_cohsex.and.trim(QP_solver)/='g') call initactivate(1,'GDamping') 
        if (.not.l_cohsex) call initactivate(1,'dScStep') 
        if (.not.l_elphoton_corr) then
