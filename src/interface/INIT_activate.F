@@ -375,14 +375,18 @@ subroutine INIT_activate()
    endif
 #endif
    !
+   if (l_HF_and_locXC.or.l_elel_corr) then
+     call INIT_QP_ctl_switch('G')
+#if defined _RT
+     call INIT_RT_ctl_switch('G')
+#endif
+   endif
+   !
    if (l_elel_corr) then
      !
      call INIT_QP_ctl_switch('X')
-     call INIT_QP_ctl_switch('G')
-     !
 #if defined _RT
      call INIT_RT_ctl_switch('X')
-     call INIT_RT_ctl_switch('G')
 #endif
      !
      call initactivate(1,'BoseCut ShiftedPaths')
