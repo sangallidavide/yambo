@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -82,7 +82,7 @@ subroutine Vgrad_real_space_to_H(ik,H,WF,V_grad)
    enddo
    !
    i_wf = WF%index(ib,ik,1)
-   H(ib,ibp) = 0.25_SP*Vstar_dot_V(fft_size*n_spinor,WF%c(:,:,i_wf),c_ws(:,:))
+   H(ib,ibp) = 0.25_SP*Vstar_dot_V(fft_size*n_spinor,cmplx(WF%r(:,:,i_wf),kind=SP),c_ws(:,:))
    !
    if(ib==ibp) H(ib,ib) = real(H(ib,ib ),SP)
    if(ib/=ibp) H(ibp,ib)=conjg(H(ib,ibp)   )

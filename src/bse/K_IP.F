@@ -1,8 +1,8 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): DS AM
+! Authors (see AUTHORS file for details): DS AM IMA
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -33,11 +33,11 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  use stderr,        ONLY:intc
  use electrons,     ONLY:levels,spin_occ,spin,nel,n_sp_pol
  use X_m,           ONLY:Epsilon_ii,Joint_DOS,alpha_dim,eps_2_alpha,&
-&                        X_drude_term,global_gauge,   &
+&                        X_drude_term,global_gauge,N_BS_E_sorted,&
 &                        skip_cond_sum_rule,l_drude,X_magnons,Epsilon_ij,X_dichroism
- use BS_solvers,    ONLY:Co_factor,diam_term_exact,BSS_Wd
- use BS,            ONLY:BS_T_grp,BS_nT_grps,BS_perturbative_SOC,&
-&                        BS_dip_size,l_BS_jdos,l_BS_esort,l_BS_trace,BS_K_dim,&
+ use BS_solvers,    ONLY:Co_factor,diam_term_exact,BSS_Wd,BSS_mode,BSS_uses_DbGd,FG_factor
+ use BS,            ONLY:BS_T_grp,BS_nkFGbz_in_Tgrp,BS_nT_grps,BS_perturbative_SOC,&
+&                        BS_dip_size,l_BS_jdos,l_BS_esort,l_BS_trace,BS_H_dim,l_BS_kerr_asymm,&
 &                        l_BS_abs,l_BS_kerr,l_BS_magnons,l_BS_dichroism,l_BS_photolum,&
 &                        BS_K_anti_resonant,l_BS_ares_from_res
  use parallel_int,  ONLY:PP_redux_wait
@@ -60,11 +60,15 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  !
  ! Work space
  !
- integer           ::iv,ic,i_T_g,i_T,n_SOC,i_pert_SOC,i_res_ares,i_sort,nVAR(2),i_dip
+ integer           ::i_T_g,i_T,n_SOC,i_pert_SOC,i_res_ares,i_sort,nVAR
  real(SP)          ::f_eh,f_eh_PL,res_PL
  logical           ::dip_v,dip_r
  complex(SP)       ::drude_GreenF(W_bss%n_freqs),res_abs,E_plus_W0,E_plus_W(2/n_sp_pol),&
 &                    para_term_w0,diam_term_used,Z_eh,E_eh
+ !
+ integer       :: i_ColFG
+ complex(SP), allocatable :: E_DbGd(:)
+ !
  complex(SP)       ::P_weighted(3),res_kerr,res_magn(2),res_dich
  complex(SP),    allocatable :: vtmpC(:,:)
  !
@@ -110,14 +114,20 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  ! Sorting pre-setup
  !-------------------
  if(l_BS_esort) then
-   nVAR(1)=2 ! Energies (IP + degeneracy)
-   if(l_BS_abs)       nVAR(1)=nVAR(1)+1
-   if(l_BS_kerr)      nVAR(1)=nVAR(1)+1
-   if(l_BS_dichroism) nVAR(1)=nVAR(1)+1
-   if(l_BS_magnons)   nVAR(1)=nVAR(1)+2
-   YAMBO_ALLOC(vtmpC,(BS_K_dim(1),nVAR(1)))
+   N_BS_E_sorted=2 ! Energies (IP + degeneracy)
+   if(l_BS_abs)       n_BS_E_sorted=n_BS_E_sorted+1
+   if(l_BS_kerr)      n_BS_E_sorted=n_BS_E_sorted+1
+   if(l_BS_dichroism) n_BS_E_sorted=n_BS_E_sorted+1
+   if(l_BS_magnons)   n_BS_E_sorted=n_BS_E_sorted+2
+   YAMBO_ALLOC(vtmpC,(BS_H_dim,n_BS_E_sorted))
    vtmpC=cZERO
  endif
+ !
+ if (BSS_uses_DbGd .and. (index(BSS_mode,'h')/=0)) then
+   FG_factor = real(Xk%nbz)/real(Xk%FGbz%N)
+ else
+   FG_factor = 1._SP
+ end if
  !
  call live_timing('IP properties',PAR_BS_nT_col_grps)
  !
@@ -129,23 +139,33 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
    !
    do i_T=1,BS_T_grp(i_T_g)%size
      !
-     i_sort    =sum(BS_T_grp(BS_T_grp(i_T_g)%i_T_ref:i_T_g-1)%size)+i_T 
-     nVAR(2)   =0
+     i_sort =sum(BS_T_grp(BS_T_grp(i_T_g)%i_T_ref:i_T_g-1)%size)+i_T 
+     nVAR   =0
      !
      ! Energy
      !========
      !
-     E_plus_W0=BS_T_grp(i_T_g)%E(i_T)
+     E_plus_W0=BS_T_grp(i_T_g)%E(i_T,1)
      if(allocated(BS_T_grp(i_T_g)%W)) then
-       E_plus_W0=BS_T_grp(i_T_g)%E(i_T)-cI*BS_T_grp(i_T_g)%W(i_T)
+       E_plus_W0=BS_T_grp(i_T_g)%E(i_T,1)-cI*BS_T_grp(i_T_g)%W(i_T)
      endif
      !
      if (.not.BS_perturbative_SOC) E_plus_W=E_plus_W0
      if (     BS_perturbative_SOC) E_plus_W(:)=E_plus_W0+BS_T_grp(i_T_g)%E_SOC_corr(:,i_T)
      !
+     ! IA (2022/01/19):
+     ! Energies in DbGd as difference with respect to coarse grid
+     ! BS_nkFGbz_in_Tgrp(i_T_g) > 1 only for Haydock + DbGd
+     !
+     allocate(E_DbGd(BS_nkFGbz_in_Tgrp(i_T_g)))
+     E_DbGd = cZERO
+     do i_ColFG=1,BS_nkFGbz_in_Tgrp(i_T_g)
+       E_DbGd(i_ColFG) = BS_T_grp(i_T_g)%E(i_T,i_ColFG)-BS_T_grp(i_T_g)%E(i_T,1)
+     enddo
+     !
      if (l_BS_esort.and.i_res_ares==1) then
        call K_IP_sort("add",i_sort,nVAR,E_plus_W0,vtmpC)
-       nVAR(2)=nVAR(2)+1
+       nVAR=nVAR+1
      endif
      !
      ! Residuals from "Dipoles"
@@ -160,12 +180,15 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
      ! Residuals DIP_cv * DIP_vc
      !
      if(l_BS_abs) then
-       res_abs=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1))**2
+       res_abs=BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1))
+       if(l_BS_kerr_asymm) then
+         res_abs=(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1))+     &
+         &        BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1)))/2._SP
+       endif
        if(l_BS_trace) then
-         do i_dip=2,BS_dip_size
-           res_abs=res_abs+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1))**2
-         enddo
-         res_abs=res_abs/real(BS_dip_size,SP)
+         res_abs=(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1))+     &
+         &        BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1))+     &
+         &        BS_T_grp(i_T_g)%dipoles_opt(3,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(3,i_T,1)))/3._SP
        endif
        res_abs=res_abs*f_eh*Z_eh*E_eh
        if (l_BS_esort.and.i_res_ares==1) call K_IP_sort("add",i_sort,nVAR,res_abs,vtmpC)
@@ -173,6 +196,10 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
      !
      if (l_BS_kerr) then
        res_kerr=BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1))
+       if(l_BS_kerr_asymm) then
+         res_kerr=(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1))-     &
+         &         BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)))/2._SP
+       endif
        res_kerr=res_kerr*Z_eh*E_eh*f_eh
        if (l_BS_esort.and.i_res_ares==1) call K_IP_sort("add",i_sort,nVAR,res_kerr,vtmpC)
      endif
@@ -189,13 +216,13 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
      ! Dichroism
      !
      if(l_BS_dichroism) then
-       res_dich=BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(1,i_T,1))
+       res_dich=(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(1,i_T,1))+     &
+       &         BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(2,i_T,1)))/2._SP
        if(l_BS_trace) then
-         do i_dip=2,BS_dip_size
-           ! x*L = DIP_x*DIP_orbital;
-           res_dich=res_dich+BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(i_dip,i_T,1))
-         enddo
-         res_dich=res_dich/real(BS_dip_size,SP)
+         ! x*L = DIP_x*DIP_orbital;
+         res_dich=(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(1,i_T,1))+     &
+         &         BS_T_grp(i_T_g)%dipoles_opt(2,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(2,i_T,1))+     &
+         &         BS_T_grp(i_T_g)%dipoles_opt(3,i_T,1)*conjg(BS_T_grp(i_T_g)%dipoles_dic(3,i_T,1)))/3._SP
        endif
        res_dich=res_dich*f_eh*Z_eh/(q0_def_norm)
        if (l_BS_esort.and.i_res_ares==1) call K_IP_sort("add",i_sort,nVAR,res_dich,vtmpC)
@@ -235,10 +262,12 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        endif
        !
        if (l_BS_abs) then
-         Epsilon_ii(:,3)=Epsilon_ii(:,3)-res_abs/(W_bss%p(:)-E_plus_W(i_pert_SOC))
-         if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
-            Epsilon_ii(:,3)=Epsilon_ii(:,3)+conjg(res_abs)/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC)))
-         endif
+         do i_ColFG=1,BS_nkFGbz_in_Tgrp(i_T_g)
+           Epsilon_ii(:,3)=Epsilon_ii(:,3)-res_abs/(W_bss%p(:)-E_plus_W(i_pert_SOC)-E_DbGd(i_ColFG))
+           if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
+             Epsilon_ii(:,3)=Epsilon_ii(:,3)+conjg(res_abs)/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC)+E_DbGd(i_ColFG)))
+           endif
+         enddo
        endif
        !
        if(abs(E_plus_W(i_pert_SOC))>0._SP) then
@@ -288,6 +317,7 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        !
      enddo
      !
+     deallocate(E_DbGd)
    enddo
    !
    call live_timing(steps=1)
@@ -296,18 +326,17 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  !
  call live_timing()
  !
+ if (l_BS_abs) Epsilon_ii(:,3) = Epsilon_ii(:,3) * FG_factor
+ !
  ! Sorting procedure
  !===================
- !
  if (l_BS_esort) call K_IP_sort("sort",0,nVAR,cZERO,vtmpC)
  !
  ! ALL 2 ALL
  !==============
- !
  if (l_BS_abs) then
    call PP_redux_wait( Epsilon_ii(:,3) ,COMM=PAR_COM_Xk_ibz_INDEX%COMM )
    call PP_redux_wait( Epsilon_ii(:,3) ,COMM=PAR_COM_eh_INDEX%COMM )
-   !
    call PP_redux_wait( para_term_w0 ,COMM=PAR_COM_Xk_ibz_INDEX%COMM )
    call PP_redux_wait( para_term_w0 ,COMM=PAR_COM_eh_INDEX%COMM )
  endif
@@ -403,14 +432,8 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  !
  if (l_BS_magnons) X_magnons(:,:,3)=X_magnons(:,:,3)*Co_factor/(4._SP*pi)
  !
- if (l_rpa_IP) then
-   !
-   ! Initialize & write the output file
-   !
-   call K_output_file(iq,"open IP")
-   call K_output_file(iq,"IP")
-   !
- endif
+ if (     l_rpa_IP) call K_OUTPUT(iq,W_bss,"open dump IP close reset","optics kerr magnons PL dichroism")
+ call K_OUTPUT(iq,W_bss,"open dump close reset bare","E_IP")
  !
  ! Clean
  ! 

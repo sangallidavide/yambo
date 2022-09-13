@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -31,13 +31,12 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use global_XC,  ONLY:EXT_NONE
  use X_m,        ONLY:current_iq,self_detect_E_range,X_FILL_UP_matrix_only,eps_2_alpha,l_drude,&
 &                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,Chi_prop,skip_cond_sum_rule,&
-&                     eval_alpha,&
 &                     q_plus_G_direction,Q_Shift_Order,&
 &                     l_X_terminator,X_terminator_E,global_gauge,&
 &                     Chi_linalg_mode,X_use_lin_sys,X_use_gpu,X_DbGd_percentual
  use DIPOLES,    ONLY:use_covariant_approach,use_real_space_approach,&
 &                     Vnl_commutator_warning,use_shifted_grids_approach,use_g_space_approach,&
-&                     compute_P2_dipoles,compute_Spin_dipoles,compute_Orb_dipoles
+&                     compute_P2_dipoles,compute_Spin_dipoles,compute_Orb_rt_dipoles,compute_Orb_cd_dipoles
  use QP_m,       ONLY:QP_dSc_steps,QP_n_W_freqs,QP_G_Zoom_treshold,&
 &                     QP_dSc_test,QP_solver,QP_G_damp,QP_dSc_delta,&
 &                     QP_cg_percent,QP_n_states,SC_E_threshold, &
@@ -62,13 +61,13 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     more_io_path,core_io_path,com_path,repfile,grid_paths,fat_log
  use stderr,     ONLY:win_size,tty_size,logfile,set_real_printed_length,log_as_a_file
  use LIVE_t,     ONLY:log_line_to_dump,log_line,nhash,ct
- use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO
+ use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO,rho_map_thresh
  use FFT_m,      ONLY:fft_dim_loaded,fft_size,fft_dim,fft_multiplier
  use IO_m,       ONLY:io_reset,max_io_units,serial_number,frag_WF
- use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,&
-&                     BSS_q0,Haydock_threshold,Haydock_iterIO,Haydock_iterMAX,BSS_uses_DbGd,BSS_Wd,&
+ use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,BSS_E_dir,BSS_Q_dir,&
+&                     Haydock_threshold,Haydock_iterIO,Haydock_iterMAX,BSS_uses_DbGd,BSS_Wd,&
 &                     BSS_damp_reference,BSS_Vnl_included,BSS_uses_GreenF,BSS_inversion_mode,&
-&                     BSS_perturbative_width,K_INV_EPS,K_INV_PL
+&                     BSS_perturbative_width,K_INV_EPS,K_INV_PL,K_INV_PI_PH
  use descriptors,ONLY:IO_desc_reset
 #if defined _SLEPC && !defined _NL
  use BS_solvers, ONLY:BSS_slepc_extraction,BSS_slepc_ncv,BSS_slepc_tol,BSS_slepc_target_E,BSS_slepc_maxit,&
@@ -76,7 +75,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 #endif
  use BS,         ONLY:BS_n_g_W,BS_eh_en,BS_identifier,BS_q,BS_eh_win,MAX_BSK_LIN_size,&
 &                     BS_K_dim,BS_not_const_eh_f,BSK_mode,l_BSE_kernel_complete,&
-&                     BS_K_is_ALDA,BSE_mode,BSE_prop,L_kind,BS_K_cutoff,BS_perturbative_SOC,BSK_IO_mode
+&                     BS_K_is_ALDA,BSE_mode,BSE_prop,BSE_L_kind,BS_K_cutoff,BS_perturbative_SOC,BSK_IO_mode
  use TDDFT,      ONLY:FXC_type,FXC_n_g_corr,ALDA_cut_scheme,&
 &                     FXC_per_memstps,FXC_LRC_alpha,FXC_PF_alpha,FXC_LRC_beta,FXC_SVD_digits,&
 &                     FXC_is_retarded,TDDFT_mode
@@ -97,13 +96,13 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     l_SC_nl_mix,SC_kind,SC_perturbation,SC_desc,SC_neq_kind,SC_last_coh_it
 #endif
 #if defined _SC || defined _RT || defined _QED || defined _NL
- use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff
+ use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff,COLLISIONS_CV_only
  use hamiltonian,    ONLY:H_potential
 #endif
 #if defined _RT || defined _YPP_RT
  use RT_output_m,ONLY:n_RT_headings,N_RT_o_files,RT_o_file_long,RT_o_file_short,RT_o_file_is_open,&
 &                     RT_headings,YPP_append,Gr_desc,TIME_STEP_desc,RT_desc
- use RT_control, ONLY:CARR_RT_IO_t,OBS_RT_IO_t,OUTPUT_RT_IO_t,GF_RT_IO_t,SAVE_G_history,RT_ctl_db,&
+ use RT_control, ONLY:CARR_RT_IO_t,OBS_RT_IO_t,OUTPUT_RT_IO_t,Gless_RESTART_RT_IO_t,SAVE_G_history,RT_ctl_db,&
 &                     CACHE_OBS_last_point,CACHE_OBS_INTERVAL_time,CACHE_OBS_INTERVAL_time_INPUT,   &
 &                     CACHE_OBS_steps,CACHE_OBS_steps_now,RT_NAN_found
  use RT_lifetimes,ONLY:RT_life_extrap_times
@@ -127,6 +126,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 #if defined _SC
  use magnetic,    ONLY:MAG_B,MAG_radius,MAG_hamiltonian_type,MAG_landau,MAG_pauli,&
 &                      MAG_gauge,MAG_psi,MAG_theta,phase_trick
+ use electric,    ONLY:l_P_periodic,l_force_SndOrd
 #endif
 #if defined _YAML_OUTPUT
  use com,         ONLY:depth_yaml
@@ -338,6 +338,11 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  wf_norm_test=.TRUE.
  wf_nb_io=0
  wf_nb_io_groups=1
+#if defined _GAMMA_ONLY
+ rho_map_thresh=1.E-7_SP
+#else
+ rho_map_thresh=0._SP
+#endif
  !
  !FFT
  !
@@ -367,7 +372,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use_g_space_approach       = .TRUE.
  compute_P2_dipoles         = .FALSE.
  compute_Spin_dipoles       = .FALSE.
- compute_Orb_dipoles        = .FALSE.
+ compute_Orb_rt_dipoles     = .FALSE.
+ compute_Orb_cd_dipoles     = .FALSE.
  use_X_DbGd=.FALSE.
  X_DbGd_percentual=-1.
  eps_2_alpha=1._SP
@@ -375,7 +381,6 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  global_gauge='length'
  grid_paths=' '
  skip_cond_sum_rule=.FALSE.
- eval_alpha=.FALSE.
  Vnl_commutator_warning=.FALSE.
  q_plus_G_direction=0._SP
  Q_Shift_Order=1
@@ -443,7 +448,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  BS_identifier=0
  BS_q=1
  BS_eh_win=100._SP
- L_kind='Lbar'
+ BSE_L_kind='BAR'
  BSE_mode='resonant'
  BSE_prop='abs'
  BSK_mode=' '
@@ -459,7 +464,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  BSS_inversion_mode='pf'
  BSS_er=(/0._SP,10._SP/)/HA2EV
  BSS_dr=0.1_SP/HA2EV
- BSS_q0=(/1._SP,0._SP,0._SP/)
+ BSS_E_dir=(/1._SP,0._SP,0._SP/)
+ BSS_Q_dir=(/0._SP,0._SP,1._SP/)
  BSS_uses_DbGd=.FALSE.
  BSS_damp_reference=0._SP
  BS_K_is_ALDA=.FALSE.
@@ -471,6 +477,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  BSS_Vnl_included=.FALSE.
  BSS_uses_GreenF=.FALSE.
  BSS_perturbative_width=.FALSE.
+ K_INV_PI_PH%what = "PH_PI"
  K_INV_PL%what     = "PLS"
  K_INV_PL%treshold =0.5_SP
  K_INV_EPS%what    = "EPS"
@@ -547,6 +554,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 # else
  COLLISIONS_cutoff=0.0005_SP
 # endif
+ COLLISIONS_CV_only=.FALSE.
  !
  H_potential="NONE"
  !
@@ -575,6 +583,9 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  SC_last_coh_it=50
  !
  call IO_desc_reset(SC_desc)
+ !
+ l_P_periodic   =.FALSE.
+ l_force_SndOrd =.FALSE.
  !
 #endif
  !
@@ -652,10 +663,10 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  ! RT_ctl
  !
- OBS_RT_IO_t%INTERVAL_time_INPUT   =2._SP*FS2AUT
- CARR_RT_IO_t%INTERVAL_time_INPUT  =2._SP*FS2AUT
- OUTPUT_RT_IO_t%INTERVAL_time_INPUT=5._SP*FS2AUT
- GF_RT_IO_t%INTERVAL_time_INPUT    =1._SP*FS2AUT
+ OBS_RT_IO_t%INTERVAL_time_INPUT              =2._SP*FS2AUT
+ CARR_RT_IO_t%INTERVAL_time_INPUT             =2._SP*FS2AUT
+ OUTPUT_RT_IO_t%INTERVAL_time_INPUT           =5._SP*FS2AUT
+ Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT    =1._SP*FS2AUT
  SAVE_G_history=.FALSE.
  RT_NAN_found  =.FALSE.
  !

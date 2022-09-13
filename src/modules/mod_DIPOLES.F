@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): DS
@@ -37,7 +37,8 @@ module DIPOLES
  logical                  :: use_real_space_approach
  logical                  :: compute_P2_dipoles
  logical                  :: compute_Spin_dipoles
- logical                  :: compute_Orb_dipoles
+ logical                  :: compute_Orb_rt_dipoles
+ logical                  :: compute_Orb_cd_dipoles
  logical                  :: Vnl_commutator_warning
  ! 
  ! other
@@ -62,8 +63,8 @@ module DIPOLES
  !
  type DIPOLE_t
    integer    :: iq(2)
-   integer    :: ib(2)
-   integer    :: ib_lim(2)
+   integer    :: ib(2)     !> @var ib(1)  lowest valence, ib(2)     upper conduction
+   integer    :: ib_lim(2) !> @var ib_lim(1) top valence, ib_lim(2) bottom conduction  
    integer    :: db_ib(2)
    integer    :: db_ib_lim(2)
    integer    :: ng

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -39,6 +39,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  !
  use pars,           ONLY:SP,pi,cZERO
  use FFT_m,          ONLY:fft_size
+ use wave_func,      ONLY:rho_map_size,rho_map
  use xc_functionals, ONLY:F_xc_mat
  use BS,             ONLY:l_BS_magnons
  use wrapper_omp,    ONLY:V_dot_V_omp
@@ -55,11 +56,12 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  ! 
  ! Work Space
  !
- integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y
- complex(SP) :: rhotwr1(fft_size*n_spinor*n_spinor)
- complex(SP) :: rhotwr2(fft_size*n_spinor*n_spinor)
- complex(SP) :: WF_symm1(fft_size,n_spinor)
- complex(SP) :: WF_symm2(fft_size,n_spinor)
+ logical     :: l_use_rho_map
+ integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irhotw,irho,is_yambo,os_yambo,i_spinor_y,j_spinor_y
+ complex(SP) :: rhotwr1(rho_map_size*n_spinor*n_spinor)
+ complex(SP) :: rhotwr2(rho_map_size*n_spinor*n_spinor)
+ complex(SP) :: WF_symm1(rho_map_size,n_spinor)
+ complex(SP) :: WF_symm2(rho_map_size,n_spinor)
  !
  call timing('T_space ALDA scatt.',OPR='start')
  !
@@ -72,14 +74,15 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  call WF_apply_symm(is,WF_symm1) 
  call WF_apply_symm(os,WF_symm2)
  !
- ! This takes into account the different conventions in the definition of the spin indexes
+ l_use_rho_map=allocated(rho_map)
+ !
+ ! This takes into account the different conventions between the definition of the spin indexes
  ! between yambo and the derivation of fxc in spin space for magnons
  ! This happens because in the yambo convention the left indexes "v sigma_v, c sigma_c, k" are inverted
  ! with respect to the standard convention, i.e. "c sigma_c, v sigma_v, k"
  ! As a result f_\up\dn,\dn\up is in yambo f_\dn\up,\dn\up and so on
  is_yambo=os(4)
  os_yambo=is(4)
- !
  ! To check/fix the spinorial version 
  !
  if(n_spinor==1) rhotwr1(:)=conjg(WF_symm1(:,1))*WF_symm2(:,1)
@@ -87,9 +90,9 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  if(n_spinor==2) then
    do i_spinor=1,n_spinor
      do j_spinor=1,n_spinor
-       do ifft=1,fft_size
-         irhotw=ifft+(i_spinor-1)*fft_size+(j_spinor-1)*n_spinor*fft_size
-         rhotwr1(irhotw)=conjg(WF_symm1(ifft,i_spinor))*WF_symm2(ifft,j_spinor)
+       do irho=1,rho_map_size
+         irhotw=irho+(i_spinor-1)*rho_map_size+(j_spinor-1)*n_spinor*rho_map_size
+         rhotwr1(irhotw)=conjg(WF_symm1(irho,i_spinor))*WF_symm2(irho,j_spinor)
        enddo
      enddo
    enddo
@@ -103,9 +106,13 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
    call WF_apply_symm(osp,WF_symm1)
  endif
  !
- if( n_spin==1 ) rhotwr2(:)=F_xc_mat(:,1,1,1,1)*WF_symm1(:,1)*conjg(WF_symm2(:,1))
- !
- if(n_sp_pol==2) rhotwr2(:)=F_xc_mat(:,is_yambo,os_yambo,isp(4),osp(4))*WF_symm1(:,1)*conjg(WF_symm2(:,1))
+ if (l_use_rho_map) then
+   if( n_spin==1 ) rhotwr2(:)=F_xc_mat(rho_map(:),1,1,1,1)*WF_symm1(:,1)*conjg(WF_symm2(:,1))
+   if(n_sp_pol==2) rhotwr2(:)=F_xc_mat(rho_map(:),is_yambo,os_yambo,isp(4),osp(4))*WF_symm1(:,1)*conjg(WF_symm2(:,1))
+ else
+   if( n_spin==1 ) rhotwr2(:)=F_xc_mat(:,1,1,1,1)*WF_symm1(:,1)*conjg(WF_symm2(:,1))
+   if(n_sp_pol==2) rhotwr2(:)=F_xc_mat(:,is_yambo,os_yambo,isp(4),osp(4))*WF_symm1(:,1)*conjg(WF_symm2(:,1))
+ endif
  !
  if(n_spinor==2) then
    rhotwr2=cZERO
@@ -115,10 +122,12 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
        j_spinor_y=i_spinor
        do ip_spinor=1,n_spinor
          do jp_spinor=1,n_spinor
-           do ifft=1,fft_size
-             irhotw=ifft+(i_spinor-1)*fft_size+(j_spinor-1)*n_spinor*fft_size
+           do irho=1,rho_map_size
+             if(     l_use_rho_map) ifft=rho_map(irho)
+             if(.not.l_use_rho_map) ifft=        irho
+             irhotw=irho+(i_spinor-1)*rho_map_size+(j_spinor-1)*n_spinor*rho_map_size
              rhotwr2(irhotw)=rhotwr2(irhotw)+&
-             &  F_xc_mat(ifft,i_spinor_y,j_spinor_y,ip_spinor,jp_spinor)*WF_symm1(ifft,ip_spinor)*conjg(WF_symm2(ifft,jp_spinor))
+             &  F_xc_mat(ifft,i_spinor_y,j_spinor_y,ip_spinor,jp_spinor)*WF_symm1(irho,ip_spinor)*conjg(WF_symm2(irho,jp_spinor))
            enddo
          enddo
        enddo
@@ -128,7 +137,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,mode)
  !
  ! SUM
  !=====
- TDDFT_ALDA_R_space=V_dot_V_omp(fft_size*n_spinor*n_spinor,rhotwr1,rhotwr2)
+ TDDFT_ALDA_R_space=V_dot_V_omp(rho_map_size*n_spinor*n_spinor,rhotwr1,rhotwr2)
  !
  ! tddft_alda_r_space should be mutiplied by X, it is mutiplied by Co in K
  ! X  = fft_size*spin_occ/DL_vol/Nq 

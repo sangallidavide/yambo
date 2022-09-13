@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM MG
@@ -46,7 +46,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
 &                         LINEAR_ALGEBRA_driver,OCCUPATIONS_Fermi
  use H_interfaces,   ONLY:V_real_space_to_H
  use com,            ONLY:msg
- use X_m,            ONLY:X_t,current_iq,X_alloc
+ use X_m,            ONLY:X_t,current_iq,X_ALLOC_elemental
  use DIPOLES,        ONLY:DIPOLE_t
  use LIVE_t,         ONLY:LIVE_message
  use stderr,         ONLY:intc,real2ch,log_as_a_file
@@ -234,7 +234,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
        IO_ACT=manage_action(RD_CL_IF_END,i_frag,1,QP_nk*n_sp_pol)
        call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/1+i_frag/),ID=ID(2))
        io_WF=io_SC_components('WF',E,ID(2))
-       call WF_rotate(ik,i_sp_pol,WFo,fft_size)
+       call WF_rotate(ik,i_sp_pol,WFo,fft_size,"R")
      enddo
    enddo
    !
@@ -468,7 +468,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
        ! New wave functions 
        !====================
        !
-       call WF_rotate(ik,i_sp_pol,WFo,fft_size)
+       call WF_rotate(ik,i_sp_pol,WFo,fft_size,"R")
        !
        if (l_NSC_shot) call live_timing(steps=1)
        ! 
@@ -541,7 +541,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
          call WF_load(WF,WF_G_max,WF_Go_indx,SC_bands,(/1,nkibz/),title='-SC',force_WFo=.true.)
          !
          do ik=1,QP_nk
-           call WF_rotate(ik,i_sp_pol,WFo,fft_size)
+           call WF_rotate(ik,i_sp_pol,WFo,fft_size,"R")
          enddo
          !
        endif
@@ -803,7 +803,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
        YAMBO_FREE(H_nl_nm1)
      endif
      !
-     if (.not.io_RESPONSE) call X_alloc('X')
+     if (.not.io_RESPONSE) call X_ALLOC_elemental('X')
      !
      if(l_SC_electric) then
        call ELECTRIC_free()

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -133,6 +133,7 @@ module R_lattice
  ! RL lattice
  !
  integer              :: n_g_shells,ng_vec,ng_closed
+ integer              :: G_m_G_maxval
  integer ,allocatable :: ng_in_shell(:)
  integer ,allocatable :: g_rot(:,:)
  integer ,allocatable :: G_m_G(:,:)

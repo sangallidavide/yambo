@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): MG
@@ -47,7 +47,7 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
  use drivers,         ONLY:l_oep_kli,l_oep_ceda
  use parallel_m,      ONLY:PP_indexes,myid,PP_indexes_reset
  use interfaces,      ONLY:LINEAR_ALGEBRA_driver 
- use parallel_int,    ONLY:PP_redux_wait,PARALLEL_index 
+ use parallel_int,    ONLY:PP_wait,PARALLEL_index 
  use wave_func,       ONLY:WF
  use LIVE_t,          ONLY:live_timing
  use stderr,          ONLY:intc
@@ -55,6 +55,8 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
  ! I/O
  !
 #include<memory.h>
+#include<yambo_wfs.h>
+ !
  real(SP),    intent(out):: Vkli(fft_size)
  real(SP),    intent(in) :: Vslt(fft_size),rho(fft_size)
  complex(SP), intent(in) :: U(nkibz,maxval(n_met_bands),fft_size)
@@ -63,7 +65,7 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
  !
  ! Work Space
  !
- integer                  :: i1,ik,iv1,iv2,is,ig1,ig2,ifft,offt
+ integer                  :: i1,ik,iv1,iv2,is,ig1,ig2,i_wf,o_wf
  real(SP)                 :: EWeight, Prefactor
  complex(SP), allocatable :: rhotw_sum(:),rhotw_sum_TR(:),rho_xc(:),&
 &                            Vkli_RL(:),Ko(:,:),rhotw_prd(:,:),rhotw_rs(:)
@@ -114,7 +116,7 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
  YAMBO_ALLOC(rhotw_rs,(QP_ng_Sx))
  !
  call PARALLEL_index(px,(/nkibz,E%nbf(:)/))
- call PP_redux_wait
+ call PP_wait()
  if (l_oep_kli) ch="KLI@it"//trim(intc(it_now))
  if (l_oep_ceda) ch="CED@it"//trim(intc(it_now))
  call live_timing(trim(ch),px%n_of_elements(myid+1))
@@ -125,13 +127,13 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
      if (l_oep_EWeight) EWeight = E%E(iv1,ik,1)+ E%E_Fermi 
      do iv2 = 1, iv1!E%nbf(1)
        if (l_oep_kli.and.(iv2.ne.iv1)) cycle
-       ifft=WF%index(iv1,ik,1)
-       offt=WF%index(iv2,ik,1)
+       i_wf=WF%index(iv1,ik,1)
+       o_wf=WF%index(iv2,ik,1)
        rhotw_sum = (0._SP,0._SP)
        rhotw_sum_TR = (0._SP,0._SP)
        Prefactor = 1.0_SP
        if (iv1.ne.iv2) Prefactor = 2.0_SP
-       SigmaXC = dot_product(WF%c(:,1,ifft),U(ik,iv2,:)) 
+       SigmaXC = dot_product(WF%r(:,1,i_wf),U(ik,iv2,:)) 
        do i1 = 1,k%nstar(ik)
          is  = k%star(ik,i1)
          l_is_TR = is>nsym/(i_time_rev+1)
@@ -140,8 +142,8 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
          isc%qs = (/1,1,1/)
          call scatter_Bamp(isc)
          !
-         !rhotw_ds(:)=conjg(WF%c(fft_rot_r(:,is),1,ifft))*WF%c(fft_rot_r(:,is),1,offt)/EWeight
-         rhotw_ds(:)=WF%c(fft_rot_r(:,is),1,ifft)*conjg(WF%c(fft_rot_r(:,is),1,offt))/EWeight
+         !rhotw_ds(:)=conjg(WF%r(fft_rot_r(:,is),1,i_wf))*WF%r(fft_rot_r(:,is),1,o_wf)/EWeight
+         rhotw_ds(:)=WF%r(fft_rot_r(:,is),1,i_wf)*wfconjg(WF%r(fft_rot_r(:,is),1,o_wf))/EWeight
          !
          rhotw_ds = rhotw_ds/(rho*real(fft_size,SP)) 
          rhotw_rs = cZERO

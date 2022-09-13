@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2021 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM (AF)
@@ -38,7 +38,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  use com,           ONLY:msg
  use drivers,       ONLY:l_bs_fxc,l_alda_fxc,l_lrc_fxc
  use LIVE_t,        ONLY:live_timing
- use parallel_int,  ONLY:PP_redux_wait,PP_bcast
+ use parallel_int,  ONLY:PP_wait,PP_redux_wait,PP_bcast
  use parallel_m,    ONLY:PP_indexes,PP_indexes_reset,PAR_COM_X_WORLD_RL_resolved,PAR_COM_HOST,&
 &                        PAR_COM_X_WORLD,PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
  use R_lattice,     ONLY:bare_qpg, bare_qpg_d
@@ -83,7 +83,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  !
  ! Barrier... 
  !
- call PP_redux_wait(COMM=PAR_COM_X_WORLD%COMM)
+ call PP_wait(COMM=PAR_COM_X_WORLD%COMM)
  !
  ! compute X on GPU if compiled with GPU support,
  ! unless GPU-usage is switch-off from input
@@ -262,37 +262,36 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
      !
    endif
    !
-   ! update X by multiplying left and right for v_coul^1/2 (diagonal in reciprocal space)
+   ! When calculating EPS1 multiply X left and right by v_coul^1/2 (diagonal in reciprocal space)
    !
-   if(.not.l_X_magn) then
-   if (compute_on_gpu) then
-      !
-!      call dev_mat_upd_dMd(Xo_rows(2)-Xo_rows(1)+1,Xo_cols(2)-Xo_cols(1)+1,BUFFER%blc_d(:,:,iw_par_buffer),&
-!&                          bare_qpg_d(Xo_rows(1):,iq),"R",bare_qpg_d(iq,Xo_cols(1):),"R",scal=cmplx(4._SP*pi,kind=SP)) 
-      !
-      BUFFER_blc_d => BUFFER%blc_d
-      !
-      !$cuf kernel do(2)
-      do ig2=Xo_cols(1),Xo_cols(2)
-        do ig1=Xo_rows(1),Xo_rows(2)
-          BUFFER_blc_d(ig1,ig2,iw_par_buffer)=BUFFER_blc_d(ig1,ig2,iw_par_buffer)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
+   if (X%whoami/=1 .and. .not.l_X_magn) then
+     !
+     if (compute_on_gpu) then
+        !
+        BUFFER_blc_d => BUFFER%blc_d
+        !
+        !$cuf kernel do(2)
+        do ig2=Xo_cols(1),Xo_cols(2)
+          do ig1=Xo_rows(1),Xo_rows(2)
+            BUFFER_blc_d(ig1,ig2,iw_par)=BUFFER_blc_d(ig1,ig2,iw_par)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
+          enddo
         enddo
-      enddo
-      !
-      call dev_stream_sync(stream_default)
-      call dev_memcpy_async(BUFFER%blc(:,:,BUFFER%I),BUFFER%blc_d(:,:,BUFFER%I), stream_d2h)
-      !
-   else
-      !
-      !$omp parallel do default(shared), private(ig1,ig2), collapse(2)
-      do ig2=BUFFER%cols(1),BUFFER%cols(2)
-        do ig1=BUFFER%rows(1),BUFFER%rows(2)
-          BUFFER%blc(ig1,ig2,iw_par_buffer)=BUFFER%blc(ig1,ig2,iw_par_buffer)*4._SP*pi/bare_qpg(iq,ig1)/bare_qpg(iq,ig2)
+        !
+        call dev_stream_sync(stream_default)
+        call dev_memcpy_async(BUFFER%blc(:,:,BUFFER%I),BUFFER%blc_d(:,:,BUFFER%I), stream_d2h)
+        !
+     else
+        !
+        !$omp parallel do default(shared), private(ig1,ig2), collapse(2)
+        do ig2=BUFFER%cols(1),BUFFER%cols(2)
+          do ig1=BUFFER%rows(1),BUFFER%rows(2)
+            BUFFER%blc(ig1,ig2,iw_par)=BUFFER%blc(ig1,ig2,iw_par)*4._SP*pi/bare_qpg(iq,ig1)/bare_qpg(iq,ig2)
+          enddo
         enddo
-      enddo
-      !$omp end parallel do
-      !
-   endif
+        !$omp end parallel do
+        !
+     endif
+     !
    endif
    !
    if (PAR_n_freqs>0) call live_timing(steps=1)
@@ -378,7 +377,7 @@ contains
      !
      ! The old X_par structure need to be cleaned and replaced by a non symmetric structure
      !
-     if (X_par%INTER_comm%n_CPU>1) call X_PARALLEL_alloc(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
+     if (X_par%INTER_comm%n_CPU>1) call X_ALLOC_parallel(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
      !
      ! Now the interfaces. 
      !

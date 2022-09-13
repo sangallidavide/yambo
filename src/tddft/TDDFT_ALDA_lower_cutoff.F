@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): DS
@@ -28,10 +28,9 @@ subroutine TDDFT_ALDA_lower_cutoff(ALDA_cut_scheme)
  use BS,            ONLY:BS_n_g_fxc,l_BS_magnons
  use com,           ONLY:msg
  use FFT_m,         ONLY:fft_size,fftw_plan,fft_dim,fft_g_table
- use electrons,     ONLY:levels,n_spin,n_spinor
- use R_lattice,     ONLY:bz_samp,G_m_G
+ use electrons,     ONLY:n_spin,n_spinor
+ use R_lattice,     ONLY:G_m_G
  use xc_functionals,ONLY:F_xc_mat
- use interfaces,    ONLY:eval_G_minus_G
  !
  implicit none
  !
@@ -41,12 +40,13 @@ subroutine TDDFT_ALDA_lower_cutoff(ALDA_cut_scheme)
  !
  integer     :: i1,i2,ig_fxc,isp1,isp2,isp3,isp4,n_holes
  complex(DP) :: F_xc_DP(fft_size),F_xc_DP_reduced(fft_size)
- logical     :: procedure1, procedure2, procedure3=.false.
+ logical     :: procedure1, procedure2, procedure3
  !
  if(trim(ALDA_cut_scheme)=="none") return
  !
  procedure1=trim(ALDA_cut_scheme)=="lower_GmGp"
  procedure2=trim(ALDA_cut_scheme)=="lower_Gmax"
+ procedure3=.false.
  !
  ! DEBUG <
  !procedure1=.false.
