@@ -25,7 +25,7 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  !
  use pars,            ONLY:SP,cZERO
  use parallel_m,      ONLY:master_cpu,yMPI_comm
- use parallel_int,    ONLY:PP_redux_wait
+ use parallel_int,    ONLY:PP_wait
  use electrons,       ONLY:n_met_bands,n_full_bands
  use collision_ext,   ONLY:COLLISIONS_element,COLLISIONS_cutoff,COLLISIONS_group,COLLISIONS_CV_only
  use IO_int,          ONLY:io_control
@@ -61,15 +61,21 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  if (i_coll==0) then
    if(io_COLLs) then
      if(master_cpu) then
+       !Only the master writes the header
        call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1/),ID=COLL_ID)
        io_err=io_COLLs_header(COLL_ID,COLL_grp)
      endif
+     call PP_wait()
 #if defined _PAR_IO
-     call io_control(ACTION=OP_APP,COM=REP,SEC=(/1,2/),ID=COLL_ID,COMM=COMM,DO_IT=.TRUE.)
+     !Here I could let all processors write.
+     !call io_control(ACTION=OP_APP,COM=REP,SEC=(/1,2/),ID=COLL_ID,DO_IT=.TRUE.)
+     !However, since there is a partial redux of the collisions, only few in practice are writing
+     !Setting DO_IT=.true. would also work. However some info would be written twice in the same place
+     call io_control(ACTION=OP_APP,COM=REP,SEC=(/1,2/),ID=COLL_ID,COMM=COMM)
      io_err=io_COLLISIONS(COLL_ID,COLL_grp,COLL_element=COLL_element(1),i_coll=i_coll)
 #endif
    endif
-   call PP_redux_wait()
+   call PP_wait()
    return
  endif
  !
@@ -165,6 +171,7 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
    !
 #if defined _PAR_IO
    if(i_coll==last_coll) then
+     call PP_wait()
      call io_control(ACTION=WR_CL,SEC=(/5/),ID=COLL_ID)
      io_err=io_COLLISIONS(COLL_ID,COLL_grp,COLL_element=COLL_element(1),i_coll=i_coll)
    endif
