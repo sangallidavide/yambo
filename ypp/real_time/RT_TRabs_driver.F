@@ -44,7 +44,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use parallel_int,    ONLY:PARALLEL_global_indexes,PP_redux_wait,PARALLEL_index
  use parallel_m,      ONLY:PAR_COM_DIPk_ibz_INDEX,PAR_COM_DIPk_ibz_A2A,PP_indexes,PP_indexes_reset
  use real_time,       ONLY:RT_bands,l_TRabs_YPP
- use stderr,          ONLY:STRING_match,STRING_same
+ use stderr,          ONLY:STRING_match,STRING_same,STRING_remove
  use com,             ONLY:msg
  use interpolate,     ONLY:INTERPOLATE_is_quiet
  !
@@ -60,7 +60,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
 &                           nb(2),N_DIP_dirs,i_dir,j_dir,N_res,N_files,DIP_dir_table(3),ic,jc
  real(SP)                :: DIP_dir(3,3),Co,Time
  complex(SP)             :: diam(3,3)
- logical                 :: l_BS,l_OFF,l_cv,l_cc,l_vv,l_ABS,l_EQ,l_neq_exc,l_full_expression
+ logical                 :: l_BS,l_OFF,l_cv,l_cc,l_vv,l_ABS,l_EQ,l_KERR,l_TRANS,l_REFL,l_neq_exc,l_full_expression
  character(2)            :: label
  character(schlen)       :: ofile(20)
  type(PP_indexes)        :: PX_bs,PX_ip
@@ -79,9 +79,22 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  ! Dimensions, Constant, Logicals and allocs
  !
+ ! ...logicals
  l_BS      = BS_K_dim(1)> 0
  !
- l_ABS     = STRING_match(TRabsWHAT,"abs") ! To add more derived quantities: kerr, transmission, reflectivity...
+ l_ABS     = STRING_match(TRabsWHAT,"abs")
+ l_KERR    = STRING_match(TRabsWHAT,"kerr")
+ l_TRANS   = STRING_match(TRabsWHAT,"trans")
+ l_REFL    = STRING_match(TRabsWHAT,"refl")
+ if (any((/l_REFL,l_TRANS/))) then
+   call warning("Reflectivity and Trasnmission still not implemented")
+   l_TRANS=.FALSE.
+   l_REFL =.FALSE.
+   TRabsWHAT=STRING_remove(TRabsWHAT,"trans")
+   TRabsWHAT=STRING_remove(TRabsWHAT,"refl")
+ endif
+ !
+ ! ...transitions
  !
  l_neq_exc = STRING_match(TRabsMODE,"inter-exc") .and. EXCITONS_n_user_states>0 .and. l_BS
  l_cv      = STRING_match(TRabsMODE,"cv") .or.       l_neq_exc
@@ -157,15 +170,15 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  !
  if (l_cv) then
     if (l_neq_exc) then
-      if (l_EQ) call msg('s','[TR-ABS] BSE (EQ) transitions :',N_cv_trans)
-                call msg('s','[TR-ABS] EXC-EXC  transitions :',N_cv_trans)
+      if (l_EQ) call msg('s','[TR-OBS] BSE (EQ) transitions :',N_cv_trans)
+                call msg('s','[TR-OBS] EXC-EXC  transitions :',N_cv_trans)
     else
-           call msg('s','[TR-ABS] cv  (EQ) transitions :',N_cv_trans)
+           call msg('s','[TR-OBS] cv  (EQ) transitions :',N_cv_trans)
     endif
  endif
- if (l_cc) call msg('s','[TR-ABS] cc (NEQ) transitions :',N_cc_trans)
- if (l_vv) call msg('s','[TR-ABS] vv (NEQ) transitions :',N_vv_trans)
- call msg('s','[TR-ABS] Total    transitions :',N_trans)
+ if (l_cc) call msg('s','[TR-OBS] cc (NEQ) transitions :',N_cc_trans)
+ if (l_vv) call msg('s','[TR-OBS] vv (NEQ) transitions :',N_vv_trans)
+ call msg('s','[TR-OBS] Total    transitions :',N_trans)
  !
  Co=real(spin_occ)/(2._SP*pi)**3*d3k_factor*4._SP*pi
  !
@@ -187,6 +200,11 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    enddo
  enddo
  if (STRING_same(TRabsDIP_plane,"none"))  TRabs_lEPS(1,1)=.TRUE.
+ if (.not.l_OFF) then
+   call warning("No off-diagonal components => Kerr switched-off")
+   l_KERR=.FALSE.
+   TRabsWHAT=STRING_remove(TRabsWHAT,"kerr")
+ endif
  !
  ! ... # of DIPOLE directions to compute
  N_DIP_dirs=0
@@ -234,7 +252,9 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  YAMBO_ALLOC(TRabs_E,(N_trans*N_res))
  !
  ! ... Observables 
- YAMBO_ALLOC(Epsilon_ij,(RT_conf%W_n_steps,3,3)) 
+ if (l_ABS) then
+   YAMBO_ALLOC(Epsilon_ij,(RT_conf%W_n_steps,3,3)) 
+ endif
  if (l_OFF) then
    YAMBO_ALLOC(B_Hall,(3,3)) 
  endif
@@ -268,15 +288,15 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    endif
    !
    if (i_T==1.and..not.l_neq_exc)  then
-     call live_timing('Transient Absorption',RT_conf%T_n_steps)
+     call live_timing('Transient '//trim(TRabsWHAT),RT_conf%T_n_steps)
      INTERPOLATE_is_quiet=.TRUE.
    endif
    !
    TRabs_E        =rZERO
    TRabs_RES_left =cZERO
    TRabs_RES_right=cZERO
-   if (l_OFF) B_Hall =cZERO
-   Epsilon_ij     =cZERO
+   if (l_KERR) B_Hall    =cZERO
+   if (l_ABS ) Epsilon_ij=cZERO
    diam           =cZERO
    !
    N_trans_real=0
@@ -301,14 +321,16 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    !
    do ic=1,N_DIP_dirs
      do jc=1,N_DIP_dirs
-       if ((.not.l_neq_exc).or.l_EQ) call build_up_eps_ij("EPS-"//label,ic,jc)
-       if (l_neq_exc)                call build_up_eps_ij("EPS-EXC",ic,jc)
-       if (l_OFF.and.ic/=jc)         call build_up_eps_ij("AH-"//label,ic,jc)
+       if (l_ABS) then
+         if ((.not.l_neq_exc).or.l_EQ) call build_up_eps_ij("EPS-"//label,ic,jc)
+         if (l_neq_exc)                call build_up_eps_ij("EPS-EXC",ic,jc)
+       endif
+       if (l_KERR.and.ic/=jc)          call build_up_eps_ij("AH-"//label,ic,jc)
      enddo
    enddo
    !
-   call PP_redux_wait(Epsilon_ij)
-   if (l_OFF) call PP_redux_wait(B_Hall)
+   if (l_ABS)  call PP_redux_wait(Epsilon_ij)
+   if (l_KERR) call PP_redux_wait(B_Hall)
    !
    if (trim(global_gauge)=='length'  ) Epsilon_ij = Epsilon_ij / q0_def_norm**2
    if (trim(global_gauge)=='velocity' .and. l_full_expression) then

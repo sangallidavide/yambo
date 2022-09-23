@@ -194,7 +194,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    !
    if (iq==q_range(1)) then
      call plot_interpolated_values &
-     &   (Xk,Xen,0._SP,CIRCUIT_k,ID_bands,BS_bands,1,n_sp_pol,"interpolated","bands",0)
+     &   (Xk,Xen,0._SP,CIRCUIT_k,(/ID_bands/),BS_bands,1,(/n_sp_pol/),"interpolated","bands",0)
    endif
    !
    ! ARPES interpolation
