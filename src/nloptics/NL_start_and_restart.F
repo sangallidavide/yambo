@@ -56,7 +56,7 @@ subroutine NL_start_and_restart(E,k,Dip)
 &                         VAL_BANDS,l_eval_CURRENT,NL_initial_J,NL_P,l_pump_and_probe
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,NONE,file_is_present,VERIFY,DUMP,REP
- use parallel_int,   ONLY:PP_redux_wait
+ use parallel_int,   ONLY:PP_wait,PP_redux_wait
  use stderr,         ONLY:intc
  use collision_ext,  ONLY:COLLISIONS_have_HARTREE
  !
@@ -227,7 +227,7 @@ subroutine NL_start_and_restart(E,k,Dip)
      call RT_RESTART_database_copy( trim(RT_DB_name(i_db)) )
    enddo
    !
-   call PP_redux_wait()
+   call PP_wait()
    !
    do i_db=1,N_RT_databases
      if (i_db==RT_return_db_ID("V_bands_K_section")) cycle
