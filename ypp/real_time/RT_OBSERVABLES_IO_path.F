@@ -147,8 +147,8 @@ subroutine RT_OBSERVABLES_IO_paths(what,en)
    ! Pump & Probe comparison
    !
    if (N_pumps>0) then
-     call DESC_compare(RT_desc,Pump_RT_desc,i_desc_err,exclude="FIELDs")
-     if (any(i_desc_err/=0)) call error("Probe and Pump runs are not compatible")
+     !call DESC_compare(RT_desc,Pump_RT_desc,i_desc_err,exclude="FIELDs")
+     !if (any(i_desc_err/=0)) call error("Probe and Pump runs are not compatible")
      if (n_ext_fields/=2) call warning("Probe run has only one field. Pump ignored")
    endif
    !
