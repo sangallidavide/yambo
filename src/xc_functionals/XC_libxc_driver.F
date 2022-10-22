@@ -294,9 +294,9 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
 	   ! This is needed by XC_eval_lda_kernel for magnons
            call xc_f03_lda_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), v1rho(1,1))
            ! Needed to build F_xc_mat for n_spinor=2
+           ! Needed to build F_xc from functional derivative for n_spin=1
 	   ! I could use it also for the case n_sp_pol==2 but it does not work, due to numerical noise
-           !forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
-           if(n_spinor==2) forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
+           forall(i1=1:fft_size,i2=1:n_spin) V_xc(i1,i2) = V_xc(i1,i2) + real(v1rho(i2,i1),SP)
          endif
          ! I could avoid this for magnons and n_sp_pol==2, however I need it due to numerical noise
          ! See also comment in Build_F_xc_mat
@@ -336,10 +336,10 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
          if( l_BS_magnons.or.l_X_magn ) then
            ! In principle needed by XC_eval_gga_kernel
            call xc_f03_gga_vxc(fnctl(ixc)%conf, size_IPL, spin_rho_DP(1,1), sigma(1,1), v1rho(1,1), v1sigma(1,1))
-           ! Yambo internal for V_xc, needed to build F_xc_mat
+           ! Needed to build F_xc_mat for n_spinor=2
+           ! Needed to build F_xc from functional derivative for n_spin=1
 	   ! I could use it also for the case n_sp_pol==2 but it does not work, due to numerical noise
-           !call XC_eval_gga_potential(v1rho,v1sigma,drho)
-           if(n_spinor==2) call XC_eval_gga_potential(v1rho,v1sigma,drho)
+           call XC_eval_gga_potential(v1rho,v1sigma,drho)
          endif
          ! I could avoid this for magnons and n_sp_pol==2, however I need it due to numerical noise
          ! See also comment in Build_F_xc_mat
