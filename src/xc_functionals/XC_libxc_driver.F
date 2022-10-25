@@ -339,7 +339,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
            ! Needed to build F_xc_mat for n_spinor=2
            ! Needed to build F_xc from functional derivative for n_spin=1
 	   ! I could use it also for the case n_sp_pol==2 but it does not work, due to numerical noise
-           call XC_eval_gga_potential(v1rho,v1sigma,drho)
+           call XC_eval_gga_potential(v1rho,v1sigma,drho,V_xc)
          endif
          ! I could avoid this for magnons and n_sp_pol==2, however I need it due to numerical noise
          ! See also comment in Build_F_xc_mat
