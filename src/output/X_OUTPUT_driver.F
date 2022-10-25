@@ -115,7 +115,7 @@ subroutine X_OUTPUT_driver(WHAT,keys,solver,IQ,IG,DESC,data)
      X_obs(1)%COL_header(1)   = 'E'
      X_obs(1)%COL_header(2:3) = (/'Re(q^2Fxc)','Re(q^2Fxc)'/)
    endif
-   if (X_do_obs("Esort")) then
+   if (X_do_obs("Esort").or.X_do_obs("E_IP")) then
      do ic=2,3
        X_obs(ic)%N_columns=2
        X_obs(ic)%COL_header(1:2)  = (/'E    ','N_deg'/)
