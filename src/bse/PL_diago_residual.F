@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM PM
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -170,6 +170,7 @@ subroutine PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_
        Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_H_dim,BS_V_right(:,i_l),P_x_fZ(:,i_c,1))
        !
      enddo
+     write(*,*) Pi_x_R_x_adA_right
      !
      ! Note that the 2nd component (anti-resonant) should take a -1  from BSS_eh_f and a i^2 from sqrt(R)
      ! that cancel out.

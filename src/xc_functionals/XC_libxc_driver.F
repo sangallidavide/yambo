@@ -66,7 +66,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  real(SP) :: local_exx_fraction 
  real(DP) :: exsr
  !
- integer(SP) :: size_IPL_s
+ integer(4) :: size_IPL_s
  !
  ! XC routines arrays
  !
@@ -255,7 +255,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  end if
  !
  size_IPL=int(fft_size,kind=IPL)
- size_IPL_s = size_IPL
+ size_IPL_s = int(fft_size)
  !
  do ixc = 1,2
    if (fnctl(ixc)%id == 0) cycle
