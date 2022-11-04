@@ -34,7 +34,7 @@ subroutine NL_initialize(E,k)
  use com,            ONLY:msg
  use R_lattice,      ONLY:bz_samp,k_map
  use fields,         ONLY:Efield,Efield_strength,n_ext_fields,EtoT
- use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field, &
+ use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field,l_NE_with_fields, &
 &                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime
  use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free,l_NE_with_fields,&
 &                         SAVE_Vb_history
@@ -53,7 +53,7 @@ subroutine NL_initialize(E,k)
  !
  ! Working space
  !
- real(SP) :: Time, W_0,T_0,sigma 
+ real(SP) :: Time,W_0,T_0,sigma 
  integer  :: i1,n_active_fields
  !
  ! Parser
@@ -162,10 +162,19 @@ subroutine NL_initialize(E,k)
  !
  if(n_active_fields==0) call error('Not valid external field present!')
  !
+<<<<<<< HEAD
  if(n_active_fields>1.or.n_frequencies==1) then
    l_pump_and_probe=.true.
    l_NE_with_fields=.true.
    call msg('s','[NL] Variables NLEnSteps and NLEnRange are ignored ')
+=======
+ call msg('s','[NL] Number of active fields : ',n_active_fields)
+ !
+ if(n_active_fields>1.or.all(NL_er<0._SP)) then
+   l_pump_and_probe=.true.
+   l_NE_with_fields=.true.
+   call msg('s', '[NL] Variables NLEnSteps and NLEnRange are ignored ')
+>>>>>>> bug-fixes
    call msg('sr','[NL] Pump and probe configuration: verbosity set to high')
    if(n_frequencies/=1) call error("NLEnSteps /=1 not compatible with Pump and Probe ")
    NL_verbosity=VERB_HIGH
