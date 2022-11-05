@@ -64,7 +64,7 @@ subroutine NL_driver(E,X,k,q,Dip)
  ! 
  ! Work Space
  !
- integer           :: i_f,i1,i_sp_pol,N_sample_size,wf_ng_save,io_err
+ integer           :: i_f,i1,i_sp_pol,nw,N_sample_size,wf_ng_save,io_err
  logical           :: l_dynamics_is_over
  real(SP)          :: OBSERVABLES(25),Time
  !
@@ -210,7 +210,9 @@ subroutine NL_driver(E,X,k,q,Dip)
  !
  ! Start-Up & Timing
  !===================
- call live_timing('[NL] Frequencies ',PAR_IND_freqs%n_of_elements(PAR_IND_freqs_ID+1)*NE_steps)
+ nw=PAR_IND_freqs%n_of_elements(PAR_IND_freqs_ID+1)
+ if(.not.l_pump_and_probe) NE_i_time=0
+ call live_timing('[NL] Frequencies',nw*(NE_steps-NE-i_time))
  !
  do i_f=1,n_frequencies
    !
