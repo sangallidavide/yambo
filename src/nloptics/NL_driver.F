@@ -212,7 +212,7 @@ subroutine NL_driver(E,X,k,q,Dip)
  !===================
  nw=PAR_IND_freqs%n_of_elements(PAR_IND_freqs_ID+1)
  if(.not.l_pump_and_probe) NE_i_time=0
- call live_timing('[NL] Frequencies',nw*(NE_steps-NE-i_time))
+ call live_timing('[NL] Frequencies',nw*(NE_steps-NE_i_time))
  !
  do i_f=1,n_frequencies
    !
