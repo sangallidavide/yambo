@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM PM
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -232,7 +232,11 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
     !
     call live_timing(steps=1)
     !
-  enddo
+     !
+     call live_timing(steps=1)
+     !
+   enddo
+   !
  !
  call live_timing()
  !
