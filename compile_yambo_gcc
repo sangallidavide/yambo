@@ -1,0 +1,20 @@
+#!/bin/bash
+
+make clean_all
+
+./configure --prefix='/home/rireho/codes/yambo/branches/fix-pl' \
+FCFLAGS='-w -fallow-argument-mismatch -O2 -fcheck=bounds' FFLAGS="-w -fallow-argument-mismatch -O2 -fcheck=bounds" \
+--enable-dp \
+--enable-time-profile=no \
+--enable-debug-flags   \
+--enable-hdf5-p2y-support \
+--enable-iotk \
+--enable-memory-profile \
+--enable-msgs-comps \
+--with-netcdf-path='/sw/arch/Centos8/EB_production/2021/software/netCDF/4.8.0-gompi-2021a/' \
+--with-netcdff-path='/sw/arch/Centos8/EB_production/2021/software/netCDF-Fortran/4.5.3-gompi-2021a/' \
+--with-hdf5-path='/sw/arch/Centos8/EB_production/2021/software/HDF5/1.10.7-gompi-2021a/' \
+--with-blas-libs="-L/sw/arch/Centos8/EB_production/2021/software/OpenBLAS/0.3.15-GCC-10.3.0/lib -lopenblas" \
+--with-lapack-libs="-L/sw/arch/Centos8/EB_production/2021/software/OpenBLAS/0.3.15-GCC-10.3.0/lib -lopenblas" \
+--with-fft-path='/sw/arch/Centos8/EB_production/2021/software/FFTW/3.3.9-gompi-2021a/'
+

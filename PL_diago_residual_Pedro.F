@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL) 
+subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap) 
  !
  ! Resonant PL Residuals
  !
@@ -36,21 +36,21 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
  !
  implicit none
  !
- complex(SP),intent(in)  :: BS_V_left(BSS_n_eig,BSS_n_eig),BS_V_right(BSS_n_eig,BSS_n_eig)
+ complex(SP),intent(in)  :: BS_V_left(BS_H_dim,BS__dim),BS_V_right(BS_H_dim,BS_H_dim)
  real(SP)   ,intent(out) :: BS_R_PL(2,BSS_n_eig)
- real(SP)                :: half_BSS_n_eig
+ complex(SP),optional,intent(in)  :: BS_overlap(BS_H_dim,BS_H_dim)
  !
  ! Workspace
  !
  type(PP_indexes)     ::px
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
  complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
-&                       R_over_R_x_A(2,BS_K_dim(1)),B(BSS_n_eig)
+&                       R_over_R_x_A(2,BS_K_dim(1)),B(BS_H_dim)
  !
  ! Parallel indexes
  !
  call PP_indexes_reset(px)
- call PARALLEL_index(px,(/BSS_n_eig/))
+ call PARALLEL_index(px,(/BS_n_eig/))
  !
  ! sqrt(R_i) Re[ (Pi_i)* A^l_i (A^l_j)* R<_j/R_j A^l_j (A^l_k)* Pi_k ] sqrt(R_k)
  !
@@ -64,17 +64,14 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
  ! Live-Timing
  !
  call live_timing('PL    residuals',px%n_of_elements(myid+1))
- write(*,*) "Hermitian run"
  write(*,*) "BS_H_dim", BS_H_dim
  write(*,*) "BSS_n_eig", BSS_n_eig
- write(*,*) "BS_K_dim", BS_K_dim(2)
- half_BSS_n_eig=BSS_n_eig/2.
 !
 ! Hermitian residual
 !====================
 !
 do i_c=1,3
-  P_x_fZ(1:BSS_n_eig,i_c,1)=BSS_dipoles_PL(i_c,1:BSS_n_eig)*sqrt(BSS_eh_f(1:BSS_n_eig)) ! Pi multiplied by (fc-fv) dipoles of
+  P_x_fZ(1:BS_H_dim,i_c,1)=BSS_dipoles_PL(i_c,1:BS_H_dim)*sqrt(BSS_eh_f(1:BS_H_dim)) ! Pi multiplied by (fc-fv) dipoles of
   !current <(vk|gradCk)> C is conduction
 enddo
 !
@@ -82,15 +79,14 @@ write(*,*) 'BS_K_dim(1)', BS_K_dim(1)
 write(*,*) 'shape(BSS_eh_f)', shape(BSS_eh_f)
 write(*,*) 'shape(BS_V_right)', shape(BS_V_right)
 write(*,*) 'shape(BSS_PL_f)', shape(BSS_PL_f)
-!write(*,*) 'BSS_V_right(577,576)', BS_V_right(577,576)
-do i_l=1,BSS_n_eig
+do i_l=1,BS_K_dim(1)
   !
   if (.not.px%element_1D(i_l)) cycle
   !                       
   ! R_over_R_x_A = R<_j/R_j A^l_j
   !
   do ik = 1, BS_K_dim(1)
-      if (BSS_eh_f(ik) .gt. rZERO) then
+    if (BSS_eh_f(ik) .gt. rZERO) then
       R_over_R_x_A(1,ik) =  BSS_PL_f(ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik)
       R_over_R_x_A(2,ik) =  BSS_PL_f(BS_K_dim(1)+ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik)
     endif
@@ -98,10 +94,8 @@ do i_l=1,BSS_n_eig
   !
   ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
   !
-  adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(1:half_BSS_n_eig,i_l)),&
-          R_over_R_x_A(1,1:half_BSS_n_eig)) !resonant
-  adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(half_BSS_N_eig+1:BS_K_dim(1),i_l)),&
-          R_over_R_x_A(2,half_BSS_n_eig:BS_K_dim(1)))
+  adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(1:BS_K_dim(1),i_l)), R_over_R_x_A(1,1:BS_K_dim(1)))!resonant
+  adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(BS_K_dim(1)+1:2*BS_K_dim(1),i_l)),R_over_R_x_A(2,1:BS_K_dim(1)))
   !antiresonant, no error if two arrays have different dimensions
   !
   do i_c=1,3
@@ -150,19 +144,19 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  !
  complex(SP),intent(in)  :: BS_V_left(BS_H_dim,BSS_n_eig),BS_V_right(BS_H_dim,BSS_n_eig)
  real(SP)   ,intent(out) :: BS_R_PL(2,BSS_n_eig)
- complex(SP),optional,intent(in)  :: BS_overlap(BSS_n_eig,BSS_n_eig)
+ complex(SP),optional,intent(in)  :: BS_overlap(BS_n_eig,BS_n_eig)
  !
  ! Workspace
  !
  type(PP_indexes)     ::px
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
  complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
-&                       R_over_R_x_A(2,BS_H_dim),B(BS_H_dim)
+&                       R_over_R_x_A(2,BS_K_dim(1)),B(BS_H_dim)
  !
  ! Parallel indexes
  !
  call PP_indexes_reset(px)
- call PARALLEL_index(px,(/BSS_n_eig/))
+ call PARALLEL_index(px,(/BS_n_eig/))
  !
  ! sqrt(R_i) Re[ (Pi_i)* A^l_i (A^l_j)* R<_j/R_j A^l_j (A^l_k)* Pi_k ] sqrt(R_k)
  !
@@ -176,7 +170,6 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  ! Live-Timing
  !
  call live_timing('PL    residuals',px%n_of_elements(myid+1))
- write(*,*) "Non-Hermitian run"
  write(*,*) "BS_H_dim", BS_H_dim
  write(*,*) "BSS_n_eig", BSS_n_eig
    !
@@ -207,7 +200,6 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
     !
     ! R_over_R_x_A = R<_j/R_j B^l_j
     !
-    write (*,*) "shape(BSS_PL_f)", shape(BSS_PL_f)
     R_over_R_x_A(1,:) = BSS_PL_f(:)*B(:)/BSS_eh_f(:)
     !
     ! adA_x_R_over_R_x_A = B^l*_j    R<_j/R_j B^l_j
