@@ -66,7 +66,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  real(SP) :: local_exx_fraction 
  real(DP) :: exsr
  !
- integer(4) :: size_IPL_s
+ integer(8) :: size_IPL_s
  !
  ! XC routines arrays
  !

@@ -30,7 +30,7 @@ else
  include config/mk/global/no_configure_help.mk
 endif
 #
-MAKEFLAGS = --no-print-directory
+MAKEFLAGS = --no-print-director y
 #
 # Targets
 include config/mk/global/targets.mk

@@ -2,8 +2,8 @@
 
 make clean_all
 
-./configure --prefix='/home/rireho/codes/yambo/branches/fix-pl' \
-FCFLAGS='-w -fallow-argument-mismatch -O2 -fcheck=bounds' FFLAGS="-w -fallow-argument-mismatch -O2 -fcheck=bounds" \
+./configure --prefix='/home/rireho/codes/yambo/branches/fix-pl-broken' \
+FCFLAGS='-w -fallow-argument-mismatch -O2 -fcheck=bounds -ffree-line-length-512' \
 --enable-dp \
 --enable-time-profile=no \
 --enable-debug-flags   \

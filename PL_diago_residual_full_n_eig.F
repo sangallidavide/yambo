@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM PM
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -36,7 +36,7 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
  !
  implicit none
  !
- complex(SP),intent(in)  :: BS_V_left(BS_K_dim(1),BS_K_dim(2)),BS_V_right(BS_K_dim(1),BS_K_dim(2))
+ complex(SP),intent(in)  :: BS_V_left(BSS_n_eig,BSS_n_eig),BS_V_right(BSS_n_eig,BSS_n_eig)
  real(SP)   ,intent(out) :: BS_R_PL(2,BSS_n_eig)
  real(SP)                :: half_BSS_n_eig
  !
@@ -44,7 +44,7 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
  !
  type(PP_indexes)     ::px
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
- complex(SP)          ::P_x_fZ(BSS_n_eig,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
+ complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
 &                       R_over_R_x_A(2,BS_K_dim(1)),B(BSS_n_eig)
  !
  ! Parallel indexes
@@ -67,8 +67,7 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
  write(*,*) "Hermitian run"
  write(*,*) "BS_H_dim", BS_H_dim
  write(*,*) "BSS_n_eig", BSS_n_eig
- write(*,*) "BS_K_dim(1)", BS_K_dim(1)
- write(*,*) "BS_K_dim(2)", BS_K_dim(2)
+ write(*,*) "BS_K_dim", BS_K_dim(2)
  half_BSS_n_eig=BSS_n_eig/2.
 !
 ! Hermitian residual
@@ -99,10 +98,10 @@ do i_l=1,BSS_n_eig
   !
   ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
   !
-  adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(1:BS_K_dim(1),i_l)),&
-          R_over_R_x_A(1,1:BS_K_dim(1))) !resonant
-  adA_x_R_over_R_x_A(2)=conjg(V_dot_V_omp(BS_K_dim(2),conjg(BS_V_right(1:BS_K_dim(2),i_l)),&
-          R_over_R_x_A(2,1:BS_K_dim(2))))
+  adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(1:BSS_n_eig,i_l)),&
+          R_over_R_x_A(1,1:BSS_n_eig)) !resonant
+  adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),conjg(BS_V_right(BSS_N_eig+1:BS_K_dim(1),i_l)),&
+          R_over_R_x_A(2,BSS_n_eig:BS_K_dim(1)))
   !antiresonant, no error if two arrays have different dimensions
   !
   do i_c=1,3
@@ -118,7 +117,6 @@ do i_l=1,BSS_n_eig
   !
   BS_R_PL(:,i_l)=real(dot_product(Pi_x_R_x_adA_right,Pi_x_R_x_adA_right)*adA_x_R_over_R_x_A(:))
   !
-  write (*,*) 'BS_R_PL', BS_R_PL(:,i_l)
   call live_timing(steps=1)
   !
 enddo
@@ -181,9 +179,7 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  write(*,*) "Non-Hermitian run"
  write(*,*) "BS_H_dim", BS_H_dim
  write(*,*) "BSS_n_eig", BSS_n_eig
- write(*,*) "BS_K_dim(1)", BS_K_dim(1)
- write(*,*) "BS_K_dim(2)", BS_K_dim(2)
- !
+   !
    ! 1=> left
    ! 2=> right
    !
@@ -236,7 +232,11 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
     !
     call live_timing(steps=1)
     !
-  enddo
+     !
+     call live_timing(steps=1)
+     !
+   enddo
+   !
  !
  call live_timing()
  !
