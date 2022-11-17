@@ -103,7 +103,7 @@ do i_l=1,BSS_n_eig
           R_over_R_x_A(1,1:BS_K_dim(1))) !resonant
   adA_x_R_over_R_x_A(2)=conjg(V_dot_V_omp(BS_K_dim(2),conjg(BS_V_right(1:BS_K_dim(2),i_l)),&
           R_over_R_x_A(2,1:BS_K_dim(2))))
-  !antiresonant, no error if two arrays have different dimensions
+  !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
   !
   do i_c=1,3
     !                                   
