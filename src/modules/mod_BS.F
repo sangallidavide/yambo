@@ -55,7 +55,6 @@ module BS
  !===========================
  logical :: l_BS_fix_holes
  logical :: l_BS_fix_elecs
- logical :: l_BS_jdos
  !
  ! Dipoles tracing 
  !=================
