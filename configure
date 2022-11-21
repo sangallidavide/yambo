@@ -3301,6 +3301,7 @@ if [ "$compdir" != "$srcdir" ] && [ "$srcdir" != "." ] ; then
  rsync -az --exclude="$basecomp/"  --include='*/' --include='*.h.F'        --exclude='*' $srcdir/ $compdir
  rsync -az --exclude="$basecomp/"  --include='*/' --include='*.h'          --exclude='*' $srcdir/ $compdir
  rsync -az --exclude="$basecomp/"  --include='*/' --include='*.objects'    --exclude='*' $srcdir/ $compdir
+ rsync -az --exclude="$basecomp/"  --include='*/' --include='*.dep'        --exclude='*' $srcdir/ $compdir
  rsync -az --exclude="$basecomp/"  --include='*/' --include='*Makefile.lo' --exclude='*' $srcdir/ $compdir
  rsync -az --exclude="$basecomp/"  --include='*/' --include='*Makefile*'   --exclude='*' $srcdir/lib $compdir/
  rsync -az --exclude="$basecomp/"  --include='*/' --include='*list*'       --exclude='*' $srcdir/lib $compdir/
@@ -3309,9 +3310,9 @@ if [ "$compdir" != "$srcdir" ] && [ "$srcdir" != "." ] ; then
  #
  if test ! -d "$compdir/log"        ; then mkdir "$compdir/log"; fi
  if test ! -d "$compdir/lib/archive"; then mkdir "$compdir/lib/archive"; fi
- if test ! -d "$compdir/lib/archive"; then mkdir "$compdir/lib/archive"; fi
- cp     $srcdir/lib/archive/*         $compdir/lib/archive
- cp     $srcdir/lib/config/*          $compdir/lib/config
+ if test ! -d "$compdir/lib/config";  then mkdir "$compdir/lib/config"; fi
+ cp -r  $srcdir/lib/archive/*         $compdir/lib/archive/
+ cp     $srcdir/lib/config/*          $compdir/lib/config/
  #
 fi
 
@@ -5614,14 +5615,7 @@ printf "%s\n" "#define realloc rpl_realloc" >>confdefs.h
 fi
 
 
-if test ${ac_cv_func_setvbuf_reversed+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_cv_func_setvbuf_reversed=no
-fi
-
-
+# AC_FUNC_SETVBUF_REVERSE # This is reported as obsolete
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether lstat correctly handles trailing slash" >&5
 printf %s "checking whether lstat correctly handles trailing slash... " >&6; }
 if test ${ac_cv_func_lstat_dereferences_slashed_symlink+y}
@@ -9504,7 +9498,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
 
 fi
 
-# We have to use AC_TRY_COMPILE and not AC_CHECK_HEADER because the
+# We have to use AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]) and not AC_CHECK_HEADER because the
 # latter uses $CPP, not $CC (which may be mpicc).
 #
 # In the following, we tentatively skip the check for mpipgicc,
@@ -9863,7 +9857,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
 fi
 
-# We have to use AC_TRY_COMPILE and not AC_CHECK_HEADER because the
+# We have to use AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]) and not AC_CHECK_HEADER because the
 # latter uses $CPP, not $CC (which may be mpicc).
 #
 # In the following, we tentatively skip the check for mpipgicc,
@@ -10071,7 +10065,7 @@ fi
 
 fi
 
-# We have to use AC_TRY_COMPILE and not AC_CHECK_HEADER because the
+# We have to use AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]) and not AC_CHECK_HEADER because the
 # latter uses $CPP, not $CC (which may be mpicc).
 #
 # In the following, we tentatively skip the check for mpipgicc,
@@ -10648,7 +10642,7 @@ fi
 #
 enable_yambopy="no"
 #
-# AC_ARG_ENABLE(yambopy, AC_HELP_STRING([--enable-yambopy],[Activate the Yambo PY project]))
+# AC_ARG_ENABLE(yambopy, AS_HELP_STRING([--enable-yambopy],[Activate the Yambo PY project]))
 #
 if test "x$enable_ydb" = "xyes"; then
  #
