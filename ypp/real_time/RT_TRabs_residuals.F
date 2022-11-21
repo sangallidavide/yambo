@@ -58,7 +58,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  character(6)      :: DIP_kind
  character(schlen) :: fileroot,filename(3,3),headers(7)
  logical           :: l_gold_modes,l_skip_intra
- real(SP)          :: E_eh,values(6),fac
+ real(SP)          :: E_eh,values(7),fac
  complex(SP)       :: DIP_f,DIP_rot(3),f_eh(2),DIP_dot,DIP_NN(3),dip_tmp(5,3)
  !
  if(trim(global_gauge)=="length") then
@@ -303,7 +303,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        do j_dir=1,N_dirs
          if (.not.TRabs_lEPS(i_dir,j_dir)) cycle
          values(2:6)=real(dip_tmp(:,i_dir)*conjg(dip_tmp(:,j_dir)),SP)*fac
-         values(7)  =aimag(dip_tmp(5,i_dir)*conjg(dip_tmp(5,j_dir)),SP)*fac
+         values(7)  =aimag(dip_tmp(5,i_dir)*conjg(dip_tmp(5,j_dir)))*fac
          call msg("o "//trim(filename(i_dir,j_dir)),'',values,INDENT=-2,USE_TABS=.TRUE.)
        enddo
      enddo
