@@ -56,7 +56,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  integer           :: i_cv,i_v,i_c,i_kbz,i_kibz,i_spin,i_l,i_l_ref,bands(2,2),i_n,i_np,i_dir,j_dir, &
 &                     i_cv_p,i_v_p,i_c_p,i_kbz_p,i_spin_p,i_exc,i_exc_p,i_dip
  character(6)      :: DIP_kind
- character(schlen) :: fileroot,filename(3,3),headers(6)
+ character(schlen) :: fileroot,filename(3,3),headers(7)
  logical           :: l_gold_modes,l_skip_intra
  real(SP)          :: E_eh,values(6),fac
  complex(SP)       :: DIP_f,DIP_rot(3),f_eh(2),DIP_dot,DIP_NN(3),dip_tmp(5,3)
@@ -160,7 +160,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    headers(3)="Res vv'"
    headers(4)="Res intra"
    headers(5)="Res nn"
-   headers(6)="Res all"
+   headers(6)="Res all [Re]"
+   headers(7)="Res all [Im]"
    !
    !
    do i_dir=1,N_dirs
@@ -302,6 +303,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        do j_dir=1,N_dirs
          if (.not.TRabs_lEPS(i_dir,j_dir)) cycle
          values(2:6)=real(dip_tmp(:,i_dir)*conjg(dip_tmp(:,j_dir)),SP)*fac
+         values(7)  =aimag(dip_tmp(5,i_dir)*conjg(dip_tmp(5,j_dir)),SP)*fac
          call msg("o "//trim(filename(i_dir,j_dir)),'',values,INDENT=-2,USE_TABS=.TRUE.)
        enddo
      enddo
