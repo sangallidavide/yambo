@@ -290,7 +290,6 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
          if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
            PL(:,3)=PL(:,3)-PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC))))/pi
          endif
-         write (*,*) PL(:,3)
        endif
        !
        if (l_BS_dichroism) then

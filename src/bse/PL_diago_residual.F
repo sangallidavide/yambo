@@ -44,7 +44,7 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
  !
  type(PP_indexes)     ::px
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
- complex(SP)          ::P_x_fZ(BSS_n_eig,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
+ complex(SP)          ::P_x_fZ(BSS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
 &                       R_over_R_x_A(2,BS_K_dim(1)),B(BSS_n_eig)
  !
  ! Parallel indexes
@@ -74,26 +74,32 @@ subroutine PL_diago_herm_residual(BS_V_left,BS_V_right,BS_R_PL)
 ! Hermitian residual
 !====================
 !
+! 1=> left
+! 2=> right
+!
 do i_c=1,3
-  P_x_fZ(1:BSS_n_eig,i_c,1)=BSS_dipoles_PL(i_c,1:BSS_n_eig)*sqrt(BSS_eh_f(1:BSS_n_eig)) ! Pi multiplied by (fc-fv) dipoles of
-  !current <(vk|gradCk)> C is conduction
+  do i_K=1,BS_K_dim(1)
+    P_x_fZ(i_K,i_c,1)=BSS_dipoles_PL(i_c,i_K)*sqrt(BSS_eh_f(i_K))  !resonant PI_greco=BSS_dipoles_PL
+    P_x_fZ(i_K,i_c,2)=BSS_dipoles_PL(i_c,i_K) *sqrt(BSS_eh_f(BS_K_dim(1)+i_K))  !antiresonat
+  enddo
 enddo
+!
 !
 write(*,*) 'BS_K_dim(1)', BS_K_dim(1)
 write(*,*) 'shape(BSS_eh_f)', shape(BSS_eh_f)
 write(*,*) 'shape(BS_V_right)', shape(BS_V_right)
 write(*,*) 'shape(BSS_PL_f)', shape(BSS_PL_f)
 !write(*,*) 'BSS_V_right(577,576)', BS_V_right(577,576)
-do i_l=1,BSS_n_eig
+do i_l=1,BS_H_dim
   !
-  if (.not.px%element_1D(i_l)) cycle
+  if (.not.px%element_1D(i_l)) cycle !parallelization
   !                       
   ! R_over_R_x_A = R<_j/R_j A^l_j
   !
   do ik = 1, BS_K_dim(1)
       if (BSS_eh_f(ik) .gt. rZERO) then
-      R_over_R_x_A(1,ik) =  BSS_PL_f(ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik)
-      R_over_R_x_A(2,ik) =  BSS_PL_f(BS_K_dim(1)+ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik)
+      R_over_R_x_A(1,ik) =  BSS_PL_f(ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik) !resonant
+      R_over_R_x_A(2,ik) =  BSS_PL_f(BS_K_dim(1)+ik)*BS_V_right(ik,i_l)/BSS_eh_f(ik+BS_K_dim(1)) !antiresonant
     endif
   enddo
   !
@@ -106,17 +112,22 @@ do i_l=1,BSS_n_eig
   !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
   !
   do i_c=1,3
-    !                                   
-    ! Pi_x_R_x_adA_right =   Pi sqrt(R)  A^l_i
+    !dim(P_x_fz) = BS_H_dim
+    !dim(BS_V_right) = BS_K_dim(1)
+    ! we have a problem in this multiplication
+    Pi_x_R_x_adA_left(i_c) =V_dot_V_omp(BS_K_dim(1),P_x_fZ(:,i_c,1),BS_V_right(:,i_l)) !resonant                                   
+    ! Pi_x_R_x_adA_right =   Pi sqrt(R)  A^l_i 
     !
-    Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_K_dim(1),BS_V_right(1:BS_K_dim(1),i_l),P_x_fZ(1:BS_K_dim(1),i_c,1))
+    Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_K_dim(2),BS_V_right(:,i_l),P_x_fZ(1:BS_K_dim(1),i_c,2)) !antiresonant
     !
   enddo
   !
   ! Note that the 2nd component (anti-resonant) should take a -1  from BSS_eh_f and a i^2 from sqrt(R)
   ! that cancel out.
   !
-  BS_R_PL(:,i_l)=real(dot_product(Pi_x_R_x_adA_right,Pi_x_R_x_adA_right)*adA_x_R_over_R_x_A(:))
+  !Check dimensions for these vectors to be consistent that we have only resonant and antiresonant
+  BS_R_PL(1,i_l)=real(dot_product(Pi_x_R_x_adA_right,Pi_x_R_x_adA_right)*adA_x_R_over_R_x_A(1)) !resonant
+  BS_R_PL(2,i_l)=real(dot_product(Pi_x_R_x_adA_left,Pi_x_R_x_adA_left)*adA_x_R_over_R_x_A(2)) !antiresonant
   !
   write (*,*) 'BS_R_PL', BS_R_PL(:,i_l)
   call live_timing(steps=1)
@@ -128,8 +139,6 @@ call live_timing()
 call PP_redux_wait(BS_R_PL)
 !
 call PP_indexes_reset(px)
-!
-end subroutine PL_diago_herm_residual
 
 subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap) 
  !
