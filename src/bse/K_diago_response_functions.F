@@ -63,7 +63,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
  real(SP), allocatable     :: vtmpR(:)
  complex(SP), allocatable  :: BS_E_sorted_tmp(:,:)
  integer, allocatable      :: sort_indx(:),first_exc(:),n_of_exc(:)
- complex(SP)               :: gauge_factor,res_kerr,res_magn(2)
+ complex(SP)               :: gauge_factor,res_kerr,res_magn(2), res_pl(2)
  logical                   :: l_ADD_the_ARES_using_the_RES
  !
  n_SOC=1
@@ -161,9 +161,15 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
        endif
      endif
      if(l_BS_photolum) then
-       PL(:,2)=PL(:,2)+PL_prefactor*ares_fac*BS_R_PL(1,i1)*aimag(-1._SP/(W%p(:)-EXC_E(i_pert_SOC)))/pi
-       PL(:,2)=PL(:,2)+PL_prefactor*BS_R_PL(2,i1)*aimag(-1._SP/(W%p(:)+conjg(EXC_E(i_pert_SOC))))/pi
-       write (*,*) "PL2 here", PL(:,2)
+       !write (*,*) "BS_E(i1)", i1, BS_E(i1)
+        PL(:,2)=PL(:,2)+PL_prefactor*ares_fac*BS_R_PL(1,i1)*aimag(-1._SP/(W%p(:)-EXC_E(i_pert_SOC)))/pi
+        PL(:,2)=PL(:,2)+PL_prefactor*BS_R_PL(2,i1)*aimag(-1._SP/(W%p(:)+conjg(EXC_E(i_pert_SOC))))/pi
+        write (*,*) "PL2 here", PL(:,2)
+        ! PL(:,2)=PL(:,2)+PL_prefactor*BS_R_PL(1,i1)*aimag(-1._SP/(W%p(:)-EXC_E(i_pert_SOC)))/pi
+      ! PL(:,2)=PL(:,2)+PL_prefactor*ares_fac*BS_R_PL(2,i1)*aimag(-1._SP/(W%p(:)+conjg(EXC_E(i_pert_SOC))))/pi       
+       !if (real(BS_E(i1)) .lt. 0) PL(:,2)=PL(:,2)+PL_prefactor*ares_fac*BS_R_PL(1,i1)*aimag(-1._SP/(W%p(:)-EXC_E(i_pert_SOC)))/pi
+       !if (real(BS_E(i1)) .gt. 0) PL(:,2)=PL(:,2)+PL_prefactor*BS_R_PL(2,i1)*aimag(-1._SP/(W%p(:)+conjg(EXC_E(i_pert_SOC))))/pi       
+       !write (*,*) "PL2 here", PL(:,2)
      endif
      !
    enddo

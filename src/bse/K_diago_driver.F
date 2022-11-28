@@ -143,7 +143,7 @@ subroutine K_diago_driver(iq,W,X_static)
  if (.not.BSS_write_eig_2_db) call parser('WRbsWF',BSS_write_eig_2_db)
  call parser('BSSPertWidth',BSS_perturbative_width)
  !
- do i_BS_mat=1,BS_res_ares_n_mat
+ do i_BS_mat=1, BS_res_ares_n_mat
    !
    if(l_diago) then
      if(.not.BS_K_coupling) BSS_n_eig = BS_K_dim(i_BS_mat)
@@ -266,7 +266,7 @@ subroutine K_diago_driver(iq,W,X_static)
        if (l_BS_kerr   ) call K_diago_kerr_residual(BS_E,BS_mat,BS_R_right_kerr)
        if (l_BS_magnons) call K_diago_herm_magnons_residual(i_BS_mat,BS_R_left_magn,BS_R_right_magn)
        write (*,*) 'Shape BS_mat', shape(BS_mat)
-       if (l_BS_photolum)call PL_diago_herm_residual(BS_mat,BS_mat,BS_R_PL)
+       if (l_BS_photolum)call PL_diago_herm_residual(i_BS_mat,BS_mat,BS_R_PL)
        !
      endif
      !

@@ -102,7 +102,7 @@ subroutine K_components_folded_in_serial_arrays(iq)
      do i_res_ares_solver=1,BS_n_eh_spaces_solver
        !
        H_pos=sum(BS_T_grp(i_g_start:I_g-1)%size)+i_Tr+(max(i_res_ares_solver,i_res_ares)-1)*BS_K_dim(1)
-       ares_fac=(-1)**(i_res_ares_solver-1)
+       ares_fac=(-1)**(i_res_ares_solver)
        !
        BSS_eh_table(H_pos,:)=(/i_k_bz,i_v,i_c,i_sp_c,i_sp_v/)
        !
@@ -115,9 +115,14 @@ subroutine K_components_folded_in_serial_arrays(iq)
        if (BS_perturbative_SOC) BSS_eh_E_SOC_corr(:,H_pos)=BS_T_grp(i_g)%E_SOC_corr(:,i_Tr)*ares_fac
        !
        if (l_BS_photolum) then
+         !write (*,*) 'i_res_ares_solver', i_res_ares_solver
+         !write (*,*) 'f_PL', BS_T_grp(i_g)%f_PL(2,2)
          BSS_PL_f(H_pos)=BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
-         if (BS_n_eh_spaces==1.and.BS_n_eh_spaces_solver==1) BSS_PL_f(H_pos+BS_K_dim(1))=BS_T_grp(i_g)%f_PL(i_Tr,2)
-       endif
+         if (BS_n_eh_spaces==1.and.BS_n_eh_spaces_solver==1) then
+                 write(*,*) 'ciao'
+         BSS_PL_f(H_pos+BS_K_dim(1))=BS_T_grp(i_g)%f_PL(i_Tr,2)
+         endif
+        endif
        !
        if (l_BS_optics) BSS_dipoles_opt(:,H_pos)=BS_T_grp(i_g)%dipoles_opt(:,i_Tr,i_res_ares_solver)
        !
