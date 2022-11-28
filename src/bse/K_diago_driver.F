@@ -143,7 +143,7 @@ subroutine K_diago_driver(iq,W,X_static)
  if (.not.BSS_write_eig_2_db) call parser('WRbsWF',BSS_write_eig_2_db)
  call parser('BSSPertWidth',BSS_perturbative_width)
  !
- do i_BS_mat=1,BS_res_ares_n_mat
+ do i_BS_mat=1, BS_res_ares_n_mat
    !
    if(l_diago) then
      if(.not.BS_K_coupling) BSS_n_eig = BS_K_dim(i_BS_mat)
@@ -257,14 +257,16 @@ subroutine K_diago_driver(iq,W,X_static)
        if (l_BS_optics ) call K_diago_non_hermitian_residuals(BS_E,BS_R_left,BS_R_right,BS_V_left,BS_V_right,BS_overlap)
        if (l_BS_kerr   ) call K_diago_kerr_residual(BS_E,BS_V_right,BS_R_right_kerr)
        if (l_BS_magnons) call K_diago_non_herm_magnons_residual(BS_R_left_magn,BS_R_right_magn,BS_V_left,BS_V_right,BS_overlap)
-       if (l_BS_photolum)call PL_diago_residual(BS_V_left,BS_V_right,BS_R_PL,K_is_not_hermitian,BS_overlap)
+       write (*,*) 'Shape BS_V_left', shape(BS_V_left)
+       if (l_BS_photolum)call PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
        !
      else
        !
        if (l_BS_optics)  call K_diago_hermitian_residuals(i_BS_mat,BS_E_real,BS_R_left,BS_R_right)
        if (l_BS_kerr   ) call K_diago_kerr_residual(BS_E,BS_mat,BS_R_right_kerr)
        if (l_BS_magnons) call K_diago_herm_magnons_residual(i_BS_mat,BS_R_left_magn,BS_R_right_magn)
-       if (l_BS_photolum)call PL_diago_residual(BS_mat,BS_mat,BS_R_PL,K_is_not_hermitian)
+       write (*,*) 'Shape BS_mat', shape(BS_mat)
+       if (l_BS_photolum)call PL_diago_herm_residual(i_BS_mat,BS_mat,BS_R_PL)
        !
      endif
      !
