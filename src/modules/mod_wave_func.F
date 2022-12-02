@@ -94,6 +94,7 @@ module wave_func
  real(SP)               :: rho_map_thresh
  integer                :: rho_map_size
  integer,    allocatable:: rho_map(:)
+ integer,    allocatable:: rho_map_inv(:)
  !
  ! Table correspondance G-vec <-> Components: G_ic = wf_igk(ic,ik)
  !

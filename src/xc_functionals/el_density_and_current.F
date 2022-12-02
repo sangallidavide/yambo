@@ -54,7 +54,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
 #if defined _FFTW
  use FFT_m,         ONLY:fftw_plan
 #endif
- use wave_func,     ONLY:WF,rho_map,rho_map_thresh,rho_map_size
+ use wave_func,     ONLY:WF,rho_map,rho_map_inv,rho_map_thresh,rho_map_size
  use parallel_m,    ONLY:PAR_IND_WF_linear,PAR_COM_density
  use parallel_int,  ONLY:PP_redux_wait
  use pseudo,        ONLY:pp_is_uspp,qe_pseudo_alloc,becp,pp_has_nlcc
@@ -84,10 +84,10 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
 #if defined _YPP_RT
  integer    :: ik_RT
 #endif
- integer    :: ib,ik,i_sp_pol,i_spinor,rho_syms,i_symm,i_wf,bands_range(2),ifft,ig,i_dir
- integer    :: rho_map_tmp(fft_size)
+ integer    :: ib,ik,i_sp_pol,i_spinor,rho_syms,i_symm,i_wf,bands_range(2),ifft,ig,i_dir,wf_rspace_size
  real(SP)   :: f_occ,rho_no_sym(fft_size),drho_no_sym(fft_size,3),J_no_sym(fft_size,3)
  real(SP)   :: raux
+ integer,     allocatable :: rho_map_tmp(:)
  complex(SP), allocatable :: WF_der(:,:,:)
  complex(DP), allocatable :: rhog_aug_DP(:,:), aux_DP(:)
  logical    :: warn_done,l_si,l_rho,l_drho,l_J,l_rho_map
@@ -138,6 +138,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
  !
  warn_done=.false.
  !
+ wf_rspace_size=size(WF%r(:,1,1))
  !
  do i_sp_pol=1,n_sp_pol
    bands_range=(/1,E%nbm(i_sp_pol)/)
@@ -179,7 +180,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
        if (l_rho) then
          !
          do i_spinor=1,n_spinor
-           if (size(WF%r(:,i_spinor,i_wf))<fft_size) then
+           if (wf_rspace_size<fft_size) then
              rho_no_sym(rho_map(:))=rho_no_sym(rho_map(:))+f_occ*k%weights(ik)*abs(WF%r(:,i_spinor,i_wf))**2
            else
              rho_no_sym(:)=rho_no_sym(:)+f_occ*k%weights(ik)*abs(WF%r(:,i_spinor,i_wf))**2
@@ -200,7 +201,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
          !
          do i_dir=1,3
            do i_spinor=1,n_spinor
-             if (size(WF%r(:,i_spinor,i_wf))<fft_size) then
+             if (wf_rspace_size<fft_size) then
                do ifft=1,rho_map_size
                  drho_no_sym(rho_map(ifft),i_dir)=drho_no_sym(rho_map(ifft),i_dir)+E%f(ib,ik,i_sp_pol)*&
                  &  k%weights(ik)*2._SP*real(WF%r(ifft,i_spinor,i_wf)*WF_der(ifft,i_spinor,i_dir))
@@ -307,16 +308,22 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
  !
  if(l_rho_map) then
    !
+   allocate(rho_map_tmp(fft_size))
+   allocate(rho_map_inv(fft_size))
+   rho_map_inv=-1
+   !
    rho_map_size=0
    do ifft=1,fft_size
      if(rho(ifft)*real(fft_size,SP)/real(DL_vol,SP)<rho_map_thresh) cycle
      rho_map_size=rho_map_size+1
      rho_map_tmp(rho_map_size)=ifft
+     rho_map_inv(ifft)=rho_map_size
    enddo
    !
    call msg('s','[FFT] Instead of full fft_size '//trim(intc(fft_size))//' using rho_map_size '//trim(intc(rho_map_size)))
    allocate(rho_map(rho_map_size))
    rho_map=rho_map_tmp(:rho_map_size)
+   deallocate(rho_map_tmp)
    !
  endif
  !
