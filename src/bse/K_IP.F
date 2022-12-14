@@ -206,6 +206,7 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,1)
        P_weighted(:)=BS_T_grp(i_T_g)%dipoles_opt(:,i_T,1)*PL_weights(:)
        res_PL=real(dot_product(P_weighted,P_weighted)*f_eh_PL*Z_eh*E_eh)
+       write(*,*) 'P_weighted, f_eh_PL, Z_eh, E_eh', P_weighted, f_eh_PL, Z_eh, E_eh 
      endif
      !
      ! Dichroism
@@ -288,10 +289,13 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        endif
        !
        if (l_BS_photolum) then
+         write(*,*)'l_BS_ares_from_res', l_BS_ares_from_res, BS_K_anti_resonant
          PL(:,3)=PL(:,3) +PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))/pi
          if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
            PL(:,3)=PL(:,3)-PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC))))/pi
          endif
+         !write (*,*) 'PL(:3) here', PL(:,3)
+         write (*,*) 'res_PL here', res_PL
        endif
        !
        if (l_BS_dichroism) then

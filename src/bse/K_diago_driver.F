@@ -266,7 +266,7 @@ subroutine K_diago_driver(iq,W,X_static)
        if (l_BS_kerr   ) call K_diago_kerr_residual(BS_E,BS_mat,BS_R_right_kerr)
        if (l_BS_magnons) call K_diago_herm_magnons_residual(i_BS_mat,BS_R_left_magn,BS_R_right_magn)
        write (*,*) 'Shape BS_mat', shape(BS_mat)
-       if (l_BS_photolum)call PL_diago_herm_residual(i_BS_mat,BS_mat,BS_R_PL)
+       if (l_BS_photolum)call PL_diago_herm_residual(BS_mat,BS_R_PL)
        !
      endif
      !
