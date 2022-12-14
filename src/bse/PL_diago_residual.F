@@ -31,7 +31,6 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  !                 \sum_k BS_mat(k,i) x conjg( BSS_dipoles(k) )
  ! BS_R_left(i)  = conjg( BS_R_right(i) )
  !
- !shape BS_mat=BS_K_dim(1),BS_K_dim(2) and it's like BS_V_right I think
  use pars,           ONLY:SP,rZERO,cZERO,cI
  use wrapper_omp,    ONLY:V_dot_V_omp,Vstar_dot_V_omp
  use parallel_m,     ONLY:PP_indexes,myid,PP_indexes_reset
@@ -45,11 +44,11 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  !
  complex(SP),intent(in)  :: BS_mat(BS_K_dim(1),BSS_n_eig)
  real(SP)   ,intent(out) :: BS_R_PL(2,BSS_n_eig)
- integer                :: half_BSS_n_eig
  !
  ! Workspace
  !
  type(PP_indexes)     ::px
+ logical              ::compute_ares_explicitly
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
  complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
 &                       R_over_R_x_A(2,BS_K_dim(1)),B(BSS_n_eig)
@@ -76,7 +75,6 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  write(*,*) "BSS_n_eig", BSS_n_eig !36
  write(*,*) "BS_K_dim(1)", BS_K_dim(1) !36
  write(*,*) "BS_K_dim(2)", BS_K_dim(2) !36
- half_BSS_n_eig=BSS_n_eig/2.
 !
 ! Hermitian residual
 !====================
@@ -85,12 +83,12 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
 ! 2=> right
 !
  do i_c=1,3
-  do i_K=1,half_BSS_n_eig
+  do i_K=1,BS_K_dim(1)
     !BSS_dipoles_PL= dipoles*PL_weights
     P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f(i_K))) !Pi^* left sqrt(R)
   enddo
 enddo
-do i_l=1,half_BSS_n_eig
+do i_l=1,BSS_n_eig
   !
   if (.not.px%element_1D(i_l)) cycle !parallelization
   !                       
@@ -126,26 +124,30 @@ enddo
 
 
 do i_c=1,3
-  do i_K=half_BSS_n_eig,BS_K_dim(1)
+  do i_K=1,BS_K_dim(1)
     P_x_fZ(i_K,i_c,2)=conjg(BSS_dipoles_PL(i_c,i_K)) *sqrt(abs((BSS_eh_f(i_K))))  !antiresonat
     !Pi^* *sqrt(R)
   enddo
 enddo
 !
+BS_R_PL(2,:)=-BS_R_PL(1,:)
 !
+compute_ares_explicitly=.false.
+if (compute_ares_explicitly) then
 write(*,*) 'BS_K_dim(1)', BS_K_dim(1) !36
 write(*,*) 'shape(BSS_eh_f)', shape(BSS_eh_f) !72
 write(*,*) 'shape(BSS_PL_f)', shape(BSS_PL_f) !72
 write(*,*) 'shape(BSS_dipoles_PL)', shape(BSS_dipoles_PL) !3 72
 !write(*,*) 'BSS_V_right(577,576)', BS_V_right(577,576)
-do i_l=half_BSS_n_eig, BS_K_dim(1)
+do i_l=1,BSS_n_eig
   !
   if (.not.px%element_1D(i_l)) cycle !parallelization
   !                       
   ! R_over_R_x_A = R<_j/R_j A^r_ij
   !
-  do ik = half_BSS_n_eig, BS_K_dim(1)
-      R_over_R_x_A(2,ik) = BSS_PL_f(ik+BS_K_dim(1))*BS_mat(ik,i_l)/abs(BSS_eh_f(ik)) !antiresonant !R</R*Ar
+  do ik = 1,BS_K_dim(1)
+      !R_over_R_x_A(2,ik) = BSS_PL_f(ik+BS_K_dim(1))*BS_mat(ik,i_l)/abs(BSS_eh_f(ik)) !antiresonant !R</R*Ar
+      R_over_R_x_A(2,ik) = BSS_PL_f(ik)*BS_mat(ik,i_l)/abs(BSS_eh_f(ik)) !antiresonant !R</R*Ar
   enddo
   !
   ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
@@ -171,6 +173,7 @@ do i_l=half_BSS_n_eig, BS_K_dim(1)
   call live_timing(steps=1)
   !
 enddo
+endif
 !
 call live_timing()
 !

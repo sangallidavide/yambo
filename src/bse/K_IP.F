@@ -202,8 +202,8 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        ! Note that res_PL is always positive as f_eh_PL>0
        !
        write (*,*) "iresares", i_res_ares
-       write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL, i_T_g
-       f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,1)
+       write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares), i_T_g
+       f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
        P_weighted(:)=BS_T_grp(i_T_g)%dipoles_opt(:,i_T,1)*PL_weights(:)
        res_PL=real(dot_product(P_weighted,P_weighted)*f_eh_PL*Z_eh*E_eh)
        write(*,*) 'P_weighted, f_eh_PL, Z_eh, E_eh', P_weighted, f_eh_PL, Z_eh, E_eh 

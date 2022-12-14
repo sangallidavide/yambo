@@ -123,9 +123,7 @@ subroutine K_components_folded_in_serial_arrays(iq)
          !write (*,*) 'i_res_ares_solver', i_res_ares_solver
          write (*,*) 'f_PL', BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
          BSS_PL_f(H_pos)=BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
-         if (BS_n_eh_spaces==1.and.BS_n_eh_spaces_solver==1) then
-         BSS_PL_f(H_pos+BS_K_dim(1))=BS_T_grp(i_g)%f_PL(i_Tr,2)
-         endif
+         if (BS_n_eh_spaces==1.and.BS_n_eh_spaces_solver==1) BSS_PL_f(H_pos+BS_K_dim(1))=BS_T_grp(i_g)%f_PL(i_Tr,2)
         endif
        !
        if (l_BS_optics) BSS_dipoles_opt(:,H_pos)=BS_T_grp(i_g)%dipoles_opt(:,i_Tr,i_res_ares_solver)

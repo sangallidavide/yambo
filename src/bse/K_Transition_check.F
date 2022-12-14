@@ -105,7 +105,9 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
    f_h = (spin_occ-Ken%f(iv,ikp,i_sp_v))/spin_occ
  endif
  !
- f_eh_PL = Ken%f(ic,ikp,i_sp_c)*(spin_occ-Ken%f(iv,ik ,i_sp_v))/spin_occ/spin_occ
+ if ( E_eh>=0._SP ) f_eh_PL =  Ken%f(ic,ikp,i_sp_c)*(spin_occ-Ken%f(iv,ik ,i_sp_v))/spin_occ/spin_occ
+ if ( E_eh< 0._SP ) f_eh_PL = -Ken%f(iv,ik ,i_sp_v)*(spin_occ-Ken%f(ic,ikp,i_sp_c))/spin_occ/spin_occ
+ write(*,*) "E_eh f_eh f_eh_PL= ",E_eh*27.2116,f_eh, f_eh_PL,f_eh_REF*(-1._SP)**(i_res_ares-1),i_res_ares
  !
 #if defined _RT
  if(EQ_NoOcc) then
