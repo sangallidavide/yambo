@@ -37,7 +37,7 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
  use LIVE_t,         ONLY:live_timing
  use BS,             ONLY:BS_H_dim,BS_K_dim
- use BS_solvers,     ONLY:BSS_eh_f,BSS_n_eig
+ use BS_solvers,     ONLY:BSS_eh_f_RES,BSS_n_eig
  use PHOTOLUM,       ONLY:BSS_dipoles_PL,BSS_PL_f
  !
  implicit none
@@ -85,7 +85,7 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  do i_c=1,3
   do i_K=1,BS_K_dim(1)
     !BSS_dipoles_PL= dipoles*PL_weights
-    P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f(i_K))) !Pi^* left sqrt(R)
+    P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f_RES(i_K))) !Pi^* left sqrt(R)
   enddo
 enddo
 do i_l=1,BSS_n_eig
@@ -95,7 +95,7 @@ do i_l=1,BSS_n_eig
   ! R_over_R_x_A = R<_j/R_j A^r_ij
   !
   do ik = 1, BS_K_dim(1)
-      R_over_R_x_A(1,ik) =  BSS_PL_f(ik)*BS_mat(ik,i_l)/BSS_eh_f(ik) !resonant R</R*Ar
+      R_over_R_x_A(1,ik) =  BSS_PL_f(ik)*BS_mat(ik,i_l)/BSS_eh_f_RES(ik) !resonant R</R*Ar
   enddo
   !
   ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
@@ -121,21 +121,20 @@ do i_l=1,BSS_n_eig
   !Pi*Al*Pi^**Ar*Al*R</R*Ar
   !
 enddo
-
-
-do i_c=1,3
-  do i_K=1,BS_K_dim(1)
-    P_x_fZ(i_K,i_c,2)=conjg(BSS_dipoles_PL(i_c,i_K)) *sqrt(abs((BSS_eh_f(i_K))))  !antiresonat
-    !Pi^* *sqrt(R)
-  enddo
-enddo
 !
 BS_R_PL(2,:)=-BS_R_PL(1,:)
 !
 compute_ares_explicitly=.false.
 if (compute_ares_explicitly) then
+  !
+do i_c=1,3
+  do i_K=1,BS_K_dim(1)
+    P_x_fZ(i_K,i_c,2)=conjg(BSS_dipoles_PL(i_c,i_K)) *sqrt(abs((BSS_eh_f_RES(i_K))))  !antiresonat
+    !Pi^* *sqrt(R)
+  enddo
+enddo
 write(*,*) 'BS_K_dim(1)', BS_K_dim(1) !36
-write(*,*) 'shape(BSS_eh_f)', shape(BSS_eh_f) !72
+write(*,*) 'shape(BSS_eh_f)', shape(BSS_eh_f_RES) !72
 write(*,*) 'shape(BSS_PL_f)', shape(BSS_PL_f) !72
 write(*,*) 'shape(BSS_dipoles_PL)', shape(BSS_dipoles_PL) !3 72
 !write(*,*) 'BSS_V_right(577,576)', BS_V_right(577,576)
@@ -146,8 +145,8 @@ do i_l=1,BSS_n_eig
   ! R_over_R_x_A = R<_j/R_j A^r_ij
   !
   do ik = 1,BS_K_dim(1)
-      !R_over_R_x_A(2,ik) = BSS_PL_f(ik+BS_K_dim(1))*BS_mat(ik,i_l)/abs(BSS_eh_f(ik)) !antiresonant !R</R*Ar
-      R_over_R_x_A(2,ik) = BSS_PL_f(ik)*BS_mat(ik,i_l)/abs(BSS_eh_f(ik)) !antiresonant !R</R*Ar
+      !R_over_R_x_A(2,ik) = BSS_PL_f(ik+BS_K_dim(1))*BS_mat(ik,i_l)/abs(BSS_eh_f_RES(ik)) !antiresonant !R</R*Ar
+      R_over_R_x_A(2,ik) = BSS_PL_f(ik)*BS_mat(ik,i_l)/abs(BSS_eh_f_RES(ik)) !antiresonant !R</R*Ar
   enddo
   !
   ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j

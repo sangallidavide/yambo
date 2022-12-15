@@ -130,8 +130,8 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  !   However they contribute to the JDOS. We need to take only the E>0 component,
  ! since the E<0 component is then accounted for by the anti-resonant part
  if ( f_eh_REF==0._SP .and. E_eh*(-1._SP)**(i_res_ares-1)<0._SP ) K_Transition_check=.FALSE.
- !   f_eh=0 transitions give issue in PL. Removed in this case
- if (l_BS_photolum .and. f_eh_REF==0._SP) K_Transition_check=.FALSE.
+ !   f_eh_RES=0 transitions give issue in PL. Removed in this case
+ if (l_BS_photolum .and. f_eh_RES==0._SP) K_Transition_check=.FALSE.
  !
 #if defined _RT
  !
