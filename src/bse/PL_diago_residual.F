@@ -122,9 +122,9 @@ do i_l=1,BSS_n_eig
   !
 enddo
 !
-BS_R_PL(2,:)=-BS_R_PL(1,:)
+!BS_R_PL(2,:)=-BS_R_PL(1,:) We disagree with this relationship
 !
-compute_ares_explicitly=.false.
+compute_ares_explicitly=.true.
 if (compute_ares_explicitly) then
   !
 do i_c=1,BS_dip_size

@@ -61,7 +61,7 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  ! Work space
  !
  integer           ::iv,ic,i_T_g,i_T,n_SOC,i_pert_SOC,i_res_ares,i_sort,nVAR,i_dip
- real(SP)          ::f_eh,f_eh_PL,res_PL
+ real(SP)          ::f_eh,f_eh_PL,res_PL,ares_PL
  logical           ::dip_v,dip_r
  complex(SP)       ::drude_GreenF(W_bss%n_freqs),res_abs,E_plus_W0,E_plus_W(2/n_sp_pol),&
 &                    para_term_w0,diam_term_used,Z_eh,E_eh
@@ -201,13 +201,20 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        !
        ! Note that res_PL is always positive as f_eh_PL>0
        !
+       ! R< = fc(1-fv)
+       ! R> = fv(1-fc)
+       ! R_ares = fv-fc
+       ! R_res = fc-fv
+       ! R> = fv - fv*fc = fv + fc - fc - fv*fc = fv - fc + R< = R_ares + R< = -R_res + R<
        write (*,*) "iresares", i_res_ares
        write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares), i_T_g
        f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
-       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*PL_weights(1))**2
+       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*PL_weights(1))**2*BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver) !was missing R<
+       ares_PL= -res_PL + BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
        if(l_BS_trace) then
          do i_dip=2,BS_dip_size
-           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*PL_weights(i_dip))**2
+           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*PL_weights(i_dip))**2*BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver) ! was missing only R<
+           ares_PL= -res_PL + BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
          enddo
 	 res_PL=res_PL*f_eh_PL*Z_eh*E_eh
        endif
@@ -299,9 +306,9 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        !
        if (l_BS_photolum) then
          write(*,*)'l_BS_ares_from_res', l_BS_ares_from_res, BS_K_anti_resonant
-         PL(:,3)=PL(:,3) +PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))/pi
+         PL(:,3)=PL(:,3) + PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))/pi
          if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
-           PL(:,3)=PL(:,3)-PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC))))/pi
+           PL(:,3)=PL(:,3) - PL_prefactor*ares_PL*aimag(-1._SP/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC))))/pi
          endif
          write (*,*) 'PL(:3) here', PL(:,3)
          write (*,*) 'res_PL here', res_PL
