@@ -23,7 +23,7 @@
 !
 module PHOTOLUM
  !
- use BS,         ONLY:l_BS_photolum
+ use BS,         ONLY:l_BS_photolum,l_BS_trace
  use pars,       ONLY:SP
 #include<memory.h>
  !
@@ -52,15 +52,16 @@ module PHOTOLUM
      use BS_solvers, ONLY:BSS_n_freqs
      PL_prefactor =32._SP*pi**3*SPEED_OF_LIGHT*2._SP/3._SP*RL_vol/nqbz/(2._SP*pi)**3
      if (allocated(PL))  return
-     PL_weights=PL_weights/v_norm(PL_weights)
+     if (     l_BS_trace) PL_weights=PL_weights/v_norm(PL_weights)
+     if (.not.l_BS_trace) PL_weights=(/1._SP,0._SP,0._SP/)
    end subroutine
    !
    subroutine BSS_PL_alloc( )
      use pars,       ONLY:cZERO,rZERO
-     use BS,         ONLY:BS_H_dim,BS_K_dim
+     use BS,         ONLY:BS_H_dim,BS_K_dim,BS_dip_size
      integer :: f_PL_dim
      if (.not.l_BS_photolum) return
-     YAMBO_ALLOC(BSS_dipoles_PL,(3,BS_H_dim))
+     YAMBO_ALLOC(BSS_dipoles_PL,(BS_dip_size,BS_H_dim))
      BSS_dipoles_PL = cZERO
      f_PL_dim=BS_H_dim
      if(BS_H_dim==BS_K_dim(1)) f_PL_dim=2*BS_K_dim(1)

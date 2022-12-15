@@ -36,7 +36,7 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  use parallel_m,     ONLY:PP_indexes,myid,PP_indexes_reset
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
  use LIVE_t,         ONLY:live_timing
- use BS,             ONLY:BS_H_dim,BS_K_dim
+ use BS,             ONLY:BS_H_dim,BS_K_dim,BS_dip_size
  use BS_solvers,     ONLY:BSS_eh_f_RES,BSS_n_eig
  use PHOTOLUM,       ONLY:BSS_dipoles_PL,BSS_PL_f
  !
@@ -82,7 +82,7 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
 ! 1=> left
 ! 2=> right
 !
- do i_c=1,3
+ do i_c=1,BS_dip_size
   do i_K=1,BS_K_dim(1)
     !BSS_dipoles_PL= dipoles*PL_weights
     P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f_RES(i_K))) !Pi^* left sqrt(R)
@@ -105,7 +105,7 @@ do i_l=1,BSS_n_eig
           R_over_R_x_A(1,1:BS_K_dim(1))) !resonant this is dipoles_PL*BS_mat*fermifactors= sum_k <q0|k><k|i>
   !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
   !Al*R</R*Ar
-  do i_c=1,3
+  do i_c=1,BS_dip_size
     !dim(P_x_fz) = BS_H_dim
     ! we have a problem in this multiplication
     Pi_x_R_x_adA_left(i_c) =V_dot_V_omp(BS_K_dim(1),P_x_fZ(:BS_K_dim(1),i_c,1),BS_mat(:,i_l)) !resonan Pi^* Ar*sqrt(R)                                   
@@ -127,7 +127,7 @@ BS_R_PL(2,:)=-BS_R_PL(1,:)
 compute_ares_explicitly=.false.
 if (compute_ares_explicitly) then
   !
-do i_c=1,3
+do i_c=1,BS_dip_size
   do i_K=1,BS_K_dim(1)
     P_x_fZ(i_K,i_c,2)=conjg(BSS_dipoles_PL(i_c,i_K)) *sqrt(abs((BSS_eh_f_RES(i_K))))  !antiresonat
     !Pi^* *sqrt(R)
@@ -154,7 +154,7 @@ do i_l=1,BSS_n_eig
   adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),R_over_R_x_A(2,1:BS_K_dim(1)),conjg(BS_mat(1:BS_K_dim(1),i_l)))!Al*R</R*Ar
   !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
   !
-  do i_c=1,3
+  do i_c=1,BS_dip_size
     !dim(P_x_fz) = BS_H_dim
     !dim(BS_V_right) = BS_K_dim(1)
     !
@@ -225,6 +225,7 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  P_x_fZ        =cZERO
  R_over_R_x_A  =cZERO
  !
+ call error(" PL implementation beyond TDA not finalized")
  !
  ! Live-Timing
  !

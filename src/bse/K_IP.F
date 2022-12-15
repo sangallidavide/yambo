@@ -204,8 +204,13 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        write (*,*) "iresares", i_res_ares
        write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares), i_T_g
        f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
-       P_weighted(:)=BS_T_grp(i_T_g)%dipoles_opt(:,i_T,1)*PL_weights(:)
-       res_PL=real(dot_product(P_weighted,P_weighted)*f_eh_PL*Z_eh*E_eh)
+       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*PL_weights(1))**2
+       if(l_BS_trace) then
+         do i_dip=2,BS_dip_size
+           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*PL_weights(i_dip))**2
+         enddo
+	 res_PL=res_PL*f_eh_PL*Z_eh*E_eh
+       endif
        write(*,*) 'P_weighted', P_weighted 
        write(*,*)  'E_eh', E_eh
        write(*,*) 'f_eh_PL', f_eh_PL
