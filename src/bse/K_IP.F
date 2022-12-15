@@ -31,13 +31,13 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  use R_lattice,     ONLY:bz_samp,d3k_factor,bare_qpg,q0_def_norm
  use DIPOLES,       ONLY:DIPOLE_t
  use stderr,        ONLY:intc
- use electrons,     ONLY:levels,spin_occ,spin,nel,n_sp_pol
+ use electrons,     ONLY:levels,spin_occ,spin,nel,n_sp_pol,n_spinor
  use X_m,           ONLY:Epsilon_ii,Joint_DOS,alpha_dim,eps_2_alpha,&
 &                        X_drude_term,global_gauge,N_BS_E_sorted,&
 &                        skip_cond_sum_rule,l_drude,X_magnons,Epsilon_ij,X_dichroism
  use BS_solvers,    ONLY:Co_factor,diam_term_exact,BSS_Wd,BSS_mode,BSS_uses_DbGd,FG_factor
  use BS,            ONLY:BS_T_grp,BS_nkFGbz_in_Tgrp,BS_nT_grps,BS_perturbative_SOC,&
- &                       BS_dip_size,l_BS_jdos,l_BS_esort,l_BS_trace,BS_K_dim,&
+ &                       BS_dip_size,l_BS_jdos,l_BS_esort,l_BS_trace,BS_H_dim,&
  &                       l_BS_abs,l_BS_kerr,l_BS_magnons,l_BS_dichroism,l_BS_photolum,&
 &                        BS_K_anti_resonant,l_BS_ares_from_res
  use parallel_int,  ONLY:PP_redux_wait
@@ -118,8 +118,8 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
    if(l_BS_abs)       n_BS_E_sorted=n_BS_E_sorted+1
    if(l_BS_kerr)      n_BS_E_sorted=n_BS_E_sorted+1
    if(l_BS_dichroism) n_BS_E_sorted=n_BS_E_sorted+1
-   if(l_BS_magnons)   n_BS_E_sorted=n_BS_E_sorted+2
-   YAMBO_ALLOC(vtmpC,(BS_K_dim(1),n_BS_E_sorted))
+   if(l_BS_magnons)   n_BS_E_sorted=n_BS_E_sorted+n_spinor
+   YAMBO_ALLOC(vtmpC,(BS_H_dim,n_BS_E_sorted))
    vtmpC=cZERO
  endif
  !
@@ -202,10 +202,20 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        ! Note that res_PL is always positive as f_eh_PL>0
        !
        write (*,*) "iresares", i_res_ares
-       write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL, i_T_g
-       f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,1)
-       P_weighted(:)=BS_T_grp(i_T_g)%dipoles_opt(:,i_T,1)*PL_weights(:)
-       res_PL=real(dot_product(P_weighted,P_weighted)*f_eh_PL*Z_eh*E_eh)
+       write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares), i_T_g
+       f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
+       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*PL_weights(1))**2
+       if(l_BS_trace) then
+         do i_dip=2,BS_dip_size
+           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*PL_weights(i_dip))**2
+         enddo
+	 res_PL=res_PL*f_eh_PL*Z_eh*E_eh
+       endif
+       write(*,*) 'P_weighted', P_weighted 
+       write(*,*)  'E_eh', E_eh
+       write(*,*) 'f_eh_PL', f_eh_PL
+       write(*,*) 'Z_eh', Z_eh
+       write(*,*) 'fine'
      endif
      !
      ! Dichroism
@@ -233,7 +243,7 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        res_magn=res_magn*f_eh*Z_eh
        if (l_BS_esort.and.i_res_ares==1) then
          call K_IP_sort("add",i_sort,nVAR,res_magn(1),vtmpC)
-         call K_IP_sort("add",i_sort,nVAR,res_magn(2),vtmpC)
+	 if(n_spinor==2) call K_IP_sort("add",i_sort,nVAR,res_magn(2),vtmpC)
        endif
      endif
      !
@@ -288,10 +298,14 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        endif
        !
        if (l_BS_photolum) then
+         write(*,*)'l_BS_ares_from_res', l_BS_ares_from_res, BS_K_anti_resonant
          PL(:,3)=PL(:,3) +PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))/pi
          if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
            PL(:,3)=PL(:,3)-PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC))))/pi
          endif
+         write (*,*) 'PL(:3) here', PL(:,3)
+         write (*,*) 'res_PL here', res_PL
+         write (*,*) 'aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC))', aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))
        endif
        !
        if (l_BS_dichroism) then

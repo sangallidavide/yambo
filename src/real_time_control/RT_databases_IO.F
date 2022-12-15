@@ -37,7 +37,7 @@ subroutine RT_databases_IO(E,DO_IT)
  use IO_m,           ONLY:manage_action,NONE,io_GF,io_CARRIERs,io_OBSERVABLES,OP_APP_CL,OP_WR_CL,&
 &                         OP_IF_START_APP_CL_IF_END,WR_CL_IF_END,OP_APP,WR_CL,WR,OP_APP,OP_WR
  use parallel_m,     ONLY:PAR_G_k_range,myid,HEAD_k_cpu
- use parallel_int,   ONLY:PP_redux_wait,PP_bcast
+ use parallel_int,   ONLY:PP_wait,PP_redux_wait,PP_bcast
  use timing_m,       ONLY:timing
  use fields,         ONLY:A_tot
 #if defined _PAR_IO
@@ -45,6 +45,9 @@ subroutine RT_databases_IO(E,DO_IT)
 #else
  use real_time,      ONLY:RTibz
  use parallel_m,     ONLY:PAR_IND_Xk_ibz,ncpu,myid
+#endif
+#if defined _ELPH_ITERATIVE
+ use RT_iterative,   ONLY:THETA_matrix
 #endif
  !
  implicit none
@@ -61,6 +64,9 @@ subroutine RT_databases_IO(E,DO_IT)
  ! ... G_lesser
  !
  integer           :: ik,G_IO_steps,io_G,i_cpu,i_G_db,i_G_k_db,i_G_RES_db,i_G_RES_k_db
+#if defined _ELPH_ITERATIVE
+ integer           :: io_THETA
+#endif
  !
  call timing('RT databases IO',OPR='start')
  !
@@ -227,7 +233,7 @@ subroutine RT_databases_IO(E,DO_IT)
          !
        enddo 
        !
-       call PP_redux_wait( )
+       call PP_wait( )
        !
      enddo
      !
