@@ -209,14 +209,15 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        write (*,*) "iresares", i_res_ares
        write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares), i_T_g
        f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
-       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*PL_weights(1))**2*BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver) !was missing R<
-       ares_PL= -res_PL + BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
+       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1)*PL_weights(1))**2*BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares) !was missing R<
+       ares_PL= -res_PL + BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
        if(l_BS_trace) then
          do i_dip=2,BS_dip_size
-           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*PL_weights(i_dip))**2*BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver) ! was missing only R<
-           ares_PL= -res_PL + BS_T_grp(i_g)%f_PL(i_Tr,i_res_ares_solver)
+           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1)*PL_weights(i_dip))**2*BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares) ! was missing only R<
+           ares_PL= -res_PL + BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
          enddo
-	 res_PL=res_PL*f_eh_PL*Z_eh*E_eh
+        res_PL=res_PL*f_eh_PL*Z_eh*E_eh
+         ares_PL=ares_PL*f_eh_PL*Z_eh*E_eh
        endif
        write(*,*) 'P_weighted', P_weighted 
        write(*,*)  'E_eh', E_eh
