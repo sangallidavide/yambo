@@ -100,7 +100,8 @@ module fields
      integer           ::i_f
      type(ext_field)   ::E_field
      field_frequency=E_field%frequency(1)
-     if (i_f>1.and.E_field%n_frequencies>1) field_frequency=E_field%frequency(1)+&
+     if (i_f<=1.or.E_field%n_frequencies<=1) return
+     field_frequency=E_field%frequency(1)+&
 &       (E_field%frequency(2)-E_field%frequency(1))/(E_field%n_frequencies-1)*(i_f-1)
    end function
    !
@@ -209,7 +210,7 @@ module fields
            W_field_m1=1._SP/W_field
            WtimesT=W_field*(T-T_0)+fr_shift(i_field)
 	   ! each frequency has a different initial phase
-           if(n_freqs>0) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
+           if(n_freqs>1) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
            f0t=cmplx(cos_wt,0._SP) ; f1t=cmplx(sin_wt,0._SP)
            if(trim(field_defs(2))=="ANTIRES")     then ; f0t= 0.5_SP*      exp_iwt  ; f1t=-cI*0.5_SP*      exp_iwt   ; endif
