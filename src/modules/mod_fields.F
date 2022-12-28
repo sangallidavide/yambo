@@ -132,7 +132,7 @@ module fields
      real(SP)          ::damp_func,a,b,c
      complex(SP), dimension(2) :: small_a
      !
-     integer           ::i_fr,i_field,n_fields
+     integer           ::i_fr,i_field,n_fields,n_freqs
      real(SP)          ::T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
      complex(SP)       ::f_now,f_t(2),f0t,f1t,cZ,cS,exp_iwt,erfi_z
      character(schlen) ::field_defs(3)
@@ -155,6 +155,7 @@ module fields
      sigma=E_field%width
      fr_shift(1)=0._SP
      fr_shift(2)=pi/2._SP
+     n_freqs=max(1,E_field%n_frequencies)
      !
      field_defs=""
      call STRING_split(trim(E_field%ef_name),field_defs)
@@ -185,7 +186,7 @@ module fields
          if(real(T)<sigma.and.sigma>0._SP) damp_func=(a*T**4 + b*T**3 + c*T**2) 
        case('GAUSS','QSSIN','QSFIELD','PULSE','SPULSE')
          ! Fields which need T_0
-         W_0=field_frequency(E_field,1)
+         W_0=(field_frequency(E_field,1)+field_frequency(E_field,n_freqs))/2._SP
          T_0=pi/W_0*(real(nint(W_0/pi*3._SP*sigma),SP))
          if(trim(field_defs(2))=="2SIGMA" .or. trim(field_defs(3))=="2SIGMA") T_0=2._SP*sigma
          if(trim(field_defs(2))=="3SIGMA" .or. trim(field_defs(3))=="3SIGMA") T_0=3._SP*sigma
@@ -196,7 +197,7 @@ module fields
      E_field%To=T_0
      !
      do i_field=1,n_fields
-       do i_fr=1,max(1,E_field%n_frequencies)
+       do i_fr=1,n_freqs
          !
          if (envelop_only_) then
            W_field=0._SP
@@ -207,12 +208,14 @@ module fields
            W_field=field_frequency(E_field,i_fr)
            W_field_m1=1._SP/W_field
            WtimesT=W_field*(T-T_0)+fr_shift(i_field)
+	   ! each frequency has a different initial phase
+           if(n_freqs>0) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
            f0t=cmplx(cos_wt,0._SP) ; f1t=cmplx(sin_wt,0._SP)
            if(trim(field_defs(2))=="ANTIRES")     then ; f0t= 0.5_SP*      exp_iwt  ; f1t=-cI*0.5_SP*      exp_iwt   ; endif
            if(trim(field_defs(2))=="RES")         then ; f0t= 0.5_SP*conjg(exp_iwt) ; f1t= cI*0.5_SP*conjg(exp_iwt)  ; endif
          endif
-         !
+	 !
          EXPf=exp(-(T-T_0)**2/(2._SP*sigma**2) )
          !
          select case( trim(field_defs(1)) )
@@ -306,7 +309,7 @@ module fields
        enddo
      enddo
      !
-     small_a=f_t
+     small_a=f_t/real(n_freqs,SP)
      !
    end function small_a
    !

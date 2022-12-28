@@ -46,7 +46,7 @@ subroutine RT_X_LRR_real_field(en)
  !
  ! Work Space
  !
- integer      :: i_t,i_w,i_p_dir,iE_err,i_Probe,i_field,n_fields,NW
+ integer      :: i_t,i_w,i_p_dir,iE_err,i_Probe,i_field,n_fields,n_freqs,NW
  logical      :: l_rm_asympt_limit
  real(SP)     :: W_reached,Field_time,outdata(6),E_ver(3,3),Fac
  complex(SP)  :: OBS_proj,OBS_vec(3),E_w_SP(3),Field,E_of_t(2),A_of_t(2),theta,delta,Field_freq
@@ -62,8 +62,10 @@ subroutine RT_X_LRR_real_field(en)
  call parser('RmAsymLim',l_rm_asympt_limit)
  !
  i_Probe=1
- if(trim(Efield(i_Probe)%ef_pol)=="linear"  ) n_fields=1
+ n_freqs=1
+ n_fields=1
  if(trim(Efield(i_Probe)%ef_pol)=="circular") n_fields=2
+ if(    Efield(i_Probe)%n_frequencies > 1   ) n_freqs=Efield(i_Probe)%n_frequencies
  !
  ! Pump removal (if any)
  !-----------------------
@@ -125,7 +127,7 @@ subroutine RT_X_LRR_real_field(en)
  !... Analytic ...
  !
  iE_err=-1
- if (n_fields==1.and.trim(X_kind)=="rhorho") then
+ if (n_fields==1.and.n_freqs==1.and.trim(X_kind)=="rhorho") then
    do i_w = 1, RT_conf%W_n_steps
      !
      if(trim(RT_conf%damping) /= "NONE")                      Field_freq=ElField%W(i_w)-cI*RT_conf%damp_factor
