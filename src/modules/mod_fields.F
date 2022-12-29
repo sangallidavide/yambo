@@ -195,9 +195,12 @@ module fields
          if(trim(field_defs(2))=="5SIGMA" .or. trim(field_defs(3))=="5SIGMA") T_0=5._SP*sigma
      end select
      !
-     if( trim(field_defs(2))=="PHINV" .or. trim(field_defs(3))=="PHINV" ) then
+     if( trim(field_defs(2))=="PHPI2" .or. trim(field_defs(3))=="PHPI2" ) then
        fr_shift(1)=pi/2._SP
-       fr_shift(2)=0._SP
+       fr_shift(2)=pi
+     else if( trim(field_defs(2))=="PHPI4" .or. trim(field_defs(3))=="PHPI4" ) then
+       fr_shift(1)=pi/4._SP
+       fr_shift(2)=3._SP*pi/4._SP
      endif
      !
      E_field%To=T_0
