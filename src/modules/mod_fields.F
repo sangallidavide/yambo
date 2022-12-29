@@ -121,6 +121,8 @@ module fields
      use X_m,       ONLY:global_gauge
      use pars,      ONLY:cI,cONE,cZERO,pi,schlen
      use wrapper,   ONLY:FADEVA
+     use functions, ONLY:theta_function
+     use real_time, ONLY:RT_dyn_step
      !
      type(ext_field), intent(inout)   ::E_field
      !
@@ -133,11 +135,11 @@ module fields
      real(SP)          ::damp_func,a,b,c
      complex(SP), dimension(2) :: small_a
      !
-     integer           ::i_fr,i_field,n_fields,n_freqs
+     integer           ::i1,i_fr,i_field,n_fields,n_freqs
      real(SP)          ::T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
      complex(SP)       ::f_now,f_t(2),f0t,f1t,cZ,cS,exp_iwt,erfi_z
-     character(schlen) ::field_defs(3)
-     logical           ::envelop_only_
+     character(schlen) ::field_defs(4)
+     logical           ::lchirp,envelop_only_
      !
      ! Zeroing
      !
@@ -154,15 +156,13 @@ module fields
      ! Field parameters
      !
      sigma=E_field%width
-     fr_shift(1)=0._SP
-     fr_shift(2)=pi/2._SP
      n_freqs=max(1,E_field%n_frequencies)
      !
      field_defs=""
      call STRING_split(trim(E_field%ef_name),field_defs)
      !
      select case( trim(field_defs(1)) )
-       case('STATIC','SIN','ANTIRES','RES','DELTA')
+       case('STATIC','RECT','SIN','ANTIRES','RES','DELTA')
          ! Fields which do not need T_0
          W_0=0._SP
          T_0=0._SP
@@ -195,13 +195,15 @@ module fields
          if(trim(field_defs(2))=="5SIGMA" .or. trim(field_defs(3))=="5SIGMA") T_0=5._SP*sigma
      end select
      !
-     if( trim(field_defs(2))=="PHPI2" .or. trim(field_defs(3))=="PHPI2" ) then
-       fr_shift(1)=pi/2._SP
-       fr_shift(2)=pi
-     else if( trim(field_defs(2))=="PHPI4" .or. trim(field_defs(3))=="PHPI4" ) then
-       fr_shift(1)=pi/4._SP
-       fr_shift(2)=3._SP*pi/4._SP
-     endif
+     lchirp=.false.
+     fr_shift(1)=0._SP
+     fr_shift(2)=pi/2._SP
+     do i1=1,4
+       if( trim(field_defs(i1))=="PHPI1") fr_shift(:)=fr_shift(:)+pi
+       if( trim(field_defs(i1))=="PHPI2") fr_shift(:)=fr_shift(:)+pi/2._SP
+       if( trim(field_defs(i1))=="PHPI4") fr_shift(:)=fr_shift(:)+pi/4._SP
+       if( trim(field_defs(i1))=="CHIRP") lchirp=.true.
+     enddo
      !
      E_field%To=T_0
      !
@@ -218,7 +220,7 @@ module fields
            W_field_m1=1._SP/W_field
            WtimesT=W_field*(T-T_0)+fr_shift(i_field)
 	   ! each frequency has a different initial phase
-           if(n_freqs>1) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
+           if(n_freqs>1 .and. lchirp) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
            f0t=cmplx(cos_wt,0._SP) ; f1t=cmplx(sin_wt,0._SP)
            if(trim(field_defs(2))=="ANTIRES")     then ; f0t= 0.5_SP*      exp_iwt  ; f1t=-cI*0.5_SP*      exp_iwt   ; endif
@@ -232,6 +234,12 @@ module fields
            if (order==0 ) f_now=T
            if (order==1 ) f_now=1._SP
            if (order==2 ) f_now=0._SP
+           !
+         case('RECT')
+           if (order==0 .and. abs(T)< sigma) f_now=T
+           if (order==0 .and. abs(T)>=sigma) f_now=sigma
+           if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0) ! theta function
+           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1) ! delta function
            !
          case('SIN')
            if (order==0 ) f_now=-damp_func*(f0t-1._SP)*W_field_m1
@@ -250,9 +258,9 @@ module fields
            if (order==2 ) f_now=0._SP
            !
          case('DELTA')
+           if (order==-1) f_now=1._SP
            if (order==0 ) f_now=1._SP
            if (order> 0 ) f_now=0._SP
-           if (order==-1) f_now=1._SP
            !
          case('GAUSS')
            if (order==0 ) f_now= sigma*sqrt(pi/2._SP)* ( erf( (T-T_0)/(sigma*sqrt(2._SP)) )+1._SP )
