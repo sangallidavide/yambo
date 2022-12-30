@@ -136,7 +136,7 @@ module fields
      complex(SP), dimension(2) :: small_a
      !
      integer           ::i1,i_fr,i_field,n_fields,n_freqs
-     real(SP)          ::T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
+     real(SP)          ::Tloc,T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
      complex(SP)       ::f_now,f_t(2),f0t,f1t,cZ,cS,exp_iwt,erfi_z
      character(schlen) ::field_defs(4)
      logical           ::lchirp,envelop_only_
@@ -162,7 +162,7 @@ module fields
      call STRING_split(trim(E_field%ef_name),field_defs)
      !
      select case( trim(field_defs(1)) )
-       case('STATIC','RECT','SIN','ANTIRES','RES','DELTA')
+       case('STATIC','RECT','RECTSIN','SIN','DELTA')
          ! Fields which do not need T_0
          W_0=0._SP
          T_0=0._SP
@@ -218,10 +218,13 @@ module fields
          else
            W_field=field_frequency(E_field,i_fr)
            W_field_m1=1._SP/W_field
-           WtimesT=W_field*(T-T_0)+fr_shift(i_field)
-	   ! each frequency has a different initial phase
+           Tloc=T
+           if( index(field_defs(1),"RECT")>0 .and. order==0 .and. abs(T)>=sigma) Tloc=sigma
+           WtimesT=W_field*(Tloc-T_0)+fr_shift(i_field)
+           ! each frequency has a different initial phase
            if(n_freqs>1 .and. lchirp) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
+           ! f1t=-f0t'
            f0t=cmplx(cos_wt,0._SP) ; f1t=cmplx(sin_wt,0._SP)
            if(trim(field_defs(2))=="ANTIRES")     then ; f0t= 0.5_SP*      exp_iwt  ; f1t=-cI*0.5_SP*      exp_iwt   ; endif
            if(trim(field_defs(2))=="RES")         then ; f0t= 0.5_SP*conjg(exp_iwt) ; f1t= cI*0.5_SP*conjg(exp_iwt)  ; endif
@@ -236,16 +239,15 @@ module fields
            if (order==2 ) f_now=0._SP
            !
          case('RECT')
-           if (order==0 .and. abs(T)< sigma) f_now=T
-           if (order==0 .and. abs(T)>=sigma) f_now=sigma
+           if (order==0 ) f_now= Tloc
            if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0) ! theta function
            if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1) ! delta function
            !
          case('RECTSIN')
-           if (order==0 ) call error('RECTSIN integral not implemented')
+           if (order==0 ) f_now=-(f0t-1._SP)*W_field_m1
            if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0)*f1t     ! theta function
-           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t+ &  ! delta function
-	                       & theta_function(sigma-T,RT_dyn_step,0)*f0t
+           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t  &  ! delta function
+	                       &+theta_function(sigma-T,RT_dyn_step,0)*f0t*W_field
            !
          case('SIN')
            if (order==0 ) f_now=-damp_func*(f0t-1._SP)*W_field_m1
