@@ -241,6 +241,12 @@ module fields
            if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0) ! theta function
            if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1) ! delta function
            !
+         case('RECTSIN')
+           if (order==0 ) call error('RECTSIN integral not implemented')
+           if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0)*f1t     ! theta function
+           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t+ &  ! delta function
+	                       & theta_function(sigma-T,RT_dyn_step,0)*f0t
+           !
          case('SIN')
            if (order==0 ) f_now=-damp_func*(f0t-1._SP)*W_field_m1
            if (order==1 ) f_now=+damp_func* f1t
