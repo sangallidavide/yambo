@@ -25,7 +25,7 @@ subroutine INIT_activate()
  !
  use BS_solvers,     ONLY:BSS_mode
  use QP_m,           ONLY:QP_solver,COHSEX_use_empties
- use stderr,         ONLY:intc,STRING_match
+ use stderr,         ONLY:STRING_match
  use global_XC,      ONLY:WF_exx_fraction,WF_exx_screening
  use drivers,        ONLY:l_em1s,l_acfdt,l_HF_and_locXC,l_col_cut,l_alda_fxc,l_bs_fxc,l_optics,l_bse,l_bss,&
 &                         l_chi,l_cohsex,l_life,l_rpa_IP,l_td_hf,l_setup,l_sc_run,l_rim,&
@@ -584,26 +584,6 @@ subroutine INIT_activate()
  !
  contains
    !
-#if defined _RT || defined _NL
-   !
-   subroutine Afield_activate(i1)
-     integer     ::i1
-     character(6)::field
-     field='Field'//trim(intc(i1))
-     call initactivate(1,field//'_Freq')
-     call initactivate(1,field//'_NFreqs')
-     call initactivate(1,field//'_DFreq')
-     call initactivate(1,field//'_Int')
-     call initactivate(1,field//'_Width')
-     call initactivate(1,field//'_FWHM')
-     call initactivate(1,field//'_kind')
-     call initactivate(1,field//'_pol')
-     call initactivate(1,field//'_Dir')
-     call initactivate(1,field//'_Dir_circ')
-     call initactivate(1,field//'_Tstart')
-   end subroutine
-   !
-#endif
    !
    subroutine CPU_activate(what)
      character(*) :: what 
