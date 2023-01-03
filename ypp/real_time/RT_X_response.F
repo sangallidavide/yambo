@@ -79,44 +79,48 @@ subroutine RT_X_response(en,k,q)
    !
    call IO_temporary_jobdir_and_strings("ALL","SAVE")
    !
-   if (N_pumps==0) then
-     Pol(1)%title ="polarization"
-     Curr(1)%title="current"
-   else
-     !
-     ! Here the assumption is that
-     ! - run 1 contains both the pump(s) and the probe. Probe is Field1
-     ! - run 2 contains only the pump(s)
-     !
-     Pol(1)%title ="pump-probe-polarization"
-     Curr(1)%title="pump-probe-current"
-     Pol(2)%title ="pump-polarization"
-     Curr(2)%title="pump-current"
-     if (.not.STRING_same(Pump_path,"default")) call IO_temporary_jobdir_and_strings("JOBSTR",Pump_path)
-     call RT_OBSERVABLES_IO( what='JP',J=Curr(2),P=Pol(2),IO_error=IO_error)
-     if (.not.allocated(Curr(2)%F_t)) call error('Pump databases missing/corrupt')
-   endif
-   !
-   if (     STRING_same(Probe_path(1),"default")) call IO_temporary_jobdir_and_strings("ALL","RESTORE")
+   Pol(1)%title ="polarization"
+   Curr(1)%title="current"
    if (.not.STRING_same(Probe_path(1),"default")) call IO_temporary_jobdir_and_strings("JOBSTR",Probe_path(1))
    call RT_OBSERVABLES_IO( what='JP',J=Curr(1),P=Pol(1),IO_error=IO_error)
    if (.not.allocated(Curr(1)%F_t)) call error('Probe databases missing/corrupt')
    !
    call IO_temporary_jobdir_and_strings("ALL","RESTORE")
    !
-   !  Damping and output 
-   !---------------------
-   call RT_OBSERVABLES_damp_and_write(Pol(1),RT_conf,l_skip_OBS_IO)
-   call RT_OBSERVABLES_damp_and_write(Curr(1),RT_conf,l_skip_OBS_IO)
    if (N_pumps>0) then
-     call RT_OBSERVABLES_damp_and_write(Pol(2),RT_conf,l_skip_OBS_IO)
-     call RT_OBSERVABLES_damp_and_write(Curr(2),RT_conf,l_skip_OBS_IO)
+     !
+     ! Here the assumption is that
+     ! - run 1 contains both the pump(s) and the probe. Probe is Field1
+     ! - run 2 contains only the pump(s)
+     !
+     Pol(2)%title ="pump-polarization"
+     Curr(2)%title="pump-current"
+     if (.not.STRING_same(Pump_path,"default")) call IO_temporary_jobdir_and_strings("JOBSTR",Pump_path)
+     call RT_OBSERVABLES_IO( what='JP',J=Curr(2),P=Pol(2),IO_error=IO_error)
+     if (.not.allocated(Curr(2)%F_t)) call error('Pump databases missing/corrupt')
+     !
+     call IO_temporary_jobdir_and_strings("ALL","RESTORE")
+     !
      Pol(3)%title ="probe-polarization"
      Curr(3)%title="probe-current"
      Pol(3)%F_t =Pol(1)%F_t -Pol(2)%F_t
      Curr(3)%F_t=Curr(1)%F_t-Curr(2)%F_t
+     !
+   endif
+   !
+   !  Damping and output 
+   !---------------------
+   call RT_OBSERVABLES_damp_and_write(Pol(1),RT_conf,l_skip_OBS_IO)
+   call RT_OBSERVABLES_damp_and_write(Curr(1),RT_conf,l_skip_OBS_IO)
+   !
+   if (N_pumps>0) then
+     !
+     call RT_OBSERVABLES_damp_and_write(Pol(2),RT_conf,l_skip_OBS_IO)
+     call RT_OBSERVABLES_damp_and_write(Curr(2),RT_conf,l_skip_OBS_IO)
+     !
      call RT_OBSERVABLES_damp_and_write(Pol(3),RT_conf,l_skip_OBS_IO)
      call RT_OBSERVABLES_damp_and_write(Curr(3),RT_conf,l_skip_OBS_IO)
+     !
    endif
    !
    if ( l_RT_pol ) then
