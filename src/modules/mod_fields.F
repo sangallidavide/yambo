@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM, DS
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -23,7 +23,8 @@
 !
 module fields
  !
- use pars,  ONLY:SP,DP,schlen,lchlen,pi,n_ext_fields_max
+ use pars,  ONLY:SP,DP,schlen,lchlen,pi, &
+&                n_ext_fields_max,n_fields_defs_max
  use stderr,ONLY:STRING_split
  use units, ONLY:FS2AUT
  !
@@ -55,6 +56,10 @@ module fields
  integer               :: n_ext_fields    =0
  type(ext_field), save :: Efield(n_ext_fields_max)
  !
+ real(SP), allocatable :: field_from_file(:,:,:)
+ character(schlen)     :: field_from_file_fname(n_ext_fields_max)
+ integer               :: field_from_file_steps
+ !
  ! Vector potential
  ! 
  type gauge_field
@@ -73,17 +78,22 @@ module fields
  contains
    !
    logical function field_is_ok(E_field)
-     use stderr,        ONLY:STRING_same
-     type(ext_field)   ::E_field
-     field_is_ok= any((/ STRING_same(E_field%ef_name,'SIN') ,&
-&                        STRING_same(E_field%ef_name,'SOFTSIN') ,& 
-&                        STRING_same(E_field%ef_name,'DELTA') ,& 
-&                        STRING_same(E_field%ef_name,'GAUSS') ,& 
-&                        STRING_same(E_field%ef_name,'THETA') ,& 
-&                        STRING_same(E_field%ef_name,'PULSE') ,& 
-&                        STRING_same(E_field%ef_name,'QSSIN') ,&
-&                        STRING_same(E_field%ef_name,'SPULSE'),&
-&                        STRING_same(E_field%ef_name,'QSFIELD') /)) .and. &
+     use stderr,        ONLY:STRING_same,STRING_split
+     type(ext_field), intent(in) :: E_field
+     character(schlen)   :: ef_name(n_fields_defs_max)
+     call STRING_split(E_field%ef_name,ef_name)
+     field_is_ok= any((/ STRING_same(ef_name(1),'SIN') ,&
+&                        STRING_same(ef_name(1),'SOFTSIN') ,&
+&                        STRING_same(ef_name(1),'DELTA') ,&
+&                        STRING_same(ef_name(1),'RECT')  ,&
+&                        STRING_same(ef_name(1),'RECTSIN'),&
+&                        STRING_same(ef_name(1),'GAUSS') ,&
+&                        STRING_same(ef_name(1),'THETA') ,&
+&                        STRING_same(ef_name(1),'PULSE') ,&
+&                        STRING_same(ef_name(1),'QSSIN') ,&
+&                        STRING_same(ef_name(1),'SPULSE'),&
+&                        STRING_same(ef_name(1),'QSFIELD'),&
+&                        STRING_same(ef_name(1),'FROM_FILE') /)) .and. &
 &                 any((/ STRING_same(E_field%ef_pol,'linear') ,&
 &                        STRING_same(E_field%ef_pol,'circular') /))
    end function
@@ -103,6 +113,17 @@ module fields
      if (i_f<=1.or.E_field%n_frequencies<=1) return
      field_frequency=E_field%frequency(1)+&
 &       (E_field%frequency(2)-E_field%frequency(1))/(E_field%n_frequencies-1)*(i_f-1)
+   end function
+   !
+   integer function get_field_file_index(filename)
+     character(*)      ::filename
+     integer           ::i1
+     get_field_file_index=-1
+     do i1=1,n_ext_fields_max
+       if ( trim(filename)/=trim(field_from_file_fname(i1)) ) cycle
+       get_field_file_index=i1
+       return
+     enddo
    end function
    !
    function small_a(T,E_field,order,envelop_only)
@@ -135,10 +156,10 @@ module fields
      real(SP)          ::damp_func,a,b,c
      complex(SP), dimension(2) :: small_a
      !
-     integer           ::i1,i_fr,i_field,n_fields,n_freqs
-     real(SP)          ::Tloc,T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
+     integer           ::i1,i_fr,i_T,i_field,i_file,n_fields,n_freqs
+     real(SP)          ::Tloc,T_0_fac,T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
      complex(SP)       ::f_now,f_t(2),f0t,f1t,cZ,cS,exp_iwt,erfi_z
-     character(schlen) ::field_defs(4)
+     character(schlen) ::field_defs(n_fields_defs_max)
      logical           ::lchirp,envelop_only_
      !
      ! Zeroing
@@ -161,6 +182,9 @@ module fields
      field_defs=""
      call STRING_split(trim(E_field%ef_name),field_defs)
      !
+     Tloc=T
+     if( index(field_defs(1),"RECT")>0 .and. order==0 .and. abs(T)>=sigma) Tloc=sigma
+     !
      select case( trim(field_defs(1)) )
        case('STATIC','RECT','RECTSIN','SIN','DELTA')
          ! Fields which do not need T_0
@@ -176,6 +200,11 @@ module fields
          !  if (T>NE_tot_time-T_0) damp_func=exp(-(T-NE_tot_time+T_0)/sigma)
          !endif
          ! DEBUG >
+       case('FROM_FILE')
+	 i_file=get_field_file_index(field_defs(2))
+	 T_0=field_from_file(1,1,i_file)*FS2AUT
+         W_0=0._SP
+         damp_func=1._SP
        case('SOFTSIN','THETA')
          ! Fields which do not need T_0 and with damp_func
          W_0=0._SP
@@ -188,20 +217,27 @@ module fields
        case('GAUSS','QSSIN','QSFIELD','PULSE','SPULSE')
          ! Fields which need T_0
          W_0=(field_frequency(E_field,1)+field_frequency(E_field,n_freqs))/2._SP
-         T_0=pi/W_0*(real(nint(W_0/pi*3._SP*sigma),SP))
-         if(trim(field_defs(2))=="2SIGMA" .or. trim(field_defs(3))=="2SIGMA") T_0=2._SP*sigma
-         if(trim(field_defs(2))=="3SIGMA" .or. trim(field_defs(3))=="3SIGMA") T_0=3._SP*sigma
-         if(trim(field_defs(2))=="4SIGMA" .or. trim(field_defs(3))=="4SIGMA") T_0=4._SP*sigma
-         if(trim(field_defs(2))=="5SIGMA" .or. trim(field_defs(3))=="5SIGMA") T_0=5._SP*sigma
+	 T_0_fac=3._SP*sigma
+         if(trim(field_defs(2))=="1SIGMA" .or. trim(field_defs(3))=="1SIGMA") T_0_fac=1._SP*sigma
+         if(trim(field_defs(2))=="2SIGMA" .or. trim(field_defs(3))=="2SIGMA") T_0_fac=2._SP*sigma
+         if(trim(field_defs(2))=="3SIGMA" .or. trim(field_defs(3))=="3SIGMA") T_0_fac=3._SP*sigma
+         if(trim(field_defs(2))=="4SIGMA" .or. trim(field_defs(3))=="4SIGMA") T_0_fac=4._SP*sigma
+         if(trim(field_defs(2))=="5SIGMA" .or. trim(field_defs(3))=="5SIGMA") T_0_fac=5._SP*sigma
+         T_0=pi/W_0*(real(nint(W_0/pi*T_0_fac),SP))
+         if( index(field_defs(1),"PULSE")>0 ) T_0=T_0_fac
      end select
      !
+     ! Initial and relative phases control
      lchirp=.false.
      fr_shift(1)=0._SP
      fr_shift(2)=pi/2._SP
-     do i1=1,4
-       if( trim(field_defs(i1))=="PHPI1") fr_shift(:)=fr_shift(:)+pi
-       if( trim(field_defs(i1))=="PHPI2") fr_shift(:)=fr_shift(:)+pi/2._SP
-       if( trim(field_defs(i1))=="PHPI4") fr_shift(:)=fr_shift(:)+pi/4._SP
+     do i1=1,n_fields_defs_max
+       if( trim(field_defs(i1))=="PHPI90") fr_shift(:)=fr_shift(:)+pi             ! 90 deg
+       if( trim(field_defs(i1))=="PHPI20") fr_shift(:)=fr_shift(:)+pi*2._SP/3._SP ! 60 deg
+       if( trim(field_defs(i1))=="PHPI45") fr_shift(:)=fr_shift(:)+pi/2._SP       ! 45 deg
+       if( trim(field_defs(i1))=="PHPI30") fr_shift(:)=fr_shift(:)+pi/3._SP       ! 30 deg
+       if( trim(field_defs(i1))=="PHPI15") fr_shift(:)=fr_shift(:)+pi/6._SP       ! 15 deg
+       if( trim(field_defs(i1))=="PHPI10") fr_shift(:)=fr_shift(:)+pi/9._SP       ! 10 deg
        if( trim(field_defs(i1))=="CHIRP") lchirp=.true.
      enddo
      !
@@ -217,12 +253,17 @@ module fields
            f0t=cONE ; f1t=cONE
          else
            W_field=field_frequency(E_field,i_fr)
-           W_field_m1=1._SP/W_field
-           Tloc=T
-           if( index(field_defs(1),"RECT")>0 .and. order==0 .and. abs(T)>=sigma) Tloc=sigma
+	   if(W_field> 0._SP) W_field_m1=1._SP/W_field
+	   if(W_field==0._SP) W_field_m1=0._SP
+	   !
+	   ! The frequency shift is applied in two cases
+	   ! (i n_fields=2) to have a circular polarized pulse, and
            WtimesT=W_field*(Tloc-T_0)+fr_shift(i_field)
-           ! each frequency has a different initial phase
+	   ! (ii n_freqs>1) to chirp the relative frequencies,
+           !                i.e. each frequency has a different initial phase
            if(n_freqs>1 .and. lchirp) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
+	   !
+	   ! CONTROL RES / ANTIRES case
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
            ! f1t=-f0t'
            f0t=cmplx(cos_wt,0._SP) ; f1t=cmplx(sin_wt,0._SP)
@@ -233,6 +274,13 @@ module fields
          EXPf=exp(-(T-T_0)**2/(2._SP*sigma**2) )
          !
          select case( trim(field_defs(1)) )
+         case('FROM_FILE')
+           i_T=nint((T-T_0)/(RT_dyn_step/2._SP))+1
+           if (order==0 ) f_now=field_from_file(i_T,2+3*(i_field-1),i_file)
+           if (order==1 ) f_now=field_from_file(i_T,3+3*(i_field-1),i_file)
+	   if (order==2 ) f_now=field_from_file(i_T,4+3*(i_field-1),i_file)
+	   if (envelop_only_) f_now=0._SP
+	   !
          case('STATIC')
            if (order==0 ) f_now=T
            if (order==1 ) f_now=1._SP
@@ -348,7 +396,7 @@ module fields
      integer           ::i_f
      real(SP)          ::W_0
      complex(SP)       ::local_a(2)
-     character(schlen) ::field_defs(3)
+     character(schlen) ::field_defs(n_fields_defs_max)
      !
      iErr=-1
      local_a=cZERO
@@ -450,7 +498,7 @@ module fields
      ! work space
      complex(SP) :: E_w
      real(SP)    :: T_0, sigma, W_0, T
-     character(schlen) ::field_defs(3)
+     character(schlen) ::field_defs(n_fields_defs_max)
      !
      call STRING_split(trim(Field%ef_name),field_defs)
      !

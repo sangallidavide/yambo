@@ -115,7 +115,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     NE_time_step_update_last_point,NE_time_step_update_jump,NE_time_step_update_jump_INPUT, &
 &                     NE_initial_time_step_update,NE_step_update_treshold
  use fields,     ONLY:Efield,Efield_reset,n_ext_fields_max,n_ext_fields,A_vecpot_reset,   &
-&                     A_tot,A_ind,A_ext
+&                     A_tot,A_ind,A_ext,field_from_file_fname,field_from_file_steps
  use plasma,     ONLY:PLASMA_redux_percent
 #endif
 #if defined _NL
@@ -583,6 +583,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  ! Real Time
  !
+ field_from_file_fname=""
+ field_from_file_steps=0
  n_ext_fields=0
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
@@ -689,6 +691,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  NL_damping    =0.2_SP/HA2EV
  NL_LRC_alpha  =0._SP
  !
+ field_from_file_fname=""
+ field_from_file_steps=0
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
    Efield(i1)%frequency=0.1_SP/HA2EV

@@ -28,7 +28,7 @@ subroutine RT_X_response(en,k,q)
 &                         l_RT_X_inversion,Probe_path,Pump_path,N_probes,RT_conf,l_skip_OBS_IO
  use YPP_interfaces, ONLY:RT_OBSERVABLES_IO
  use RT_control,     ONLY:OBS_RT_IO_t
- use pars,           ONLY:schlen
+ use pars,           ONLY:schlen,n_fields_defs_max
  use stderr,         ONLY:STRING_split,STRING_same
  use R_lattice,      ONLY:bz_samp
  use electrons,      ONLY:levels
@@ -43,7 +43,7 @@ subroutine RT_X_response(en,k,q)
  ! Work Space
  !
  integer           :: Ndefs,i_o
- character(schlen) :: probe_defs(3)
+ character(schlen) :: probe_defs(n_fields_defs_max)
  logical           :: l_RT_LRR_real_field,l_RT_X_effective,l_RT_SHG_qssin,IO_error
  !
  call RT_OBSERVABLES_IO_paths('JP',en)
