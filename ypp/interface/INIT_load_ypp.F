@@ -49,6 +49,7 @@ subroutine INIT_ypp_load(defs)
 &                        Eh_pumped_pair_BZ_width,Eh_mu,Eh_temp,h_mu_autotune_thr,TRabsWHAT,TRabsDIP_plane,&
 &                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold,Pump_path,RT_pol_mode
  use real_time,     ONLY:RT_bands
+ use fields,        ONLY:n_ext_fields
 #endif
 #if defined _YPP_SC
  use YPPm,          ONLY:V_value
@@ -119,6 +120,7 @@ subroutine INIT_ypp_load(defs)
  call it('r',defs,'RToccupations','[R] Analize time-dependent occupations')
  call it('r',defs,'RTlifetimes',  '[R] Analize time-dependent lifetimes')
  call it('r',defs,'RTpol',        '[R] Analize time-dependent polarization')
+ call it('r',defs,'RTfields',     '[R] Analize time-dependent fields')
  call it('r',defs,'RTdeltaRho',   '[R] Analize the density')
  call it('r',defs,'RTGtwotimes',  '[R] Construct G</G>/G(r)/G(a)/A(t,tp) from rho within GKBA')
  !
@@ -379,7 +381,9 @@ subroutine INIT_ypp_load(defs)
  call it('f',defs,'SkipOBS_IO','Do not dump on file the RT observables (P(t),J(t),D(t)...)')
  call it('f',defs,'RmAsymLim','Remove Asymptotic limit from P or J',verb_level=V_real_time) 
  !
- call it('f',defs,'STD_style','Print occupations using the standard style',verb_level=V_real_time) 
+ call it('f',defs,'STD_style','Print occupations using the standard style',verb_level=V_real_time)
+ ! 
+ call Afield(defs,1)
  !
 #endif
  !

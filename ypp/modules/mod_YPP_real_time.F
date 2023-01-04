@@ -50,6 +50,7 @@ module YPP_real_time
  logical  :: l_NL_exc
  logical  :: l_RT_abs
  logical  :: l_RT_pol
+ logical  :: l_RT_fields
  !
  ! RT post-processing (kind)
  !

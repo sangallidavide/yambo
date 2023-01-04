@@ -46,11 +46,12 @@ subroutine Afield_activate(i1)
 end subroutine
 !
 !
-subroutine Afield(i_field)
+subroutine Afield(defs,i_field)
    !
    use it_tools,      ONLY:it
    use pars,          ONLY:SP
    use drivers,       ONLY:infile_editing
+   use C_driver,      ONLY:code_bin
    use fields,        ONLY:Efield,n_ext_fields
    use units,         ONLY:AU2KWCMm2
    use parser_m,      ONLY:parser
@@ -99,7 +100,7 @@ subroutine Afield(i_field)
      if (     is_def) Efield(i_field)%width=Efield(i_field)%FWHM/(2._SP*sqrt(2._SP*log(2._SP)))
      if (.not.is_def) Efield(i_field)%FWHM=Efield(i_field)%width*(2._SP*sqrt(2._SP*log(2._SP)))
      !
-     if (trim(Efield(i_field)%ef_name)/='none') n_ext_fields=n_ext_fields+1
+     if (trim(Efield(i_field)%ef_name)/='none'.and.index(code_bin,'ypp')==0) n_ext_fields=n_ext_fields+1
      !
    endif
    !
