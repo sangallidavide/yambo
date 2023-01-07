@@ -37,7 +37,7 @@ subroutine RT_1D_Fourier_Transform(mode,FT,RT,I_sign)
  !
  ! F_t(t) = \int F_w(w) exp^(-i w t) 
  !
- use YPP_real_time,  ONLY:RT_time,Use_FFT,OBS_el,RT_ctl
+ use YPP_real_time,  ONLY:RT_time,Use_FFT,OBS_el,RT_ctl,alpha_lin_chirp
  use pars,           ONLY:DP,cI,cZERO_DP
  use LIVE_t,         ONLY:live_timing
  !
@@ -53,6 +53,7 @@ subroutine RT_1D_Fourier_Transform(mode,FT,RT,I_sign)
  integer    :: i_w,i_t,fft_sign,i_c
  integer(8) :: fftw_plan
  logical    :: l_live_timing
+ complex    :: chirp_phase
  !
  l_live_timing=len_trim(FT%title)>0
  !
@@ -106,11 +107,31 @@ subroutine RT_1D_Fourier_Transform(mode,FT,RT,I_sign)
    !
    FT%F_t=cZERO_DP
    !
-   if (l_live_timing) call live_timing('FT'//trim(FT%title)//'',RT%T_n_steps*FT%N)
+   if (l_live_timing) call live_timing('FT@'//trim(FT%title)//'',RT%T_n_steps*FT%N)
    do i_c=1,FT%N
      do i_t = 1, RT%T_n_steps
        do i_w = 1, RT%W_n_steps
          FT%F_t(i_t,i_c) = FT%F_t(i_t,i_c)+FT%F_w(i_w,i_c)*(FT%W(2)-FT%W(1))*exp(-cI*FT%W(i_w)*RT_time(i_t))
+       enddo
+       if (l_live_timing) call live_timing(steps=1)
+     enddo
+   enddo
+   if (l_live_timing) call live_timing()
+   !
+ endif
+ !
+ ! Frequency to Time
+ !===================
+ if (mode=="W2T_LIN_CHIRP") then
+   !
+   FT%F_t=cZERO_DP
+   !
+   if (l_live_timing) call live_timing('FT@'//trim(FT%title)//'',RT%T_n_steps*FT%N)
+   do i_c=1,FT%N
+     do i_t = 1, RT%T_n_steps
+       do i_w = 1, RT%W_n_steps
+         chirp_phase=-cI*alpha_lin_chirp*cos(FT%W(i_w)-FT%W(1))
+         FT%F_t(i_t,i_c) = FT%F_t(i_t,i_c)+FT%F_w(i_w,i_c)*(FT%W(2)-FT%W(1))*exp(-cI*FT%W(i_w)*RT_time(i_t)-chirp_phase)
        enddo
        if (l_live_timing) call live_timing(steps=1)
      enddo

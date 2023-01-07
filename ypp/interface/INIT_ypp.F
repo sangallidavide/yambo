@@ -671,6 +671,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
      call initactivate(1,"TRabsOBS TRabsDIPdir TRabsDIPplane TRabsMODE TRabsEtresh")
    endif
    if (l_RT_fields) then
+     call initactivate(1,"EnRngeRt ETStpsRt ChirpFac")
      n_ext_fields=1
      call Afield_activate(1)
    endif

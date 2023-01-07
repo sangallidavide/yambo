@@ -140,6 +140,10 @@ module YPP_real_time
  !
  character(schlen)        :: RT_pol_mode="slice"
  !
+ ! (RT) Fields
+ !
+ real(SP)                 :: alpha_lin_chirp=0._SP
+ !
  type RT_ctl
    real(SP) :: delta_W             =0._SP   ! delta W
    real(SP) :: X_W_range(2)        =0._SP   ! Response energy range 
