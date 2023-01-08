@@ -44,7 +44,7 @@ subroutine INIT_ypp_load(defs)
  use YPP_symm,      ONLY:wf_ng_cut
 #if defined _YPP_RT
  use YPPm,          ONLY:Nel_fac
- use YPP_real_time, ONLY:RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,Rho_deph,alpha_lin_chirp,&
+ use YPP_real_time, ONLY:RT_conf,Eh_pumped_Nel,Eh_pumped_pair_deltaE,Rho_deph,ypp_chirp,&
 &                        Eh_pumped_pair_width,Probe_Keyword,Pump_Keyword,X_order,X_kind,Eh_pumped_pair_energy,&
 &                        Eh_pumped_pair_BZ_width,Eh_mu,Eh_temp,h_mu_autotune_thr,TRabsWHAT,TRabsDIP_plane,&
 &                        TRabsMODE,TRabsDIP_dir,TRabs_Eeh_treshold,Pump_path,RT_pol_mode
@@ -383,7 +383,7 @@ subroutine INIT_ypp_load(defs)
  !
  call it('f',defs,'STD_style','Print occupations using the standard style',verb_level=V_real_time)
  ! 
- call it(defs,'ChirpFac','Prefactor for linear chirping in frequency space',alpha_lin_chirp)
+ call it(defs,'ChirpFac','Prefactor for linear chirping in frequency space',ypp_chirp,unit=Time_unit(1))
  call Afield(defs,1)
  !
 #endif

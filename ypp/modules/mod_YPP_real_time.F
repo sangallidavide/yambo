@@ -142,7 +142,7 @@ module YPP_real_time
  !
  ! (RT) Fields
  !
- real(SP)                 :: alpha_lin_chirp=0._SP
+ real(SP)                 :: ypp_chirp=0._SP
  !
  type RT_ctl
    real(SP) :: delta_W             =0._SP   ! delta W

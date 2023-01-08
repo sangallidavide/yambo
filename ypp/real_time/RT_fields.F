@@ -23,7 +23,7 @@
 !
 subroutine RT_fields()
  !
- use units,          ONLY:FS2AUT,AUT2FS
+ use units,          ONLY:AUT2FS
  use stderr,         ONLY:intc
  use com,            ONLY:msg
  use pars,           ONLY:SP,schlen,pi,n_fields_defs_max
@@ -66,36 +66,20 @@ subroutine RT_fields()
  if ( field_defs(1)/='FROM_W_FILE') call RT_Field_t_to_w(i_field)
  !
  ! Chirp the field and convert back into real time
- ! Warning a pi factor is missing in the FT
- call RT_1D_Fourier_Transform('W2T_LIN_CHIRP',ElField,RT_conf,1)
+ call RT_1D_Fourier_Chirp(ElField,RT_conf)
  !
- filename="YPP_EXTFIELD_LINCHIRP_"//trim(intc(i_field))//".time"
+ call RT_print_Elfield(1,"time-chirped",Elfield)
  !
- open(unit=99+i_field,file=trim(com_path)//"/"//trim(filename))
- write(99+i_field,*) RT_conf%T_n_steps
+ call RT_1D_Fourier_Transform('T2W',ElField,RT_conf,1)
  !
- do i_t=1,RT_conf%T_n_steps
-   !
-   Field_time=RT_time(i_t)-Efield(i_field)%t_initial
-   !
-   field_data(1)=Field_time/FS2AUT
-   field_data(2)=real(ElField%F_t(i_t,1))/pi
-   field_data(3)=real(ElField%F_t(i_t,3))/pi
-   field_data(4)=real(ElField%F_t(i_t,5))/pi
-   field_data(5)=real(ElField%F_t(i_t,2))/pi
-   field_data(6)=real(ElField%F_t(i_t,4))/pi
-   field_data(6)=real(ElField%F_t(i_t,6))/pi
-   !
-   write(99+i_field,*) field_data
-   !
- enddo
- !
- close(99+i_field)
+ call RT_print_Elfield(1,"freq-chirped",Elfield)
  !
 end subroutine RT_fields
 !
 !
 subroutine RT_Field_w_load(i_field)
+ !
+ use YPP_real_time,  ONLY:RT_conf,ElField
  !
  ! TODO
  !
@@ -105,16 +89,16 @@ subroutine RT_Field_w_load(i_field)
  !
  call error(' Loading field frequency from file not yet coded')
  !
+ call RT_print_Elfield(1,"freq",Elfield)
+ !
 end subroutine RT_Field_w_load
 !
 !
 subroutine RT_Field_t_to_w(i_field)
  !
  use units,          ONLY:FS2AUT
- use stderr,         ONLY:intc
  use pars,           ONLY:SP,schlen
  use fields,         ONLY:Efield,small_a
- use com,            ONLY:com_path
  use YPP_real_time,  ONLY:RT_conf,ElField,RT_time
  !
  implicit none
@@ -122,46 +106,81 @@ subroutine RT_Field_t_to_w(i_field)
  integer, intent(in) :: i_field
  !
  integer   :: i_t
- character(schlen) :: filename
- real(SP)  :: field_data(7),Field_time
+ real(SP)  :: Field_time
  !
  ElField%title="Field"
  ElField%N    =6
  call RT_1D_Fourier_setup(ElField,RT_conf,6) 
  !
  do i_t=1,RT_conf%T_n_steps
-   !
    Field_time=RT_time(i_t)-Efield(i_field)%t_initial
-   !
    ElField%F_t(i_t,1:2) =small_a(Field_time,Efield(i_field),0)
    ElField%F_t(i_t,3:4) =small_a(Field_time,Efield(i_field),1)
    ElField%F_t(i_t,5:6) =small_a(Field_time,Efield(i_field),2)
-   !
  enddo
  !
- filename="YPP_EXTFIELD_"//trim(intc(i_field))//".time"
- !
- open(unit=99+i_field,file=trim(com_path)//"/"//trim(filename))
- write(99+i_field,*) RT_conf%T_n_steps
- !
- do i_t=1,RT_conf%T_n_steps
-   !
-   Field_time=RT_time(i_t)-Efield(i_field)%t_initial
-   !
-   field_data(1)=Field_time/FS2AUT
-   field_data(2)=real(ElField%F_t(i_t,1))
-   field_data(3)=real(ElField%F_t(i_t,3))
-   field_data(4)=real(ElField%F_t(i_t,5))
-   field_data(5)=real(ElField%F_t(i_t,2))
-   field_data(6)=real(ElField%F_t(i_t,4))
-   field_data(6)=real(ElField%F_t(i_t,6))
-   !
-   write(99+i_field,*) field_data
-   !
- enddo
- !
- close(99+i_field)
+ call RT_print_Elfield(1,"time",Elfield)
  !
  call RT_1D_Fourier_Transform('T2W',ElField,RT_conf,1)
  !
+ call RT_print_Elfield(1,"freq",Elfield)
+ !
 end subroutine RT_Field_t_to_w
+!
+!
+subroutine RT_print_Elfield(i_field,mode,Elfield)
+ !
+ use units,          ONLY:FS2AUT
+ use YPP_real_time,  ONLY:RT_conf,OBS_el
+ use pars,           ONLY:SP,schlen
+ use stderr,         ONLY:intc
+ use com,            ONLY:com_path
+ !
+ implicit none
+ !
+ integer,      intent(in) :: i_field
+ character(*), intent(in) :: mode
+ type(OBS_el), intent(in) :: ElField
+ !
+ integer           :: i_t,i_w,idata
+ character(schlen) :: filename
+ real(SP)          :: field_data(7),Field_t,Field_w
+ !
+ if (mode=="time")         filename="YPP_EXTFIELD_"//trim(intc(i_field))//".time"
+ if (mode=="time-chirped") filename="YPP_EXTFIELD_LINCHIRP_"//trim(intc(i_field))//".time"
+ if (mode=="freq")         filename="YPP_EXTFIELD_"//trim(intc(i_field))//".freq"
+ if (mode=="freq-chirped") filename="YPP_EXTFIELD_LINCHIRP_"//trim(intc(i_field))//".freq"
+ !
+ open(unit=99+i_field,file=trim(com_path)//"/"//trim(filename))
+ !
+ if (index(mode,"time")>0) then
+   !
+   write(99+i_field,*) RT_conf%T_n_steps
+   !
+   do i_t=1,RT_conf%T_n_steps
+     Field_t=RT_conf%T_range(1)+(i_t-1)*RT_conf%delta_t   !-Efield%t_initial
+     field_data(1)=Field_t/FS2AUT
+     do idata=1,6
+       field_data(idata+1)=real(ElField%F_t(i_t,idata))
+     enddo
+     write(99+i_field,*) field_data
+   enddo
+   !
+ else if (index(mode,"freq")>0) then
+   !
+   write(99+i_field,*) RT_conf%W_n_steps
+   !
+   do i_w=1,RT_conf%W_n_steps
+     Field_w=RT_conf%X_w_range(1)+(i_w-1)*RT_conf%delta_W
+     field_data(1)=Field_w !/FS2AUT
+     do idata=1,6
+       field_data(idata+1)=real(ElField%F_w(i_w,idata))
+     enddo
+     write(99+i_field,*) field_data
+   enddo
+   !
+ endif
+ !
+ close(99+i_field)
+ !
+end subroutine RT_print_Elfield

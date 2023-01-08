@@ -75,7 +75,7 @@ subroutine RT_initialize(E,k,q)
  !
  integer                  :: i1,i_defs,N_T_samplings,ik,NK_cpu(PAR_COM_Xk_ibz_INDEX%n_CPU)
  character(schlen)        :: MSG_ch,field_defs(n_fields_defs_max)
- real(SP)                 :: T_memory
+ real(SP)                 :: T_memory,sigma_eff
  logical                  :: l_Full_RT_T_evolution,l_skip_it,l_velocity_gauge_tmp
  real(SP), parameter      :: thresh=1.E-5_SP
  integer,  external       :: RT_Lifetimes_evaluation_plan
@@ -486,7 +486,9 @@ subroutine RT_initialize(E,k,q)
 &                  2._SP*pi*HBAR_evfs/(Efield(i1)%frequency*HA2EV)/),'[eV/fs]')
      call msg('r', trim(MSG_ch)//' elemental oscillation       ',EtoT(E=Efield(i1)%frequency(2)-&
 &                                                                       Efield(i1)%frequency(1))*AUT2FS,'[fs]')
-     call msg('r', trim(MSG_ch)//' width                       ',Efield(i1)%width*AUT2FS,'[fs]')
+     sigma_eff=sqrt((Efield(i1)%width**4+Efield(i1)%chirp**4)/Efield(i1)%width**2)
+     call msg('r', trim(MSG_ch)//' Fourier limited width       ',Efield(i1)%width*AUT2FS,'[fs]')
+     call msg('r', trim(MSG_ch)//' Real time  width            ',sigma_eff*AUT2FS,'[fs]')
      call msg('r', trim(MSG_ch)//' start time                  ',Efield(i1)%t_initial*AUT2FS,'[fs]')
      call msg('r', trim(MSG_ch)//' energy steps                ',Efield(i1)%n_frequencies)
      call msg('r', trim(MSG_ch)//' electric field              ',Efield(i1)%amplitude*AU2VMm1,'[V/m]')

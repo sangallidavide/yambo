@@ -37,6 +37,7 @@ subroutine Afield_activate(i1)
      call initactivate(1,field//'_DFreq')
      call initactivate(1,field//'_Int')
      call initactivate(1,field//'_Width')
+     call initactivate(1,field//'_Chirp')
      call initactivate(1,field//'_FWHM')
      call initactivate(1,field//'_kind')
      call initactivate(1,field//'_pol')
@@ -81,6 +82,8 @@ subroutine Afield(defs,i_field)
 &          Efield(i_field)%intensity,unit=I_unit)
    call it(defs,trim(name)//'_Width',           '[RT '//trim(name)//'] Width',&
 &          Efield(i_field)%width,unit=Time_unit(1))
+   call it(defs,trim(name)//'_Chirp',           '[RT '//trim(name)//'] Width',&
+&          Efield(i_field)%chirp,unit=Time_unit(1),verb_level=V_real_time)
    call it(defs,trim(name)//'_FWHM',            '[RT '//trim(name)//'] Full Width at Half Maximum (overwrite width if set)',&
 &          Efield(i_field)%FWHM,unit=Time_unit(1),verb_level=V_real_time)
    call it(defs,trim(name)//'_kind',            '[RT '//trim(name)//'] Kind(SIN|COS|RES|ANTIRES|GAUSS|DELTA|QSSIN)',&

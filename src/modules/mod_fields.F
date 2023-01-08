@@ -43,6 +43,7 @@ module fields
    integer  :: n_frequencies
    real(SP) :: frequency(2)
    real(SP) :: width
+   real(SP) :: chirp
    real(SP) :: FWHM
    real(SP) :: fluence
    real(SP) :: pi_kind
@@ -157,10 +158,11 @@ module fields
      complex(SP), dimension(2) :: small_a
      !
      integer           ::i1,i_fr,i_T,i_field,i_file,n_fields,n_freqs
-     real(SP)          ::Tloc,T_0_fac,T_0,W_0,sigma,WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
+     real(SP)          ::Tloc,T_0_fac,T_0,W_0,sigma,chirp,sigma_eff,s_sigma_chirp,c_sigma_chirp,der_fac, &
+     &                   WtimesT,EXPf,fr_shift(2),W_field,W_field_m1,cos_wt,sin_wt
      complex(SP)       ::f_now,f_t(2),f0t,f1t,cZ,cS,exp_iwt,erfi_z
      character(schlen) ::field_defs(n_fields_defs_max)
-     logical           ::lchirp,envelop_only_
+     logical           ::l_multi_phase,envelop_only_
      !
      ! Zeroing
      !
@@ -177,6 +179,13 @@ module fields
      ! Field parameters
      !
      sigma=E_field%width
+     chirp=E_field%chirp
+     !
+     s_sigma_chirp=sigma**2/(2._SP*(sigma**4+chirp**4))
+     c_sigma_chirp=chirp**2/(2._SP*(sigma**4+chirp**4))
+     !
+     sigma_eff=sqrt((sigma**4+chirp**4)/sigma**2)
+     !
      n_freqs=max(1,E_field%n_frequencies)
      !
      field_defs=""
@@ -217,18 +226,18 @@ module fields
        case('GAUSS','QSSIN','QSFIELD','PULSE','SPULSE')
          ! Fields which need T_0
          W_0=(field_frequency(E_field,1)+field_frequency(E_field,n_freqs))/2._SP
-	 T_0_fac=3._SP*sigma
-         if(trim(field_defs(2))=="1SIGMA" .or. trim(field_defs(3))=="1SIGMA") T_0_fac=1._SP*sigma
-         if(trim(field_defs(2))=="2SIGMA" .or. trim(field_defs(3))=="2SIGMA") T_0_fac=2._SP*sigma
-         if(trim(field_defs(2))=="3SIGMA" .or. trim(field_defs(3))=="3SIGMA") T_0_fac=3._SP*sigma
-         if(trim(field_defs(2))=="4SIGMA" .or. trim(field_defs(3))=="4SIGMA") T_0_fac=4._SP*sigma
-         if(trim(field_defs(2))=="5SIGMA" .or. trim(field_defs(3))=="5SIGMA") T_0_fac=5._SP*sigma
+	 T_0_fac=3._SP*sigma_eff
+         if(trim(field_defs(2))=="1SIGMA" .or. trim(field_defs(3))=="1SIGMA") T_0_fac=1._SP*sigma_eff
+         if(trim(field_defs(2))=="2SIGMA" .or. trim(field_defs(3))=="2SIGMA") T_0_fac=2._SP*sigma_eff
+         if(trim(field_defs(2))=="3SIGMA" .or. trim(field_defs(3))=="3SIGMA") T_0_fac=3._SP*sigma_eff
+         if(trim(field_defs(2))=="4SIGMA" .or. trim(field_defs(3))=="4SIGMA") T_0_fac=4._SP*sigma_eff
+         if(trim(field_defs(2))=="5SIGMA" .or. trim(field_defs(3))=="5SIGMA") T_0_fac=5._SP*sigma_eff
          T_0=pi/W_0*(real(nint(W_0/pi*T_0_fac),SP))
          if( index(field_defs(1),"PULSE")>0 ) T_0=T_0_fac
      end select
      !
      ! Initial and relative phases control
-     lchirp=.false.
+     l_multi_phase=.false.
      fr_shift(1)=0._SP
      fr_shift(2)=pi/2._SP
      do i1=1,n_fields_defs_max
@@ -238,7 +247,7 @@ module fields
        if( trim(field_defs(i1))=="PHPI30") fr_shift(:)=fr_shift(:)+pi/3._SP       ! 30 deg
        if( trim(field_defs(i1))=="PHPI15") fr_shift(:)=fr_shift(:)+pi/6._SP       ! 15 deg
        if( trim(field_defs(i1))=="PHPI10") fr_shift(:)=fr_shift(:)+pi/9._SP       ! 10 deg
-       if( trim(field_defs(i1))=="CHIRP") lchirp=.true.
+       if( trim(field_defs(i1))=="PHMULT" .and. n_freqs>1) l_multi_phase=.true.
      enddo
      !
      E_field%To=T_0
@@ -249,19 +258,21 @@ module fields
          if (envelop_only_) then
            W_field=0._SP
            W_field_m1=0._SP
+	   der_fac=0._SP
            WtimesT=fr_shift(i_field)
            f0t=cONE ; f1t=cONE
          else
            W_field=field_frequency(E_field,i_fr)
 	   if(W_field> 0._SP) W_field_m1=1._SP/W_field
 	   if(W_field==0._SP) W_field_m1=0._SP
+	   der_fac=W_field+2._SP*c_sigma_chirp*(Tloc-T_0)
 	   !
 	   ! The frequency shift is applied in two cases
 	   ! (i n_fields=2) to have a circular polarized pulse, and
            WtimesT=W_field*(Tloc-T_0)+fr_shift(i_field)
-	   ! (ii n_freqs>1) to chirp the relative frequencies,
-           !                i.e. each frequency has a different initial phase
-           if(n_freqs>1 .and. lchirp) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
+           ! each frequency has a different initial phase
+           if(l_multi_phase) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
+           if(chirp>0._SP) WtimesT=WtimesT+c_sigma_chirp*(Tloc-T_0)**2._SP
 	   !
 	   ! CONTROL RES / ANTIRES case
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
@@ -271,7 +282,7 @@ module fields
            if(trim(field_defs(2))=="RES")         then ; f0t= 0.5_SP*conjg(exp_iwt) ; f1t= cI*0.5_SP*conjg(exp_iwt)  ; endif
          endif
 	 !
-         EXPf=exp(-(T-T_0)**2/(2._SP*sigma**2) )
+         EXPf=exp(-(T-T_0)**2/(2._SP*sigma_eff**2) )
          !
          select case( trim(field_defs(1)) )
          case('FROM_FILE')
@@ -292,21 +303,24 @@ module fields
            if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1) ! delta function
            !
          case('RECTSIN')
+           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            if (order==0 ) f_now=-(f0t-1._SP)*W_field_m1
            if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0)*f1t     ! theta function
            if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t  &  ! delta function
-	                       &+theta_function(sigma-T,RT_dyn_step,0)*f0t*W_field
+	                       &+theta_function(sigma-T,RT_dyn_step,0)*f0t*der_fac
            !
          case('SIN')
+           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            if (order==0 ) f_now=-damp_func*(f0t-1._SP)*W_field_m1
            if (order==1 ) f_now=+damp_func* f1t
-           if (order==2 ) f_now=+damp_func* f0t       *W_field
+           if (order==2 ) f_now=+damp_func* f0t       *der_fac
            !
          case('SOFTSIN')
+           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            if (order==-1) f_now=-2
            if (order== 0) f_now=-damp_func*(f0t-1._SP)*W_field_m1
            if (order== 1) f_now=+damp_func* f1t
-           if (order== 2) f_now=+damp_func* f0t       *W_field
+           if (order== 2) f_now=+damp_func* f0t       *der_fac
            !
          case('THETA')
            if (order==0 ) f_now=damp_func*T
@@ -319,9 +333,9 @@ module fields
            if (order> 0 ) f_now=0._SP
            !
          case('GAUSS')
-           if (order==0 ) f_now= sigma*sqrt(pi/2._SP)* ( erf( (T-T_0)/(sigma*sqrt(2._SP)) )+1._SP )
+           if (order==0 ) f_now= sigma_eff*sqrt(pi/2._SP)* ( erf( (T-T_0)/(sigma_eff*sqrt(2._SP)) )+1._SP )
            if (order==1 ) f_now= Expf
-           if (order==2 ) f_now=-Expf*(T-T_0)/sigma**2
+           if (order==2 ) f_now=-Expf*(T-T_0)/sigma_eff**2
            !
          case('QSSIN')
            !
@@ -330,6 +344,9 @@ module fields
            !      =exp(-z^2)*(1-i*erfi( z ))
            !
            ! ERFI(z)=i*(exp(z^2)*W(-z)-1)
+           !
+           if (trim(global_gauge)=="velocity" .and. chirp>0._SP) &
+           &  call error("chirp not implemented with QSSIN and velocity gauge")
            !
            cZ=(sigma**2*W_field-cI*(T-T_0))/(sigma*sqrt(2._SP))
            cS=cmplx(W_field**2*sigma**2/2._SP,fr_shift(i_field),SP)
@@ -340,10 +357,11 @@ module fields
            if (order==0 .and. trim(global_gauge)=="length" )   erfi_z=cZERO
            !
            if (order==0 ) f_now= erfi_z
-           if (order==1 ) f_now=                     f1t          *EXPf
-           if (order==2 ) f_now=(W_field*f0t-(T-T_0)*f1t/sigma**2)*EXPf
+           if (order==1 ) f_now=                     f1t              *EXPf
+           if (order==2 ) f_now=(der_fac*f0t-(T-T_0)*f1t/sigma_eff**2)*EXPf
            !
          case('QSFIELD')
+           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            !
            if (order==0 ) f_now=                      f1t          *EXPf
            if (order==1 ) f_now=( W_field*f0t-(T-T_0)*f1t/sigma**2)*EXPf
@@ -352,6 +370,8 @@ module fields
                           &             -(T-T_0)*(W_field*f0t-(T-T_0)*f1t/sigma**2)/sigma**2)*EXPf
            !
          case('PULSE')
+           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
+           !
            if(abs((T-T_0))< sigma) then
              if (order==0 ) f_now= 0._SP
              if (order==1 ) f_now=       (T-T_0 + sigma)**2 *(T-T_0 -sigma)**2/sigma**4 *f0t
@@ -360,6 +380,7 @@ module fields
            endif
            !
          case('SPULSE')
+           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            T_0=sigma
            W_0=W_field
            f_now=cZERO
@@ -434,6 +455,7 @@ module fields
      E2%n_frequencies=E1%n_frequencies  
      E2%W_step=E1%W_step  
      E2%width=E1%width  
+     E2%chirp=E1%chirp
      E2%FWHM=E1%FWHM
      E2%amplitude=E1%amplitude  
      E2%intensity=E1%intensity  
@@ -460,6 +482,7 @@ module fields
      E%fluence      =0._SP
      E%pi_kind      =0._SP
      E%width        =0._SP
+     E%chirp        =0._SP
      E%ef_name      ='none'
      E%ef_pol       ='none'
      E%versor       =(/1._SP,0._SP,0._SP/)
