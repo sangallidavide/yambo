@@ -67,15 +67,6 @@ subroutine RT_X_LRR_real_field(en)
  if(trim(Efield(i_Probe)%ef_pol)=="circular") n_fields=2
  if(    Efield(i_Probe)%n_frequencies > 1   ) n_freqs=Efield(i_Probe)%n_frequencies
  !
- ! Pump removal (if any)
- !-----------------------
- if (N_pumps==1) then
-   do i_t=1,RT_conf%T_n_steps
-     Curr(i_Probe)%F_t(i_t,:)=Curr(i_Probe)%F_t(i_t,:)-Curr(i_Probe+1)%F_t(i_t,:)
-     Pol(i_Probe)%F_t(i_t,:)=Pol(i_Probe)%F_t(i_t,:)-Pol(i_Probe+1)%F_t(i_t,:)
-   enddo
- endif
- !
  ! 1D FFT setup
  !--------------
  call RT_1D_Fourier_setup(ElField,RT_conf,n_fields) 

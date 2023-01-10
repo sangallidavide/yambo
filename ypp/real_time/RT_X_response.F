@@ -79,14 +79,6 @@ subroutine RT_X_response(en,k,q)
    !
    call IO_temporary_jobdir_and_strings("ALL","SAVE")
    !
-   Pol(1)%title ="polarization"
-   Curr(1)%title="current"
-   if (.not.STRING_same(Probe_path(1),"default")) call IO_temporary_jobdir_and_strings("JOBSTR",Probe_path(1))
-   call RT_OBSERVABLES_IO( what='JP',J=Curr(1),P=Pol(1),IO_error=IO_error)
-   if (.not.allocated(Curr(1)%F_t)) call error('Probe databases missing/corrupt')
-   !
-   call IO_temporary_jobdir_and_strings("ALL","RESTORE")
-   !
    if (N_pumps>0) then
      !
      ! Here the assumption is that
@@ -101,8 +93,27 @@ subroutine RT_X_response(en,k,q)
      !
      call IO_temporary_jobdir_and_strings("ALL","RESTORE")
      !
+   endif
+   !
+   ! NB: the full run needs to be loaded as last,
+   !     otherwise the wrong fields  are stored
+   !
+   Pol(1)%title ="polarization"
+   Curr(1)%title="current"
+   if (.not.STRING_same(Probe_path(1),"default")) call IO_temporary_jobdir_and_strings("JOBSTR",Probe_path(1))
+   call RT_OBSERVABLES_IO( what='JP',J=Curr(1),P=Pol(1),IO_error=IO_error)
+   if (.not.allocated(Curr(1)%F_t)) call error('Probe databases missing/corrupt')
+   !
+   call IO_temporary_jobdir_and_strings("ALL","RESTORE")
+   !
+   if (N_pumps>0) then
+     !
      Pol(3)%title ="probe-polarization"
      Curr(3)%title="probe-current"
+     Pol(3)%N=3
+     Curr(3)%N=3
+     YAMBO_ALLOC(Pol(3)%F_t,(RT_conf%T_n_steps,3))
+     YAMBO_ALLOC(Curr(3)%F_t,(RT_conf%T_n_steps,3))
      Pol(3)%F_t =Pol(1)%F_t -Pol(2)%F_t
      Curr(3)%F_t=Curr(1)%F_t-Curr(2)%F_t
      !
@@ -120,6 +131,9 @@ subroutine RT_X_response(en,k,q)
      !
      call RT_OBSERVABLES_damp_and_write(Pol(3),RT_conf,l_skip_OBS_IO)
      call RT_OBSERVABLES_damp_and_write(Curr(3),RT_conf,l_skip_OBS_IO)
+     !
+     Pol(1)%F_t =Pol(1)%F_t -Pol(2)%F_t
+     Curr(1)%F_t=Curr(1)%F_t-Curr(2)%F_t
      !
    endif
    !
