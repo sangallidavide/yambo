@@ -257,7 +257,6 @@ subroutine K_diago_driver(iq,W,X_static)
        if (l_BS_optics ) call K_diago_non_hermitian_residuals(BS_E,BS_R_left,BS_R_right,BS_V_left,BS_V_right,BS_overlap)
        if (l_BS_kerr   ) call K_diago_kerr_residual(BS_E,BS_V_right,BS_R_right_kerr)
        if (l_BS_magnons) call K_diago_non_herm_magnons_residual(BS_R_left_magn,BS_R_right_magn,BS_V_left,BS_V_right,BS_overlap)
-       write (*,*) 'Shape BS_V_left', shape(BS_V_left)
        if (l_BS_photolum)call PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
        !
      else
@@ -265,7 +264,6 @@ subroutine K_diago_driver(iq,W,X_static)
        if (l_BS_optics)  call K_diago_hermitian_residuals(i_BS_mat,BS_E_real,BS_R_left,BS_R_right)
        if (l_BS_kerr   ) call K_diago_kerr_residual(BS_E,BS_mat,BS_R_right_kerr)
        if (l_BS_magnons) call K_diago_herm_magnons_residual(i_BS_mat,BS_R_left_magn,BS_R_right_magn)
-       write (*,*) 'Shape BS_mat', shape(BS_mat)
        if (l_BS_photolum)call PL_diago_herm_residual(BS_mat,BS_R_PL)
        !
      endif
