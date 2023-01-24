@@ -189,7 +189,7 @@ module BS
    real(SP)   , allocatable      :: E(:,:)                     ! (/ i_Tr; maxval(Xk%FGbz%N_mapped('kpts_in_T_gr')) /)
    real(SP)   , allocatable      :: f(:)
    real(SP)   , allocatable      :: f_RES(:)
-   real(SP)   , allocatable      :: f_PL(:,:)                    ! (/ i_Tr ; 2 /) This is always of size 2 since fv(1-fc) and fc(1-fv) are independent
+   real(SP)   , allocatable      :: f_PL(:)                    ! (/ i_Tr /)
    real(SP)   , allocatable      :: W(:)
    real(SP)   , allocatable      :: E_SOC_corr(:,:)            ! (/2/n_sp_pol; i_Tr /)
    complex(SP), allocatable      :: Z(:)
@@ -365,7 +365,7 @@ module BS
      YAMBO_ALLOC(BS_T_grp(iT)%E,(nT,dom_k_T_group))
      YAMBO_ALLOC(BS_T_grp(iT)%f,(nT))
      YAMBO_ALLOC(BS_T_grp(iT)%f_RES,(nT))
-     YAMBO_ALLOC(BS_T_grp(iT)%f_PL,(nT,2))
+     YAMBO_ALLOC(BS_T_grp(iT)%f_PL,(nT))
      if (allocated(E%Z)) then
        YAMBO_ALLOC(BS_T_grp(iT)%Z,(nT))
      endif

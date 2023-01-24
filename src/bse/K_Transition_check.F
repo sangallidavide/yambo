@@ -77,6 +77,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  ! Occupations Factors
  !=====================
  !
+ ! f_res = (fv-fc) [ f_ares = (fc-fv) ]
  f_eh_REF =(Ken%f(iv,ikp,i_sp_v)-Ken%f(ic,ik ,i_sp_c))/spin_occ
  f_eh     =f_eh_REF
  f_eh_RES =f_eh_REF
@@ -105,7 +106,10 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
    f_h = (spin_occ-Ken%f(iv,ikp,i_sp_v))/spin_occ
  endif
  !
+ !  f< =  fc(1-fv)
  if ( E_eh>=0._SP ) f_eh_PL =  Ken%f(ic,ikp,i_sp_c)*(spin_occ-Ken%f(iv,ik ,i_sp_v))/spin_occ/spin_occ
+ ! -f> = -fv(1-fc)
+ ! Here we put a minus to mimic what happens in the retarded functions
  if ( E_eh< 0._SP ) f_eh_PL = -Ken%f(iv,ik ,i_sp_v)*(spin_occ-Ken%f(ic,ikp,i_sp_c))/spin_occ/spin_occ
  !
 #if defined _RT

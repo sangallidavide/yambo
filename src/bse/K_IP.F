@@ -201,29 +201,14 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        !
        ! Note that res_PL is always positive as f_eh_PL>0
        !
-       ! R< = fc(1-fv)
-       ! R> = fv(1-fc)
-       ! R_ares = fv-fc
-       ! R_res = fc-fv
-       ! R> = fv - fv*fc = fv + fc - fc - fv*fc = fv - fc + R< = R_ares + R< = -R_res + R<
-       write (*,*) "iresares", i_res_ares
-       write (*,*) "f_eh_PL", BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares), i_T_g
-       f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
-       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1))**2 !was missing R<
-       !ares_PL= -res_PL + BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
+       f_eh_PL=BS_T_grp(i_T_g)%f_PL(i_T)
+       res_PL=abs(BS_T_grp(i_T_g)%dipoles_opt(1,i_T,1))**2
        if(l_BS_trace) then
          do i_dip=2,BS_dip_size
-           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1))**2 ! was missing only R<
-           !ares_PL= -res_PL + BS_T_grp(i_T_g)%f_PL(i_T,i_res_ares)
+           res_PL=res_PL+abs(BS_T_grp(i_T_g)%dipoles_opt(i_dip,i_T,1))**2
          enddo
        endif
        res_PL=res_PL*f_eh_PL*Z_eh*E_eh
-       ares_PL= -res_PL! -res_PL+f_eh_PL*Z_eh*E_eh       
-       write(*,*) 'PL_weights', PL_weights
-       write(*,*)  'E_eh', E_eh
-       write(*,*) 'f_eh_PL', f_eh_PL
-       write(*,*) 'Z_eh', Z_eh
-       write(*,*) 'fine'
      endif
      !
      ! Dichroism
@@ -306,14 +291,15 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
        endif
        !
        if (l_BS_photolum) then
-         write(*,*)'l_BS_ares_from_res', l_BS_ares_from_res, BS_K_anti_resonant
+	 !
+	 !         (  L< if w>0    This ensures that
+	 ! I^PL =  (               1) we always select the "emission channel"
+	 !         ( -L> if w<0    2) PL has the same symmetry properties
+	 !  
          PL(:,3)=PL(:,3) + PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))/pi
          if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
            PL(:,3)=PL(:,3) - PL_prefactor*res_PL*aimag(-1._SP/(W_bss%p(:)+conjg(E_plus_W(i_pert_SOC))))/pi
          endif
-         !write (*,*) 'PL(:3) here', PL(:,3)
-         !write (*,*) 'res_PL here', res_PL
-         !write (*,*) 'aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC))', aimag(-1._SP/(W_bss%p(:)-E_plus_W(i_pert_SOC)))
        endif
        !
        if (l_BS_dichroism) then
