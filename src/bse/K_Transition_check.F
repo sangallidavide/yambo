@@ -93,6 +93,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
    !
    if (     EQ_Transitions) f_eh_REF=f_eh_EQ
    if (.not.NEQ_Kernel    ) f_eh    =f_eh_EQ
+   ! NEQ_Residuals means we have in input ndb.RT_carriers
    if (.not.NEQ_Residuals ) f_eh_RES=f_eh_EQ
    !
  endif

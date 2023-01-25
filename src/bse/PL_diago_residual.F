@@ -37,8 +37,10 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
  use LIVE_t,         ONLY:live_timing
  use BS,             ONLY:BS_H_dim,BS_K_dim,BS_dip_size
- use BS_solvers,     ONLY:BSS_eh_f_RES,BSS_n_eig
+ use BS_solvers,     ONLY:BSS_eh_f_RES,BSS_n_eig, BS_E
  use PHOTOLUM,       ONLY:BSS_dipoles_PL,BSS_PL_f
+ use functions       ONLY: boltzman_f
+ use RT_control,   ONLY:NEQ_Residuals
  !
  implicit none
  !
@@ -87,18 +89,22 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
   if (.not.px%element_1D(i_l)) cycle !parallelization
   !                       
   ! R_over_R_x_A = R<_j/R_j A^r_ij
-  !
-  do ik = 1, BS_K_dim(1)
-    R_over_R_x_A(ik) =  BSS_PL_f(ik)*BS_mat(ik,i_l)/BSS_eh_f_RES(ik) !resonant R</R*Ar
-  enddo
-  !
-  ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
-  !
-  adA_x_R_over_R_x_A=V_dot_V_omp(BS_K_dim(1),conjg(BS_mat(1:BS_K_dim(1),i_l)),& !BS_mat should be conjg but maybe V_dot_V
-          !does it
-          R_over_R_x_A(1:BS_K_dim(1))) !resonant this is dipoles_PL*BS_mat*fermifactors= sum_k <q0|k><k|i>
-  !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
-  !Al*R</R*Ar
+  ! Here I create an If statement if I want to populate L lesser with electornic or excitonic populations
+  if (NEQ_Residuals) then
+    do ik = 1, BS_K_dim(1)
+      R_over_R_x_A(ik) =  BSS_PL_f(ik)*BS_mat(ik,i_l)/BSS_eh_f_RES(ik) !resonant R</R*Ar
+    enddo
+    !
+    ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
+    !
+    adA_x_R_over_R_x_A=V_dot_V_omp(BS_K_dim(1),conjg(BS_mat(1:BS_K_dim(1),i_l)),& !BS_mat should be conjg but maybe V_dot_V
+            !does it
+            R_over_R_x_A(1:BS_K_dim(1))) !resonant this is dipoles_PL*BS_mat*fermifactors= sum_k <q0|k><k|i>
+    !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
+    !Al*R</R*Ar
+  else if (Texc) then 
+    adA_x_R_over_R_x_A=boltzman_f(BS_E(i_l)-BS_E(1))
+  endif
   do i_c=1,BS_dip_size
     !dim(P_x_fz) = BS_H_dim
     ! we have a problem in this multiplication
@@ -127,7 +133,6 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  ! Non-Hermitian residual
  !========================
  !
-  !
  ! Resonant PL Residuals
  !
  use pars,           ONLY:SP,rZERO,cZERO,cI

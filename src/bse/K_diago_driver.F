@@ -213,8 +213,8 @@ subroutine K_diago_driver(iq,W,X_static)
      ! Diagonalization of the excitonic hamiltonian
      !==============================================
      if(l_diago) call live_timing('BSK diagonalize',1)
-     !
-     if (K_is_not_hermitian) then
+     ! 
+     if (K_is_not_hermitian) then !coupling
        !
        if(l_diago) call LINEAR_ALGEBRA_driver(DIAGO,M=BS_mat,E_cmpl=BS_E,V_left=BS_V_left,V_right=BS_V_right)
 #if defined _SLEPC && !defined _NL
@@ -223,7 +223,7 @@ subroutine K_diago_driver(iq,W,X_static)
        !
        if (BSS_write_eig_2_db) BS_mat=BS_V_right
        !
-     else
+     else !no coupling
        !
        if(l_diago) call LINEAR_ALGEBRA_driver(DIAGO,M=BS_mat,E_real=BS_E_real)
 #if defined _SLEPC && !defined _NL
