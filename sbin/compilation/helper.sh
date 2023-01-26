@@ -78,12 +78,19 @@ if [ "$new" == "yes" ]  && [[ -f $compdir/config/stamps_and_lists/active_directo
    # due to the name which depends on the exectuable. This causes the exe to be relinked.
    # Without I could avoid to remove the "exe" stamp.
    # However in such case I should remove somehow the copiling stamp.
-   if [[ "$dir" == *"yambo/driver"* ]] && [ "$FOLDER_OK" == 0 ]; then
+   if [[ "$dir" == *"yambo/Ydriver"* ]] && [ "$FOLDER_OK" == 0 ]; then
      source ./sbin/compilation/stamp_remove.sh "target.a"
      source ./sbin/compilation/stamp_remove.sh "exe"
    fi
- fi
+  fi
  done
+ # remove broken links
+ count_lib_files=`ls -1 lib/*.a 2>/dev/null | wc -l`
+ if [ $count_lib_files -gt 0 ]; then
+  for lib_file in lib/*.a ; do
+   if [ ! -e $lib_file ]; then rm $lib_file ; fi
+  done
+ fi
  exit 0
 fi
 #
