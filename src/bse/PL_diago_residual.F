@@ -79,6 +79,9 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  ! 1=> left
  ! 2=> right
  !
+ if (NEQ_Residuals .and. Boltz_Temp .gt. 0) then
+    call warning ('The user can specify either boltzmann or external residual occupations, not both')
+ endif 
  do i_c=1,BS_dip_size
    do i_K=1,BS_K_dim(1)
      P_x_fZ(i_K,i_c)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f_RES(i_K))) !Pi^* left sqrt(R)
@@ -91,11 +94,9 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
   !                       
   ! R_over_R_x_A = R<_j/R_j A^r_ij
   ! Here I create an If statement if I want to populate L lesser with electornic or excitonic populations
-  if (NEQ_Residuals .and. Boltz_Temp .gt. 0) then
-        call warning ('The user can specify either boltzmann or external residual occupations, not both')
-  endif
   if (NEQ_Residuals) then
     do ik = 1, BS_K_dim(1)
+      call msg('s','Running with NEQ Residuals')
       R_over_R_x_A(ik) =  BSS_PL_f(ik)*BS_mat(ik,i_l)/BSS_eh_f_RES(ik) !resonant R</R*Ar
     enddo
     !
@@ -106,7 +107,7 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
             R_over_R_x_A(1:BS_K_dim(1))) !resonant this is dipoles_PL*BS_mat*fermifactors= sum_k <q0|k><k|i>
     !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
     !Al*R</R*Ar
-  else if (Boltz_Temp .ge. 0) then 
+  else if (Boltz_Temp .gt. 0) then 
     adA_x_R_over_R_x_A=boltzman_f(real(BS_E(i_l)-BS_E(1)))
   endif
   do i_c=1,BS_dip_size
