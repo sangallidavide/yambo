@@ -212,7 +212,7 @@ module functions
    ! Boltzman function
    !----------------
    !
-   pure function boltzman_f(Eb)
+   function boltzman_f(Eb)
      !
      use D_lattice, ONLY:Boltz_Temp
      use units,     ONLY:HA2EV,HA2KEL
