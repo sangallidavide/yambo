@@ -32,10 +32,12 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  ! BS_R_left(i)  = conjg( BS_R_right(i) )
  !
  use pars,           ONLY:SP,rZERO,cZERO,cI
+ use wrapper,        ONLY:V_dot_V
  use wrapper_omp,    ONLY:V_dot_V_omp,Vstar_dot_V_omp
  use parallel_m,     ONLY:PP_indexes,myid,PP_indexes_reset
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
  use LIVE_t,         ONLY:live_timing
+ use com,            ONLY:msg
  use BS,             ONLY:BS_H_dim,BS_K_dim,BS_dip_size
  use BS_solvers,     ONLY:BSS_eh_f_RES,BSS_n_eig, BS_E
  use PHOTOLUM,       ONLY:BSS_dipoles_PL,BSS_PL_f
@@ -53,8 +55,8 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  type(PP_indexes)     ::px
  logical              ::compute_ares_explicitly
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
- complex(SP)          ::P_x_fZ(BS_H_dim,3),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A,&
-&                       R_over_R_x_A(BS_K_dim(1))
+ complex(SP)          ::P_x_fZ(BS_K_dim(1),3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
+&                       R_over_R_x_A(BS_K_dim(1),2)
 !Write to a file
  ! Parallel indexes
  !
@@ -79,51 +81,60 @@ subroutine PL_diago_herm_residual(BS_mat,BS_R_PL)
  ! 1=> left
  ! 2=> right
  !
- if (NEQ_Residuals .and. Boltz_Temp .gt. 0) then
-    call warning ('The user can specify either boltzmann or external residual occupations, not both')
- endif 
+ if (NEQ_Residuals .and. (Boltz_Temp .gt. 0) ) then
+   call error('The user can specify either boltzmann or external residual occupations, not both')
+ endif
+ ! 
+ if (NEQ_Residuals) call msg('s','Running with NEQ Residuals')
+ if (Boltz_Temp .gt. 0)  call msg('s','Running with Boltz excitonic occupations')
+ !
  do i_c=1,BS_dip_size
    do i_K=1,BS_K_dim(1)
-     P_x_fZ(i_K,i_c)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f_RES(i_K))) !Pi^* left sqrt(R)
+     P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f_RES(i_K))) !Pi^* left sqrt(R)
+     P_x_fZ(i_K,i_c,2)=      BSS_dipoles_PL(i_c,i_K) *sqrt(cmplx(BSS_eh_f_RES(i_K))) !Pi^* left sqrt(R)
    enddo
  enddo
  !
  do i_l=1,BSS_n_eig
   !
   if (.not.px%element_1D(i_l)) cycle !parallelization
-  !                       
-  ! R_over_R_x_A = R<_j/R_j A^r_ij
-  ! Here I create an If statement if I want to populate L lesser with electornic or excitonic populations
-  if (NEQ_Residuals) then
-    do ik = 1, BS_K_dim(1)
-      call msg('s','Running with NEQ Residuals')
-      R_over_R_x_A(ik) =  BSS_PL_f(ik)*BS_mat(ik,i_l)/BSS_eh_f_RES(ik) !resonant R</R*Ar
-    enddo
-    !
-    ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
-    !
-    adA_x_R_over_R_x_A=V_dot_V_omp(BS_K_dim(1),conjg(BS_mat(1:BS_K_dim(1),i_l)),& !BS_mat should be conjg but maybe V_dot_V
-            !does it
-            R_over_R_x_A(1:BS_K_dim(1))) !resonant this is dipoles_PL*BS_mat*fermifactors= sum_k <q0|k><k|i>
-    !antiresonant, no error if two arrays have different dimensions, We don't know if it's conjg or not
-    !Al*R</R*Ar
-  else if (Boltz_Temp .gt. 0) then 
-    adA_x_R_over_R_x_A=boltzman_f(real(BS_E(i_l)-BS_E(1)))
-  endif
+  !
   do i_c=1,BS_dip_size
     !dim(P_x_fz) = BS_H_dim
     ! we have a problem in this multiplication
-    Pi_x_R_x_adA_left(i_c) =V_dot_V_omp(BS_K_dim(1),P_x_fZ(:BS_K_dim(1),i_c),BS_mat(:,i_l)) !resonan Pi^* Ar*sqrt(R)                                   
+    Pi_x_R_x_adA_left(i_c) =V_dot_V_omp(BS_K_dim(1),P_x_fZ(:,i_c,2),      BS_mat(:,i_l) ) !resonan Pi^* Ar*sqrt(R)                                   
+    Pi_x_R_x_adA_right(i_c)=V_dot_V_omp(BS_K_dim(1),P_x_fZ(:,i_c,1),conjg(BS_mat(:,i_l))) !resonan Pi^* Ar*sqrt(R)                                   
     ! Pi_x_R_x_adA_left =   Pi sqrt(R) dipoles_PL*BS_mat/R
   enddo
   !
   !Check dimensions for these vectors to be consistent that we have only resonant and antiresonant
-  BS_R_PL(1,i_l)=real(dot_product(Pi_x_R_x_adA_left,Pi_x_R_x_adA_left)*adA_x_R_over_R_x_A) !resonant
+  BS_R_PL(:,i_l)=real(V_dot_V(BS_dip_size,Pi_x_R_x_adA_left,Pi_x_R_x_adA_right))
+  !                       
+  ! R_over_R_x_A = R<_j/R_j A^r_ij
+  ! Here I create an If statement if I want to populate L lesser with electornic or excitonic populations
+  if (NEQ_Residuals) then
+    !                       
+    ! R_over_R_x_A = R<_j/R_j A^l_j
+    !
+    R_over_R_x_A(:,1) = BSS_PL_f(:,1)*BS_mat(:,i_l)/BSS_eh_f_RES(:)
+    R_over_R_x_A(:,2) = BSS_PL_f(:,2)*BS_mat(:,i_l)/BSS_eh_f_RES(:)
+    !
+    ! adA_x_R_over_R_x_A = (A^l_j)* R<_j/R_j A^l_j
+    !
+    adA_x_R_over_R_x_A(1)=V_dot_V_omp(BS_K_dim(1),conjg(BS_mat(:,i_l)),R_over_R_x_A(:,1))
+    adA_x_R_over_R_x_A(2)=V_dot_V_omp(BS_K_dim(1),conjg(BS_mat(:,i_l)),R_over_R_x_A(:,2))
+    !
+  else if (Boltz_Temp .gt. 0) then
+    !
+    adA_x_R_over_R_x_A=boltzman_f(real(BS_E(i_l)-BS_E(1)))
+    !
+  endif
+  !
+  BS_R_PL(1,i_l)=BS_R_PL(1,i_l)*adA_x_R_over_R_x_A(1) !resonant
+  BS_R_PL(2,i_l)=BS_R_PL(2,i_l)*adA_x_R_over_R_x_A(2) !resonant
   !Pi*Al*Pi^**Ar*Al*R</R*Ar
   !
  enddo
- !
- BS_R_PL(2,:)=-BS_R_PL(1,:)
  !
  call live_timing()
  !
@@ -159,8 +170,8 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  !
  type(PP_indexes)     ::px
  integer              ::i_l,i_c,i_K,i_lr,i_ll, ik
- complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A(2),&
-&                       R_over_R_x_A(2,BS_H_dim),B_var(BS_H_dim)
+ complex(SP)          ::P_x_fZ(BS_H_dim,3,2),Pi_x_R_x_adA_left(3),Pi_x_R_x_adA_right(3),adA_x_R_over_R_x_A,&
+&                       R_over_R_x_A(BS_H_dim),B_var(BS_H_dim)
  !
  ! Parallel indexes
  !
@@ -185,10 +196,7 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  do i_c=1,BS_dip_size
     do i_K=1,BS_H_dim
       P_x_fZ(i_K,i_c,1)=conjg(BSS_dipoles_PL(i_c,i_K))*sqrt(cmplx(BSS_eh_f_RES(i_K)))
-      ! Here there is a conjg becaus we are getting a -1 somewhere from
-      ! the occupation factors. This seems to fix it. Not sure it is the
-      ! proper solution
-      P_x_fZ(i_K,i_c,2)=      BSS_dipoles_PL(i_c,i_K)*conjg(sqrt(cmplx(BSS_eh_f_RES(i_K))))
+      P_x_fZ(i_K,i_c,2)=      BSS_dipoles_PL(i_c,i_K)* sqrt(cmplx(BSS_eh_f_RES(i_K)))
     enddo
   enddo
   !
@@ -206,12 +214,12 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
     ! R_over_R_x_A = R<_j/R_j B^l_j
     !
     do i_ll=1,BS_H_dim
-      R_over_R_x_A(1,i_ll) = BSS_PL_f(i_ll)*B_var(i_ll)/BSS_eh_f_RES(i_ll)
+      R_over_R_x_A(i_ll) = BSS_PL_f(i_ll,1)*B_var(i_ll)/BSS_eh_f_RES(i_ll)
     enddo
     !
     ! adA_x_R_over_R_x_A = B^l*_j    R<_j/R_j B^l_j
     !
-    adA_x_R_over_R_x_A(1)=Vstar_dot_V_omp(BS_H_dim,B_var,R_over_R_x_A(1,:))
+    adA_x_R_over_R_x_A=Vstar_dot_V_omp(BS_H_dim,B_var,R_over_R_x_A)
     !
     do i_c=1,BS_dip_size
       !
@@ -227,7 +235,7 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
       !
     enddo
     !
-    BS_R_PL(1,i_lr)=BS_R_PL(1,i_lr)*adA_x_R_over_R_x_A(1)
+    BS_R_PL(1,i_lr)=BS_R_PL(1,i_lr)*adA_x_R_over_R_x_A
     !
     call live_timing(steps=1)
     !
@@ -237,7 +245,8 @@ subroutine PL_diago_non_herm_residual(BS_V_left,BS_V_right,BS_R_PL,BS_overlap)
  !
  call PP_redux_wait(BS_R_PL)
  !
- BS_R_PL(2,:)=-BS_R_PL(1,:)
+ ! In the coupling case, BSS_add_ares=.false. always
+ BS_R_PL(2,:)=cZERO
  !
  call PP_indexes_reset(px)
  !

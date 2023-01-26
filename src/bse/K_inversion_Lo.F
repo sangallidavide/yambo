@@ -169,7 +169,7 @@ subroutine K_inversion_Lo(iq,W,E,k,Lo_dim,Lo)
            if (BS_K_anti_resonant) then
              call X_GreenF_analytical(iq,transition,W,E,k,SF(:,2),"Ra","eh",.TRUE.,.FALSE.)
            endif
-           Lo(i_Lo_trans,:,i_Lo)=BSS_PL_f(i_res)/BSS_eh_f(i_res)**2*aimag(W%p(1))/pi
+           Lo(i_Lo_trans,:,i_Lo)=BSS_PL_f(i_res,i_Lo)/BSS_eh_f(i_res)**2*aimag(W%p(1))/pi
          endif
          !
        else 
@@ -199,9 +199,9 @@ subroutine K_inversion_Lo(iq,W,E,k,Lo_dim,Lo)
        !
        if (l_BS_photolum.and.i_loop==1) then
          residual=dot_product(BSS_dipoles_PL(:,i_res),BSS_dipoles_PL(:,i_res))
-         PL(:,i_eps)=PL(:,i_eps)-PL_prefactor*residual*aimag(SF(:,1))/pi*BSS_PL_f(i_res)
+         PL(:,i_eps)=PL(:,i_eps)-PL_prefactor*residual*aimag(SF(:,1))/pi*BSS_PL_f(i_res,1)
          if (BS_K_anti_resonant.and.l_BS_ares_from_res) then
-           PL(:,i_eps)=PL(:,i_eps)+PL_prefactor*residual*aimag(SF(:,2))/pi*BSS_PL_f(i_cpl)
+           PL(:,i_eps)=PL(:,i_eps)-PL_prefactor*residual*aimag(SF(:,2))/pi*BSS_PL_f(i_cpl,2)
          endif
        endif
        !

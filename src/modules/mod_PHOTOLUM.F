@@ -40,7 +40,7 @@ module PHOTOLUM
  ! BS dipoles
  !
  complex(SP), allocatable :: BSS_dipoles_PL(:,:)
- complex(SP), allocatable :: BSS_PL_f(:)
+ complex(SP), allocatable :: BSS_PL_f(:,:)
  !
  contains
    !
@@ -62,7 +62,7 @@ module PHOTOLUM
      if (.not.l_BS_photolum) return
      YAMBO_ALLOC(BSS_dipoles_PL,(BS_dip_size,BS_H_dim))
      BSS_dipoles_PL = cZERO
-     YAMBO_ALLOC(BSS_PL_f,(BS_H_dim))
+     YAMBO_ALLOC(BSS_PL_f,(BS_H_dim,2))
      BSS_PL_f = rZERO
    end subroutine
    !
