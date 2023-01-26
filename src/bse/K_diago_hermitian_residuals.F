@@ -36,8 +36,8 @@ subroutine K_diago_hermitian_residuals(i_BS_mat,BS_E_real,BS_R_left,BS_R_right)
  use LIVE_t,         ONLY:live_timing
  use X_m,            ONLY:global_gauge
  use BS_solvers,     ONLY:BSS_dipoles_opt,BSS_eh_E,BSS_eh_Z,BSS_eh_f_RES,&
-                          BS_mat,BSS_n_eig,l_BS_res_from_E
- use BS,             ONLY:BS_K_dim
+                          BS_mat,BSS_n_eig
+ use BS,             ONLY:BS_K_dim, l_BS_res_from_E
  !
  implicit none
  !
