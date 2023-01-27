@@ -241,12 +241,12 @@ module fields
      fr_shift(1)=0._SP
      fr_shift(2)=pi/2._SP
      do i1=1,n_fields_defs_max
-       if( trim(field_defs(i1))=="PHPI90") fr_shift(:)=fr_shift(:)+pi             ! 90 deg
-       if( trim(field_defs(i1))=="PHPI20") fr_shift(:)=fr_shift(:)+pi*2._SP/3._SP ! 60 deg
-       if( trim(field_defs(i1))=="PHPI45") fr_shift(:)=fr_shift(:)+pi/2._SP       ! 45 deg
-       if( trim(field_defs(i1))=="PHPI30") fr_shift(:)=fr_shift(:)+pi/3._SP       ! 30 deg
-       if( trim(field_defs(i1))=="PHPI15") fr_shift(:)=fr_shift(:)+pi/6._SP       ! 15 deg
-       if( trim(field_defs(i1))=="PHPI10") fr_shift(:)=fr_shift(:)+pi/9._SP       ! 10 deg
+       if( trim(field_defs(i1))=="PHPI180") fr_shift(:)=fr_shift(:)+pi             ! 180 deg
+       if( trim(field_defs(i1))=="PHPI120") fr_shift(:)=fr_shift(:)+pi*2._SP/3._SP ! 120 deg
+       if( trim(field_defs(i1))=="PHPI90")  fr_shift(:)=fr_shift(:)+pi/2._SP       ! 90 deg
+       if( trim(field_defs(i1))=="PHPI60")  fr_shift(:)=fr_shift(:)+pi/3._SP       ! 60 deg
+       if( trim(field_defs(i1))=="PHPI30")  fr_shift(:)=fr_shift(:)+pi/6._SP       ! 30 deg
+       if( trim(field_defs(i1))=="PHPI20")  fr_shift(:)=fr_shift(:)+pi/9._SP       ! 20 deg
        if( trim(field_defs(i1))=="PHMULT" .and. n_freqs>1) l_multi_phase=.true.
      enddo
      !
