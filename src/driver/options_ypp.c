@@ -204,12 +204,14 @@ void options_ypp(struct options_struct options[],int *i_opt)
  options[*i_opt].bin="ypp_rt";
  options[*i_opt].yambo_string="TDplots"; /* TDplots */
  options[*i_opt].section="Real-Time";
- options[*i_opt].long_desc[0]="<string>=(X)response,(a)bsorption,(o)ccupations,(l)ifetimes,(d)ensity,(p)olariazion,(g)reen-function";
+ options[*i_opt].long_desc[0]="<string>=(X)response,(a)bsorption,(o)ccupations,(l)ifetimes,(d)ensity,(p)olariazion,(f)ields,(g)reen-function";
  options[*i_opt].long_desc[1]=" ";
  options[*i_opt].long_desc[2]="(X) response calculates the response via the time-resolved polarization";
  options[*i_opt].long_desc[3]="(a) absorption amends the Kubo expression with the time-dependent occupations";
  options[*i_opt].long_desc[4]="(p) polarization evaluates the k-resolved components of the time-dependent polarization";
- options[*i_opt].long_desc[5]="(g) evaluates the two-times Green`s function";
+ options[*i_opt].long_desc[5]="(f) generate and manupulate fields file";
+ options[*i_opt].long_desc[6]="(g) evaluates the two-times Green`s function";
+
  *i_opt=*i_opt+1;
  options[*i_opt].short_desc="TD plot control";
  options[*i_opt].char_var=1;

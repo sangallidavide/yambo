@@ -48,6 +48,7 @@ module pars
  !
  !...RT
  integer, parameter :: n_ext_fields_max=4
+ integer, parameter :: n_fields_defs_max=6
  !
  !...Input file analyze
  integer, parameter :: n_max_DB_IO_off_fields=20

@@ -33,7 +33,7 @@ subroutine NL_initialize(E,k)
  use zeros,          ONLY:zero_dfl
  use com,            ONLY:msg
  use R_lattice,      ONLY:bz_samp,k_map
- use fields,         ONLY:Efield,Efield_strength,n_ext_fields,EtoT
+ use fields,         ONLY:Efield,Efield_strength,n_ext_fields,n_ext_fields_max,EtoT
  use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field,l_NE_with_fields, &
 &                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime
  use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free,l_NE_with_fields,&
@@ -123,10 +123,9 @@ subroutine NL_initialize(E,k)
  !
  ! This part of the code works with only one field
  !
- n_ext_fields=3
  n_active_fields=0
  !
- do i1=1,n_ext_fields
+ do i1=1,n_ext_fields_max
    !
    Efield(i1)%ef_name=trim(Efield(i1)%ef_name)      
    if((Efield(i1)%ef_name=='none')) cycle
@@ -152,7 +151,6 @@ subroutine NL_initialize(E,k)
    ! see definition of "step_case" in function "theta_function" in src/modules/mod_functions.F
    Efield(i1)%t_initial_indx=max(nint(Efield(i1)%t_initial/RT_step)+1,2)
    Efield(i1)%t_initial     =real(Efield(i1)%t_initial_indx-1)*RT_step
-   Efield(i1)%ef_pol        ="linear"
    !
    call Check_symmetries(Efield(i1)%versor,"electric")
    !
