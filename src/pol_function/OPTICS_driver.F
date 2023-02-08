@@ -39,7 +39,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
 &                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,X_OUTPUT_driver,X_do_obs,&
 &                        l_X_abs,l_X_kerr,l_X_magn,Chi_prop
  use parallel_int,  ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_index,PARALLEL_WF_distribute
- use parallel_m,    ONLY:PAR_IND_Q_ibz,PAR_COM_Q_A2A,PAR_IND_CON_BANDS_X,&
+ use parallel_m,    ONLY:PAR_IND_Q_ibz,PAR_COM_Q_A2A,PAR_COM_RL_INDEX,PAR_IND_CON_BANDS_X,&
 &                        PAR_IND_Xk_ibz,PAR_IND_VAL_BANDS_X,master_cpu
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
  use TDDFT,         ONLY:FXC_desc,FXC_type,&
@@ -172,8 +172,19 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(1,1,:)
    endif
    !
+   if (l_X_abs) then
+     call PP_redux_wait(Alpha(:,1),    COMM=PAR_COM_RL_INDEX%COMM)
+     Epsilon_ii(:,1)=1._SP+Alpha(:,1)
+   else if (l_X_magn) then
+     call PP_redux_wait(X_magnons(:,1),COMM=PAR_COM_RL_INDEX%COMM)
+   endif
+   !
    ! X Dyson equation solver
    if (.not.l_rpa_IP) call X_redux(iq,"X",X_par(1),wv,X)
+   !
+   ! X_redux can change the matrix distribution. Need to recheck who is Macroscopic CPU
+   Macroscopic_CPU=X_par(1)%rows(1)<=i_G_shift.and.i_G_shift<=X_par(1)%rows(2).and.&
+&                  X_par(1)%cols(1)<=i_G_shift.and.i_G_shift<=X_par(1)%cols(2)
    !
    if (Macroscopic_CPU) then
      !
@@ -195,6 +206,19 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      !
    endif
    !
+   if (l_X_abs) then
+     !
+     call PP_redux_wait(Alpha(:,2),COMM=PAR_COM_RL_INDEX%COMM)
+     Epsilon_ii(:,2)=1._SP+Alpha(:,2)
+     !
+     ! I make alpha consistent with the above, IP, definition
+     ! To check if this need to be fixed with i_G_shift/=1
+     if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(1,1)**2/q_norm(1)**2
+     !
+   else if(l_X_magn) then
+     call PP_redux_wait(X_magnons(:,2),COMM=PAR_COM_RL_INDEX%COMM)
+   endif
+   !
    if (l_pf_fxc) then
      call TDDFT_PF_coefficient(Xen,Xk,a_xc,b_xc)
      if (abs(b_xc).le.1.e-5) then
@@ -206,6 +230,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
        enddo
      end if
    end if
+   !
    !
    ! Unfortunately some of the variables need in this second bunch of messages is setup only in X_os
    call X_OUTPUT_messages(iq,GF=allocated(Xen%GreenF),Vnl=X%Vnl_included,ordering=X%ordering)
