@@ -76,7 +76,6 @@ subroutine RT_load_field_from_file(filename,i_field)
  !
  Efield(i_field)%t_final_indx=(n_time_steps-8)/2+Efield(i_field)%t_initial_indx-1
  Efield(i_field)%t_final=RT_step*(Efield(i_field)%t_final_indx-1)
- !write(*,*) Efield(i_field)%t_initial_indx,Efield(i_field)%t_final_indx
  !
 end subroutine RT_load_field_from_file
 !
@@ -98,8 +97,6 @@ subroutine RT_print_field_to_file_init(i_field)
  filename="RT_EXTFIELD_"//trim(intc(i_field))//".time"
  !
  n_time_steps=(Efield(i_field)%t_final_indx-Efield(i_field)%t_initial_indx+1)*2+8
- !
- !write(*,*) Efield(i_field)%t_initial_indx,Efield(i_field)%t_final_indx
  !
  open(unit=99+i_field,file=trim(com_path)//"/"//trim(filename))
  write(99+i_field,*) n_time_steps

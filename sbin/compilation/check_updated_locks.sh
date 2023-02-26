@@ -84,9 +84,17 @@ source ./sbin/compilation/object_save_and_restore.sh
 if [ "$FOLDER_OK" == 1 ] ; then
  return ;
 fi
+
+
+if [[ "$unmatched" == *"DOUBLE"* ]]; then
+ # in this case I already recompile the whole
+ # source, no need to check for other locks
+ unmatched="DOUBLE";
+fi
 #
 # tag new objects to be compiled
 #
+files_done=""
 for lock in $unmatched
 do
  #
@@ -95,6 +103,7 @@ do
   refs=$deps ;
   if [ -f $dir/$restore_dir/files.dep ] ; then refs=`cat $dir/$restore_dir/files.dep` ; fi
   for file in $deps; do
+   if [[ "$files_done" == *"$file"* ]]; then continue; fi
    if [[ "$refs" == *"$file"* ]]; then
     if [ "$VERB" == 1 ] ; then echo "$step preparing $file"; fi
     DIR_is_to_recompile=1
@@ -103,6 +112,7 @@ do
       source ./sbin/compilation/object_remove.sh "remove" "locks"
       continue;
     fi
+    files_done="$file $files_done"
     obj=$file
     source ./sbin/compilation/check_object_childs.sh "locks"
    fi
