@@ -70,14 +70,15 @@ subroutine K_IP_sort(what,I,N,Indexes,vI,El,vC)
  call degeneration_finder(EDIM,first_el,n_of_el,n_deg_grp,&
  &    Er=vR(:EDIM),deg_accuracy=0.001_SP/HA2EV,Include_single_values=.TRUE.)
  !
+ if (any(n_of_el(:)>18)) call warning("More than 18 degenerate transitions detected. Printing only first 18")
+ !
  do i_VAR=1,n_BS_E_sorted
    BS_E_sorted(:,i_VAR,1)=cZERO
    do i_grp=1,n_deg_grp
      if(i_grp>EDIM/Ntmp) cycle
      !
      if(i_VAR==1) then
-       if (n_of_el(i_grp)>18) call warning("More than 18 degenerate transitions detected. Printing only first 18")
-       do i_cv=first_el(i_grp),first_el(i_grp)+n_of_el(i_grp)-1
+       do i_cv=first_el(i_grp),first_el(i_grp)+min(n_of_el(i_grp),18)-1
          BS_E_sorted_indx(i_grp,i_cv-first_el(i_grp)+1,1:5)=vI(sort_indx(i_cv),:)
        enddo
      endif

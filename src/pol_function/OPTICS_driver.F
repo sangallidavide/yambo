@@ -171,9 +171,13 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      if(l_X_Abs)  Alpha(:,1)      =-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
      if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
    endif
-   call PP_redux_wait(Alpha(:,1),COMM=PAR_COM_RL_INDEX%COMM)
-   call PP_redux_wait(X_magnons(:,1),COMM=PAR_COM_RL_INDEX%COMM)
-   Epsilon_ii(:,1)=1._SP+Alpha(:,1)
+   !
+   if (l_X_abs) then
+     call PP_redux_wait(Alpha(:,1),    COMM=PAR_COM_RL_INDEX%COMM)
+     Epsilon_ii(:,1)=1._SP+Alpha(:,1)
+   else if (l_X_magn) then
+     call PP_redux_wait(X_magnons(:,1),COMM=PAR_COM_RL_INDEX%COMM)
+   endif
    !
    ! X Dyson equation solver
    if (.not.l_rpa_IP) call X_redux(iq,"X",X_par(1),wv,X)
@@ -198,13 +202,19 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      endif
      !
    endif
-   call PP_redux_wait(Alpha(:,2),COMM=PAR_COM_RL_INDEX%COMM)
    !
-   Epsilon_ii(:,2)=1._SP+Alpha(:,2)
-   !
-   ! I make alpha consistent with the above, IP, definition
-   ! To check if this need to be fixed with i_G_shift/=1
-   if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(1,1)**2/q_norm(1)**2
+   if (l_X_abs) then
+     !
+     call PP_redux_wait(Alpha(:,2),COMM=PAR_COM_RL_INDEX%COMM)
+     Epsilon_ii(:,2)=1._SP+Alpha(:,2)
+     !
+     ! I make alpha consistent with the above, IP, definition
+     ! To check if this need to be fixed with i_G_shift/=1
+     if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(1,1)**2/q_norm(1)**2
+     !
+   else if(l_X_magn) then
+     call PP_redux_wait(X_magnons(:,2),COMM=PAR_COM_RL_INDEX%COMM)
+   endif
    !
    if (l_pf_fxc) then
      call TDDFT_PF_coefficient(Xen,Xk,a_xc,b_xc)
