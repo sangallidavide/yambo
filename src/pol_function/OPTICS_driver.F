@@ -168,8 +168,8 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    ! Without LF eps
    if (Macroscopic_CPU) then
-     if(l_X_abs)  Alpha(:,1)      =-X_par(1)%blc(1,1,:)*4.0_SP*pi/Q_plus_G_sq_modulus
-     if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(1,1,:)
+     if(l_X_Abs)  Alpha(:,1)      =-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
+     if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
    endif
    !
    if (l_X_abs) then
@@ -196,9 +196,6 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
          ! Here I assume X_par is small and I use 1/(1+x)~1-x 
          if(      l_col_cut .and. iq==0) Alpha(:,2)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
        endif
-       Epsilon_ii(:,1:2)=1._SP+Alpha(:,1:2)
-       ! I make alpha consistent with the above, IP, definition
-       if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(1,1)**2/q_norm(1)**2
      else if(l_X_magn) then
        if (     l_rpa_IP) X_magnons(:,2,1)= X_magnons(:,1,1)
        if (.not.l_rpa_IP) X_magnons(:,2,1)=-X_par(1)%blc(1,1,:)
