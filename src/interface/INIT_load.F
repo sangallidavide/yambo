@@ -45,7 +45,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  use LIVE_t,        ONLY:nhash
  use wave_func,     ONLY:wf_ng,rho_map_thresh
  use D_lattice,     ONLY:Tel,non_periodic_directions,molecule_position,Bose_Temp
- use R_lattice,     ONLY:ng_closed,QP_states_k,nXkibz,k_GRIDS_string,RIM_W_ng,&
+ use R_lattice,     ONLY:ng_closed,QP_states_k,nXkibz,k_GRIDS_string,RIM_W_ng,rimw_type,&
 &                        bz_samp,RIM_ng,RIM_epsm1,RIM_id_epsm1_reference,&
 &                        RIM_n_rand_pts,cyl_ph_radius,box_length,cyl_length,cut_geometry,ws_cutoff
  use BS,            ONLY:BSE_mode,BSE_prop,BSK_mode,BS_eh_en,BS_eh_win,BS_q,BS_bands,&
@@ -303,7 +303,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'BSENGexx','[BSK] Exchange components',BS_n_g_exch,G_unit)
  call it(defs,'BSENGfxc','[BSK] Fxc components', BS_n_g_fxc,G_unit)
  call it(defs,'RhoMapThresh','[BSK] Density cutoff for <Fxc> integrals region',rho_map_thresh,verb_level=V_resp)
- call it(defs,'FXCcutScheme', '[TDDFT] ("none","lower_Gmax","lower_GmGp") ',ALDA_cut_scheme,verb_level=V_resp)
+ call it(defs,'FxcCutScheme', '[TDDFT] ("none","lower_Gmax","lower_GmGp") ',ALDA_cut_scheme,verb_level=V_resp)
  call it(defs,'BSEEhEny','[BSK] Electron-hole energy range',BS_eh_en,E_unit,verb_level=V_resp)
  call it(defs,'BSKCut',  '[BSK] Cutoff on the BSE Kernel, 0=full 1=none',BS_K_cutoff,verb_level=V_resp)
  call it(defs,'BSKIOmode','[BSK] ("1D_linear"/"2D_standard" + "norestart")',BSK_IO_mode,verb_level=V_resp)
@@ -328,6 +328,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'BSPLInvTrs',  '[BSS PL] Inversion treshold',K_INV_PL%treshold)
  call it(defs,'BEnSteps',  '[BSS] Energy steps',BSS_n_freqs)
  call it(defs,'DrudeWBS',  '[BSE] Drude plasmon',BSS_Wd,E_unit,verb_level=V_resp)
+ call it('f',defs,'FxcLibxc','[BSK] force computing Fxc via libxc',verb_level=V_resp)
  call it('f',defs,'WehDiag', '[BSK] diagonal (G-space) the eh interaction',verb_level=V_resp)
  call it('f',defs,'WehCpl',  '[BSK] eh interaction included also in coupling')
  call it('f',defs,'WRbsWF',  '[BSS] Write to disk excitonic the WFs')
@@ -397,7 +398,9 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it('f',defs,'QpgFull', '[F RIM] Coulomb interaction: Full matrix',verb_level=V_RL)
  !
  ! RIM-W
- call it(defs,'RandGvecW','[RIM-W] Screened interaction RS components',RIM_W_ng,G_unit,verb_level=V_RL)
+ !call it(defs,'RandGvecW','[RIM-W] Screened interaction RS components',RIM_W_ng,G_unit,verb_level=V_RL)
+ call it(defs,'RandGvecW','[RIM-W] Screened interaction RS components',RIM_W_ng,G_unit)
+ call it(defs,'rimw_type','[RIM-W] Screened interaction limit metal/semiconductor/graphene',rimw_type)
  !
  ! CUTOFF
  !
