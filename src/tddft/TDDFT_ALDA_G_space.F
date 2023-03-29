@@ -67,6 +67,8 @@ subroutine TDDFT_ALDA_G_space(E,k)
  ! ALDA functional
  !
  YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
+ YAMBO_ALLOC(V_xc,(fft_size,n_spin))
+ V_xc=0._SP
  YAMBO_ALLOC(F_xc_DP,(fft_size))
  if (l_X_magn.and.n_spinor==2) then
    YAMBO_ALLOC(V_xc,(fft_size,n_spin))
@@ -111,6 +113,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
  !
  ! Clean
  !
+ YAMBO_FREE(V_xc)
  YAMBO_FREE(F_xc)
  YAMBO_FREE(F_xc_DP)
  YAMBO_FREE(V_xc)
