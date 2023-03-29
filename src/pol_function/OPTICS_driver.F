@@ -176,7 +176,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      call PP_redux_wait(Alpha(:,1),    COMM=PAR_COM_RL_INDEX%COMM)
      Epsilon_ii(:,1)=1._SP+Alpha(:,1)
    else if (l_X_magn) then
-     call PP_redux_wait(X_magnons(:,1),COMM=PAR_COM_RL_INDEX%COMM)
+     call PP_redux_wait(X_magnons(:,1,1),COMM=PAR_COM_RL_INDEX%COMM)
    endif
    !
    ! X Dyson equation solver
@@ -213,7 +213,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
      if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(1,1)**2/q_norm(1)**2
      !
    else if(l_X_magn) then
-     call PP_redux_wait(X_magnons(:,2),COMM=PAR_COM_RL_INDEX%COMM)
+     call PP_redux_wait(X_magnons(:,2,1),COMM=PAR_COM_RL_INDEX%COMM)
    endif
    !
    if (l_pf_fxc) then
