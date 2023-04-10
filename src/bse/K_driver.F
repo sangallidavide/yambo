@@ -34,7 +34,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use IO_m,           ONLY:OP_RD_CL,REP
  use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_damp_reference,BSS_q0,BSS_eels_to_eps,BSS_uses_DbGd
  use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_res_K_corr,BS_n_g_W,BS_cpl_K_corr,&
-&                         BS_Blocks_and_Transitions_free,BS_qpt,BS_kpt_bz,l_BS_photolum
+&                         BS_Blocks_and_Transitions_free,BSqpts,BS_kpt_bz,l_BS_photolum
  use TDDFT,          ONLY:FXC_per_memstps,FXC_n_mem_freqs,FXC_is_retarded
  use drivers,        ONLY:l_rpa_IP,l_bs_fxc,l_bss
  use parallel_m,     ONLY:PAR_IND_WF_b_and_k,PAR_K_scheme,PARALLEL_default_mode
@@ -146,7 +146,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  !
  ! Tranferred momentum
  !======================
- YAMBO_ALLOC(BS_qpt,(3,BS_q(1):BS_q(2)))
+ YAMBO_ALLOC(BSqpts,(3,BS_q(1):BS_q(2)))
  !
  do iq=BS_q(1),BS_q(2)
    !
@@ -154,8 +154,8 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !===========================================
    call X_OUTPUT_driver("DEF INIT") 
    !
-   if (iq==1) BS_qpt(:,iq) = BSS_q0
-   if (iq/=1) BS_qpt(:,iq) = q%pt(iq,:)
+   if (iq==1) BSqpts(:,iq) = BSS_q0
+   if (iq/=1) BSqpts(:,iq) = q%pt(iq,:)
    !
    call K_driver_init("loop-init",iq,Ken,Xk)
    !
@@ -271,7 +271,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  !... Parallel distribution reset
  call PARALLEL_global_indexes(Ken,Xk,q,"Response_T_space",X=X_oscillators,RESET=.TRUE.)
  !
- YAMBO_FREE(BS_qpt)
+ YAMBO_FREE(BSqpts)
  YAMBO_FREE(BS_kpt_bz)
  call qindx_free('B')
  !

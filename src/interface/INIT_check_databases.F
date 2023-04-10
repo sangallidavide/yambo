@@ -31,7 +31,7 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
  use X_m,            ONLY:X_t
  use DIPOLES,        ONLY:DIPOLE_t
  use frequency,      ONLY:w_samp
- use BS,             ONLY:BS_n_g_exch,BS_n_g_fxc,BS_q,BS_qpt
+ use BS,             ONLY:BS_n_g_exch,BS_n_g_fxc,BS_q,BSqpts
  use R_lattice,      ONLY:ng_closed,nqibz,bz_samp
  use QP_m,           ONLY:QP_t,QP_ng_Sx,QP_ng_Sc,QP_ng_SH,QP_ng_Vxc
  use wave_func,      ONLY:io_WF
@@ -240,7 +240,7 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
  !
  !
  if (nqibz>0) then
-   YAMBO_ALLOC(BS_qpt,(3,nqibz))
+   YAMBO_ALLOC(BSqpts,(3,nqibz))
    do i_io=1,nqibz
      call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,SEC=(/1/),ID=io_ID)
 # if defined _PAR_IO
@@ -249,7 +249,7 @@ subroutine INIT_check_databases(X,Xbsk,qp,Xxcw,Xw,q,k,en,en_sc,Dip,lnstr,instr,I
      io_BS_err=io_BS(i_io,Xbsk,io_ID)
 #endif
    enddo
-   YAMBO_FREE(BS_qpt)
+   YAMBO_FREE(BSqpts)
  else
    call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,SEC=(/1/),ID=io_ID)
 # if defined _PAR_IO

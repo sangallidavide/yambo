@@ -32,7 +32,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
 &                        BS_K_coupling,BS_res_K_exchange,BS_res_K_corr,&
 &                        BS_n_g_exch,BS_n_g_W,BS_eh_en,BS_eh_win,BS_W_is_diagonal,&
 &                        BS_K_is_ALDA,BS_cpl_K_exchange,BSE_L_kind,&
-&                        BS_cpl_K_corr,BS_qpt,BS_perturbative_SOC
+&                        BS_cpl_K_corr,BSqpts,BS_perturbative_SOC
  use IO_m,          ONLY:io_status,variable_exist,write_is_on
  use IO_int,        ONLY:ver_is_gt_or_eq,def_variable_elemental,io_variable_elemental
  use descriptors,   ONLY:IO_desc,IO_desc_reset
@@ -63,7 +63,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  call io_variable_elemental(ID,VAR="[K] Identifier",I0=BS_identifier,DESCRIPTOR=desc)
  if (iq>1) then
    call io_variable_elemental(ID,VAR="[K] Q-point",&
-&                             R1=BS_qpt(:,iq),CHECK=.true.,OP=(/"==","==","=="/),DESCRIPTOR=desc)
+&                             R1=BSqpts(:,iq),CHECK=.true.,OP=(/"==","==","=="/),DESCRIPTOR=desc)
  endif
  call io_variable_elemental(ID,VAR="[K] Dimension",I0=BS_K_dim(1),CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc)
  call io_variable_elemental(ID,VAR="[K] Bands",I1=BS_bands,CHECK=.true.,OP=(/"==","=="/),DESCRIPTOR=desc)

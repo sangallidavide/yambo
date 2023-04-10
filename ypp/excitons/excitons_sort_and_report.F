@@ -27,7 +27,7 @@ subroutine excitons_sort_and_report(iq,BS_R,BS_E,BS_E_SOC_corr,EXC_spin)
  use units,         ONLY:HA2EV
  use electrons,     ONLY:spin_occ,spin,n_sp_pol,n_spinor
  use stderr,        ONLY:intc
- use BS,            ONLY:BS_qpt
+ use BS,            ONLY:BSqpts
  use BS_solvers,    ONLY:BSS_desc,BSS_n_eig
  use com,           ONLY:msg,of_open_close
  use R_lattice,     ONLY:d3k_factor,q0_def_norm
@@ -126,7 +126,7 @@ subroutine excitons_sort_and_report(iq,BS_R,BS_E,BS_E_SOC_corr,EXC_spin)
    Residuals(:) = real(BS_R(:)*conjg(BS_R(:)),SP)
    if (write_widths)  Residuals(:) = abs(BS_R(:))
    if(iq==1) q_norm=q0_def_norm**2
-   if(iq> 1) q_norm=iku_v_norm(BS_qpt(:,iq))**2
+   if(iq> 1) q_norm=iku_v_norm(BSqpts(:,iq))**2
    Residuals(:) = Residuals(:)*real(spin_occ,SP)/(2._SP*pi)**3*d3k_factor*4._SP*pi/q_norm*HA2EV
    !
    if (trim(R_normalize)=='yes') then
