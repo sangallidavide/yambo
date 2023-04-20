@@ -256,8 +256,8 @@ subroutine RT_initialize(E,k,q)
      !
      l_NE_with_fields=.true.
      !
-     if( (field_defs(1)/='DELTA'.or.field_defs(1)/='GAUSS'.or.         &
-&         field_defs(1)/='RECT' .or.field_defs(1)/='FROM_FILE')        &
+     if( (field_defs(1)/='DELTA'.and.field_defs(1)/='GAUSS'.and.       &
+&         field_defs(1)/='RECT' .and.field_defs(1)/='FROM_FILE')       &
 &       .and. Efield(i1)%frequency(1)==0._SP)                          &
 &      call error(trim(MSG_ch)//" field has zero frequency.")
      !
