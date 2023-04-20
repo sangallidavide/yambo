@@ -93,9 +93,8 @@ subroutine RT_EULER_step(dG_in,dG_out,ik,nbf,dT)
  !
  H_k=cZERO
  if(.not.l_RT_RWA) H_k=H_EQ(:,:,ik,1)
- if(  l_RT_FRES  ) H_k=H_k-H_field(:,:,ik,1)
+ if(  l_RT_FRES  ) H_k=H_k+H_field(:,:,ik,1)
  G_k=dG_in+G_lesser_reference(:,:,ik)
- H_k=Ho_plus_Sigma(:,:,ik,1)
  !
  call RT_EULER_step_apply(G_k,H_k,dG_out,nbf,dT,"add")
  !
