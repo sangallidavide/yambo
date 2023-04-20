@@ -209,6 +209,7 @@ module real_time
  !
  complex(SP), allocatable :: Ho_plus_Sigma(:,:,:,:)
  complex(SP), allocatable :: H_EQ(:,:,:,:)
+ complex(SP), allocatable :: H_field(:,:,:,:)
  complex(SP), allocatable :: H_pseudo_eq(:,:,:,:)
  complex(SP), allocatable :: RT_Vnl_xc(:,:,:,:)
  !
@@ -227,6 +228,7 @@ module real_time
  logical  :: l_RT_RWA
  logical  :: l_RT_ACC
  logical  :: l_RT_PERT
+ logical  :: l_RT_FRES
  logical  :: l_RT_DIAG
  !
  logical  :: l_RT_SIMPLE

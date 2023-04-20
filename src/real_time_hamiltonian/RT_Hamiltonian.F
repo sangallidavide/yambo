@@ -58,7 +58,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  use R_lattice,      ONLY:bz_samp,nXkibz
  use hamiltonian,    ONLY:V_hartree_sc,H_nl_sc,rho_n,magn_n,V_xc_sc
  use real_time,      ONLY:Ho_plus_Sigma,l_NE_with_fields,REF_V_xc_sc, &
-&                         rho_reference,magn_reference,RT_Vnl_xc,H_EQ,         &
+&                         rho_reference,magn_reference,RT_Vnl_xc,H_field,H_EQ,    &
 &                         l_RT_RWA,eval_HARTREE,eval_DFT,RTibz,RT_potential,      &
 &                         RT_bands,RT_nbands,dG_avg,l_update_SOC,l_velocity_gauge_corr
  use fields,         ONLY:gauge_field
@@ -207,11 +207,13 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
    !
    call timing('RT Apply Field',OPR='start')
    !
+   H_field=cZERO
    do ik=1,nXkibz 
      if (.not.PAR_IND_Xk_ibz%element_1D(ik)) cycle
      H_nl_sc=cZERO
      call RT_apply_field(ik,1,H_nl_sc,A_input)
      do ik_RT =RTibz%k_range(ik,1),RTibz%k_range(ik,2)
+       H_field(:,:,ik_RT,1)=H_nl_sc
        call M_plus_alpha_M_omp(RT_nbands,cONE,H_nl_sc,Ho_plus_sigma(:,:,ik_RT,1))
      enddo
    enddo
