@@ -5,56 +5,63 @@
 #
 include ../../config/setup
 include ../archive/package.list
-
+#
 LIBNAME=liblapack.a
 LIBPATH=$(libs_prefix)/$(fc_kind)/${fc}
 LIBRARY=$(LIBPATH)/lib/$(LIBNAME)
 #
 PACKAGE=$(pkgname_lapack)
-TARBALL=$(tarball_lapack)
 #
-# MAIN target
+include ../config/external_libs_commons.mk
+include ../config/external_libs_defs.mk
+#
+#CONFFLAGS=-DCMAKE_INSTALL_LIBDIR=$(LIBPATH)/lib
 #
 all: $(LIBRARY)
 #
-uncompress-stamp:
-	( cd ../archive ; if ! test -e $(TARBALL) ; then \
-	cp Makefile.loc Makefile ; $(make) $(TARBALL) ; fi )
-	gunzip < ../archive/$(TARBALL) | ../../config/missing --run tar xf -
-	touch uncompress-stamp
+uncompress:
+	@$(uncompress)
 
-configure-stamp: uncompress-stamp
-	if test -d $(PACKAGE) ; then ( cd $(PACKAGE);  \
-	cat $(prefix)/config/setup $(srcdir)/lib/lapack/make.inc_lib > make.inc ; \
-	cp  $(srcdir)/lib/lapack/Makefile.lib  Makefile );  \
+configure: uncompress
+	@if test -d $(PACKAGE) && ! test -f configured.stamp ; then \
+         echo "\t[$(PACKAGE)] configuration"; \
+	 cd $(PACKAGE); \
+	 mkdir build_static ; cd build_static ; \
+	 ( cmake -DCMAKE_INSTALL_LIBDIR=$(LIBPATH)/lib -DBUILD_SHARED_LIBS=OFF .. ) >> ${compdir}/log/config_$(PACKAGE).log 2>&1 ; \
+	 cd .. ; mkdir build_shared ; cd build_shared ; \
+	 ( cmake -DCMAKE_INSTALL_LIBDIR=$(LIBPATH)/lib -DBUILD_SHARED_LIBS=ON .. ) >> ${compdir}/log/config_$(PACKAGE).log 2>&1 ; \
+	 cd .. ; \
+	 touch ../configured.stamp ; \
 	fi
-	touch configure-stamp
-	
-package-ready-stamp: uncompress-stamp configure-stamp
-	if test -d $(PACKAGE) ; then \
-	( cd $(PACKAGE); $(make) blaslib; $(make) lapacklib) ; fi
-	#
-	touch package-ready-stamp
 
-package-installed: uncompress-stamp configure-stamp package-ready-stamp
-	if ! test -e package-installed ; then ($(install)); fi
-	touch package-installed
+compile: uncompress configure
+	@if test -d $(PACKAGE) && ! test -f compiled.stamp ; then \
+         echo "\t[$(PACKAGE)] compilation"; \
+         cd $(PACKAGE); \
+	 cd build_static ; ( cmake --build . ) >> ${compdir}/log/compile_$(PACKAGE).log 2>&1 ; cd .. ; \
+	 cd build_shared ; ( cmake --build . ) >> ${compdir}/log/compile_$(PACKAGE).log 2>&1 ; cd .. ; \
+	 touch compiled.stamp; \
+	fi
 
-$(LIBRARY): uncompress-stamp configure-stamp package-ready-stamp package-installed
+install: uncompress configure compile
+	@if ! test -e installed.stamp ; then \
+         echo "\t[$(PACKAGE)] installation"; \
+         cd $(PACKAGE); \
+	 cd build_static ; ( cmake --build . --target install ) >> ${compdir}/log/install_$(PACKAGE).log 2>&1 ; cd .. ; \
+	 cd build_shared ; ( cmake --build . --target install ) >> ${compdir}/log/install_$(PACKAGE).log 2>&1 ; cd .. ; \
+	 touch ../installed.stamp; \
+	fi
 
+$(LIBRARY): uncompress configure compile install
 #
 # cleaning
 #
 clean:
-	if test -d $(PACKAGE) && test -e configure-stamp ; then ( cd $(PACKAGE);  $(make) -s cleanlib ) ; fi
-	- rm -rf package-ready-stamp configure-stamp package-installed
+	@if test -d $(PACKAGE) && test -f configured.stamp ; then \
+	 rm -rf compiled.stamp configured.stamp installed.stamp; \
+	 cd $(PACKAGE);  \
+	 rm -rf build_static build_shared ; \
+	fi
 
-clean_all: 
-	if test -d $(PACKAGE) ; then ( rm -rf $(PACKAGE) ) ; fi 
-	- rm -rf package-ready-stamp configure-stamp package-installed
-
-define install
- cd $(PACKAGE); cp SRC/*.a $(LIBPATH)/lib ; \
- chmod +x $(LIBPATH)/lib/*lapack*.a ; \
- chmod +x $(LIBPATH)/lib/*blas*.a   
-endef  
+clean_all: clean
+	@$(rm_the_lib)

@@ -19,6 +19,7 @@ objects.mk
 # AUTO-generated #
 ##################
 config/compilation_helper.sh.inc
+lib/archive/git.list
 
 # Compiled source #
 ###################
@@ -29,7 +30,8 @@ config/compilation_helper.sh.inc
 *.a
 *.so
 *.mod
-*.dep
+*modules.dep
+*.save
 *.f90
 *.s
 *.sw*
@@ -38,9 +40,9 @@ config/compilation_helper.sh.inc
 
 # source #
 ##########
+lib/archive/yambo-libraries-1.0/
 lib/yambo/driver/yambo/include/editor.h
 lib/yambo/driver/yambo/include/version.h
-include/driver/version.h
 include/driver/editor.h
 include/branch.inc
 src/tools/.objects
@@ -104,6 +106,7 @@ commit.msg
 *.jar
 *.rar
 *.tar
+*.pulled
 *.zip
 
 # Logs and databases #

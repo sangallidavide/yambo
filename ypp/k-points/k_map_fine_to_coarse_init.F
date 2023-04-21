@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM DS
+! Authors (see AUTHORS file for details): AM DS CA
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -39,7 +39,7 @@ subroutine k_map_fine_to_coarse_init(Xk,Xen,FineGd_k,FineGd_is_expanded,PH_grid)
 #if defined _YPP_ELPH
  use YPP_ELPH,            ONLY:ph_modes_file,ph_freqs_file,ELPH_databases_IO_freqs,ELPH_databases_IO_modes
  use stderr,              ONLY:STRING_same
- use vec_operate,         ONLY:c2a
+ use vec_operate,         ONLY:c2a,v_is_zero
 #endif
  !
 #include<memory.h>
@@ -175,6 +175,9 @@ subroutine k_map_fine_to_coarse_init(Xk,Xen,FineGd_k,FineGd_is_expanded,PH_grid)
      call c2a(v_in=FineGd_io_k(1)%pt(i_q,:),mode="kc2i")
    enddo
    !
+   if(.not.v_is_zero(FineGd_io_k(1)%pt(1,:))) &
+           &    call error("The first point of the PH double-grid should be Gamma")
+   !
 #endif
    !
    l_skip_check=.TRUE.
@@ -225,7 +228,7 @@ subroutine k_map_fine_to_coarse_init(Xk,Xen,FineGd_k,FineGd_is_expanded,PH_grid)
    deallocate(rand_E)
  endif
  !
- if(.not.PH_grid) then
+ if(.not.PH_grid.and.Xen%nb>1) then
    gap(1)=minval(FineGd_E%E(Xen%nbf(1)+1,:,1))-maxval(FineGd_E%E(Xen%nbf(1),:,1)) 
    gap(2)=10000._SP
    do i1=1,FineGd_E%nk
@@ -241,7 +244,7 @@ subroutine k_map_fine_to_coarse_init(Xk,Xen,FineGd_k,FineGd_is_expanded,PH_grid)
  if (i_time_rev==1) call msg('s',':: Time reversal included ')
  if (i_time_rev==0) call msg('s',':: Time reversal not included')
  !
- if(.not.PH_grid) then
+ if(.not.PH_grid.and.Xen%nb>1) then
    if (all(Xen%nbf==Xen%nbm)) then
      call msg('s',':: Gap indirect              :',gap(1)*HA2EV,"[eV]")
      call msg('s','::     direct                :',gap(2)*HA2EV,"[eV]")
