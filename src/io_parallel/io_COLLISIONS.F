@@ -24,7 +24,7 @@
 #if defined _RT || defined _SC || defined _QED
 integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  !
- use pars,          ONLY:schlen,IP,SP
+ use pars,          ONLY:schlen,IP,SP,IP_YIO,CR_YIO
  use parallel_m,    ONLY:master_cpu
  use iso_c_binding, ONLY:C_LOC,C_F_POINTER
  use collision_ext, ONLY:COLLISIONS_element,COLLISIONS_group,LAST_COLL_sync,PAR_COLL_min,&
@@ -77,7 +77,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  io4=any(io_sec(ID,:)==4)
  !
  if (def1) then
-   call def_variable_bulk(ID,'N_COLLISIONS_STATES',1,(/1/),IP+100,par_io_kind='independent')
+   call def_variable_bulk(ID,'N_COLLISIONS_STATES',1,(/1/),IP_YIO,par_io_kind='independent')
    if (write_is_on(ID)) then
      if (COLLISIONS_CV_only) then
        N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
@@ -123,7 +123,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
    !
  endif
  !
- if (def1) call def_variable_bulk(ID,'COLLISIONS_DONE',3,(/COLL_grp%N/),0,par_io_kind='independent')
+ if (def1) call def_variable_bulk(ID,'COLLISIONS_DONE',3,(/COLL_grp%N/),CR_YIO,par_io_kind='independent')
  !
  if (io4) then
    if (write_is_on(ID)) then
