@@ -27,6 +27,7 @@ module EXCPH
  use BS_solvers,     ONLY:BSS_n_eig
  use BS,             ONLY:BS_H_dim
  use ELPH,           ONLY:ph_modes
+ use R_lattice,      ONLY:bz_samp
  !
 #include<memory.h>
  !
@@ -35,14 +36,19 @@ module EXCPH
  !
  ! ... GKKP & EXC-PH Interaction
  !
- logical  :: l_const_elph,l_abs_elph,l_abs_exc 
+ logical  :: l_const_elph,l_abs_elph,l_abs_exc,l_elec_only,l_hole_only 
  complex(SP), allocatable :: EXCPH_Gkkp(:,:,:)
  real(SP),    allocatable :: EXCPH_Gkkp_sq(:,:,:)
  integer                  :: n_exc_in
  integer                  :: EXCPH_states(2)
  integer                  :: EXCPH_sum(2)
  real(SP), allocatable    :: EXCPH_q(:,:)
- character(schlen)        :: EXCPH_kind
+ character(schlen)        :: EXCPH_kind_name
+ integer                  :: EXCPH_kind
+ real(SP)                 :: EXC_q0(3)
+ !
+ integer, parameter :: PALEARI  = 1
+ integer, parameter :: BERNARDI = 2
  !
  ! L_in and L_out paths
  !
@@ -80,6 +86,7 @@ module EXCPH
  complex(SP), allocatable :: EXCPH_Sigma_c_diag(:,:)
  complex(SP), allocatable :: EXCPH_Sigma_c(:,:,:)
  real(SP) :: L_damping
+ real(SP) :: EXCPH_deltaE_treshold
  !
  ! Minimum excitonic energy
  !
@@ -89,9 +96,9 @@ module EXCPH
  !
  integer  :: ID_EXC,ID_EXC_obj
  real(SP) :: min_EXC_E_DbGd
+ integer  :: min_pos_E_DbGd(1)
  real(SP), allocatable :: EXC_E_DbGd(:,:)
- real(SP), target, allocatable :: BS_Sat_W_DG(:,:,:,:)
- real(SP), target, allocatable :: BS_Sat_W_DG_PH_abs(:,:,:,:)
+ type(bz_samp) :: q_DbGd 
  !
  ! Life Times
  !
@@ -106,6 +113,13 @@ module EXCPH
  logical       :: l_DbGd_WEIGHTs ! Double-Grid for Satellite weights
  logical       :: l_DbGd_PH_only ! Double-Grid only for phonon energies
  logical       :: l_no_matrix_elements  ! Set EXC-PH matrix elements to 1 (in lifetime and satellites)
+ !
+ ! Excitonic occupations
+ !
+ real(SP), allocatable :: EXC_occ(:,:)
+ integer  :: ID_occ,ID_occ_obj
+ real(SP), allocatable :: EXC_occ_DbGd(:,:)
+ real(SP) :: alphaQ
  !
  contains
    !      
@@ -169,38 +183,91 @@ module EXCPH
      YAMBO_FREE(Xi)    
    end subroutine EXCPH_gkkp_free
    !
-   subroutine free_EXC()
+   subroutine RESIDUALS_and_EIGENVALUES_free
      implicit none
      !
-     YAMBO_FREE(BS_E)
      YAMBO_FREE(BS_all_E)
      YAMBO_FREE_P(BS_R_left)
      YAMBO_FREE_P(BS_R_right)
      YAMBO_FREE(BS_R)
+     if(allocated(BS_E)) then
+        YAMBO_FREE(BS_E)
+     endif
      !
-   end subroutine free_EXC
+   end subroutine RESIDUALS_and_EIGENVALUES_free
    !
-   subroutine alloc_EXC(q)
+   subroutine RESIDUALS_and_EIGENVALUES_alloc(q)
      use R_lattice,      ONLY:bz_samp
      implicit none
      type(bz_samp) ::q
-     YAMBO_ALLOC(BS_E,(BSS_n_eig))
+     if(.not.allocated(BS_E)) then
+       YAMBO_ALLOC(BS_E,(BSS_n_eig))
+     endif
      YAMBO_ALLOC_P(BS_R_left,(BSS_n_eig))
      YAMBO_ALLOC_P(BS_R_right,(BSS_n_eig))
      YAMBO_ALLOC(BS_R,(BSS_n_eig))
      YAMBO_ALLOC(BS_E_in,(EXCPH_states(1):EXCPH_states(2)))
      YAMBO_ALLOC(BS_all_E,(BSS_n_eig,q%nibz))
-   end subroutine alloc_EXC
+   end subroutine RESIDUALS_and_EIGENVALUES_alloc
+   !
+   subroutine BSE_alloc(k,q)
+     !      
+     use electrons,      ONLY:n_sp_pol      
+     use BS_solvers,     ONLY:BS_mat,BSS_eh_table,BS_H_dim,BSS_n_eig
+     use BS,             ONLY:BS_H_dim,BS_bands,BSqpts
+     use R_lattice,      ONLY:bz_samp
+     !
+#include<memory.h>
+     !
+     type(bz_samp) ::k,q
+     !      
+     ! pre-allocs...
+     !
+     YAMBO_ALLOC(BS_mat,(BS_H_dim,BSS_n_eig))
+     YAMBO_ALLOC(BSS_eh_table_m1,(k%nbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2)))
+     !
+     if(.not.allocated(BS_E)) then
+        YAMBO_ALLOC(BS_E,(BSS_n_eig))
+     endif
+     YAMBO_ALLOC(k_plus_q_table,(k%nbz,q%nbz))
+     YAMBO_ALLOC(BSqpts,(3,q%nibz))
+     !
+     BS_mat=cZERO
+     BS_E=cZERO
+     !
+     k_plus_q_table  = 0
+     BSS_eh_table_m1 = 0
+     !
+   end subroutine BSE_alloc
+   !
+   subroutine BSE_free
+     use BS_solvers,     ONLY:BS_mat,BSS_eh_table,BS_H_dim,BSS_n_eig
+     use BS,             ONLY:BSqpts
+     !
+#include<memory.h>
+     !
+     YAMBO_FREE(BS_mat)
+     YAMBO_FREE(BSS_eh_table)
+     YAMBO_FREE(BSS_eh_table_m1)
+     if(allocated(BS_E)) then
+       YAMBO_FREE(BS_E)
+     endif
+     YAMBO_FREE(k_plus_q_table)
+     YAMBO_FREE(BSqpts)
+   end subroutine BSE_free
    !
    subroutine build_Q_map(q)
     use R_lattice,      ONLY:bz_samp
     use zeros,          ONLY:k_iku_zero
-    use vec_operate,    ONLY:v_is_zero
+    use vec_operate,    ONLY:v_is_zero,c2a,rlu_v_is_zero
     use ELPH,           ONLY:PH_qpt
+    use com,            ONLY:msg
+    !
     implicit none
     type(bz_samp) ::q
     !
     integer :: iq,idb
+    real(SP) :: v_rlu(3)
     !
     YAMBO_ALLOC(DB_Q_map,(q%nbz))
     !
@@ -209,12 +276,20 @@ module EXCPH
     DB_Q_map=0
     do iq=1,q%nbz
       do idb=1,q%nbz
-        if(.not.v_is_zero(q%ptbz(iq,:)-PH_qpt(idb,:),zero_=k_iku_zero)) cycle
+        v_rlu=q%ptbz(iq,:)-PH_qpt(idb,:)
+        call c2a(v_in=v_rlu,mode='ki2a')
+!        if(.not.v_is_zero(q%ptbz(iq,:)-PH_qpt(idb,:),zero_=k_iku_zero)) cycle
+        if(.not.rlu_v_is_zero(v_rlu)) cycle
         DB_Q_map(iq)=idb
         exit
       enddo
     enddo
-    if(any(DB_Q_map==0)) call error("Q-point not found in gkkp_expanded DBs")
+    if(any(DB_Q_map==0)) then
+      do iq=1,q%nbz
+        if(DB_Q_map(iq)==0) call msg('s',' Q point not found in gkkp_expanded DBs ',q%ptbz(iq,:))
+      enddo 
+      call error("Q-point not found in gkkp_expanded DBs")
+    endif
     !
     do iq=1,q%nbz
       if(DB_Q_map(iq)/=iq) then

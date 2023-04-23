@@ -80,7 +80,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  !
  ! Some check
  !
- if(X%ib(2)>Xen%nb) call error("Too many bands required in X. Run DFT with more bands!")
+ if(X%ib(2)>Xen%nb) call warning("More bands required in X than available in the current SAVE.")
  !
  l_X_terminator = X_terminator_Kind/='none'
  if (l_X_terminator.and.trim(X_terminator_Kind)/='BG') then
@@ -107,7 +107,9 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
    if (.not.SILENT_MODE) call section(sec_mode,'Static Dielectric Matrix')
    Xw%n_freqs    =1
    X_MEM_n_freqs =1
+   !
  else if (X%whoami==3) then
+   !
    if (.not.SILENT_MODE) call section(sec_mode,'Dynamical Dielectric Matrix')
    if (l_gw0) self_detect_E_range=.true.
    !
@@ -118,15 +120,28 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
    if (l_life) X_MEM_n_freqs = QP_n_W_freqs_redux
    !
  else if (X%whoami==4) then
+   !
    if (.not.SILENT_MODE) call section(sec_mode,'Dynamic Dielectric Matrix (PPA)')
    Xw%n_freqs    =2
    X_MEM_n_freqs =2
    Xw%er=(/epsilon(1._SP),0._SP/)
    Xw%dr=(/0._SP,X%ppaE/)
-   X%ordering='R'
+   X%ordering='R' !DALV: we should use 't'
+   !
+ else if (X%whoami==5) then
+   !
+   if (.not.SILENT_MODE) call section(sec_mode,'Dynamic Dielectric Matrix (MPA)')
+   !
+   if (mod(Xw%n_freqs,2)>0) Xw%n_freqs=Xw%n_freqs+1
+   X%mpa_npoles  = Xw%n_freqs/2
+   X_MEM_n_freqs =2*X%mpa_npoles
+   X%ordering='t'
+   Xw%grid_type="mpa-lP"
+   !
  endif
  !
- call X_pre_setup(Xen,Xk,X)
+ call X_pre_setup(Xen,Xk,X) !DALV: in here the time ordering is changed to 'R' for metals
+                            !      this could be problematic for FF real-axis GW calculations
  !
  if (l_write_disk_Xo) then
    if (.not.SILENT_MODE) call warning('On-the-fly extraction of IP Response Function Matrix')
@@ -184,6 +199,8 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
      call FREQUENCIES_reset(Xw,"all")
      if (X%iq(1)==X%iq(2)) X_dielectric_matrix=X%iq(1)
      return
+   else
+     if(X%ib(2)>Xen%nb) call error("Too many bands required in X. Run DFT with more bands!") 
    endif
    !
  endif

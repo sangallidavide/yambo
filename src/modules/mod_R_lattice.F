@@ -39,7 +39,8 @@ module R_lattice
  real(SP)          :: k_grid_b(3,3)
  logical           :: Xk_grid_is_uniform
  logical           :: Xk_grid_new_mapping
- character(schlen) :: k_GRIDS_string="X S B C"
+ character(schlen) :: k_GRIDS_string="X S B C minus_q"
+ integer           :: k_GRIDS_vector(4)=(/1,1,1,1/)
  !
  ! Q/K-sampling
  !
@@ -78,10 +79,11 @@ module R_lattice
    integer           :: nibz
    integer           :: nbz
    integer,  allocatable :: nstar(:)      ! n° of points in the star
-   integer,  allocatable :: star(:,:)     ! ik,ikstar --> is     is sends ik in ikstar
-   integer,  allocatable :: sstar(:,:)    ! ik_bz     --> ik,is  is sends ik in ikbz
-   integer,  allocatable :: s_table(:,:)  ! ik,is     --> sym@k_bz  revers of sstar(2)
-   integer,  allocatable :: k_table(:,:)  ! ik,is     --> ik_bz     revers of sstar(1)
+     ! Below "is" can be any symmetry operation, while is_used
+   integer,  allocatable :: star(:,:)     ! ik,ikstar --> is_used      is_used sends ik in ikstar
+   integer,  allocatable :: sstar(:,:)    ! ik_bz     --> ik,is_used   is_used sends ik in ikbz
+   integer,  allocatable :: s_table(:,:)  ! ik,is     --> is_used      revers of sstar(2)
+   integer,  allocatable :: k_table(:,:)  ! ik,is     --> ik_bz        revers of sstar(1)
    real(SP), allocatable :: pt(:,:)      
    real(SP), allocatable :: ptbz(:,:)    
    real(SP), allocatable :: weights(:)   
@@ -110,6 +112,7 @@ module R_lattice
  ! Q/K sampling shadow tables
  !
  real(SP),allocatable :: k_pt(:,:)
+ integer ,allocatable :: k_sstar(:,:)
  real(SP),allocatable :: q_pt(:,:)
  integer ,allocatable :: q_sstar(:,:)
  !
@@ -125,6 +128,7 @@ module R_lattice
  integer, allocatable :: qindx_S(:,:,:)
  integer, allocatable :: qindx_C(:,:,:)
  integer  :: qindx_B_max
+ integer  :: qindx_S_max_Go
  !
  ! SYMs
  !
@@ -168,6 +172,7 @@ module R_lattice
  real(SP),   allocatable          :: RIM_W(:,:,:),RIM_W_E(:,:)
  real(SP),   allocatable DEV_ATTR :: RIM_W_d(:,:,:)
  real(DP),   allocatable :: f_coeff(:,:,:,:,:)
+ character(schlen)       :: rimw_type
  !
  ! Coulomb (including Cutoff)
  !

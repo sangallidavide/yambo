@@ -58,10 +58,10 @@ module pars
  integer, parameter :: n_debugs_max=100
  ! 
  !...Output Files/Report File
- integer,parameter  :: max_n_ofs=1000
- integer,parameter  :: max_open_ofs=1000
- integer,parameter  :: repfile_index=1001
- integer,parameter  :: logfile_index=1002
+ integer,parameter  :: max_n_ofs=10000
+ integer,parameter  :: max_open_ofs=10000
+ integer,parameter  :: repfile_index=10001
+ integer,parameter  :: logfile_index=10002
  !
  !...I/O
  integer, parameter :: max_io_units=40
@@ -94,6 +94,14 @@ module pars
  !
  ! Equivalent to OneByteInt in NetCdf (normal integer is 4 byte)
  integer, parameter  :: LP = selected_int_kind(2)
+ !
+ ! Kinds used in the Yambo-IO
+ ! ===============================
+ integer, parameter  :: DP_YIO = DP
+ integer, parameter  :: SP_YIO = SP
+ integer, parameter  :: IP_YIO = IP+100
+ integer, parameter  :: LP_YIO = LP+100
+ integer, parameter  :: CR_YIO = 0              ! Character type
  !
  ! STRINGs
  !=========

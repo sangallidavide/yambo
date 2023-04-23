@@ -2,7 +2,7 @@
 !        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM DS
 ! 
 ! This file is distributed under the terms of the GNU 
 ! General Public License. You can redistribute it and/or 
@@ -42,8 +42,8 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  ! qindx_C(ikbz,iqbz,1)=okbz
  ! qindx_C(ikbz,iqbz,2)=iGo
  !
- use pars,           ONLY:SP,lchlen,zero_dfl
- use drivers,        ONLY:l_bse,l_elel_scatt,l_setup,l_EXCPH_gkkp
+ use pars,           ONLY:SP,schlen,lchlen,zero_dfl
+ use drivers,        ONLY:l_bse,l_elel_scatt,l_setup,l_nl_optics,l_EXCPH_gkkp
  use com,            ONLY:msg,fat_log
  use parallel_m,     ONLY:PAR_K_scheme,master_cpu,PP_indexes,myid,PP_indexes_reset
  use parallel_int,   ONLY:PP_wait,PP_redux_wait,PARALLEL_index,PARALLEL_global_indexes
@@ -56,8 +56,9 @@ subroutine bz_samp_indexes(en,k,Xk,q)
 &                         qindx_X,qindx_B,qindx_S,qindx_C,qindx_free,&
 &                         bse_scattering,qindx_alloc,Xk_grid_is_uniform,&
 &                         k_grid,k_grid_b,q_pt,k_pt,bz_samp,q_norm,q0_def_norm,&
-&                         q_sstar,coll_scattering,q_source,smallest_q_norm,&
-&                         Xk_grid_new_mapping,k_GRIDS_string,X_scattering,sigma_scattering
+&                         q_sstar,coll_scattering,q_source,smallest_q_norm,qindx_S_max_Go,&
+&                         Xk_grid_new_mapping,X_scattering,sigma_scattering,&
+&                         k_GRIDS_string,k_GRIDS_vector
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,OP_WR_CL,OP_APP_CL,VERIFY,REP
  use parser_m,       ONLY:parser
@@ -70,8 +71,8 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  !
 #include<memory.h>
  !
- type(levels) ::en
- type(bz_samp)::k,Xk,q
+ type(levels),      intent(in)    :: en
+ type(bz_samp),     intent(inout) :: k,Xk,q
  !
  ! Work Space
  !
@@ -83,6 +84,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
 #if defined _ELPH
  logical :: bse_setup_scatt
 #endif
+ character(schlen)    :: convention
  integer, external    :: G_index
  character(lchlen)    :: string(2)
  integer, allocatable :: q_map(:,:,:),q_iptbz(:,:)
@@ -91,34 +93,55 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  !
  call section('*','Transferred momenta grid and indexing')
  !========================================================
- ! .... which GRIDS?
- X_scattering    =index(k_GRIDS_string,"X")>0
- sigma_scattering=index(k_GRIDS_string,"S")>0
+ ! .... defaults
+ X_scattering    =.true.
+ sigma_scattering=.true.
  bse_scattering  =(l_bse .and. (BS_res_K_corr.or.BS_cpl_K_corr))
  coll_scattering =(l_elel_scatt.or.l_EXCPH_gkkp)
-#if defined _ELPH
- call parser('BSEscatt',bse_setup_scatt)
- if (.not.bse_scattering ) bse_scattering =elph_use_q_grid.or.bse_setup_scatt.or.trim(q_source)=="Electron-Phonon databases"
-#endif
+ convention="minus_q"
  !
  ! ... User defined
- call parser('K_grids', user_grids)
- if (user_grids) then
-   bse_scattering  = index(k_GRIDS_string,"B")/=0
-   coll_scattering = index(k_GRIDS_string,"C")/=0
-   X_scattering    = index(k_GRIDS_string,"X")/=0
-   sigma_scattering= index(k_GRIDS_string,"S")/=0
-   if (len_trim(k_GRIDS_string)==0) k_GRIDS_string="none"
-   call k_GRIDS_update( )
+ !
+#if defined _ELPH
+ call parser('BSEscatt',bse_setup_scatt)
+ call warning(' BSE and COLL scattering equal to TRUE')
+! if (.not.bse_scattering ) bse_scattering =elph_use_q_grid.or.bse_setup_scatt.or.trim(q_source)=="Electron-Phonon databases"
+ bse_scattering=.TRUE.
+ coll_scattering=.TRUE.
+#endif
+ !
+#if defined _NL
+ !
+ ! In the non-linear spectroscoy I don't load qindx_X and qindx_S
+ !
+ if(l_nl_optics) then
+   X_scattering    =.FALSE.
+   sigma_scattering=.FALSE.
  endif
  !
+#endif
+ !
+ call parser('K_grids', user_grids)
+ if (user_grids) then
+   bse_scattering=  index(k_GRIDS_string,"B")/=0
+   coll_scattering= index(k_GRIDS_string,"C")/=0
+   X_scattering=    index(k_GRIDS_string,"X")/=0
+   sigma_scattering=index(k_GRIDS_string,"S")/=0
+   if (index(k_GRIDS_string,"plus_q")/=0) convention="plus_q"
+ endif
+ !
+ ! ... some over-rule needed
  if (bse_scattering)  X_scattering    =.TRUE.
  if (coll_scattering) sigma_scattering=.TRUE.
+ !
+ ! ... update string
+ call k_GRIDS_update( )
  !
  q%description='q'
  !
  call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1,2,3,4,6/),MODE=VERIFY,ID=io_db)
- io_err=io_QINDX(Xk,q,io_db)
+ io_err=io_QINDX(Xk,q,io_db,trim(convention))
+ !
  if (io_err==0) then
    call k_expand(q)
    d3q_factor=RL_vol/real(q%nbz)
@@ -292,9 +315,11 @@ subroutine bz_samp_indexes(en,k,Xk,q)
      !
      do ikbz_p=1,Xk%nbz
        !
+       if (trim(convention)=="minus_q") v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:) ! K-K_p= Q + Go
+       if (trim(convention)=="plus_q" ) v1=Xk%ptbz(ikbz_p,:)-Xk%ptbz(ikbz,:) ! K_p-K= Q + Go
+       !
        if(Xk_grid_new_mapping) then
          !  
-         v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:)
          v1=v1-nint(v1)       ! Bring in the BZ, remove the G0
          where(v1<-zero_dfl)  ! Bring between [0,1)
            v1(:)=1._SP+v1(:)
@@ -309,7 +334,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
          !
        else
          !  
-         v1=matmul(k_b_m1,Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:)) ! K-K_p= Q + Go
+         v1=matmul(k_b_m1,v1)
          iv1=nint(v1)
          call k_grid_shift(iv1)
          !
@@ -326,7 +351,8 @@ subroutine bz_samp_indexes(en,k,Xk,q)
        if (do_qindx_X) qindx_X(iqibz,ikbz,1)=ikbz_p
        if (do_qindx_B) qindx_B(ikbz_p,ikbz_mem,1)=iqbz
        !
-       v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:)-q%ptbz(iqbz,:)
+       if (trim(convention)=="minus_q") v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:)-q%ptbz(iqbz,:)
+       if (trim(convention)=="plus_q" ) v1=Xk%ptbz(ikbz_p,:)-Xk%ptbz(ikbz,:)-q%ptbz(iqbz,:)
        call c2a(v_in=v1,mode='ka2i')
        !
        if (do_qindx_X) qindx_X(iqibz, ikbz    ,2)=G_index(v1,.true.)
@@ -403,11 +429,13 @@ subroutine bz_samp_indexes(en,k,Xk,q)
      !
      do ikbz_p=1,k%nbz
        !
-       if (.not.PAR_IND_k%element_1D(ikbz_p)) cycle 
+       if (.not.PAR_IND_k%element_1D(ikbz_p)) cycle
+       !
+       if (trim(convention)=="minus_q") v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:) ! K-K_p= Q + Go
+       if (trim(convention)=="plus_q" ) v1=Xk%ptbz(ikbz_p,:)-Xk%ptbz(ikbz,:) ! K_p-K= Q + Go
        !
        if(Xk_grid_new_mapping) then
          !
-         v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:)
          v1=v1-nint(v1)       ! Bring in the BZ, remove the G0
          where(v1<-zero_dfl)  ! Bring between [0,1)
            v1(:)=1._SP+v1(:)
@@ -422,7 +450,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
          !
        else
          !   
-         v1=matmul(k_b_m1,k%ptbz(ikbz,:)-k%ptbz(ikbz_p,:))
+         v1=matmul(k_b_m1,v1)
          iv1=nint(v1)
          !
          if (.not.v_is_zero(v1-real(iv1,SP),zero_=local_zero)) then
@@ -440,7 +468,8 @@ subroutine bz_samp_indexes(en,k,Xk,q)
        !
        if (iks==1) qindx_S(ikibz,iqbz,1)=ikbz_p
        if (coll_scattering) qindx_C(ikbz,iqbz,1)=ikbz_p
-       v1=k%ptbz(ikbz,:)-k%ptbz(ikbz_p,:)-q%ptbz(iqbz,:)
+       if (trim(convention)=="minus_q") v1=Xk%ptbz(ikbz,:)-Xk%ptbz(ikbz_p,:)-q%ptbz(iqbz,:)
+       if (trim(convention)=="plus_q" ) v1=Xk%ptbz(ikbz_p,:)-Xk%ptbz(ikbz,:)-q%ptbz(iqbz,:)
        call c2a(v_in=v1,mode='ka2i')
        if (iks==1) qindx_S(ikibz,iqbz,2)=G_index(v1,.false.)
        if (coll_scattering) qindx_C(ikbz,iqbz,2)=G_index(v1,.false.)
@@ -477,6 +506,9 @@ subroutine bz_samp_indexes(en,k,Xk,q)
        exit K_LOOP
      endif
    enddo K_LOOP
+   !
+   qindx_S_max_Go=maxval(qindx_S(:,:,2))
+   !
  endif
  !
  ! Grids string update
@@ -492,7 +524,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  !
  if(master_cpu) then
    call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1,2,3,4,6/),ID=io_db)
-   io_err=io_QINDX(Xk,q,io_db)
+   io_err=io_QINDX(Xk,q,io_db,trim(convention))
  endif
  !
  ! Before writing section 5 (qindx_B) I need to wait that the master is done
@@ -508,7 +540,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  if (do_qindx_B) then
    call io_control(ACTION=OP_APP_CL,COM=REP,SEC=(/5/),ID=io_db,&
 &                  COMM=PAR_K_scheme%COM_ibz_index,DO_it=PAR_K_scheme%COM_ibz_A2A%CPU_id==0)
-   io_err=io_QINDX(Xk,q,io_db)
+   io_err=io_QINDX(Xk,q,io_db,trim(convention))
  endif
  !
  !CLEAN
@@ -536,10 +568,23 @@ subroutine bz_samp_indexes(en,k,Xk,q)
      !
      ! Grids string update
      !
-     k_GRIDS_string="X"
+     k_GRIDS_string="" 
+     if (X_scattering    ) k_GRIDS_string=trim(k_GRIDS_string)//" X"
      if (bse_scattering  ) k_GRIDS_string=trim(k_GRIDS_string)//" B"
      if (coll_scattering ) k_GRIDS_string=trim(k_GRIDS_string)//" C"
      if (sigma_scattering) k_GRIDS_string=trim(k_GRIDS_string)//" S"
+     if (trim(convention)=="plus_q" ) k_GRIDS_string=trim(k_GRIDS_string)//" plus_q"
+     if (trim(convention)=="minus_q") k_GRIDS_string=trim(k_GRIDS_string)//" minus_q"
+     !
+     if (len_trim(k_GRIDS_string)==0) k_GRIDS_string="none"
+     !
+     ! This is needed for I/O
+     !
+     k_GRIDS_vector=0
+     if (X_scattering    ) k_GRIDS_vector(1)=1
+     if (bse_scattering  ) k_GRIDS_vector(2)=1
+     if (coll_scattering ) k_GRIDS_vector(3)=1
+     if (sigma_scattering) k_GRIDS_vector(4)=1
      !
    end subroutine 
    !

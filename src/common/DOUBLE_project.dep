@@ -4,6 +4,7 @@
  FREQUENCIES_coarse_grid.o
  FREQUENCIES_damping.o
  FREQUENCIES_merge.o
+ FREQUENCIES_mpa_sampling.o
  FREQUENCIES_reset.o
  FREQUENCIES_set_reference_point.o
  FREQUENCIES_setup.o
@@ -21,6 +22,8 @@
  OCCUPATIONS_Extend_Double_Grid.o
  OCCUPATIONS_Fermi.o
  OCCUPATIONS_Gaps.o
+ OCCUPATIONS_Merge.o
+ OCCUPATIONS_Quasi_Fermi.o
  QP_state_group.o
  QP_state_print.o
  QPartilize.o
@@ -38,5 +41,6 @@
  device_memcpy_mod.o
  eval_G_minus_G.o
  eval_Gradient.o
+ f_build_ext.o
  spline_fit.o
 

@@ -8,12 +8,15 @@
  io_DB1_selective_scan.o
  io_Double_Grid.o
  io_ELPH.o
+ io_EXCPH_SE.o
+ io_EXCPH_gkkp.o
  io_E_SOC_map.o
  io_GROT.o
  io_HF_and_locXC.o
  io_KB_abinit.o
  io_KB_pwscf.o
  io_KB_real_space.o
+ io_MPA.o
  io_NL.o
  io_NLCC_pwscf.o
  io_PH.o

@@ -23,15 +23,15 @@
 !
 integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  !
- use pars,          ONLY:SP,IP,LP
+ use pars,          ONLY:SP,IP,LP,IP_YIO,LP_YIO,CR_YIO
  use units,         ONLY:HA2EV
  use drivers,       ONLY:l_td_hf
  use X_m,           ONLY:X_t
  use R_lattice,     ONLY:RIM_ng,RIM_n_rand_pts,cut_geometry
- use BS,            ONLY:BS_identifier,BS_K_dim,BS_bands,L_kind,&
+ use BS,            ONLY:BS_identifier,BS_K_dim,BS_bands,BSE_L_kind,&
 &                        BS_K_coupling,BS_res_K_exchange,BS_res_K_corr,&
 &                        BS_n_g_exch,BS_n_g_W,BS_eh_en,BS_eh_win,BS_W_is_diagonal,&
-&                        BS_K_is_ALDA,BS_cpl_K_exchange,BSE_L_kind,&
+&                        BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                        BS_cpl_K_corr,BSqpts,BS_perturbative_SOC
  use IO_m,          ONLY:io_status,variable_exist,write_is_on
  use IO_int,        ONLY:ver_is_gt_or_eq,def_variable_elemental,io_variable_elemental
@@ -107,7 +107,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  !
  if(ver_is_gt_or_eq(ID,revision=21261)) then
    call def_variable_elemental(ID,"L_kind",1,0,0)
-   call io_variable_elemental(ID,VAR='[K] L kind',CH0=L_kind,CHECK=.true.,DESCRIPTOR=desc)
+   call io_variable_elemental(ID,VAR='[K] L kind',CH0=BSE_L_kind,CHECK=.true.,DESCRIPTOR=desc)
  endif
  !
  ! Interaction
@@ -148,14 +148,14 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
        !
        ! v 3.0.11: Inclusion of cut_geometry
        !
-       call def_variable_elemental(ID,"W_Cutoff",1,0,0)
+       call def_variable_elemental(ID,"W_Cutoff",1,CR_YIO,0)
        call io_variable_elemental(ID,&
 &           VAR="[W] Coulomb Cutoff",CH0=cut_geometry,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc)
      endif
      !
      ! W_TDDFT_KERNEL
      !
-     call def_variable_elemental(ID,"W_TDDFT_KERNEL",1,0,0)
+     call def_variable_elemental(ID,"W_TDDFT_KERNEL",1,CR_YIO,0)
      call io_variable_elemental(ID,VAR='[W] Hxc Kernel',CH0=X%KERNEL,CHECK=.true.,DESCRIPTOR=desc)
      !
    endif
@@ -166,7 +166,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
    ! However the ndb.BS_PAR_Q1 used for restart in the test-suite should
    ! be updated, otherwise the hBN/GW-OPTICS/ corresponding test fails
    !
-   call def_variable_elemental(ID,"W_DbGd",2,IP+100,0)
+   call def_variable_elemental(ID,"W_DbGd",2,IP_YIO,0)
      call io_variable_elemental(ID,I0=RIM_ng,&
 &     VAR='[RIM] RL components',TERMINATOR='[col]',CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc,DO_NOT_DUMP=.TRUE.)
      call io_variable_elemental(ID,I0=RIM_n_rand_pts,&
@@ -176,7 +176,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
    ! Perturbative SOC
    !
    if (write_is_on(ID).or.variable_exist(ID,"PERT_SOC")) then
-     call def_variable_elemental(ID,"PERT_SOC",1,LP+100,MENU=0)
+     call def_variable_elemental(ID,"PERT_SOC",1,LP_YIO,MENU=0)
      call io_variable_elemental(ID,L0=BS_perturbative_SOC,&
 &       VAR='[SOC] Perturbative SOC',CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc,DO_NOT_DUMP=.TRUE.)
    endif
@@ -184,7 +184,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  endif
  !
  if (ver_is_gt_or_eq(ID,revision=20415)) then
-   call def_variable_elemental(ID,"X_kind",1,0,0)
+   call def_variable_elemental(ID,"X_kind",1,CR_YIO,0)
    call io_variable_elemental(ID,VAR="[K] Kernel long-range exchange",CH0=BSE_L_kind,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc)
  endif
  !

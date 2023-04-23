@@ -41,7 +41,6 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     QP_dSc_test,QP_solver,QP_G_damp,QP_dSc_delta,&
 &                     QP_cg_percent,QP_n_states,SC_E_threshold, &
 &                     QP_Sc_steps,QP_G_er,QP_G_dr,SC_band_mixing,&
-&                     GWo_SC_done,GWo_iterations,GW_iterations,&
 &                     COHSEX_use_empties,On_Mass_Shell_approx,&
 &                     Vnlxc_kind,Vxc_kind,l_extended_output,l_GW_terminator,&
 &                     GW_terminator_E
@@ -53,12 +52,12 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use pseudo,     ONLY:pp_n_l_times_proj_max,pp_kbv_dim
  use R_lattice,  ONLY:n_g_shells,ng_closed,bse_scattering,coll_scattering,&
 &                     Xk_grid_is_uniform,RIM_id_epsm1_reference,RIM_epsm1,&
-&                     RIM_anisotropy,RIM_ng,RIM_W_ng,RIM_n_rand_pts,nqibz,q0_def_norm,&
-&                     cutoff_presets,k_map
- use electrons,  ONLY:n_spin,n_sp_pol,n_spinor,filled_tresh,l_spin_orbit,n_spin_den,eval_magn
+&                     RIM_anisotropy,RIM_ng,RIM_W_ng,rimw_type,RIM_n_rand_pts,nqibz,q0_def_norm,&
+&                     cutoff_presets,k_map,qindx_S_max_Go
+ use electrons,  ONLY:n_spin,n_sp_pol,n_spinor,filled_tresh,l_spin_orbit,n_spin_den,eval_magn,nel_cond
  use parallel_m, ONLY:ncpu,CPU_str_reset,CREATE_hosts_COMM
  use com,        ONLY:isec,depth,secnm,previous_secmode,of_name,n_ofs_defined,of_opened,of_unit,max_open_ofs,&
-&                     more_io_path,core_io_path,com_path,repfile,grid_paths,fat_log
+&                     more_io_path,core_io_path,com_path,repfile,grid_paths,fat_log,exp_user
  use stderr,     ONLY:win_size,tty_size,logfile,set_real_printed_length,log_as_a_file
  use LIVE_t,     ONLY:log_line_to_dump,log_line,nhash,ct
  use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO
@@ -82,8 +81,10 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use ACFDT,      ONLY:ACFDT_n_lambda,ACFDT_n_freqs,ACFDT_E_range
 #if defined _ELPH 
  use ELPH,       ONLY:ph_modes,elph_nb,gsqF_energy_steps,eval_G_using_KK,use_PH_DbGd,EkplusQ_mode,gkkp_db,&
-&                     elph_Ham_bands,elph_Ham_ik,elph_branches,RES_tresh,FAN_deltaE_treshold,DW_deltaE_treshold
- use EXCPH,      ONLY:Lin_path,Lout_path,EXCPH_states,EXCPH_sum,L_damping
+&                     elph_Ham_bands,elph_Ham_ik,elph_branches,RES_tresh,FAN_deltaE_treshold,DW_deltaE_treshold,&
+&                     elph_bands
+ use EXCPH,      ONLY:Lin_path,Lout_path,EXCPH_states,EXCPH_sum,L_damping,EXC_q0,EXCPH_kind_name,alphaQ, &
+&                     EXCPH_deltaE_treshold
 #endif
  use zeros,      ONLY:zero_norm,k_iku_zero,k_rlu_zero,G_iku_zero,G_mod_zero,zero_dfl
  use memory,     ONLY:MEMs,LARGE_MEMs,N_MEM_max,N_MEM_SAVE_max,MEM_element_init
@@ -154,6 +155,11 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  fat_log    = .FALSE.
  if (index(INSTR,'fatlog')>0) fat_log=.TRUE.
+ !
+ ! Experienced User
+ !
+ exp_user    = .FALSE.
+ if (index(INSTR,'expuser')>0) exp_user=.TRUE.
  !
  ! CPU structures
  !
@@ -282,6 +288,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  k_map%g0_idx  =-1
  k_map%q_step  =-1
  k_map%max_kdir= 0
+ qindx_S_max_Go=-1
  !
  ! RIM
  !
@@ -294,6 +301,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  ! RIM-W
  !
  RIM_W_ng=0
+ RIMW_type="default"
  !
  ! CUTOFF
  !
@@ -319,7 +327,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  n_spinor=1
  n_spin_den=1
  l_spin_orbit       = .FALSE.
- filled_tresh=0.00001
+ filled_tresh       = 0.00001_SP
+ nel_cond=rZERO
  !
  ! Magnetization and density
  !
@@ -394,9 +403,6 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  QP_G_er=(/-10._SP/HA2EV,10._SP/HA2EV/)
  QP_G_dr=0.1/HA2EV
  QP_cg_percent=100._SP
- GWo_iterations=0
- GW_iterations =0
- GWo_SC_done=.FALSE.
  COHSEX_use_empties=.FALSE.
  On_Mass_Shell_approx=.FALSE.
  SC_E_threshold=0.01/HA2EV
@@ -521,14 +527,15 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  ph_modes=0
  elph_nb=0
+ elph_bands=-1
  elph_branches=0
  gsqF_energy_steps=2
  eval_G_using_KK=.FALSE.
  elph_Ham_bands=0
  elph_Ham_ik=1
  RES_tresh=0.01_SP
- DW_deltaE_treshold=1.E-6_SP/HA2EV   ! This is a cutoff on electronic energy differences
- FAN_deltaE_treshold=1.E-6_SP/HA2EV  ! This is a cutoff on phonon energies
+ DW_deltaE_treshold=1.E-6_SP/HA2EV    ! This is a cutoff on electronic energy differences
+ FAN_deltaE_treshold=1.E-6_SP/HA2EV   ! This is a cutoff on phonon energies
  use_PH_DbGd=.FALSE.
  EkplusQ_mode='interp' ! E(k+q) energies (interp | dftp )
  gkkp_db='gkkp'        ! gkkp_db ( gkkp | gkkp_expanded | genFroh )
@@ -538,8 +545,12 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  Lin_path ='none'
  Lout_path='none'
  EXCPH_states=(/1,1/)
+ EXCPH_kind_name='PALEARI'
  EXCPH_sum=(/1,1/)
  L_damping=0.0005/HA2EV ! set to 0.5 meV
+ EXCPH_deltaE_treshold=1.E-6_SP/HA2EV ! This is a cutoff for denominator in the exc-ph spectra
+ EXC_q0=(/0.0,0.0,0.0/)
+ alphaQ=rZERO
  !
 #endif
  !
