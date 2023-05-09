@@ -78,6 +78,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  !
  complex(SP), allocatable :: EM1s(:,:),rhotw_tmp(:)
  integer                  :: io_err,ID_X,ID_HXC,ID_COH,TMP_VEC(ncpu)
+ logical                  :: doing_cv_colls,cc_vv_prime_only
  integer, external        :: io_X
  !
  call timing(trim(H_potential)//' Collisions',OPR='start')
@@ -101,7 +102,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  call k_build_up_BZ_tables(q)
  call k_expand(k)
  !
- if (l_compute_screening.and.IO_BS_err/=0) then
+ if (l_compute_screening.and.(IO_BS_err/=0.or.(.not.COLLISIONS_CV_only))) then
    !
    ! Plasmon-Pole/Static interaction DB I/O
    !
@@ -158,7 +159,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
    bands_to_load(2)=max(COLL_bands(2),maxval(E%nbm))
  endif
  !
- if (IO_BS_err/=0) then
+ if (IO_BS_err/=0.or.(.not.COLLISIONS_CV_only)) then
    !
    if (WF_buffered_IO) call WF_load(WF_buffer,0,1,bands_to_load,(/1,k%nibz/),space='B',title='-BUFFER')
    call WF_load(WF,NG_max,iGo_max,bands_to_load,(/1,k%nibz/),title='-'//trim(H_potential)//' Collisions')
@@ -322,16 +323,32 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
    if( l_HXC_collisions )     HXC_COLL_element(1)%v3_c=cZERO
    if( l_use_COH_collisions ) COH_COLL_element(1)%v3_c=cZERO
    !
-   ! HARTREE collisions
-   !
    if (IO_BS_err==0) then
-     ! HXC collisions from BSE kernel
-     call map_BSE_to_HXC_collisions()
-   else 
+     !
+     doing_cv_colls=.not.((i_n> n_met_bands(i_sp)  .and. i_m>n_met_bands(i_sp) ) .or. &
+     &                    (i_n<=n_full_bands(i_sp) .and. i_m<=n_full_bands(i_sp))     )
+     !
+     ! HXC collisions from BSE kernel if in the cv channel
+     if (doing_cv_colls) call map_BSE_to_HXC_collisions()
+     !
+     if (.not.COLLISIONS_CV_only) then
+       !
+       ! If (in,im) is in the cv channel, I need (inp,imp) only in the cc/vv channel
+       ! If (in,im) is not in the cv channel, I need (inp,imp) everywhere
+       cc_vv_prime_only=doing_cv_colls
+       ! Hartree collisions
+       if ( COLLISIONS_HXC_local )                      call compute_Hartree_collisions(cc_vv_prime_only)
+       ! XC collisions within MBPT
+       if ( COLLISIONS_HXC_MB.or.l_use_COH_collisions ) call compute_MBPT_XC_collisions(cc_vv_prime_only)
+     endif
+     !
+   else
+     !
      ! Hartree collisions
-     if ( COLLISIONS_HXC_local )                      call compute_Hartree_collisions()
+     if ( COLLISIONS_HXC_local )                      call compute_Hartree_collisions(.false.)
      ! XC collisions within MBPT
-     if ( COLLISIONS_HXC_MB.or.l_use_COH_collisions ) call compute_MBPT_XC_collisions()
+     if ( COLLISIONS_HXC_MB.or.l_use_COH_collisions ) call compute_MBPT_XC_collisions(.false.)
+     !
    endif
    !
    if(l_HXC_collisions) then
@@ -394,8 +411,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=COLL_bands(1),COLL_bands(2)
            !
-           if ( COLLISIONS_CV_only .and. (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
-           if ( COLLISIONS_CV_only .and. (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
+           if ( (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
+           if ( (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
            !
            i_k_bz=BS_K_io_map(k%k_table(i_k,1))
            i_p_bz=BS_K_io_map(k%k_table(i_p,1))
@@ -447,7 +464,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !
    end subroutine map_BSE_to_HXC_collisions
    !
-   subroutine compute_Hartree_collisions()
+   subroutine compute_Hartree_collisions(cc_vv_only)
      !
      ! Scattering geometry
      !=====================           _ \ _
@@ -459,7 +476,10 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !                                 |
      !     (i_n,i_k,1)------>----------.---------->----(i_m,i_k,1)
      !                          
-     !                          
+     !
+     logical, intent(in)  :: cc_vv_only
+     !
+     logical :: cc_vv_colls
      integer :: i_q_fake, i_p_bz
      !                          
      isc_H%qs   = 1
@@ -484,8 +504,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=i_mp,COLL_bands(2)
            !
-           if ( COLLISIONS_CV_only .and. (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
-           if ( COLLISIONS_CV_only .and. (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
+           cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
+           &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
+	   !
+           if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
+           if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
            !
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
@@ -575,7 +598,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !
    end subroutine compute_Hartree_collisions
    !
-   subroutine compute_MBPT_XC_collisions()
+   subroutine compute_MBPT_XC_collisions(cc_vv_only)
      !
      ! Scattering geometry
      !=====================
@@ -590,7 +613,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      !     (i_n,i_k,1)-->--.---------->----------.---->----(i_m,i_k,1)
      !                          (i_kmq,i_kmq_s)
      !
+     logical, intent(in)  :: cc_vv_only
      !
+     logical :: cc_vv_colls
      integer :: TMP_INDEX(COLL_bands(1):COLL_bands(2))
      !
      if (l_compute_screening.and.i_coll==first_coll) then
@@ -660,8 +685,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
          !
          do i_np=COLL_bands(1),COLL_bands(2)
            !
-           if ( COLLISIONS_CV_only .and. (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
-           if ( COLLISIONS_CV_only .and. (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
+           cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
+           &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
+	   !
+           if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
+           if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
            !
            ! COLLISIONS(n,n',qp_n_states) = \sum_{G,G',q} ( rho(m,n,G,q,k) x EM1s(G ,G') x rho*(m',n',G',q,k) /|q+G|/|q+G'| )
            !
@@ -694,7 +722,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
              enddo
              !$omp end parallel do
            endif
-           !
+	   !
            if(index(H_potential,"SEX")>0 .or. index(H_potential,"FOCK")>0) &
 &            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq) &
 &                                                      -4._SP/spin_occ*pi*(pre_factor1+pre_factor2)
