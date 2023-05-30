@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM CA DS
@@ -21,6 +21,12 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
+!> @brief Calculate the average value of an operator
+!
+! <A> = 1/N_k \sum_{v,k} < u_{v,k} (t) | A | u_{v,k} (t) >
+!
+! Symmetry operatoration are applied if necessary
+!
 subroutine NL_average_operator(O_VALUE,V_VALUE,O_REAL,O_MATRIX,&
 &                              V_MATRIX,PV_MATRIX,V_bands,k,en,TRANS,nK_mem)
  !
@@ -32,14 +38,15 @@ subroutine NL_average_operator(O_VALUE,V_VALUE,O_REAL,O_MATRIX,&
  use FFT_m,          ONLY:fft_size
  use wave_func,      ONLY:WF
  use wrapper_omp,    ONLY:Vstar_dot_V_omp,M_by_V_omp
- use parallel_m,     ONLY:PP_redux_wait,PAR_IND_Xk_ibz,PAR_Xk_ibz_index,PAR_COM_Xk_ibz_INDEX
+ use parallel_m,     ONLY:PAR_IND_Xk_ibz,PAR_Xk_ibz_index,PAR_COM_Xk_ibz_INDEX
+ use parallel_int,   ONLY:PP_redux_wait
  use H_interfaces,   ONLY:V_real_space_to_H
  !
  implicit none
  !
  type(bz_samp), intent(in) :: k
  type(levels),  intent(in) :: en
- complex(SP),   intent(in) :: V_bands(NL_bands(2),en%nbf,QP_nk, n_sp_pol)
+ complex(SP),   intent(in) :: V_bands(NL_bands(2),maxval(en%nbf),QP_nk, n_sp_pol)
  integer,       intent(in) :: nK_mem
  !
  ! Optionals
@@ -90,7 +97,7 @@ subroutine NL_average_operator(O_VALUE,V_VALUE,O_REAL,O_MATRIX,&
      if(OUTPUT_dim==1) Hk(1,:,:)    =Hk_tmp(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2))
      if(OUTPUT_dim==3) Hk(i_dir,:,:)=Hk_vec_tmp(i_dir,:,:)
      !
-     do iv=1,en%nbf
+     do iv=1,en%nbf(i_sp_pol)
        call M_by_V_omp(op,NL_nbands,NL_nbands,cONE,Hk(i_dir,:,:),NL_nbands,V_bands(NL_bands(1):,iv,ik_ibz,i_sp_pol) &
 &               ,1,cZERO,V_tmp,1)
        VALUE_tmp(i_dir)=VALUE_tmp(i_dir)+spin_occ*Vstar_dot_V_omp(NL_nbands,V_bands(NL_bands(1):,iv,ik_ibz,i_sp_pol),V_tmp) 

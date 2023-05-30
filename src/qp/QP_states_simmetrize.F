@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -20,6 +20,9 @@
 ! License along with this program; if not, write to the Free 
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
+!
+!@brief Enforce symmetry between degenerate states 
+!       it may induce errors in case of accidental degeneracies
 !
 subroutine QP_states_simmetrize(en,what,V_real,V_complex,state_is_2do,warn_me)
  !
@@ -95,13 +98,13 @@ subroutine QP_states_simmetrize(en,what,V_real,V_complex,state_is_2do,warn_me)
      if (i2<first_el(i1)+n_of_el(i1)-1) states_ch=trim(states_ch)//"-"
      !
      if (present(V_real)) then
-       if (check_the_diffs) then 
+       if (check_the_diffs.and.abs(V_real(inx_first))>0._SP) then 
          DIFF=(V_real(inx)-V_real(inx_first))/real( n_of_el(i1) )/V_real(inx_first)
        endif
        r_sum=r_sum+V_real(inx)/real( n_of_el(i1) )
      endif
      if (present(V_complex)) then
-       if (check_the_diffs) then
+       if (check_the_diffs.and.abs(V_complex(inx_first))>0._SP) then 
          DIFF=abs(V_complex(inx)-V_complex(inx_first))/real( n_of_el(i1) )/abs(V_complex(inx_first))
        endif
        c_sum=c_sum+V_complex(inx)/real( n_of_el(i1) )

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -25,19 +25,23 @@ integer function io_QP_and_GF(what,qp,ID)
  use pars,           ONLY:SP,schlen
  use D_lattice,      ONLY:alat
  use electrons,      ONLY:n_sp_pol
- use QP_m,           ONLY:QP_t,QP_G_dr,QP_G_er,GW_iterations,&
-&                         GWo_iterations,GF_is_causal,QP_G_Zoom_treshold
- use IO_m,           ONLY:io_connect,io_disconnect,io_sec,io_header,&
-&                         io_elemental,io_status,io_bulk,read_is_on,&
-&                         write_is_on,io_mode,DUMP,VERIFY,DB_is_OK,ver_is_gt_or_eq,&
+ use QP_m,           ONLY:QP_t,QP_G_dr,QP_G_er,GF_is_causal,QP_G_Zoom_treshold
+ use IO_int,         ONLY:io_connect,io_disconnect,io_header,io_elemental,io_bulk,&
+&                         ver_is_gt_or_eq
+ use IO_m,           ONLY:io_sec,io_status,read_is_on,&
+&                         write_is_on,io_mode,DUMP,VERIFY,DB_is_OK,&
 &                         db_alat,variable_exist,IO_INCOMPATIBLE_VAR
  use global_XC,      ONLY:QP_DB_kind,QP_SE_GoWo,QP_SE_GWo,QP_SE_GoWo_PPA,QP_SE_GWo_PPA,QP_SE_COHSEX,QP_SE_NONE,&
 &                         QP_SE_POLARON,QP_SE_GW_QED,G_E_xc_string,X_E_xc_string,&
 &                         G_WF_xc_string,X_WF_xc_string
  use timing_m,       ONLY:timing
- use descriptors,    ONLY:IO_desc_add
+ use descriptors,    ONLY:IO_desc_add,IO_desc_append
+#if _ELPH
+ use ELPH,           ONLY:ELPH_desc,use_PH_DbGd
+#endif
  !
 #include<memory.h>
+ !
  type(QP_t)  ::qp
  character(*)::what ! 'QP'/'G'/filename
  integer     ::ID
@@ -51,6 +55,9 @@ integer function io_QP_and_GF(what,qp,ID)
  logical              ::type_two_DB,QP_type_DB
  integer ,    allocatable ::qp_table_disk(:,:)
  real(SP),    allocatable ::qp_DATA_disk(:,:,:)
+ !
+ ! These variables are not used anymore, just for back compatibility
+ integer                  :: GW_iterations,GWo_iterations
  !
  integer, external :: io_descriptors
  !
@@ -108,21 +115,21 @@ integer function io_QP_and_GF(what,qp,ID)
  !
  select case (QP_DB_kind)
    case(0,QP_SE_NONE)
-     io_QP_and_GF=io_header(ID,T_EL=.true.,D_LATT=.true.,CUTOFF=.true.)
+     io_QP_and_GF=io_header(ID,TEMP=.true.,D_LATT=.true.,CUTOFF=.true.)
    case(QP_SE_COHSEX)
-     io_QP_and_GF=io_header(ID,T_EL=.true.,D_LATT=.true.,XC_KIND="G_WF Xs",CUTOFF=.true.)
+     io_QP_and_GF=io_header(ID,TEMP=.true.,D_LATT=.true.,XC_KIND="G_WF Xs",CUTOFF=.true.)
      i_X=2
    case(QP_SE_GoWo_PPA,QP_SE_GWo_PPA)
-     io_QP_and_GF=io_header(ID,T_EL=.true.,D_LATT=.true.,XC_KIND="G Xp",CUTOFF=.true.)
+     io_QP_and_GF=io_header(ID,TEMP=.true.,D_LATT=.true.,XC_KIND="G Xp",CUTOFF=.true.)
      i_X=3
    case(QP_SE_GoWo,QP_SE_GWo)
-     io_QP_and_GF=io_header(ID,T_EL=.true.,D_LATT=.true.,XC_KIND="G Xd",CUTOFF=.true.)
+     io_QP_and_GF=io_header(ID,TEMP=.true.,D_LATT=.true.,XC_KIND="G Xd",CUTOFF=.true.)
      i_X=4
    case(QP_SE_POLARON,QP_SE_GW_QED)
-     io_QP_and_GF=io_header(ID,T_EL=.true.,D_LATT=.true.,XC_KIND="G",CUTOFF=.true.)
+     io_QP_and_GF=io_header(ID,TEMP=.true.,D_LATT=.true.,XC_KIND="G",CUTOFF=.true.)
  end select
  !
- if (.not.QP_DB_kind==QP_SE_NONE) then
+ if (.not.QP_DB_kind==QP_SE_NONE.and..not.IO_mode(ID)==VERIFY) then
    if (.not.QP_DB_kind==QP_SE_COHSEX) then
      call IO_desc_add(qp%desc,kind="s",str='GF energies kind',S=trim(G_E_xc_string))
    endif
@@ -131,6 +138,15 @@ integer function io_QP_and_GF(what,qp,ID)
      call IO_desc_add(qp%desc,kind="s",str='Xs energies kind',S=trim(X_E_xc_string(i_X)))
      call IO_desc_add(qp%desc,kind="s",str='Xs WF`s kind',S=trim(X_WF_xc_string(i_X)))
    endif
+#if _ELPH
+   if (QP_DB_kind==QP_SE_POLARON) then
+     call IO_desc_add(qp%desc,kind="s",str=" ",S=" ")
+     call IO_desc_append(ELPH_desc,qp%desc)
+     if (ver_is_gt_or_eq(ID,revision=19875)) then 
+       call IO_desc_add(qp%desc,kind="l",str='PH double-grid',L=use_PH_DbGd)
+     endif
+   endif
+#endif
  endif
  !
  if (io_QP_and_GF/=0) then
@@ -148,13 +164,15 @@ integer function io_QP_and_GF(what,qp,ID)
  call io_elemental(ID,I0=qp%nk,DB_I0=QP_nk_disk,CHECK=.true.,OP=(/"<="/))
  call io_elemental(ID,I0=qp%n_states,DB_I0=QP_n_states_disk,&
 &                  VAR='QP tot states          ',CHECK=.true.,OP=(/"<="/))
- if (ver_is_gt_or_eq(ID,revision=15200)) then 
-   call io_elemental(ID,I0=GWo_iterations,&
+ if (.not.ver_is_gt_or_eq(ID,revision=22010)) then 
+   if (ver_is_gt_or_eq(ID,revision=15200)) then 
+     call io_elemental(ID,I0=GWo_iterations,&
 &                    VAR='GWo SC iterations       ',CHECK=.true.,OP=(/"=="/))
- else
-   GWo_iterations=0
+   else
+     GWo_iterations=0
+   endif
+   call io_elemental(ID,I0=GW_iterations,VAR='GW  SC iterations',CHECK=.true.,OP=(/"=="/))
  endif
- call io_elemental(ID,I0=GW_iterations,VAR='GW  SC iterations',CHECK=.true.,OP=(/"=="/))
  !
  call io_elemental(ID,I0=qp%desc%n,DB_I0=n_descs_disk,CHECK=.true.,OP=(/"<="/))
  call io_elemental(ID,VAR="",VAR_SZ=0,MENU=0)

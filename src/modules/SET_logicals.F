@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -27,9 +27,10 @@ subroutine SET_logicals()
  use drivers,    ONLY:l_eval_collisions
  use parallel_m, ONLY:IO_write_default,master_cpu,myid,master_cpu,myid,n_log_CPUs,ncpu
  use com,        ONLY:write_to_of,write_to_report,fat_log
- use IO_m,       ONLY:IO_write,IO_read,DBs_IO_control_string,DBs_FRAG_control_string,                   &
-&                     io_DIP,io_RESPONSE,io_HF,io_COLLs,io_GF,io_OBSERVABLES,io_CARRIERs,io_SC,io_BS_K,io_SCREEN, &
-&                     frag_DIP,frag_RESPONSE,frag_HF,frag_SC,   &
+ use IO_m,       ONLY:IO_write,IO_read,DBs_IO_control_string,DBs_FRAG_control_string, &
+&                     io_DIP,io_RESPONSE,io_HF,io_COLLs,io_GF,io_OBSERVABLES,io_CARRIERs,io_SC,&
+&                     io_BS_K,io_SCREEN,io_MULTIPOLE, &
+&                     frag_DIP,frag_RESPONSE,frag_MULTIPOLE,frag_HF,frag_SC,frag_DG,   &
 &                     frag_BS_K,frag_SCREEN,frag_QINDX,frag_ELPH,frag_RT
  use stderr,     ONLY:write_to_log,write_fragments_IO_log,STRING_split,write_to_log_default
  use LIVE_t,     ONLY:live_timing_is_on
@@ -68,6 +69,7 @@ subroutine SET_logicals()
  !========
  io_DIP         =.TRUE.
  io_RESPONSE    =.TRUE.
+ io_MULTIPOLE   =.TRUE.
  io_SCREEN      =.FALSE.
  io_HF          =.TRUE.
  io_COLLs       =.TRUE.
@@ -103,15 +105,17 @@ subroutine SET_logicals()
  !
  ! DBs fragmentation
  !===================
- frag_DIP     =.TRUE.
- frag_RESPONSE=.TRUE.
- frag_SCREEN  =.TRUE.
- frag_HF      =.FALSE.
- frag_SC      =.TRUE.
- frag_RT      =.TRUE.
- frag_ELPH    =.TRUE.
- frag_QINDX   =.FALSE.
- frag_BS_K    =.FALSE.
+ frag_DIP      =.TRUE.
+ frag_RESPONSE =.TRUE.
+ frag_MULTIPOLE=.TRUE.
+ frag_SCREEN   =.TRUE.
+ frag_HF       =.FALSE.
+ frag_SC       =.TRUE.
+ frag_RT       =.TRUE.
+ frag_ELPH     =.TRUE.
+ frag_QINDX    =.FALSE.
+ frag_BS_K     =.FALSE.
+ frag_DG       =.TRUE.
  !
  ch_piece=' '
  call STRING_split(DBs_FRAG_control_string,ch_piece)
@@ -120,6 +124,7 @@ subroutine SET_logicals()
    !
    if (str_check(4,(/"+DIP","+dip","+ALL","+all"/),ch_piece(i_ch)) ) frag_DIP     =.TRUE.
    if (str_check(4,(/"+X  ","+x  ","+ALL","+all"/),ch_piece(i_ch)) ) frag_RESPONSE=.TRUE.
+   if (str_check(4,(/"+DG ","+dg ","+ALL","+all"/),ch_piece(i_ch)) ) frag_DG      =.TRUE.
    if (str_check(4,(/"+W  ","+w  ","+ALL","+all"/),ch_piece(i_ch)) ) frag_SCREEN  =.TRUE.
    if (str_check(4,(/"+HF ","+hf ","+ALL","+all"/),ch_piece(i_ch)) ) frag_HF      =.TRUE.
    if (str_check(4,(/"+k  ","+K  ","+ALL","+all"/),ch_piece(i_ch)) ) frag_BS_K    =.TRUE.
@@ -128,6 +133,7 @@ subroutine SET_logicals()
    !
    if (str_check(4,(/"-DIP","-dip","-ALL","-all"/),ch_piece(i_ch)) ) frag_DIP     =.FALSE.
    if (str_check(4,(/"-X  ","-x  ","-ALL","-all"/),ch_piece(i_ch)) ) frag_RESPONSE=.FALSE.
+   if (str_check(4,(/"-DG ","-dg ","-ALL","-all"/),ch_piece(i_ch)) ) frag_DG      =.FALSE.
    if (str_check(4,(/"-W  ","-w  ","-ALL","-all"/),ch_piece(i_ch)) ) frag_SCREEN  =.FALSE.
    if (str_check(4,(/"-HF ","-hf ","-ALL","-all"/),ch_piece(i_ch)) ) frag_HF      =.FALSE.
    if (str_check(4,(/"-k  ","-K  ","-ALL","-all"/),ch_piece(i_ch)) ) frag_BS_K    =.FALSE.

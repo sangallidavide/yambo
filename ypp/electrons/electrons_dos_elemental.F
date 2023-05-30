@@ -1,5 +1,5 @@
 ! 
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM, DS
@@ -21,34 +21,35 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine electrons_dos_elemental(k,E,bands,el_dos,dos_E,&
-&                                  WF_fac,PDOS_fac,USE_the_DbGd,QUIET,FORCE_occ)
+subroutine electrons_dos_elemental(k,E,bands,el_dos,dos_E,spin_fac,pdos_fac,USE_the_DbGd,QUIET,FORCE_occ)
  !
  use pars,           ONLY:SP,rZERO
  use electrons,      ONLY:levels,n_spin
  use R_lattice,      ONLY:bz_samp 
  use YPPm,           ONLY:DOS_broadening,DOS_E_steps
- use interfaces,     ONLY:PARALLEL_index,el_density_of_states
+ use interfaces,     ONLY:el_density_of_states
  use LIVE_t,         ONLY:live_timing
- use parallel_m,     ONLY:PP_indexes,myid,PP_redux_wait,PP_indexes_reset
- use IO_m,           ONLY:IO_and_Messaging_switch
+ use parallel_m,     ONLY:PP_indexes,myid,PP_indexes_reset
+ use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
+ use IO_int,         ONLY:IO_and_Messaging_switch
  use parser_m,       ONLY:parser
+ use interpolate,    ONLY:INTERP_obj
  !
  implicit none
  !
- type(bz_samp),     intent(in)  :: k
- type(levels),      intent(in)  :: E
- integer,           intent(in)  :: bands(2)
- real(SP),          intent(in)  :: dos_E(DOS_E_steps)
- real(SP),          intent(out) :: el_dos(DOS_E_steps,n_spin)
- real(SP), pointer, intent(in)  :: WF_fac(:,:,:)
- real(SP), pointer, intent(in)  :: PDOS_fac(:,:,:)
- logical,  optional, intent(in) :: USE_the_DbGd,QUIET,FORCE_occ
+ type(bz_samp),     intent(in) :: k
+ type(levels),      intent(in) :: E
+ integer,           intent(in) :: bands(2)
+ real(SP),          intent(in) :: dos_E(DOS_E_steps)
+ real(SP),          intent(out):: el_dos(DOS_E_steps,n_spin)
+ real(SP),pointer, optional, intent(in):: spin_fac(:,:,:)
+ real(SP),pointer, optional, intent(in):: pdos_fac(:,:,:)
+ logical, optional, intent(in) :: USE_the_DbGd,QUIET,FORCE_occ
  !
  ! Work Space
  ! 
  integer               :: i_E
- logical               :: LIVE_t_,USE_occ
+ logical               :: LIVE_t_,USE_occ,l_spin,l_pdos
  type(PP_indexes)      :: px
  !
  ! Use occupations?
@@ -63,6 +64,12 @@ subroutine electrons_dos_elemental(k,E,bands,el_dos,dos_E,&
  LIVE_t_=.TRUE.
  if (present(QUIET)) LIVE_t_=.not.QUIET
  !
+ l_spin=.false.
+ if (present(spin_fac)) l_spin=associated(spin_fac)
+ !
+ l_pdos=.false.
+ if (present(pdos_fac)) l_pdos=associated(pdos_fac)
+ !
  call PP_indexes_reset(px)
  call PARALLEL_index(px,(/DOS_E_steps/))
  !
@@ -75,9 +82,9 @@ subroutine electrons_dos_elemental(k,E,bands,el_dos,dos_E,&
    !
    if (.not.px%element_1D(i_E)) cycle
    !
-   call el_density_of_states(k,E,dos_E(i_E),DOS_broadening,bands,el_dos(i_E,:),  & ! standard
-&                              USE_the_DbGd=USE_the_DbGd,USE_occupations=USE_occ,& ! optionals
-&                              WF_fac=WF_fac,PDOS_fac=PDOS_fac)                    ! optional pointers
+   call el_density_of_states(k,E,dos_E(i_E),DOS_broadening,bands,el_dos(i_E,:),  &             
+&                              USE_W=.true.,USE_the_DbGd=USE_the_DbGd,USE_occupations=USE_occ,&
+&                              WF_fac=spin_fac,PDOS_fac=pdos_fac) 
    !
    if (LIVE_t_) call live_timing(steps=1)
    !

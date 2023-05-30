@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): MG AM
@@ -21,6 +21,20 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
+!> @brief Calculate exchange-correlation energy and its derivatives
+!!
+!! @param[in]       en                  electronic levels
+!! @param[in]       Xk                  k-point sampling
+!! @param[in]       KIND                
+!! @param[in]       FUNCTIONAL          exchange-correlation functional
+!! @param[in]       ORDER               0 = E_xc, 1 = V_xc, 2 = F_xc 
+!! @param[in]       EXX_FRACTION        exchange fraction (optional)
+!! @param[in]       EXX_SCREENING       screened exchange fraction (optional)
+!!
+!! @param[out]      E_xc                exchange correlation energy    (if ORDER=0)
+!! @param[out]      V_xc                exchange correlation potential (if ORDER=1)
+!! @param[out]      F_xc                exchange correlation kernel    (if ORDER=2)
+!
 subroutine XC_potential_driver(en,Xk,KIND,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  !
  ! Wrapper for calculation of the XC potential. If available libxc,
@@ -30,10 +44,10 @@ subroutine XC_potential_driver(en,Xk,KIND,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCRE
  use R_lattice,      ONLY:bz_samp
  use electrons,      ONLY:levels
  use com,            ONLY:msg
- use libxc_funcs_m,  ONLY:XC_LDA_X, XC_LDA_C_PW
+ use xc_f03_lib_m,   ONLY:XC_LDA_X, XC_LDA_C_PW
  use xc_functionals, ONLY:XC_EXCHANGE_CORRELATION,xc_string,XC_libxc_driver,&
 &                         XC_NOT_AVAILABLE,XC_FACTOR,current_xc_string,LIBXC_message_done,XC_HYB_GGA_XC_GAUPBE
- use IO_m,           ONLY:IO_and_Messaging_switch
+ use IO_int,         ONLY:IO_and_Messaging_switch
 #if defined _SC
  use drivers,        ONLY:l_sc_run
 #endif
@@ -97,6 +111,7 @@ subroutine XC_potential_driver(en,Xk,KIND,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCRE
  !
  call XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION=local_exx_fraction,&
 &                     EXX_SCREENING=local_exx_screening)
+ !
  if (local_exx_fraction.gt.rZERO) then
    if (present(EXX_FRACTION)) EXX_FRACTION = local_exx_fraction 
    call msg('rsn','[xc] Hybrid functional. EXX fraction ',EXX_FRACTION)

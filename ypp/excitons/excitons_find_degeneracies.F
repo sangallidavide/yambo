@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM DV
@@ -27,7 +27,7 @@ subroutine excitons_find_degeneracies(BS_E,BS_E_degs)
  use com,           ONLY:msg
  use vec_operate,   ONLY:sort
  use BS_solvers,    ONLY:BSS_n_eig
- use YPPm,           ONLY:deg_energy
+ use YPPm,          ONLY:deg_energy
  !
  implicit none
  !

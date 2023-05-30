@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston,
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
+subroutine excitons_lifetimes(Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  !
  use pars,          ONLY:SP,DP,schlen,pi,cZERO
  use units,         ONLY:HA2EV,AU2SEC,SPEED_OF_LIGHT
@@ -33,9 +33,9 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
  use X_m,           ONLY:eps_2_alpha
- use DIPOLES,       ONLY:DIPOLE_t,DIP_iR
+ use DIPOLES,       ONLY:DIP_rotated,DIP_iR
  use YPPm,          ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0,&
-&                        EXCITONS_user_indexes,EXCITONS_n_user_states
+&                        DIPs,EXCITONS_user_indexes,EXCITONS_n_user_states
  use interfaces,    ONLY:PARALLEL_global_indexes
  use vec_operate,   ONLY:v_norm
  use IO_m,          ONLY:io_DIP
@@ -47,7 +47,6 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
 #include<memory.h>
  !
  type(levels)       :: Xen
- type(DIPOLE_t)     :: Dip
  type(bz_samp)      :: Xk,Xq
  !
  complex(SP)        :: BS_E(BSS_n_eig), BS_R(BSS_n_eig) 
@@ -80,12 +79,12 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  !
  logical            :: is_cut(3)
  !
- call DIPOLE_dimensions(Xen,Dip,BS_bands,(/0.,0.,0./))
+ call DIPOLE_dimensions(Xen,DIPs,BS_bands,(/0.,0.,0./))
  !
  call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
- call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=Dip)
+ call PARALLEL_global_indexes(Xen,Xk,Xq,"DIPOLES",Dip=DIPs)
  !
- call DIPOLE_IO(Xk,Xen,Dip,'read ',io_err,'DIP')
+ call DIPOLE_IO(Xk,Xen,DIPs,'read ',io_err,'DIP')
  !
  ! check dimensionality of the system
  is_cut(1) = .false.
@@ -158,9 +157,9 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
        i_c     = BSS_eh_table(neh,3)
        i_spin  = spin(BSS_eh_table(neh,:))
        !
-       f_cv=      (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
+       f_cv    = (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       call GET_the_rotated_iR()
+       rotated_iR=DIP_rotated(ic,iv,i_kbz,i_spin,"DIP_iR",Xk)
        !
        iR_EXC(:)=iR_EXC(:) - rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
@@ -207,7 +206,7 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
      exc_energy = (real(BS_E(i_l)-EXC_shift)*HA2EV)
      tau0_grp= AU2SEC/gamma0_grp
      tauT_aver = AU2SEC/gammaT_aver
-!
+     !
      arg =real(BS_E(i_l)-BS_E(1))/EXC_temp
      num = num + dexp(-arg)*gammaT_aver
      den = den + dexp(-arg)
@@ -219,56 +218,11 @@ subroutine excitons_lifetimes(Dip,Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
    call msg('o exc_life',"# ","exc. E(eV) = "//trim(real2ch(exc_energy)),INDENT=0)
    call msg('o exc_life',"# ","gamma zero = "//trim(real2ch(gamma0_grp)),INDENT=0)
    call msg('o exc_life',"# ","gammaT aver  = "//trim(real2ch(gammaT_aver)),INDENT=0)
-!
+   !
    call msg('o exc_life','#',titles(:4),INDENT=0,USE_TABS=.true.) 
    call msg('o exc_life',' ',(/exc_energy,tau0_grp,tauT_aver,tauT_eff/),INDENT=0,USE_TABS=.true.)
   call of_open_close(ch_dummy)
    !
  enddo
  !
- contains
-   !
-   subroutine GET_the_rotated_iR( )
-     !
-     use D_lattice,      ONLY:i_time_rev,dl_sop,sop_inv,nsym
-     use parallel_m,     ONLY:PAR_DIPk_ibz_index
-     !
-     implicit none
-     !
-     integer :: ik,is,ik_mem,i_dir
-     logical :: t_rev
-     real(SP):: field_dir(3,3),field_dir_rot(3)
-     complex(SP):: iR(3)
-     !
-     ik=Xk%sstar(i_kbz,1)
-     is=sop_inv(Xk%sstar(i_kbz,2))
-     !
-     if ( is<= nsym/(i_time_rev+1) ) t_rev=.false.
-     if ( is > nsym/(i_time_rev+1) ) t_rev=.true.
-     !
-     ik_mem    = PAR_DIPk_ibz_index(ik)
-     iR(:)=DIP_iR(:,i_c,i_v,ik_mem,i_spin)
-     !
-     ! OPTION 1
-     !
-     field_dir(:,1)=(/1._SP,0._SP,0._SP/)
-     field_dir(:,2)=(/0._SP,1._SP,0._SP/)
-     field_dir(:,3)=(/0._SP,0._SP,1._SP/)
-     !
-     do i_dir=1,3
-        !
-        field_dir_rot = matmul( dl_sop(:,:,is), field_dir(:,i_dir) )
-        !
-        if (.not.t_rev) rotated_iR(i_dir) = dot_product( field_dir_rot, iR )
-        if (     t_rev) rotated_iR(i_dir) = dot_product( iR, field_dir_rot ) 
-        !
-     enddo
-     !
-     ! OPTION 2
-     !rotated_iR = matmul( dl_sop(:,:,is) , DIP_iR(:,i_c,i_v,ik_mem,i_spin) )
-     !if (t_rev) rotated_iR = -conjg( rotated_iR )
-     !
-     !
-   end subroutine GET_the_rotated_iR
-   !
 end subroutine excitons_lifetimes

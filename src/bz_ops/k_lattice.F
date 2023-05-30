@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -36,6 +36,9 @@ integer function k_lattice(k,Xk,G_shell,be_verbose)
 &                         k_grid_uc_vol,nkibz,nkbz,nXkibz,nXkbz,d3k_factor,&
 &                         bz_samp,g_vec,ng_in_shell,Xk_grid_new_mapping
  use zeros,          ONLY:k_rlu_zero
+ use parser_m,       ONLY:parser
+ use drivers,        ONLY:l_rim_w
+ !
 #include<memory.h>
  !
  type(bz_samp)::k,Xk
@@ -123,28 +126,38 @@ integer function k_lattice(k,Xk,G_shell,be_verbose)
    ! In any case the deep checks in bz_samp_indexes should prevent them.
    !
    ! Andrea (29/12/2011). The 2D surface of the tutorials still does not work. And this is due to 
-   ! the change introduced in 2010. Therefore I try to use the method that yields the smalles
-   ! norm
+   ! the change introduced in 2010. Therefore I try to use the method that yields the smallest
+   ! norm.
    !
-   do i2=1,2
-     !
-     if (i2==1) then
-       if (v_is_zero(v0,zero_=k_rlu_zero)) cycle
-       min_idist(1)=min(min_idist(1), rlu_v_norm(v0,inside_bz=.true.))
-       min_idist(2)=min(min_idist(2), v_norm(v0))
-     else if (min_idist(1)<min_idist(2)) then
-       idist(i1)=rlu_v_norm(v0,inside_bz=.true.)
-     else if (min_idist(1)>=min_idist(2)) then
-       idist(i1)=v_norm(v0)
-     endif
+   ! In the case of RIM-W, I need a grid which is the smallest in the rlu case
+   !
+   if(.not.l_rim_w) then
+     do i2=1,2
+       !
+       if (i2==1) then
+         if (v_is_zero(v0,zero_=k_rlu_zero)) cycle
+         min_idist(1)=min(min_idist(1), rlu_v_norm(v0,inside_bz=.true.))
+         min_idist(2)=min(min_idist(2), v_norm(v0))
+       else if (min_idist(1)<min_idist(2)) then
+         idist(i1)=rlu_v_norm(v0,inside_bz=.true.)
+       else if (min_idist(1)>=min_idist(2)) then
+         idist(i1)=v_norm(v0)
+       endif
+       order(i1)=i1
+     enddo
+   else
+     ! Store only rlu distance
+     idist(i1)=v_norm(v0)
      order(i1)=i1
-   enddo
+     !
+   endif
  enddo
  if (N_ext_K_pts>1) call sort(idist,indx=order)
+ !
  YAMBO_FREE(idist)
  !
  k_grid_dim=0
- k_grid_b=0.
+ k_grid_b=0._SP
  do i1=1,N_ext_K_pts
    v0=extended_k_points(order(i1),:)
    !
@@ -192,7 +205,7 @@ integer function k_lattice(k,Xk,G_shell,be_verbose)
    !
    i3=0
    do i1=1,3
-     v1(1)=0.
+     v1(1)=0._SP
      do i2=1,k_grid_dim
        v1(1)=v1(1)+abs(proj(b(i1,:),k_grid_b(i2,:)))
      enddo
@@ -339,6 +352,7 @@ integer function k_lattice(k,Xk,G_shell,be_verbose)
  ! CLEAN
  !
  call k_ibz2bz(Xk,"d",.false.)
+ call k_ibz2bz(Xk,'i',.true.)
  return
  !
 1 continue
@@ -348,6 +362,8 @@ integer function k_lattice(k,Xk,G_shell,be_verbose)
    k_lattice=-1
  endif
  call k_ibz2bz(Xk,"d",.false.)
+ !
+ call k_ibz2bz(Xk,'i',.true.)
  !
  contains
    !

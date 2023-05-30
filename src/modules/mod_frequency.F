@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -25,6 +25,7 @@ module frequency
  !
  use pars,  ONLY:SP
  use units, ONLY:HA2EV
+ !
 #include<memory.h>
  !
  ! Bare 2 Coarse grid
@@ -49,10 +50,14 @@ module frequency
  type w_samp
    integer      :: n_freqs
    real(SP)     :: er(2)
+   real(SP)     :: ir(2)
    real(SP)     :: damp_reference
    real(SP)     :: dr(2)
    real(SP)     :: per_memstps
    complex(SP),allocatable :: p(:)
+   character(2) :: samp_type
+   character(2) :: mpa_solver
+   character(16):: grid_type
  end type w_samp
  !
  contains
@@ -62,12 +67,16 @@ module frequency
      Wo%n_freqs=Wi%n_freqs
      Wo%per_memstps=Wi%per_memstps
      Wo%er=Wi%er
+     Wo%ir=Wi%ir
      Wo%dr=Wi%dr
      Wo%damp_reference=Wi%damp_reference
      if (allocated(Wi%p)) then
        YAMBO_ALLOC(Wo%p,(Wo%n_freqs))
        Wo%p=Wi%p
      endif
+     Wo%samp_type=Wi%samp_type
+     Wo%mpa_solver=Wi%mpa_solver
+     Wo%grid_type=Wi%grid_type
    end subroutine W_duplicate
    !
    subroutine W_reset(W,damping)
@@ -79,9 +88,13 @@ module frequency
      W%n_freqs=100
      W%per_memstps=100._SP
      W%er=(/0._SP,10._SP/)/HA2EV
+     W%ir=(/1._SP,1._SP/)!/HA2EV
      W%dr=(/local_damping,local_damping/)/HA2EV
      W%damp_reference=0._SP
      YAMBO_FREE(W%p)
+     W%samp_type="2l"
+     W%mpa_solver="PT"
+     W%grid_type="" ! DALV: conflict with FF real axis in FREQUENCIES_setup
    end subroutine W_reset
    !
 end module frequency

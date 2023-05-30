@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -29,7 +29,7 @@ subroutine k_grid_printer(nk,k,coo_in,form,wk,coo_out)
  use parser_m,            ONLY:parser
  use vec_operate,         ONLY:c2a
  use com,                 ONLY:msg
- use YPPm,                 ONLY:K_transform,alat_used_for_output
+ use YPPm,                ONLY:K_transform,alat_used_for_output
  !
  implicit none
  !

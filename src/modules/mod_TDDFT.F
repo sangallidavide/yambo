@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2020 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -43,7 +43,16 @@ module TDDFT
  logical          :: FXC_is_retarded
  !
  real(SP),    allocatable :: FXC_K_diagonal(:)
- complex(SP), allocatable :: FXC(:,:,:)
+ complex(SP), allocatable :: F_xc_gspace(:,:,:)
+ !
+ type tddft_wf_t
+   complex(SP), allocatable :: rhotwr1(:)
+   complex(SP), allocatable :: rhotwr2(:)
+   complex(SP), allocatable :: WF_symm1(:,:)
+   complex(SP), allocatable :: WF_symm2(:,:)
+ end type tddft_wf_t
+ !
+ character(10)     :: ALDA_cut_scheme
  !
  interface 
    !
