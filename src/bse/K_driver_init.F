@@ -24,7 +24,7 @@
 subroutine K_driver_init(what,iq,Ken,Xk)
  !
  use R_lattice,    ONLY:bz_samp
- use electrons,    ONLY:levels,n_sp_pol
+ use electrons,    ONLY:levels,n_sp_pol,get_spin_majority
  use parser_m,     ONLY:parser
  use parallel_m,   ONLY:PARALLEL_default_mode
  use stderr,       ONLY:STRING_match,STRING_same
@@ -98,6 +98,8 @@ subroutine K_driver_init(what,iq,Ken,Xk)
    if (.not.BS_K_coupling) BS_res_ares_n_mat=2
  endif
  !
+ call get_spin_majority(Ken)
+ !
  ! Need to convert eels to epsilon ? (part A, part B in K_driver)
  !================================================================
  !
@@ -167,6 +169,11 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  ! CORE Logicals
  !===============
  if (l_rpa_IP.and.STRING_match(BSE_mode,'coupling')) BSE_mode='retarded'
+ !
+ if(l_BS_magnons.and.n_sp_pol==2) then
+   BS_res_K_exchange=.FALSE.
+   BS_n_g_exch=0
+ endif
  !
  ! TR-ABS logicals
  !-----------------

@@ -30,7 +30,7 @@ subroutine X_GreenF_convoluted(iq,transitions,Xw,Xen,Xk,GreenF,ordering)
  use units,      ONLY:pi
  !
  implicit none
- integer      :: iq,transitions(4)
+ integer      :: iq,transitions(5)
  type(w_samp) :: Xw
  type(levels) :: Xen
  type(bz_samp):: Xk
@@ -39,7 +39,7 @@ subroutine X_GreenF_convoluted(iq,transitions,Xw,Xen,Xk,GreenF,ordering)
  !
  ! Work Space
  !
- integer      :: ikbz,ikpbz,iv,ic,i_spin,ik,ikp
+ integer      :: ikbz,ikpbz,iv,ic,c_sp_pol,v_sp_pol,ik,ikp
  !
  complex(SP), allocatable  :: Green_F_convoluted(:)
  real(SP)                  :: W_step
@@ -53,7 +53,8 @@ subroutine X_GreenF_convoluted(iq,transitions,Xw,Xen,Xk,GreenF,ordering)
  ikbz   = transitions(1)     
  iv     = transitions(2)
  ic     = transitions(3)
- i_spin = transitions(4)
+ c_sp_pol = transitions(4)
+ v_sp_pol = transitions(5)
  !
  ikpbz  = qindx_X(iq,ikbz,1) 
  ik     = Xk%sstar(ikbz,1)
@@ -63,10 +64,10 @@ subroutine X_GreenF_convoluted(iq,transitions,Xw,Xen,Xk,GreenF,ordering)
  ! 
  allocate(Green_F_convoluted(Xen%GreenF_n_E_steps))
  !
- W_step=real( Xen%GreenF_W(ic,ik,i_spin,2) - Xen%GreenF_W(ic,ik,i_spin,1))
+ W_step=real( Xen%GreenF_W(ic,ik,c_sp_pol,2) - Xen%GreenF_W(ic,ik,c_sp_pol,1))
  !
- call Convolve(real(Xen%GreenF(ic,ik,i_spin,:)), real(Xen%GreenF(iv,ikp,i_spin,:)),&
-&                Green_F_convoluted,Xen%GreenF_n_E_steps,W_step,real( Xen%GreenF_W(ic,ik,i_spin,1)) )
+ call Convolve(real(Xen%GreenF(ic,ik,c_sp_pol,:)), real(Xen%GreenF(iv,ikp,v_sp_pol,:)),&
+&                Green_F_convoluted,Xen%GreenF_n_E_steps,W_step,real( Xen%GreenF_W(ic,ik,c_sp_pol,1)) )
  !
  ! Green_F_convoluted is now integrated to Zc*Zv*pi*pi. As I want the spectral function only
  ! to pass to the KK transformation I need to rescale by pi^2
@@ -76,19 +77,19 @@ subroutine X_GreenF_convoluted(iq,transitions,Xw,Xen,Xk,GreenF,ordering)
  ! Resonant Part
  !
  if (trim(ordering)=='r'.or.trim(ordering)=='T'.or.trim(ordering)=='R') then
-   call Kramers_Kronig(Green_F_convoluted,real(Xen%GreenF_W(iv,ikp,i_spin,:)),Xen%GreenF_n_E_steps,&
+   call Kramers_Kronig(Green_F_convoluted,real(Xen%GreenF_W(iv,ikp,v_sp_pol,:)),Xen%GreenF_n_E_steps,&
 &                        GreenF,            Xw%p,                          Xw%n_freqs, cZERO)
  endif
  !
  ! Anti-Resonant Part
  !
  if (trim(ordering)=='R'.or.trim(ordering)=='Ra') then
-   call Kramers_Kronig(Green_F_convoluted,real(Xen%GreenF_W(iv,ikp,i_spin,:)),Xen%GreenF_n_E_steps,&
+   call Kramers_Kronig(Green_F_convoluted,real(Xen%GreenF_W(iv,ikp,v_sp_pol,:)),Xen%GreenF_n_E_steps,&
 &                        GreenF,           -Xw%p,                          Xw%n_freqs, cZERO)
  endif
  !
  if (trim(ordering)=='T'.or.trim(ordering)=='Ta') then
-   call Kramers_Kronig(Green_F_convoluted,real(Xen%GreenF_W(iv,ikp,i_spin,:)),Xen%GreenF_n_E_steps,&
+   call Kramers_Kronig(Green_F_convoluted,real(Xen%GreenF_W(iv,ikp,v_sp_pol,:)),Xen%GreenF_n_E_steps,&
 &                        GreenF,     -conjg(Xw%p),                         Xw%n_freqs, cZERO)
  endif
  !

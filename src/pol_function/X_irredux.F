@@ -46,7 +46,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use matrix,        ONLY:PAR_matrix
  use stderr,        ONLY:intc
  use wave_func,     ONLY:WF
- use parallel_m,    ONLY:PAR_COM_X_WORLD,PAR_COM_RL_INDEX,myid,PAR_COM_X_WORLD_RL_resolved
+ use parallel_m,    ONLY:PAR_COM_X_WORLD,PAR_COM_RL_INDEX,myid,PAR_COM_X_WORLD_RL_resolved,PAR_COM_HOST
  use parallel_int,  ONLY:PP_redux_wait
  use openmp,        ONLY:OPENMP_update,n_threads_X,master_thread,OPENMP_set_threads,n_threads_X,&
 &                        n_out_threads,n_inn_threads,OPENMP_locks_reset,n_threads_FFT
@@ -54,15 +54,16 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use openmp,        ONLY:OPENMP_compute_mutex,omp_locks
 #endif
  use frequency,     ONLY:w_samp,bare_grid_N,coarse_grid_N,coarse_grid_Pt
- use interfaces,    ONLY:WF_load
- use electrons,     ONLY:levels
+ use interfaces,    ONLY:WF_load,WF_free
+ use electrons,     ONLY:levels,n_spinor,n_sp_pol
  use R_lattice,     ONLY:qindx_X,bz_samp,G_m_G
  use D_lattice,     ONLY:i_space_inv
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc
  use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,X_lower_triangle_matrix_in_use,&
 &                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
-&                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states
+&                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states,&
+&                        l_X_abs,l_X_kerr,l_X_magn
  use X_m,           ONLY:rhotw_save_d
  use cuda_m,        ONLY:have_cuda
 #if defined _SC 
@@ -85,10 +86,13 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! Work Space
  !
+ character(2)             :: ordering
  character(schlen)        :: live_t_string
+ integer(IPL)             :: HOST_SIZE(2),TMP_SIZE(2)
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
-&                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err
- logical                  :: force_bare_X_G,Drude_pole,skip_WF_load
+&                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
+&                            i_comp,i_res_ares,n_res_ares
+ logical                  :: force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
  complex(SP),allocatable  :: Xo_res(:,:)
@@ -154,7 +158,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
    !
    if (n_poles==0) call warning(' [CPU '//trim(intc(myid))//'] has no poles')
    !
-   YAMBO_ALLOC(X_poles_tab,(n_poles,4))
+   YAMBO_ALLOC(X_poles_tab,(n_poles,5))
    !
    if (.not.force_bare_X_G) call FREQUENCIES_coarse_grid('X',X_poles,n_poles,X%cg_percentual,X_Ein_poles,l_X_terminator)
    if (     force_bare_X_G) call FREQUENCIES_coarse_grid('X',X_poles,n_poles,0._SP,(/0.0_SP/),.FALSE.)
@@ -218,11 +222,19 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !========
  live_t_string=what//'@q['//trim(intc(iq))//'] '
  !
+ ordering=X%ordering
+ l_res   = X%ordering=="R".or.X%ordering=="T".or.X%ordering=="r"
+ l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
+ l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
+ !
+ n_res_ares=1
+ if(l_X_magn.and.n_spinor==2.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
+ !
 #if defined _SC 
  if (l_sc_run.and..not.l_eval_collisions) live_t_string=what//'@it['//trim(intc(it_now))//'] '
 #endif
  !
- if (coarse_grid_N>=n_out_threads) call live_timing(trim(live_t_string),coarse_grid_N/n_out_threads)
+ if (coarse_grid_N>=n_out_threads) call live_timing(trim(live_t_string),coarse_grid_N*n_res_ares/n_out_threads)
  !
  ! OpenMP setup
  !==============
@@ -230,7 +242,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
 #if !defined _CUDA
  !$omp parallel num_threads(n_out_threads) default(shared), &
  !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,ig_col,&
- !$omp &        ig1,ig_row_transp,iw,mutexid,&
+ !$omp &        ig1,ig_row_transp,iw,mutexid,i_res_ares,i_comp,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
  !
@@ -238,6 +250,8 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! memory estimate and local alloc
  !=================================
+ !TMP_SIZE=(/X_par%rows(2)-X_par%rows(1)+1,X_par%cols(2)-X_par%cols(1)+1/)
+ !AMBO_PAR_ALLOC_CHECK2(Xo_res,TMP_SIZE)
  YAMBO_ALLOC(Xo_res,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
  if (have_cuda) then
    YAMBO_ALLOC(Xo_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
@@ -259,7 +273,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt)
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,1)
      ctmp = DEV_VAR(Xo_res)(1,1)
      !
      ! DALV: we must guarantee that ctmp is always 1 and that we enter the loop just
@@ -280,6 +294,10 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  ! MAIN LOOP
  !===========
  !
+ i_comp=1
+ !
+ do i_res_ares=1,n_res_ares
+   !
 #if !defined _CUDA
  !$omp do
 #endif
@@ -295,21 +313,34 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      cycle
    endif
    !
+   if(l_X_magn) then
+     if(n_sp_pol==2) i_comp=X_poles_tab(i_bg,5)
+     if(n_spinor==2) i_comp=i_res_ares
+     if(i_comp==1.and.l_res   ) ordering="r"
+     if(i_comp==2.and.l_ares_T) ordering="Ta"
+     if(i_comp==2.and.l_ares_R) ordering="Ra"
+     if(i_comp==2.and..not.(l_ares_T.or.l_ares_R)) then
+       if (master_thread) call live_timing(steps=1)
+       cycle
+     endif
+   endif
+   !
    ! 1) First compute the residuals
    !================================
-   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt)
+   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,i_comp)
    !
    ! 2) Then the frequency dependent term
    !=======================================
    !
 #if defined _ELPH
-   if(     allocated(Xen%GreenF)) call X_GreenF_convoluted(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,X%ordering)
+   if(     allocated(Xen%GreenF)) call X_GreenF_convoluted(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering)
    if(.not.allocated(Xen%GreenF)) & 
-&       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,X%ordering,'G',.FALSE.,l_X_terminator)
+&       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #else
-   !
-   call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,X%ordering,'G',.FALSE.,l_X_terminator)
-   !
+   ! DS: *** critical for magnons *** 
+   !     Here it is always assumed that resonant and anti-resonat terms can be related by T-rev
+   !     
+   call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #endif
    !
    ! 3) Finally multiply residual and frequency dependent term
@@ -437,14 +468,19 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
    !
    if (master_thread) call live_timing(steps=1)
    !
- enddo 
+ enddo
  !
 #if !defined _CUDA
  !$omp end do
 #endif
+   !
+ enddo
  !
  ! CLEAN
  !=======
+ !
+ if(.not.skip_WF_load) call WF_free(WF)
+ !
  YAMBO_FREE(Xo_res)
  YAMBO_FREE(Xo_res_d)
  YAMBO_FREE(rhotw_save_d)

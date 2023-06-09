@@ -59,7 +59,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  use DIPOLES,      ONLY:DIPOLE_t
  use parallel_m,   ONLY:PAR_IND_WF_b_and_k,PAR_IND_T_ordered,PAR_IND_T_groups,&
 &                       PAR_IND_T_Haydock,PP_indexes_reset
- use electrons,    ONLY:levels,n_sp_pol,n_full_bands,n_met_bands
+ use electrons,    ONLY:levels,n_sp_pol,n_full_bands,n_met_bands,i_spin_majority,i_spin_minority
  use com,          ONLY:msg
  use R_lattice,    ONLY:qindx_X,bz_samp
  use BS,           ONLY:l_BS_magnons,l_BS_photolum
@@ -114,6 +114,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
  !
  V_bands=(/BS_bands(1),maxval(Ken%nbm)/)
  C_bands=(/minval(Ken%nbf)+1,BS_bands(2)/)
+ !
 #if defined _RT
  ! Bands range. In the _RT case %nbf and %nbm turn metallic when carriers are used.
  if (l_rt_carriers_in_use.and.EQ_Transitions) then
@@ -133,9 +134,6 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
      i_T_group_now=0
      i_T_group_last=0
    endif
-   !
-   ! DS: WARNING
-   ! I cannot revert ik and i_sp_pol loop here ...
    !
    do i_res_ares=1,BS_n_eh_spaces
      !
@@ -167,8 +165,8 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
              i_sp_v=i_sp_c
              !
              if (l_BS_magnons.and.n_sp_pol==2) then
-               if(i_res_ares==1.and.i_sp_c==1) cycle
-               if(i_res_ares==2.and.i_sp_c==2) cycle
+               if(i_res_ares==1.and.i_sp_c==i_spin_majority) cycle
+               if(i_res_ares==2.and.i_sp_c==i_spin_minority) cycle
                i_sp_v=mod(i_sp_c,n_sp_pol)+1
              endif
              !

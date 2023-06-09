@@ -30,13 +30,13 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use LOGO,       ONLY:ID_logo,ID_logo_stderr
  use global_XC,  ONLY:EXT_NONE
  use X_m,        ONLY:current_iq,self_detect_E_range,X_FILL_UP_matrix_only,eps_2_alpha,l_drude,&
-&                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,skip_cond_sum_rule,&
+&                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,Chi_prop,skip_cond_sum_rule,&
 &                     q_plus_G_direction,Q_Shift_Order,&
 &                     l_X_terminator,X_terminator_E,global_gauge,&
 &                     Chi_linalg_mode,X_use_lin_sys,X_use_gpu,X_DbGd_percentual
  use DIPOLES,    ONLY:use_covariant_approach,use_real_space_approach,&
 &                     Vnl_commutator_warning,use_shifted_grids_approach,use_g_space_approach,&
-&                     compute_P2_dipoles,compute_Spin_dipoles,compute_Orb_dipoles
+&                     compute_P2_dipoles,compute_Spin_dipoles,compute_Orb_rt_dipoles,compute_Orb_cd_dipoles
  use QP_m,       ONLY:QP_dSc_steps,QP_n_W_freqs,QP_G_Zoom_treshold,&
 &                     QP_dSc_test,QP_solver,QP_G_damp,QP_dSc_delta,&
 &                     QP_cg_percent,QP_n_states,SC_E_threshold, &
@@ -54,17 +54,17 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     Xk_grid_is_uniform,RIM_id_epsm1_reference,RIM_epsm1,&
 &                     RIM_anisotropy,RIM_ng,RIM_W_ng,rimw_type,RIM_n_rand_pts,nqibz,q0_def_norm,&
 &                     cutoff_presets,k_map,qindx_S_max_Go
- use electrons,  ONLY:n_spin,n_sp_pol,n_spinor,filled_tresh,l_spin_orbit,n_spin_den,eval_magn
+ use electrons,  ONLY:n_spin,n_sp_pol,n_spinor,filled_tresh,l_spin_orbit,n_spin_den,i_spin_majority,i_spin_minority,eval_magn
  use parallel_m, ONLY:ncpu,CPU_str_reset,CREATE_hosts_COMM
  use com,        ONLY:isec,depth,secnm,previous_secmode,of_name,n_ofs_defined,of_opened,of_unit,max_open_ofs,&
 &                     more_io_path,core_io_path,com_path,repfile,grid_paths,fat_log,exp_user
  use stderr,     ONLY:win_size,tty_size,logfile,set_real_printed_length,log_as_a_file
  use LIVE_t,     ONLY:log_line_to_dump,log_line,nhash,ct
- use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO
+ use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO,rho_map_thresh
  use FFT_m,      ONLY:fft_dim_loaded,fft_size,fft_dim,fft_multiplier
  use IO_m,       ONLY:io_reset,max_io_units,serial_number,frag_WF
- use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,&
-&                     BSS_q0,Haydock_threshold,Haydock_iterIO,Haydock_iterMAX,BSS_uses_DbGd,BSS_Wd,&
+ use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,BSS_E_dir,BSS_Q_dir,&
+&                     Haydock_threshold,Haydock_iterIO,Haydock_iterMAX,BSS_uses_DbGd,BSS_Wd,&
 &                     BSS_damp_reference,BSS_Vnl_included,BSS_uses_GreenF,BSS_inversion_mode,&
 &                     BSS_perturbative_width,K_INV_EPS,K_INV_PL,K_INV_PI_PH
  use descriptors,ONLY:IO_desc_reset
@@ -322,6 +322,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  n_sp_pol=1
  n_spinor=1
  n_spin_den=1
+ i_spin_majority=1
+ i_spin_minority=n_sp_pol
  l_spin_orbit       = .FALSE.
  filled_tresh       =0.00001_SP
  !
@@ -342,6 +344,11 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  wf_norm_test=.TRUE.
  wf_nb_io=0
  wf_nb_io_groups=1
+#if defined _GAMMA_ONLY
+ rho_map_thresh=1.E-7_SP
+#else
+ rho_map_thresh=0._SP
+#endif
  !
  !FFT
  !
@@ -357,6 +364,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !X
  !
  Chi_mode=' '
+ Chi_prop='abs'
  Chi_linalg_mode="lin_sys"
  X_use_lin_sys=.FALSE.
  X_use_gpu=have_cuda
@@ -370,7 +378,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use_g_space_approach       = .TRUE.
  compute_P2_dipoles         = .FALSE.
  compute_Spin_dipoles       = .FALSE.
- compute_Orb_dipoles        = .FALSE.
+ compute_Orb_rt_dipoles     = .FALSE.
+ compute_Orb_cd_dipoles     = .FALSE.
  use_X_DbGd=.FALSE.
  X_DbGd_percentual=-1.
  eps_2_alpha=1._SP
@@ -458,7 +467,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  BSS_inversion_mode='pf'
  BSS_er=(/0._SP,10._SP/)/HA2EV
  BSS_dr=0.1_SP/HA2EV
- BSS_q0=(/1._SP,0._SP,0._SP/)
+ BSS_E_dir=(/1._SP,0._SP,0._SP/)
+ BSS_Q_dir=(/0._SP,0._SP,1._SP/)
  BSS_uses_DbGd=.FALSE.
  BSS_damp_reference=0._SP
  BS_K_is_ALDA=.FALSE.

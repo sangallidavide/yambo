@@ -27,6 +27,7 @@ subroutine Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
  use BS,             ONLY:l_BS_magnons
  use FFT_m,          ONLY:fft_size
  use electrons,      ONLY:n_spin,n_spinor,n_sp_pol
+ use D_lattice,      ONLY:DL_vol
  use xc_functionals, ONLY:magn
  use vec_operate,    ONLY:v_norm
  !
@@ -45,25 +46,25 @@ subroutine Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
  F_xc_mat=cZERO
  !
  ! F_xc_mat ( 1 , 1 , 1 , 1 ) = up up up up  (opt)
+ ! F_xc_mat ( 1 , 1 , 2 , 2 ) = up up dn dn  (opt)
+ ! F_xc_mat ( 2 , 2 , 1 , 1 ) = dn dn up up  (opt)
+ ! F_xc_mat ( 2 , 2 , 2 , 2 ) = dn dn dn dn  (opt)
  !
  ! F_xc_mat ( 1 , 1 , 1 , 2 ) = up up up dn  (mix)
  ! F_xc_mat ( 1 , 1 , 2 , 1 ) = up up dn up  (mix)
  ! F_xc_mat ( 1 , 2 , 1 , 1 ) = up dn up up  (mix)
  ! F_xc_mat ( 2 , 1 , 1 , 1 ) = dn up up up  (mix)
  !
- ! F_xc_mat ( 1 , 1 , 2 , 2 ) = up up dn dn  (opt)
  ! F_xc_mat ( 1 , 2 , 1 , 2 ) = up dn up dn  (mag)
  ! F_xc_mat ( 2 , 1 , 1 , 2 ) = dn up dn dn  (mag)
  ! F_xc_mat ( 1 , 2 , 2 , 1 ) = up dn dn up  (mag)
  ! F_xc_mat ( 2 , 1 , 2 , 1 ) = dn up dn up  (mag)
- ! F_xc_mat ( 2 , 2 , 1 , 1 ) = dn dn up up  (opt)
  !
  ! F_xc_mat ( 1 , 2 , 2 , 2 ) = up dn dn dn  (mix)
  ! F_xc_mat ( 2 , 1 , 2 , 2 ) = dn up dn dn  (mix)
  ! F_xc_mat ( 2 , 2 , 1 , 2 ) = dn dn up dn  (mix)
  ! F_xc_mat ( 2 , 2 , 2 , 1 ) = dn dn dn up  (mix)
  !
- ! F_xc_mat ( 2 , 2 , 2 , 2 ) = dn dn dn dn  (opt)
  !
  !
  ! Magnetization, V_xc + and -

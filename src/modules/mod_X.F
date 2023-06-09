@@ -33,6 +33,10 @@ module X_m
 #include <dev_defs.h>
 #include <memory.h>
  !
+ logical  :: l_X_abs
+ logical  :: l_X_kerr
+ logical  :: l_X_magn
+ !
  ! Observables
  !
  real(SP)                 :: eps_2_alpha
@@ -59,6 +63,7 @@ module X_m
  !
  real(SP)                 :: q_plus_G_direction(3)
  integer                  :: Q_Shift_Order
+ integer                  :: i_G_shift
  !
  ! Double Grid
  !
@@ -78,6 +83,7 @@ module X_m
  ! Absorption & Polarizability
  !
  integer                  :: N_BS_E_sorted=0
+ integer,     allocatable :: BS_E_sorted_indx(:,:,:)
  complex(SP), allocatable :: BS_E_sorted(:,:,:)
  complex(SP), allocatable :: Epsilon_ii(:,:)
  complex(SP), allocatable :: Epsilon_ij(:,:)
@@ -92,6 +98,7 @@ module X_m
  !
  ! Response function
  !
+ character(schlen)        :: Chi_prop
  character(schlen)        :: Chi_mode
  character(schlen)        :: Chi_linalg_mode
  logical                  :: X_use_gpu=have_cuda
@@ -171,7 +178,7 @@ module X_m
    integer               :: N_messages
    character(schlen)     :: messages(N_MAX_columns)
  end type
- integer, parameter     :: N_X_obs=15
+ integer, parameter     :: N_X_obs=16
  type(X_obs_t)          :: X_obs(N_X_obs) 
  !
  interface
@@ -187,7 +194,7 @@ module X_m
      character(*), optional :: MORE
    end subroutine
    !
-   subroutine X_OUTPUT_driver(WHAT,keys,solver,IQ,IG,DESC,data)
+   subroutine X_OUTPUT_driver(WHAT,keys,solver,IQ,IG,DESC,data,indexes)
      use pars,           ONLY:SP
      use frequency,      ONLY:w_samp
      use descriptors,    ONLY:IO_desc
@@ -197,6 +204,7 @@ module X_m
      integer,      optional:: IQ,IG
      type(IO_desc),optional:: DESC
      real(SP),     optional:: data(:)
+     integer,      optional:: indexes(:)
    end subroutine
    !
    subroutine X_Double_Grid_setup(iq,k,k_FGbz,nTrans_percent,Radius)

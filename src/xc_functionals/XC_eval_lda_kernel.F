@@ -27,6 +27,7 @@ subroutine XC_eval_lda_kernel(v1rho,v2rho2)
  use xc_functionals, ONLY:F_xc,magn,xc_spin,xc_spin_map1
  use electrons,      ONLY:n_spin,n_spinor,n_sp_pol
  use FFT_m,          ONLY:fft_size
+ use X_m,            ONLY:l_X_magn
  use BS,             ONLY:l_BS_magnons
  use D_lattice,      ONLY:DL_vol
  !
@@ -44,7 +45,7 @@ subroutine XC_eval_lda_kernel(v1rho,v2rho2)
  endif
  !
  if (n_sp_pol==2) then
-   if(.not.l_BS_magnons) then
+   if(.not.(l_BS_magnons.or.l_X_magn)) then
      ! Optical Fxc
      do is1 = 1,n_sp_pol
        do is2 = 1,n_sp_pol

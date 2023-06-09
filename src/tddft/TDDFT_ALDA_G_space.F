@@ -24,10 +24,12 @@
 subroutine TDDFT_ALDA_G_space(E,k)
  !
  use pars,          ONLY:DP,SP
+ use X_m,           ONLY:l_X_magn,l_X_abs
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace
+ use QP_m,          ONLY:QP_ng_Vxc
  use com,           ONLY:msg
  use FFT_m,         ONLY:fft_size,fftw_plan,fft_dim,fft_g_table
- use electrons,     ONLY:levels,n_spin
+ use electrons,     ONLY:levels,n_spin,n_spinor
  use R_lattice,     ONLY:bz_samp,G_m_G
  use wave_func,     ONLY:WF
  use xc_functionals,ONLY:V_xc,F_xc,magn,XC_potential_driver
@@ -68,13 +70,28 @@ subroutine TDDFT_ALDA_G_space(E,k)
  YAMBO_ALLOC(V_xc,(fft_size,n_spin))
  V_xc=0._SP
  YAMBO_ALLOC(F_xc_DP,(fft_size))
+ if (l_X_magn.and.n_spinor==2) then
+   YAMBO_ALLOC(V_xc,(fft_size,n_spin))
+   V_xc=0._SP
+   QP_ng_Vxc=nG
+ endif
  if (n_spin>1) then
    YAMBO_ALLOC(magn,(fft_size,3))
  endif
  call XC_potential_driver(E,k,WF_kind,WF_xc_functional,2)
- do i1=1,fft_size
-   F_xc_DP(i1)=sum(cmplx(F_xc(i1,:,:),kind=DP))
- enddo
+ !
+ if(l_X_abs) then
+   do i1=1,fft_size
+     F_xc_DP(i1)=sum(cmplx(F_xc(i1,:,:),kind=DP))
+   enddo
+ else if(l_X_magn) then
+   ! DS warning. This is exact for the collinear case only.
+   ! The non collinear case implementation should be extended, while here the 
+   ! mixing between the +-, --, -+ and ++ components is neglected in the G-space implementation
+   do i1=1,fft_size
+     F_xc_DP(i1)=    cmplx(F_xc(i1,2,2),kind=DP)
+   enddo
+ endif
  !
  ! need to reset the plan to do a BACKWARD FFT (R->G)
  !
@@ -99,6 +116,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
  YAMBO_FREE(V_xc)
  YAMBO_FREE(F_xc)
  YAMBO_FREE(F_xc_DP)
+ YAMBO_FREE(V_xc)
  YAMBO_FREE(magn)
  call WF_free(WF)
  !

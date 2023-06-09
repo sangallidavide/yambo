@@ -234,7 +234,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
        IO_ACT=manage_action(RD_CL_IF_END,i_frag,1,QP_nk*n_sp_pol)
        call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/1+i_frag/),ID=ID(2))
        io_WF=io_SC_components('WF',E,ID(2))
-       call WF_rotate(ik,i_sp_pol,WFo,fft_size)
+       call WF_rotate(ik,i_sp_pol,WFo,fft_size,"R")
      enddo
    enddo
    !
@@ -470,7 +470,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
        ! New wave functions 
        !====================
        !
-       call WF_rotate(ik,i_sp_pol,WFo,fft_size)
+       call WF_rotate(ik,i_sp_pol,WFo,fft_size,"R")
        !
        if (l_NSC_shot) call live_timing(steps=1)
        ! 
@@ -543,7 +543,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
          call WF_load(WF,WF_G_max,WF_Go_indx,SC_bands,(/1,nkibz/),title='-SC',force_WFo=.true.)
          !
          do ik=1,QP_nk
-           call WF_rotate(ik,i_sp_pol,WFo,fft_size)
+           call WF_rotate(ik,i_sp_pol,WFo,fft_size,"R")
          enddo
          !
        endif
@@ -837,8 +837,8 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
          !
          ! Check for degenerate bands in the bare energies
          !
-         call degeneration_finder(E_reference%E(SC_bands(1):SC_bands(2),ik,i_sp_pol),&
-         &                             SC_nbands,first_el,n_of_el,n_deg_grp,0.0001/HA2EV)
+         call degeneration_finder(SC_nbands,first_el,n_of_el,n_deg_grp,&
+         &                        Er=E_reference%E(SC_bands(1):SC_bands(2),ik,i_sp_pol),deg_accuracy=0.0001/HA2EV)
          !
          do ib=SC_bands(1),SC_bands(2)
            !

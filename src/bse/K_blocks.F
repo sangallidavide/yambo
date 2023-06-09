@@ -47,7 +47,7 @@ subroutine K_blocks( )
  !
  ! YAMBO_PAR_ALLOC
  !
- integer(IPL) :: HOST_SIZE(1),TMP_SIZE,LOCAL_SIZE(1)
+ integer(IPL) :: HOST_SIZE(1),TMP_SIZE(1)
  complex(SP), allocatable :: BS_MAT(:)
  !
  ! Work Space
@@ -143,7 +143,7 @@ subroutine K_blocks( )
  !
  ! Allocate the blocks
  !
- YAMBO_PAR_ALLOC_CHECK1(BS_MAT,(/TMP_SIZE/))
+ YAMBO_PAR_ALLOC_CHECK1(BS_MAT,TMP_SIZE)
  !
  do iB=1,n_BS_blks
    YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))

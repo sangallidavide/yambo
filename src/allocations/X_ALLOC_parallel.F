@@ -24,17 +24,18 @@
 subroutine X_ALLOC_parallel(X_par,NG,NW,mode)
  !
  use pars,          ONLY:cZERO
- use parallel_m,    ONLY:COMM_copy,PAR_COM_RL_INDEX,PAR_COM_RL_A2A
+ use parallel_m,    ONLY:COMM_copy,PAR_COM_RL_INDEX,PAR_COM_RL_A2A,PAR_COM_HOST
  use matrix,        ONLY:MATRIX_reset,PAR_matrix
  use X_m,           ONLY:X_par_lower_triangle,X_rows,X_cols,&
 &                        X_FILL_UP_matrix_only,X_lower_triangle_matrix_in_use
- use parallel_int,  ONLY:PARALLEL_live_message
+ use parallel_int,  ONLY:PARALLEL_live_message,PP_redux_wait
  use cuda_m,        ONLY:have_cuda
  !
 #include<memory.h>
  !
  type(PAR_matrix) :: X_par
  integer          :: NG,NW
+ integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
  character(*)     :: mode
  !
  ! Work Space
@@ -44,6 +45,10 @@ subroutine X_ALLOC_parallel(X_par,NG,NW,mode)
  ! Reset...
  !
  call MATRIX_reset(X_par)
+ !
+ ! Clean-up
+ !
+ if (mode=="CLEAN") return
  !
  ! Type of allocation....
  !
@@ -72,6 +77,8 @@ subroutine X_ALLOC_parallel(X_par,NG,NW,mode)
    X_par_lower_triangle%nrows=X_par%ncols
    X_par_lower_triangle%ncols=X_par%nrows
    !
+   !TMP_SIZE=(/X_par%cols(2)-X_par%cols(1)+1,X_par%rows(2)-X_par%rows(1)+1,NW*2/)
+   !AMBO_PAR_ALLOC_CHECK3(X_par_lower_triangle%blc,TMP_SIZE)
    YAMBO_ALLOC(X_par_lower_triangle%blc,(X_par%cols(1):X_par%cols(2),X_par%rows(1):X_par%rows(2),NW))
    X_par_lower_triangle%blc=cZERO
    if (have_cuda.and..not.l_CPU_ONLY) then
@@ -83,6 +90,8 @@ subroutine X_ALLOC_parallel(X_par,NG,NW,mode)
    call COMM_copy(PAR_COM_RL_INDEX, X_par_lower_triangle%INTER_comm)
  endif
  !
+ !TMP_SIZE=(/X_par%rows(2)-X_par%rows(1)+1,X_par%cols(2)-X_par%cols(1)+1,NW*2/)
+ !AMBO_PAR_ALLOC_CHECK3(X_par%blc,TMP_SIZE)
  YAMBO_ALLOC(X_par%blc,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2),NW))
  X_par%blc=cZERO
  if (have_cuda.and..not.l_CPU_ONLY) then

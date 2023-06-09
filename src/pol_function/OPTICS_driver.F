@@ -30,20 +30,21 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use pars,          ONLY:pi,SP
  use drivers,       ONLY:l_rpa_IP,l_bs_fxc,l_alda_fxc,l_pf_fxc,l_col_cut
  use frequency,     ONLY:w_samp
- use electrons,     ONLY:levels
+ use electrons,     ONLY:levels,n_spin
  use D_lattice,     ONLY:l_0D
  use R_lattice,     ONLY:bz_samp,q_norm,bare_qpg,FineGd_desc
  use DIPOLES,       ONLY:DIPOLE_t,DIP_desc
- use X_m,           ONLY:X_t,Epsilon_ii,EEL,Alpha,X_fxc,X_par,X_Double_Grid_setup,&
+ use X_m,           ONLY:X_t,Epsilon_ii,EEL,Alpha,X_magnons,X_fxc,X_par,X_Double_Grid_setup,&
 &                        use_X_DbGd,eps_2_alpha,EPS_2_eels,X_par_lower_triangle,X_OUTPUT_messages,&
-&                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,X_OUTPUT_driver,X_do_obs
+&                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,X_OUTPUT_driver,X_do_obs,&
+&                        l_X_abs,l_X_kerr,l_X_magn,Chi_prop
  use parallel_int,  ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_index,PARALLEL_WF_distribute
  use parallel_m,    ONLY:PAR_IND_Q_ibz,PAR_COM_Q_A2A,PAR_COM_RL_INDEX,PAR_IND_CON_BANDS_X,&
 &                        PAR_IND_Xk_ibz,PAR_IND_VAL_BANDS_X,master_cpu
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
  use TDDFT,         ONLY:FXC_desc,FXC_type,&
 &                        F_xc_gspace,FXC_K_diagonal
- use interfaces,    ONLY:WF_load,WF_free,WF_load
+ use interfaces,    ONLY:WF_load,WF_free
  use matrix,        ONLY:MATRIX_reset
  use IO_int,        ONLY:IO_and_Messaging_switch
  !
@@ -64,6 +65,13 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  integer,external :: OPTICS_select_q_and_G
  !
  call section('*','Optics')
+ !
+ l_X_abs       = (index(Chi_prop,'abs')/=0)
+ !l_X_jdos      = (index(Chi_prop,'jdos')/=0)
+ !l_X_dichroism = (index(Chi_prop,'dich')/=0)
+ l_X_kerr      = (index(Chi_prop,'kerr')/=0)
+ !l_X_photolum  = (index(Chi_prop,'photolum')/=0)
+ l_X_magn      = (index(Chi_prop,'magn')/=0) .and.n_spin>1
  !
  ! Basic Checks
  call X_pre_setup(Xen,Xk,X)
@@ -159,9 +167,17 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    call X_irredux(iq,"Xo",X_par(1),Xen,Xk,wv,X,Dip)
    !
    ! Without LF eps
-   if (Macroscopic_CPU) Alpha(:,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
-   call PP_redux_wait(Alpha(:,1),COMM=PAR_COM_RL_INDEX%COMM)
-   Epsilon_ii(:,1)=1._SP+Alpha(:,1)
+   if (Macroscopic_CPU) then
+     if(l_X_Abs)  Alpha(:,1)      =-X_par(1)%blc(i_G_shift,i_G_shift,:)*4.0_SP*pi/Q_plus_G_sq_modulus
+     if(l_X_magn) X_magnons(:,1,1)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+   endif
+   !
+   if (l_X_abs) then
+     call PP_redux_wait(Alpha(:,1),    COMM=PAR_COM_RL_INDEX%COMM)
+     Epsilon_ii(:,1)=1._SP+Alpha(:,1)
+   else if (l_X_magn) then
+     call PP_redux_wait(X_magnons(:,1,1),COMM=PAR_COM_RL_INDEX%COMM)
+   endif
    !
    ! X Dyson equation solver
    if (.not.l_rpa_IP) call X_redux(iq,"X",X_par(1),wv,X)
@@ -172,21 +188,33 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    if (Macroscopic_CPU) then
      !
-     if (     l_rpa_IP) then
-       Alpha(:,2)=Alpha(:,1)
-     else
-       if (.not.l_col_cut) Alpha(:,2)=1._SP/(X_par(1)%blc(i_G_shift,i_G_shift,:)+1._SP)-1._SP
-       ! Here I assume X_par is small and I use 1/(1+x)~1-x 
-       if (     l_col_cut) Alpha(:,2)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+     if (l_X_abs) then
+       if (     l_rpa_IP) then
+         Alpha(:,2)=Alpha(:,1)
+       else
+         if((.not.l_col_cut) .or.  iq>1) Alpha(:,2)=1._SP/(X_par(1)%blc(i_G_shift,i_G_shift,:)+1._SP)-1._SP
+         ! Here I assume X_par is small and I use 1/(1+x)~1-x 
+         if(      l_col_cut .and. iq==0) Alpha(:,2)=-X_par(1)%blc(i_G_shift,i_G_shift,:)
+       endif
+     else if(l_X_magn) then
+       if (     l_rpa_IP) X_magnons(:,2,1)= X_magnons(:,1,1)
+       if (.not.l_rpa_IP) X_magnons(:,2,1)=-X_par(1)%blc(1,1,:)
      endif
+     !
    endif
-   call PP_redux_wait(Alpha(:,2),COMM=PAR_COM_RL_INDEX%COMM)
    !
-   Epsilon_ii(:,2)=1._SP+Alpha(:,2)
-   !
-   ! I make alpha consistent with the above, IP, definition
-   ! To check if this need to be fixed with i_G_shift/=1
-   if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(iq,1)**2/q_norm(iq)**2
+   if (l_X_abs) then
+     !
+     call PP_redux_wait(Alpha(:,2),COMM=PAR_COM_RL_INDEX%COMM)
+     Epsilon_ii(:,2)=1._SP+Alpha(:,2)
+     !
+     ! I make alpha consistent with the above, IP, definition
+     ! To check if this need to be fixed with i_G_shift/=1
+     if (l_col_cut.or.l_0D) Alpha(:,2)=Alpha(:,2)*bare_qpg(iq,1)**2/q_norm(iq)**2
+     !
+   else if(l_X_magn) then
+     call PP_redux_wait(X_magnons(:,2,1),COMM=PAR_COM_RL_INDEX%COMM)
+   endif
    !
    if (l_pf_fxc) then
      call TDDFT_PF_coefficient(Xen,Xk,a_xc,b_xc)
@@ -271,7 +299,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  !
  call MATRIX_reset(X_par_lower_triangle)
  deallocate(X_par)
- call WF_free(WF)
+ if (WF_buffered_IO) call WF_free(WF_buffer)
  call PP_wait()
  if (allocated(F_xc_gspace)) then
    YAMBO_FREE(F_xc_gspace)

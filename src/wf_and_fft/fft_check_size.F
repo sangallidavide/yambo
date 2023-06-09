@@ -33,13 +33,13 @@ subroutine fft_check_size(iGo_max,NG_C,NG_HF,mode)
  !
  integer,      intent(in)    :: NG_C,iGo_max
  integer,      intent(inout) :: NG_HF
- character(2), intent(in)    :: mode
+ character(*), intent(in)    :: mode
  !
  ! Workspace
  !
  logical :: l_USE_all_Gexx,l_USE_all_GHAR,l_USE_all_HF
  integer :: HF_fft_size,C_fft_size,i_shell,NG_HF_save,lower_shell,i_exp,n
- character(4) :: NGname
+ character(6) :: NGname
  character(6) :: SKname
  character(8) :: Kindname
  real(SP),external ::G2E
@@ -71,6 +71,14 @@ subroutine fft_check_size(iGo_max,NG_C,NG_HF,mode)
    Kindname="Exchange"
  endif
  !
+ if ( mode=="fxc" ) then
+   ! DS: here I use Gexx again because variable for tddft is not defined
+   l_USE_all_HF=l_USE_all_Gexx
+   NGname="NG_fxc"
+   SKname="Kernel"
+   Kindname="fxc"
+ endif
+ !
  call fft_setup(NG_C,iGo_max,.true.)
  C_fft_size=fft_size
  !
@@ -97,14 +105,14 @@ subroutine fft_check_size(iGo_max,NG_C,NG_HF,mode)
    !
    if(l_USE_all_HF) then
      call warning(' '//trim(Kindname)//' '//trim(SKname)//' '//&
-                 &   NGname//'= '//trim(intc(NG_HF))//' imposes FFT size= '//trim(intc(HF_fft_size)))
+                 &   trim(NGname)//'= '//trim(intc(NG_HF))//' imposes FFT size= '//trim(intc(HF_fft_size)))
      call warning(' '//trim(SKname)//' NG_C= '//trim(intc(NG_C))//' needs FFT size= '//trim(intc(C_fft_size))//&
                  &  ', suggested '//NGname//'= '//trim(intc(ng_in_shell(i_shell-1))))
      call warning(' Bigger FFT kept due to ALLG input. Slow computation for corr part of '//trim(SKname))
    else
      NG_HF=ng_in_shell(i_shell-1)
      call warning(' '//trim(Kindname)//' '//trim(SKname)//' FFT size is too big. '// &
-                 &   NGname//' reduced '//trim(intc(NG_HF_save))//' --> '//trim(intc(NG_HF)) &
+                 &   trim(NGname)//' reduced '//trim(intc(NG_HF_save))//' --> '//trim(intc(NG_HF)) &
                  & //' (' //intc(int(1000.*G2E(NG_HF)))//'mHa)')
      call warning(' Bigger FFT discarded to avoid slow computation for corr part of '//trim(SKname))
    endif

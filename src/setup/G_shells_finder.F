@@ -110,8 +110,8 @@ subroutine G_shells_finder()
  !
  if(G_mod_zero/=1.E-5) call msg('r','Shells accuracy on Gmod is ',G_mod_zero)
  !
- call degeneration_finder(G_mod,ng_closed,first_G_in_shell,ng_in_shell_TMP,n_g_shells,&
-&                        G_mod_zero,Include_single_values=.TRUE.)
+ call degeneration_finder(ng_closed,first_G_in_shell,ng_in_shell_TMP,n_g_shells,&
+&                        Er=G_mod,deg_accuracy=G_mod_zero,Include_single_values=.TRUE.)
  !
  ! Init
  !
