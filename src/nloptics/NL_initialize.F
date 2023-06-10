@@ -33,14 +33,15 @@ subroutine NL_initialize(E,k)
  use zeros,          ONLY:zero_dfl
  use com,            ONLY:msg
  use R_lattice,      ONLY:bz_samp,k_map
- use fields,         ONLY:Efield,Efield_strength,n_ext_fields,EtoT
+ use fields,         ONLY:Efield,Efield_strength,n_ext_fields,n_ext_fields_max,EtoT
  use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field,l_NE_with_fields, &
 &                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime
- use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t
+ use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free,l_NE_with_fields,&
+&                         SAVE_Vb_history
  use nl_optics,      ONLY:l_use_DIPOLES,EULER,EULEREXP,RK2,RK4,RK2EXP,RK4EXP,HEUN,INVINT,Integrator,CRANK_NICOLSON, &
 &                         NL_damping,NL_correlation,Correlation,NL_er,NL_estep,n_frequencies,IPA,TDDFT,HARTREE,LRC,JGM, &
 &                         LRCW,SEX,HF,eval_dG,eval_COLLISIONS,NL_bands,NL_verb_name,VERB_HIGH,VERB_LOW,NL_verbosity, &
-&                         n_order,WF_sample,NL_set_WF_sample,NL_INIT_WF_sample,l_eval_CURRENT,l_pump_and_probe,DephMult
+&                         l_eval_CURRENT,l_pump_and_probe,DephMult
  use electric,       ONLY:l_force_SndOrd,l_P_periodic
  use parser_m,       ONLY:parser
  use stderr,         ONLY:intc
@@ -52,7 +53,7 @@ subroutine NL_initialize(E,k)
  !
  ! Working space
  !
- real(SP) :: Time, WF_sample_range(2),W_0,T_0,sigma 
+ real(SP) :: Time,W_0,T_0,sigma 
  integer  :: i1,n_active_fields
  !
  ! Parser
@@ -62,6 +63,7 @@ subroutine NL_initialize(E,k)
  call parser('InducedField' ,        l_RT_induced_field)
  call parser('EvalCurrent' ,         l_eval_CURRENT)
  call parser('FrPolPerdic' ,         l_P_periodic)
+ call parser('SaveVbhistory',        SAVE_Vb_history)
  !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')
@@ -121,10 +123,9 @@ subroutine NL_initialize(E,k)
  !
  ! This part of the code works with only one field
  !
- n_ext_fields=3
  n_active_fields=0
  !
- do i1=1,n_ext_fields
+ do i1=1,n_ext_fields_max
    !
    Efield(i1)%ef_name=trim(Efield(i1)%ef_name)      
    if((Efield(i1)%ef_name=='none')) cycle
@@ -150,7 +151,6 @@ subroutine NL_initialize(E,k)
    ! see definition of "step_case" in function "theta_function" in src/modules/mod_functions.F
    Efield(i1)%t_initial_indx=max(nint(Efield(i1)%t_initial/RT_step)+1,2)
    Efield(i1)%t_initial     =real(Efield(i1)%t_initial_indx-1)*RT_step
-   Efield(i1)%ef_pol        ="linear"
    !
    call Check_symmetries(Efield(i1)%versor,"electric")
    !
@@ -162,7 +162,7 @@ subroutine NL_initialize(E,k)
  !
  call msg('s','[NL] Number of active fields : ',n_active_fields)
  !
- if(n_active_fields>1.or.all(NL_er<0._SP)) then
+ if(n_active_fields>1.or.n_frequencies==1.or.all(NL_er<0._SP)) then
    l_pump_and_probe=.true.
    l_NE_with_fields=.true.
    call msg('s', '[NL] Variables NLEnSteps and NLEnRange are ignored ')
@@ -318,26 +318,19 @@ subroutine NL_initialize(E,k)
  ! frequencies is supported
  !
  RT_dyn_step=RT_step
- OBS_RT_IO_t%INTERVAL_time     =RT_step
- OBS_RT_IO_t%INTERVAL_time_INPUT=RT_step
- call SETUP_RT_IO_type(OBS_RT_IO_t,who="OBS",what="INIT")
- YAMBO_ALLOC(OBS_RT_IO_t%Time,(NE_steps))
+ !
+ ! I/O steps
+ !===========
+ call RT_IO_type_time_steps("INIT")
+ !
+ call RT_control_alloc("all")
+ !
+! if(.not.l_pump_and_probe) then
  do NE_i_time=1,NE_steps
    Time=real(NE_i_time-1,SP)*RT_step
    OBS_RT_IO_t%Time(NE_i_time)=Time
  enddo
- !
- ! WFs sampling
- ! =========================
- !
- call NL_INIT_WF_sample(WF_sample)
- WF_sample_range  = (/OBS_RT_IO_t%Time(NE_steps) - EtoT(E=NL_er(1))+5._SP*RT_step,OBS_RT_IO_t%Time(NE_steps)/)
- call NL_set_WF_sample(WF_sample,n_order,RT_step,WF_sample_range,v=E%nbf,k=k%nibz)
- if (Efield(1)%ef_name/='SOFTSIN'.and.Efield(1)%ef_name/='SIN') WF_sample%ison = .false.
- if (n_order > 0) then
-   if (WF_sample%ison.eqv..false.) call warning('WF sampling switched off (only available with SOFTSIN/SIN field')
-   if (WF_sample%n_order < n_order) call warning('WF sampling analysis order set to the maximum of 7')
- end if
+ !endif
  !
  ! LOG
  ! ===
@@ -367,6 +360,5 @@ subroutine NL_initialize(E,k)
  call msg( 'r', 'Force Snd Order Dipoles    ',l_force_SndOrd)
  call msg( 'r', 'Evaluate Current           ',l_eval_CURRENT)
  call msg( 'r', 'Enforce periodic pol.      ',l_P_periodic)
- call msg( 'r', 'WF sampling                ',WF_sample%ison) 
  !
 end subroutine NL_initialize

@@ -349,7 +349,7 @@ if (l_phel_scatt)                   sec_title=trim(sec_title)//'+ph-el'
    !
    subroutine RT_timing(steps)
      !
-     integer :: steps
+     integer, intent(in) :: steps
      !
      if (steps==0) then
        !
@@ -373,7 +373,7 @@ if (l_phel_scatt)                   sec_title=trim(sec_title)//'+ph-el'
        if (NE_i_time>LT_pump_steps+1.and.LT_pump) then
          LT_pump=.FALSE.
          call live_timing( )
-         call live_timing('[RT] Dynamics (pump-free region) ',NE_steps-LT_pump_steps-NE_i_start_time+1,DEPTH=0.01_SP)
+         call live_timing('[RT] Dynamics (pump-free region) ',NE_steps-max(LT_pump_steps,NE_i_start_time)+1,DEPTH=0.01_SP)
        endif
        call live_timing(steps=steps)
        !

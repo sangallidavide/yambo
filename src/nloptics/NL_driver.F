@@ -41,8 +41,10 @@ subroutine NL_driver(E,X,k,q,Dip)
  use nl_optics,      ONLY:n_frequencies,Correlation,IPA,NL_alloc,NL_free,V_bands,eval_dG,NL_J,NL_initial_J, &
 &                         NL_estep,NL_er,Integrator,l_use_DIPOLES,NL_P_t,JGM,TDDFT,NL_P,l_pump_and_probe, &
 &                         E_ext_t,E_tot_t,E_ks_t,E_ks,E_tot,E_ext,freqs_done,n_freqs_todo,l_eval_CURRENT,&
-&                         HF,SEX,NL_bands,NL_nbands,WF_sample,V_bands_t,NL_alloc_k_distributed
- use real_time,      ONLY:RT_step,NE_steps,NE_i_time,RT_nbands,RT_bands,eval_DFT,eval_HARTREE
+&                         HF,SEX,NL_bands,NL_nbands,V_bands_t,NL_alloc_k_distributed
+ use real_time,      ONLY:RT_step,NE_steps,NE_i_time,NE_time,RT_nbands,RT_bands, &
+                          eval_DFT,eval_HARTREE,RT_P,RT_ind_J
+ use RT_control,     ONLY:OBS_RT_IO_t
  use IO_m,           ONLY:io_COLLs
  use parallel_int,   ONLY:PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use parallel_m,     ONLY:PAR_IND_freqs,PAR_IND_freqs_ID,PAR_IND_Xk_ibz
@@ -61,9 +63,9 @@ subroutine NL_driver(E,X,k,q,Dip)
  ! 
  ! Work Space
  !
- integer           :: i_f,i1,i_sp_pol,N_sample_size,wf_ng_save,io_err
+ integer           :: i_f,i1,i_sp_pol,nw,N_sample_size,wf_ng_save,io_err
  logical           :: l_dynamics_is_over
- real(SP)          :: Time
+ real(SP)          :: OBSERVABLES(25),Time
  !
  ! In Non-Linear NL_bands always equal to RT_bands
  ! ==============================================
@@ -191,13 +193,25 @@ subroutine NL_driver(E,X,k,q,Dip)
  ! =====================================
  if(n_freqs_todo==0) return
  !
+ if (l_pump_and_probe) then
+   !
+   ! Initialize output files
+   !==========================
+   call RT_output_INIT( )
+   !
+   call RT_output_and_IO_driver('open',E,k,OBSERVABLES)
+   !
+ endif
+ !
  ! Initialize IO
  ! ==================
  call NL_databases_IO(0,'write')
  !
  ! Start-Up & Timing
  !===================
- call live_timing('[NL] Frequencies ',PAR_IND_freqs%n_of_elements(PAR_IND_freqs_ID+1)*NE_steps)
+ nw=PAR_IND_freqs%n_of_elements(PAR_IND_freqs_ID+1)
+ if(.not.l_pump_and_probe) NE_i_time=0
+ call live_timing('[NL] Frequencies',nw*(NE_steps-NE_i_time))
  !
  do i_f=1,n_frequencies
    !
@@ -208,13 +222,16 @@ subroutine NL_driver(E,X,k,q,Dip)
      cycle
    endif
    !
-   ! Re-initialization
-   ! ================
-   V_bands=cZERO
-   do i_sp_pol=1,n_sp_pol
-     forall(i1=1:E%nbf(n_sp_pol)) V_bands(i1,i1,:,i_sp_pol)=cONE
-   enddo
-   if(WF_sample%ison) V_bands_t = cZERO
+   if (.not.l_pump_and_probe) then
+     !
+     ! Re-initialization
+     ! ================
+     V_bands=cZERO
+     do i_sp_pol=1,n_sp_pol
+       forall(i1=1:E%nbf(n_sp_pol)) V_bands(i1,i1,:,i_sp_pol)=cONE
+     enddo
+     !
+   endif
    !
    ! Efield
    ! ================
@@ -222,16 +239,15 @@ subroutine NL_driver(E,X,k,q,Dip)
    !
    l_dynamics_is_over=.false.
    !
-   NE_i_time=0
+   if(.not.l_pump_and_probe) NE_i_time=0
    N_sample_size=0
    !
    do while(.not.l_dynamics_is_over)
      !
      NE_i_time=NE_i_time+1
+     NE_time=real(NE_i_time-1,SP)*RT_step
      !
-     Time=real(NE_i_time-1,SP)*RT_step
-     !
-     call NL_Hamiltonian(E,k,q,X(1),Time,NE_i_time,V_bands)
+     call NL_Hamiltonian(E,k,q,X(1),NE_time,NE_i_time,V_bands)
      !
      ! I evaluate current after the Hamiltonian because I need
      ! time-dependent overlaps Sm1_plus, and Sm1_mins
@@ -239,6 +255,21 @@ subroutine NL_driver(E,X,k,q,Dip)
      if(l_eval_CURRENT) then
        call NL_current(k,E,V_bands,NL_J)
        NL_J=NL_J-NL_initial_J
+     endif
+     ! 
+     if (l_pump_and_probe) then
+       !
+       RT_P    =real(NL_P(1:3),SP)
+       RT_ind_J=real(NL_J(1:3),SP)
+       !
+       ! Carriers number
+       !================
+       call NL_carriers_number(E,k,OBSERVABLES(1:3))
+       !
+       ! Write DBs and output
+       !=====================
+       call RT_output_and_IO_driver('write',E,k,OBSERVABLES)
+       !
      endif
      !
      ! Store Variables
@@ -248,7 +279,7 @@ subroutine NL_driver(E,X,k,q,Dip)
      E_tot_t(NE_i_time,:)=E_tot
      E_ks_t (NE_i_time,:)=E_ks
      !
-     call NL_output(NE_i_time,i_f) 
+     call NL_output(NE_i_time,i_f)
      !
      call NL_Integrator(E,k,q,X(1),Integrator,NE_i_time,V_bands)
      !
@@ -257,6 +288,10 @@ subroutine NL_driver(E,X,k,q,Dip)
      l_dynamics_is_over= (NE_i_time>=NE_steps) .or. stop_now(.false.)
      !
    enddo
+   !
+   if (l_pump_and_probe) then
+     call RT_output_and_IO_driver('close',E,k,OBSERVABLES)
+   endif
    !
    call NL_databases_IO(i_f,'write')
    !

@@ -103,7 +103,7 @@ subroutine K_stored_in_a_big_matrix(i_BS_mat,iq,what)
            endif
        case("C")
            BS_mat(H_pos(1)            ,H_pos(2)+BS_K_dim(1))=       Mij
-           ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-HErmitian
+           ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
            BS_mat(H_pos(2)+BS_K_dim(1),H_pos(1)            )=-conjg(Mij)
            if (l_BS_ares_from_res) then
              ! The coupling block and the anti-coupling block are symmetric
@@ -121,7 +121,7 @@ subroutine K_stored_in_a_big_matrix(i_BS_mat,iq,what)
          endif
        case("Q")
            BS_mat(H_pos(1)+BS_K_dim(1),H_pos(2)            )=       Mij
-           ! Coupling from anti-coupling: the whole BSE matrix is Pseudo-HErmitian
+           ! Coupling from anti-coupling: the whole BSE matrix is Pseudo-Hermitian
            BS_mat(H_pos(2)            ,H_pos(1)+BS_K_dim(1))=-conjg(Mij)
        end select
        !

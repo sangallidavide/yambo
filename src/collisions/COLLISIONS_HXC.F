@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
+subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  !
  ! HXC collisions 
  !
@@ -29,7 +29,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  use pars,          ONLY:SP,pi,cZERO
  use com,           ONLY:msg
  use frequency,     ONLY:w_samp
- use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor
+ use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor,n_full_bands,n_met_bands
  use LIVE_t,        ONLY:live_timing
  use hamiltonian,   ONLY:H_potential
  use D_lattice,     ONLY:DL_vol,sop_inv
@@ -43,15 +43,15 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use collision_ext, ONLY:COLLISIONS_parallel_SC_structure,COLLISIONS_HXC_local,COLLISIONS_HXC_MB,&
 &                        COLL_bands,HXC_COLL_element,HXC_collisions,COH_COLL_element,COH_collisions,&
-&                        COLLISIONS_HXC_use_TDDFT,LAST_COLL_sync,PAR_COLL_min
+&                        COLLISIONS_HXC_use_TDDFT,LAST_COLL_sync,PAR_COLL_min,COLLISIONS_CV_only
  use timing_m,      ONLY:timing
  use QP_m,          ONLY:QP_ng_SH,QP_ng_Sx,QP_ng_Sc
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
  use IO_m,          ONLY:OP_RD_CL,REP,VERIFY,NONE,io_COLLs
  use X_m,           ONLY:X_ALLOC_elemental,X_mat,X_t
- use interfaces,    ONLY:WF_load,TDDFT_ALDA_R_space
+ use interfaces,    ONLY:WF_load,TDDFT_ALDA_R_space,eval_G_minus_G
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
- use R_lattice,     ONLY:qindx_S,bz_samp,g_rot,minus_G
+ use R_lattice,     ONLY:qindx_S,bz_samp,g_rot,minus_G,G_m_G
  use hamiltonian,   ONLY:B_mat_index
  use fft_m,         ONLY:fft_size
  !
@@ -61,12 +61,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  type(bz_samp)            ::k,q,Xk
  type(X_t)                ::X
  type(w_samp)             ::Xw
+ integer, intent(in)      ::IO_BS_err
  !
  ! Work Space
  !
  integer                 :: i_coll,first_coll,last_coll,ig1,ig2,iqbz,iqibz,alloc_err,iqs,iGo_max,NG_max,NG_XC,LOCAL_COMM(2),&
 &                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,&
-&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,bands_to_load(2),n_colls
+&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,bands_to_load(2),n_colls,n_GmG
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
  !
  type(elemental_collision):: isc_XC,iscp_XC,isc_H,iscp_H
@@ -77,6 +78,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  !
  complex(SP), allocatable :: EM1s(:,:),rhotw_tmp(:)
  integer                  :: io_err,ID_X,ID_HXC,ID_COH,TMP_VEC(ncpu)
+ logical                  :: doing_cv_colls,cc_vv_prime_only
  integer, external        :: io_X
  !
  call timing(trim(H_potential)//' Collisions',OPR='start')
@@ -100,7 +102,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  call k_build_up_BZ_tables(q)
  call k_expand(k)
  !
- if (l_compute_screening) then
+ if (l_compute_screening.and.(IO_BS_err/=0.or.(.not.COLLISIONS_CV_only))) then
    !
    ! Plasmon-Pole/Static interaction DB I/O
    !
@@ -122,9 +124,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  N_g_vecs_C =0
  iGo_max    =maxval(qindx_S(:,:,2))
  !
- if(COLLISIONS_HXC_local                      ) N_g_vecs_H  = QP_ng_SH
- if(COLLISIONS_HXC_MB                         ) N_g_vecs_X  = QP_ng_Sx
- if(COLLISIONS_HXC_MB .or.l_use_COH_collisions) N_g_vecs_C  = QP_ng_Sc
+ if (COLLISIONS_HXC_local) N_g_vecs_H  = QP_ng_SH
+ if (COLLISIONS_HXC_MB   ) N_g_vecs_X  = QP_ng_Sx
+ if (l_compute_screening ) N_g_vecs_C  = QP_ng_Sc
  !
  call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_H,"SH")
  call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_X,"SF")
@@ -134,6 +136,18 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  !
  NG_max=maxval((/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  NG_XC =max(N_g_vecs_X,N_g_vecs_C)
+ !
+ ! DEBUG <
+ ! 2022/06/30 DS: This is a check for consistency with BSE
+ ! - In the BSE case the elemental collisions are always computed with iqs=1 and iqG=1
+ !   and later there are symmetry operations with G_m_G which require to increase the O_ng (i.e. NG_XC)
+ ! - In the RT/SC collisions case the symmetries and the Go shifts are directly handled by scatter Gamp
+ !   via fft_g_table. So it is not needed to increase NG_XC
+ !if (COLLISIONS_HXC_MB) then
+ !  n_GmG=eval_G_minus_G(NG_XC,iGo_max)
+ !  NG_XC=maxval(G_m_G)
+ !endif
+ ! DEBUG >
  !
  call msg('s', '['//trim(H_potential)//'] Plane waves (H,X,C) ',(/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  !
@@ -145,77 +159,68 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
    bands_to_load(2)=max(COLL_bands(2),maxval(E%nbm))
  endif
  !
- if (WF_buffered_IO) call WF_load(WF_buffer,0,1,bands_to_load,(/1,k%nibz/),space='B',title='-BUFFER')
- !
- call WF_load(WF,NG_max,iGo_max,bands_to_load,(/1,k%nibz/),title='-'//trim(H_potential)//' Collisions')
- !
- if (COLLISIONS_HXC_local) then
+ if (IO_BS_err/=0.or.(.not.COLLISIONS_CV_only)) then
    !
-   iscp_H%qs   =1
-   iscp_H%iqref=0
-   iscp_H%ngrho=N_g_vecs_H
+   if (WF_buffered_IO) call WF_load(WF_buffer,0,1,bands_to_load,(/1,k%nibz/),space='B',title='-BUFFER')
+   call WF_load(WF,NG_max,iGo_max,bands_to_load,(/1,k%nibz/),title='-'//trim(H_potential)//' Collisions')
    !
-   isc_H%qs    =1
-   isc_H%iqref =0
-   isc_H%ngrho =N_g_vecs_H
+   if (COLLISIONS_HXC_local) then
+     !
+     call elemental_collision_alloc(isc_H ,NG=N_g_vecs_H,NG_GAMP=(/N_g_vecs_H,    1   /),TITLE='HARTREE')
+     call elemental_collision_alloc(iscp_H,NG=N_g_vecs_H,                                TITLE='HARTREE')
+     !
+     YAMBO_ALLOC(rhotw_tmp,(N_g_vecs_H))
+     !
+   endif
    !
-   call elemental_collision_alloc(isc_H ,NG=N_g_vecs_H,NG_GAMP=(/N_g_vecs_H,    1   /),TITLE='HARTREE')
-   call elemental_collision_alloc(iscp_H,NG=N_g_vecs_H,                                TITLE='HARTREE')
+   call elemental_collision_alloc(iscp_XC,NG=NG_XC,NG_GAMP=(/N_g_vecs_X,  1  /),TITLE=trim(H_potential))
    !
-   YAMBO_ALLOC(rhotw_tmp,(N_g_vecs_H))
+   if (l_compute_screening) then
+     !
+     ! Test the spatial Inversion
+     !   
+     call WF_spatial_inversion(E,Xk)
+     !
+     ! Allocation (EM1S can be bigger than N_g_vecs_C)
+     !
+     call X_ALLOC_elemental('X',(/X%ng,X%ng,1/))
+     YAMBO_ALLOC(EM1s,(N_g_vecs_C,N_g_vecs_C))
+     !
+     call elemental_collision_alloc(isc_XC, NG=NG_XC,NG_GAMP=(/N_g_vecs_C,N_g_vecs_C/),TITLE=trim(H_potential))
+     !
+   else
+     !
+     call elemental_collision_alloc(isc_XC, NG=NG_XC,                                  TITLE=trim(H_potential))
+     !
+   endif
    !
- endif
- !
- iscp_XC%qs   =1
- iscp_XC%iqref=0
- iscp_XC%ngrho=NG_XC
- !
- isc_XC%qs    =1
- isc_XC%iqref =0
- isc_XC%ngrho =NG_XC
- !
- call elemental_collision_alloc(iscp_XC,NG=NG_XC,NG_GAMP=(/N_g_vecs_X,  1  /),TITLE=trim(H_potential))
- !
- if (l_compute_screening) then
-   !
-   ! Test the spatial Inversion
-   !   
-   call WF_spatial_inversion(E,Xk)
-   !
-   ! Allocation (EM1S can be bigger than N_g_vecs_C)
-   !
-   call X_ALLOC_elemental('X',(/X%ng,X%ng,1/))
-   YAMBO_ALLOC(EM1s,(N_g_vecs_C,N_g_vecs_C))
-   !
-   call elemental_collision_alloc(isc_XC, NG=NG_XC,NG_GAMP=(/N_g_vecs_C,N_g_vecs_C/),TITLE=trim(H_potential))
+   Co=1._SP
+   if (COLLISIONS_HXC_use_TDDFT) then
+     Co=4._SP*pi/DL_vol/real(q%nbz,SP)
+     YAMBO_ALLOC(tddft_wf%rhotwr1,(fft_size*n_spinor*n_spinor))
+     YAMBO_ALLOC(tddft_wf%rhotwr2,(fft_size*n_spinor*n_spinor))
+     YAMBO_ALLOC(tddft_wf%WF_symm1,(fft_size,n_spinor))
+     YAMBO_ALLOC(tddft_wf%WF_symm2,(fft_size,n_spinor))
+     YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
+     YAMBO_ALLOC(V_xc,(fft_size,n_spin))
+     V_xc=0._SP
+     if(n_spin>1) then
+       YAMBO_ALLOC(magn,(fft_size,3))
+     endif
+     call XC_potential_driver(E,K,WF_kind,WF_xc_functional,2)
+     YAMBO_ALLOC(F_xc_mat,(fft_size,n_spin,n_spin,n_spin,n_spin))
+     call Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
+     YAMBO_FREE(F_xc)
+     YAMBO_FREE(V_xc)
+     if(n_spin>1) then
+       YAMBO_FREE(magn)
+     endif
+   endif
    !
  else
    !
-   call elemental_collision_alloc(isc_XC, NG=NG_XC,                                  TITLE=trim(H_potential))
+   ! to add here or somewhere else checks on the consistency of the parameters ...
    !
- endif
- !
- Co=1._SP
- if (COLLISIONS_HXC_use_TDDFT) then
-   Co=4._SP*pi/DL_vol/real(q%nbz,SP)
-   YAMBO_ALLOC(tddft_wf%rhotwr1,(fft_size*n_spinor*n_spinor))
-   YAMBO_ALLOC(tddft_wf%rhotwr2,(fft_size*n_spinor*n_spinor))
-   YAMBO_ALLOC(tddft_wf%WF_symm1,(fft_size,n_spinor))
-   YAMBO_ALLOC(tddft_wf%WF_symm2,(fft_size,n_spinor))
-   YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
-   YAMBO_ALLOC(V_xc,(fft_size,n_spin))
-   V_xc=0._SP
-   if(n_spin>1) then
-     YAMBO_ALLOC(magn,(fft_size,3))
-   endif
-   call XC_potential_driver(E,K,WF_kind,WF_xc_functional,2)
-   YAMBO_ALLOC(F_xc_mat,(fft_size,n_spin,n_spin,n_spin,n_spin))
-   call Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
-   YAMBO_FREE(F_xc)
-   YAMBO_FREE(V_xc)
-   if(n_spin>1) then
-     YAMBO_FREE(magn)
-   endif
  endif
  !
  n_colls=max(HXC_collisions%N,COH_collisions%N)
@@ -311,18 +316,40 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
      i_m     = COH_collisions%state(i_coll,2)
      i_k     = COH_collisions%state(i_coll,3)
      i_sp    = COH_collisions%state(i_coll,4)
-   endif   
+   endif
+   !
+   i_k_s      = 1
    !
    if( l_HXC_collisions )     HXC_COLL_element(1)%v3_c=cZERO
    if( l_use_COH_collisions ) COH_COLL_element(1)%v3_c=cZERO
    !
-   ! HARTREE collisions
-   !
-   if ( COLLISIONS_HXC_local )                      call compute_loc_HXC_collisions()
-   !
-   ! XC collisions within MBPT
-   !
-   if ( COLLISIONS_HXC_MB.or.l_use_COH_collisions ) call compute_MBPT_XC_collisions()
+   if (IO_BS_err==0) then
+     !
+     doing_cv_colls=.not.((i_n> n_met_bands(i_sp)  .and. i_m>n_met_bands(i_sp) ) .or. &
+     &                    (i_n<=n_full_bands(i_sp) .and. i_m<=n_full_bands(i_sp))     )
+     !
+     ! HXC collisions from BSE kernel if in the cv channel
+     if (doing_cv_colls) call map_BSE_to_HXC_collisions()
+     !
+     if (.not.COLLISIONS_CV_only) then
+       !
+       ! If (in,im) is in the cv channel, I need (inp,imp) only in the cc/vv channel
+       ! If (in,im) is not in the cv channel, I need (inp,imp) everywhere
+       cc_vv_prime_only=doing_cv_colls
+       ! Hartree collisions
+       if ( COLLISIONS_HXC_local )                      call compute_Hartree_collisions(cc_vv_prime_only)
+       ! XC collisions within MBPT
+       if ( COLLISIONS_HXC_MB.or.l_use_COH_collisions ) call compute_MBPT_XC_collisions(cc_vv_prime_only)
+     endif
+     !
+   else
+     !
+     ! Hartree collisions
+     if ( COLLISIONS_HXC_local )                      call compute_Hartree_collisions(.false.)
+     ! XC collisions within MBPT
+     if ( COLLISIONS_HXC_MB.or.l_use_COH_collisions ) call compute_MBPT_XC_collisions(.false.)
+     !
+   endif
    !
    if(l_HXC_collisions) then
      call PP_redux_wait(HXC_COLL_element(1)%v3_c,COMM=LOCAL_COMM(1))
@@ -366,7 +393,78 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  !
  contains
    !
-   subroutine compute_loc_HXC_collisions()
+   subroutine map_BSE_to_HXC_collisions()
+     !
+     ! Yambo uses the BSE matrix  with the square root of the occupations
+     ! The real time collisions must be constructed with the standard form
+     ! This requires a cI factor in the coupling terms
+     !
+     use electrons,     ONLY:spin_occ
+     use pars,          ONLY:cI
+     use BS,            ONLY:BS_blk,BS_K_dim,BS_K_io_map
+     use BS_solvers,    ONLY:BSS_eh_table_m1
+     !
+     complex(SP)  :: M_ij
+     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz
+     !
+     do i_p=1,Xk%nibz
+       do i_mp=COLL_bands(1),COLL_bands(2)
+         do i_np=COLL_bands(1),COLL_bands(2)
+           !
+           if ( (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
+           if ( (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
+           !
+           i_k_bz=BS_K_io_map(k%k_table(i_k,1))
+           i_p_bz=BS_K_io_map(k%k_table(i_p,1))
+           !
+           i_BSE=BSS_eh_table_m1(i_k_bz,i_m,i_n,i_sp,i_sp)
+           j_BSE=BSS_eh_table_m1(i_p_bz,i_mp,i_np,i_sp,i_sp)
+           !
+           if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
+             !
+             ! Resonant block
+             if(j_BSE>=i_BSE) M_ij=       BS_blk(i_BSE)%mat(1,j_BSE-i_BSE+1)
+             ! Resonant is hermitian
+             if(j_BSE< i_BSE) M_ij= conjg(BS_blk(j_BSE)%mat(1,i_BSE-j_BSE+1))
+             !
+           else if(i_BSE<=BS_K_dim(1) .and. j_BSE>BS_K_dim(1)) then
+             !
+             ! Coupling block
+             j_BSE=j_BSE-BS_K_dim(1)
+             if(j_BSE>=i_BSE) M_ij=       BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1)*cI
+             ! Coupling is symmetric
+             if(j_BSE< i_BSE) M_ij=       BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1)*cI
+             !
+           else if(i_BSE> BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
+             !
+             ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
+             i_BSE=i_BSE-BS_K_dim(1)
+             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1))*cI
+             ! anti-Coupling is symmetric
+             if(j_BSE< i_BSE) M_ij=-conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1))*cI
+             !
+           else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
+             !
+             ! Anti-resonant from resonant: the whole BSE matrix is Pseudo-Hermitian
+             i_BSE=i_BSE-BS_K_dim(1)
+             j_BSE=j_BSE-BS_K_dim(1)
+             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE)%mat(1,j_BSE-i_BSE+1))
+             ! anti-resonant is hermitian
+             if(j_BSE< i_BSE) M_ij=      -BS_blk(j_BSE)%mat(1,i_BSE-j_BSE+1)
+             !
+           endif
+           !
+           ! The occupation factor here is already contained in the density matrix (?)
+           !
+           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=-M_ij/spin_occ
+           !
+         enddo
+       enddo
+     enddo
+     !
+   end subroutine map_BSE_to_HXC_collisions
+   !
+   subroutine compute_Hartree_collisions(cc_vv_only)
      !
      ! Scattering geometry
      !=====================           _ \ _
@@ -378,15 +476,16 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
      !                                 |
      !     (i_n,i_k,1)------>----------.---------->----(i_m,i_k,1)
      !                          
-     !                          
+     !
+     logical, intent(in)  :: cc_vv_only
+     !
+     logical :: cc_vv_colls
      integer :: i_q_fake, i_p_bz
      !                          
      isc_H%qs   = 1
      iscp_H%qs  = 1
      !
      call scatter_Gamp(isc_H,'x')
-     !
-     i_k_s      = 1
      !
      isc_H%is  =(/i_n,i_k,i_k_s,i_sp/)
      isc_H%os  =(/i_m,i_k,i_k_s,i_sp/)
@@ -404,6 +503,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
        !
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=i_mp,COLL_bands(2)
+           !
+           cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
+           &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
+	   !
+           if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
+           if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
            !
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
@@ -491,9 +596,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
        !
      enddo
      !
-   end subroutine compute_loc_HXC_collisions
+   end subroutine compute_Hartree_collisions
    !
-   subroutine compute_MBPT_XC_collisions()
+   subroutine compute_MBPT_XC_collisions(cc_vv_only)
      !
      ! Scattering geometry
      !=====================
@@ -508,7 +613,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
      !     (i_n,i_k,1)-->--.---------->----------.---->----(i_m,i_k,1)
      !                          (i_kmq,i_kmq_s)
      !
+     logical, intent(in)  :: cc_vv_only
      !
+     logical :: cc_vv_colls
      integer :: TMP_INDEX(COLL_bands(1):COLL_bands(2))
      !
      if (l_compute_screening.and.i_coll==first_coll) then
@@ -523,27 +630,21 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
        iqibz    =q%sstar(iqbz,1)
        iqs      =q%sstar(iqbz,2)
        !
-       isc_XC%qs   =(/0,iqibz,iqs/)
-       iscp_XC%qs  =(/0,iqibz,iqs/)
-       !
-       i_k_s   = 1
-       !
        i_kmq_bz =qindx_S(i_k,iqbz,1)
        i_kmq_G0 =qindx_S(i_k,iqbz,2)
        !
        i_kmq   = k%sstar(i_kmq_bz,1)
        i_kmq_s = k%sstar(i_kmq_bz,2)
        !
+       isc_XC%qs  =(/i_kmq_G0,iqibz,iqs/)
        isc_XC%is  =(/i_n,i_k,  i_k_s,  i_sp/)
        isc_XC%os  =(/0  ,i_kmq,i_kmq_s,i_sp/)
        !
+       iscp_XC%qs =(/i_kmq_G0,iqibz,iqs/)
        iscp_XC%is =(/i_m,i_k,  i_k_s,  i_sp/)
        iscp_XC%os =(/0,  i_kmq,i_kmq_s,i_sp/)
        !
-       isc_XC%qs(1) =i_kmq_G0
-       iscp_XC%qs(1)=i_kmq_G0
-       !
-       if (iqibz/=isc_XC%iqref) call scatter_Gamp(iscp_XC,'x')
+       if (iqibz/=iscp_XC%iqref) call scatter_Gamp(iscp_XC,'x')
        !
        if( iqibz/=isc_XC%iqref .and. l_compute_screening) then
          !
@@ -584,6 +685,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
          !
          do i_np=COLL_bands(1),COLL_bands(2)
            !
+           cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
+           &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
+	   !
+           if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
+           if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
+           !
            ! COLLISIONS(n,n',qp_n_states) = \sum_{G,G',q} ( rho(m,n,G,q,k) x EM1s(G ,G') x rho*(m',n',G',q,k) /|q+G|/|q+G'| )
            !
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) ) cycle
@@ -615,7 +722,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
              enddo
              !$omp end parallel do
            endif
-           !
+	   !
            if(index(H_potential,"SEX")>0 .or. index(H_potential,"FOCK")>0) &
 &            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq) &
 &                                                      -4._SP/spin_occ*pi*(pre_factor1+pre_factor2)

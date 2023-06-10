@@ -102,8 +102,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use RT_output_m,ONLY:n_RT_headings,N_RT_o_files,RT_o_file_long,RT_o_file_short,RT_o_file_is_open,&
 &                     RT_headings,YPP_append,Gr_desc,TIME_STEP_desc,RT_desc
  use RT_control, ONLY:CARR_RT_IO_t,OBS_RT_IO_t,OUTPUT_RT_IO_t,Gless_RESTART_RT_IO_t,SAVE_G_history,RT_ctl_db,&
-&                     CACHE_OBS_last_point,CACHE_OBS_INTERVAL_time,CACHE_OBS_INTERVAL_time_INPUT,   &
-&                     CACHE_OBS_steps,CACHE_OBS_steps_now,RT_NAN_found
+&                     Vbands_RT_IO_t,CACHE_OBS_last_point,CACHE_OBS_INTERVAL_time,CACHE_OBS_INTERVAL_time_INPUT,   &
+&                     CACHE_OBS_steps,CACHE_OBS_steps_now,RT_NAN_found,SAVE_Vb_history
  use RT_lifetimes,ONLY:RT_life_extrap_times
  use real_time,  ONLY:RT_step,NE_steps,NE_time,Integrator_name,RT_deph_range,&
 &                     Gr_kind,two_alpha,RAD_LifeTime,Phase_LifeTime,&
@@ -114,12 +114,12 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     NE_time_step_update_last_point,NE_time_step_update_jump,NE_time_step_update_jump_INPUT, &
 &                     NE_initial_time_step_update,NE_step_update_treshold
  use fields,     ONLY:Efield,Efield_reset,n_ext_fields_max,n_ext_fields,A_vecpot_reset,   &
-&                     A_tot,A_ind,A_ext
+&                     A_tot,A_ind,A_ext,field_from_file_fname,field_from_file_steps
  use plasma,     ONLY:PLASMA_redux_percent
 #endif
 #if defined _NL
  use nl_optics,  ONLY:NL_correlation,NL_er,n_frequencies,NL_damping,NL_LRC_alpha,         &
-&                     NL_verb_name,NL_bands,n_order,NL_desc
+&                     NL_verb_name,NL_bands,NL_desc
  use fields,     ONLY:Efield,Efield_reset
 #endif
 #if defined _SC
@@ -586,6 +586,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  ! Real Time
  !
+ field_from_file_fname=""
+ field_from_file_steps=0
  n_ext_fields=0
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
@@ -660,7 +662,9 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  CARR_RT_IO_t%INTERVAL_time_INPUT             =2._SP*FS2AUT
  OUTPUT_RT_IO_t%INTERVAL_time_INPUT           =5._SP*FS2AUT
  Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT    =1._SP*FS2AUT
+ Vbands_RT_IO_t%INTERVAL_time_INPUT           =1._SP*FS2AUT
  SAVE_G_history=.FALSE.
+ SAVE_Vb_history=.FALSE.
  RT_NAN_found  =.FALSE.
  !
  ! RT_output
@@ -687,10 +691,11 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  NL_correlation="IPA"
  NL_er         =(/-1._SP,-1._SP/)/HA2EV
  n_frequencies =1
- n_order    = 0
  NL_damping    =0.2_SP/HA2EV
  NL_LRC_alpha  =0._SP
  !
+ field_from_file_fname=""
+ field_from_file_steps=0
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
    Efield(i1)%frequency=0.1_SP/HA2EV

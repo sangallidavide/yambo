@@ -34,7 +34,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use IO_m,           ONLY:OP_RD_CL,REP
  use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_damp_reference,BSS_q0,BSS_eels_to_eps,BSS_uses_DbGd
  use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_res_K_corr,BS_n_g_W,BS_cpl_K_corr,&
-&                         BS_Blocks_and_Transitions_free,BSqpts,l_BS_photolum
+&                         BS_Blocks_and_Transitions_free,BSqpts,BS_kpt_bz,l_BS_photolum
  use TDDFT,          ONLY:FXC_per_memstps,FXC_n_mem_freqs,FXC_is_retarded
  use drivers,        ONLY:l_rpa_IP,l_bs_fxc,l_bss
  use parallel_m,     ONLY:PAR_IND_WF_b_and_k,PAR_K_scheme,PARALLEL_default_mode
@@ -59,7 +59,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  ! I/O
  !
  integer, allocatable :: qindx_B_max_CPU(:)
- integer              :: io_err,ID
+ integer              :: io_err,ID,ik
  integer, external    :: io_QINDX
  !
  call section('*','Bethe Salpeter Equation driver')
@@ -136,6 +136,13 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    YAMBO_FREE(qindx_B_max_CPU)
    !
  endif
+ !
+ call k_ibz2bz(Xk,'i',.false.)
+ YAMBO_ALLOC(BS_kpt_bz,(3,Xk%nbz))
+ do ik=1,Xk%nbz
+   BS_kpt_bz(:,ik)=Xk%ptbz(ik,:)
+ enddo
+ call k_ibz2bz(Xk,'d',.false.)
  !
  ! Tranferred momentum
  !======================
@@ -265,6 +272,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  call PARALLEL_global_indexes(Ken,Xk,q,"Response_T_space",X=X_oscillators,RESET=.TRUE.)
  !
  YAMBO_FREE(BSqpts)
+ YAMBO_FREE(BS_kpt_bz)
  call qindx_free('B')
  !
 end subroutine

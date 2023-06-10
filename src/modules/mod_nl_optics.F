@@ -26,7 +26,7 @@ module nl_optics
  use descriptors,     ONLY:IO_desc
  use pars,            ONLY:SP,schlen,lchlen
  use electrons,       ONLY:levels
- use real_time,       ONLY:NE_steps
+ use real_time,       ONLY:NE_steps,dG_lesser
  !
 #include<memory.h>
  !
@@ -70,15 +70,12 @@ module nl_optics
  ! WFs and Density
  !
  ! Bands in terms of Kohn-Sham orbitals
- complex(SP), allocatable :: V_bands(:,:,:,:)  ! time-dependent valence bands
+ complex(SP), allocatable, target :: V_bands(:,:,:,:)  ! time-dependent valence bands
  ! 
  ! Time-dependent Valence bands in real-space
  complex(SP), allocatable :: VAL_BANDS(:,:,:,:)
  !
  real(SP),    allocatable :: full_rho(:)       ! density of all bands from 1:SC_bands(2)
- !
- ! Density matrix
- complex(SP), allocatable :: dG(:,:,:) 
  !
  ! Integrator Variables
  !
@@ -136,20 +133,6 @@ module nl_optics
  !
  integer, parameter :: DephMult=5 
  !
- ! Wavefunction sampling
- !
- type NLsampleWF
-   integer              :: n_order     ! Sampling NL order
-   integer              :: n_size      ! Size of sampling
-   integer              :: n_val(2)    ! Number of valence per spin channel
-   integer              :: n_k         ! Number of kpoints
-   logical              :: ison        ! WF sample logical switch 
-   integer, allocatable :: indx_T(:)   ! indexes of time sampling
- end type NLsampleWF
- !
- integer  :: n_order
- type(NLsampleWF) :: WF_sample, WF_sample_ondisk 
- !
  ! Databases input/output
  !
  integer                  :: ID(3)
@@ -196,10 +179,13 @@ module nl_optics
      !
      if(Correlation==TDDFT.or.Correlation==JGM) then
        YAMBO_ALLOC(V_xc_0,(fft_size,n_spin))
-     endif          
+     endif
+     !
+     if(l_use_Hxc_collisions.or.l_pump_and_probe) then
+       YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,1))
+     endif
      !
      if(l_use_Hxc_collisions) then
-       YAMBO_ALLOC(dG,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk))
        YAMBO_ALLOC(RT_Vnl_xc,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,n_sp_pol))
      endif          
      !
@@ -215,8 +201,6 @@ module nl_optics
      YAMBO_ALLOC(E_tot_t,(NE_steps,3))
      YAMBO_ALLOC(E_ext_t,(NE_steps,3))
      YAMBO_ALLOC(E_ks_t,(NE_steps,3))
-     !
-     call NL_ALLOC_WF_sample(WF_sample,NL_bands(2),n_sp_pol)
      !
    end subroutine NL_alloc
    !
@@ -275,8 +259,11 @@ module nl_optics
      YAMBO_FREE(E_ks_t)
      YAMBO_FREE(V_bands_t)
      !
+     if(l_use_Hxc_collisions.or.l_pump_and_probe) then
+       YAMBO_FREE(dG_lesser)
+     endif
+     !
      if(l_use_Hxc_collisions) then
-       YAMBO_FREE(dG)
        YAMBO_FREE(RT_Vnl_xc)
      endif
      !
@@ -291,69 +278,5 @@ module nl_optics
      beta = NL_LRC_alpha/Egap**2
      Alpha_ED = NL_LRC_alpha + beta*omega**2
    end function
-   !
-   subroutine NL_set_WF_sample(W,n,Tstep,Trange,v,k)
-     !
-     type(NLsampleWF),intent(out) :: W
-     integer         ,intent(in)  :: n 
-     real(SP)        ,intent(in)  :: Tstep
-     real(SP)        ,intent(in)  :: Trange(2)
-     integer         ,optional    :: v(2),k 
-     ! ws:
-     integer :: i_t,i_t_start,i_deltaT     
-     !
-     W%ison = .false.
-     if (n > 0) then
-       W%ison = .true.
-       W%n_order = min(n,7)
-       W%n_size = 2*W%n_order + 1
-       if (present(v)) W%n_val = v
-       if (present(k)) W%n_k = k
-       YAMBO_ALLOC(W%indx_T,(W%n_size))
-       i_t_start = nint(Trange(1)/Tstep)+1
-       i_deltaT=nint((Trange(2)-Trange(1))/Tstep)/W%n_size
-       forall(i_t=0:W%n_size-1) W%indx_T(1+i_t) = i_t_start + i_t*i_deltaT 
-     end if
-     !
-   end subroutine NL_set_WF_sample
-   !
-   subroutine NL_COPY_WF_sample(W1,W2)
-     !
-     type(NLsampleWF),intent(in) :: W1
-     type(NLsampleWF),intent(out) :: W2
-     !
-     W2%ison = W1%ison
-     if (W1%ison) then
-       W2%n_order = W1%n_order
-       W2%n_size  = W1%n_size
-       W2%n_val   = W1%n_val 
-       W2%n_k     = W1%n_k
-       YAMBO_ALLOC(W2%indx_T,(W2%n_size))
-       W2%indx_T(:) = W1%indx_T(:)
-     end if
-     !
-   end subroutine NL_COPY_WF_sample
-   !
-   subroutine NL_INIT_WF_sample(W)
-     !
-     type(NLsampleWF),intent(inout) :: W
-     !
-     W%ison = .false.
-     W%n_order = 0
-     W%n_size = 0
-     W%n_val  = 0
-     W%n_k    = 0
-     !
-   end subroutine NL_INIT_WF_sample
-   !
-   subroutine NL_ALLOC_WF_sample(W,nb,ns)
-     !
-     type(NLsampleWF),intent(in) :: W
-     integer,         intent(in) :: nb,ns
-     !
-     if (W%ison) then
-       YAMBO_ALLOC(V_bands_t,(W%n_size,nb,maxval(W%n_val),W%n_k,ns))
-     endif
-   end subroutine NL_ALLOC_WF_sample
    !
 end module

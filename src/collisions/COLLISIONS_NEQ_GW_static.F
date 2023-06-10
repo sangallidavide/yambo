@@ -80,12 +80,6 @@ subroutine COLLISIONS_NEQ_GW_static(X,Xk,E,k,q,Xw)
  call k_build_up_BZ_tables(q)
  call k_expand(k)
  !
- ! Dimensions...
- !
- isc%iqref =0
- isc%ngrho =X%ng
- iscp%ngrho=X%ng
- !
  ! WFs...
  !
  call WF_load(WF,isc%ngrho,maxval(qindx_S(:,:,2)),COLL_bands,(/1,k%nibz/),title='-SC')
@@ -109,8 +103,8 @@ subroutine COLLISIONS_NEQ_GW_static(X,Xk,E,k,q,Xw)
  call X_ALLOC_elemental('X',(/X%ng,X%ng,1/))
  YAMBO_ALLOC(EM1s,(X%ng,X%ng))
  !
- call elemental_collision_alloc(isc, NG=isc%ngrho,NG_GAMP=(/X%ng,X%ng/),TITLE="NEQ_GW")
- call elemental_collision_alloc(iscp,NG=isc%ngrho,TITLE="NEQ_GW")
+ call elemental_collision_alloc(isc, NG=X%ng,NG_GAMP=(/X%ng,X%ng/),TITLE="NEQ_GW")
+ call elemental_collision_alloc(iscp,NG=X%ng,TITLE="NEQ_GW")
  !
  ! Parallel Indexes & LIVE-TIMING STEPS
  !

@@ -80,8 +80,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #endif
 #if defined _RT
  use RT_control,    ONLY:CARR_RT_IO_t,OBS_RT_IO_t,OUTPUT_RT_IO_t,Gless_RESTART_RT_IO_t,     &
-&                        CACHE_OBS_INTERVAL_time_INPUT,RT_BSE_Occ_Mode,Gless_RT_IO_t
- use stderr,        ONLY:intc
+&                        CACHE_OBS_INTERVAL_time_INPUT,RT_BSE_Occ_Mode,Gless_RT_IO_t,Vbands_RT_IO_t
  use RT_occupations,ONLY:RT_RTA_temp,RT_RTA_chem
  use RT_lifetimes,  ONLY:RT_life_extrap_times_INPUT
  use real_time,     ONLY:RT_step, Integrator_name, RAD_LifeTime, Phase_LifeTime, &
@@ -92,12 +91,12 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 &                        NE_initial_time_step_update,NE_step_update_treshold,    &
 &                        RT_MAX_step,RAD_magnification,  &
 &                        RT_deph_deg_thresh,RT_step_manual_prefactor,NE_time_step_update_manual
- use fields,        ONLY:Efield,n_ext_fields_max,n_ext_fields
+ use fields,        ONLY:n_ext_fields_max,n_ext_fields
  use plasma,        ONLY:PLASMA_redux_percent
 #endif
 #if defined _NL
  use nl_optics,     ONLY:NL_bands,NL_damping,NL_correlation,NL_er,n_frequencies,NL_LRC_alpha, &
-&                        NL_verb_name,n_order
+&                        NL_verb_name
 #endif 
 #if defined _NL | defined _SC
  use fields,        ONLY:Efield
@@ -449,11 +448,16 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'Integrator',  '[RT] Integrator. Use keywords space separated  ( "EULER/EXPn/INV" "SIMPLE/RK2/RK4/HEUN" "RWA") ',&
 &              Integrator_name)
  !
+#if defined _NL
+ IO_times=(/CARR_RT_IO_t%INTERVAL_time_INPUT,Vbands_RT_IO_t%INTERVAL_time_INPUT,OUTPUT_RT_IO_t%INTERVAL_time_INPUT/)
+#elif defined _RT
  IO_times=(/CARR_RT_IO_t%INTERVAL_time_INPUT,Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT,OUTPUT_RT_IO_t%INTERVAL_time_INPUT/)
- call it(defs,'IOtime',      '[RT] Time between two consecutive I/O (CARRIERs - GF - OUTPUT)',IO_times,unit=Time_unit(1))
+#endif
+ call it(defs,'IOtime',      '[RT] Time between two consecutive I/O (CARRIERs - GF/WF - OUTPUT)',IO_times,unit=Time_unit(1))
  CARR_RT_IO_t%INTERVAL_time_INPUT             =IO_times(1)
  Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT    =IO_times(2)
  Gless_RT_IO_t%INTERVAL_time_INPUT            =IO_times(2)
+ Vbands_RT_IO_t%INTERVAL_time_INPUT           =IO_times(2)
  OUTPUT_RT_IO_t%INTERVAL_time_INPUT           =IO_times(3)
  !
  IO_times(1:2)=(/CACHE_OBS_INTERVAL_time_INPUT,OBS_RT_IO_t%INTERVAL_time_INPUT/)
@@ -533,8 +537,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it('f',defs,'UseDipoles','[NL] Use Covariant Dipoles (just for test purpose)',verb_level=V_nl_optics)
  call it('f',defs,'FrSndOrd','[NL] Force second order in Covariant Dipoles',verb_level=V_nl_optics)
  call it('f',defs,'EvalCurrent','[NL] Evaluate the current')
- !
- call it(defs,'NLSampleWF',  '[NL] Sample the WFs (sampling NL order)',n_order,verb_level=V_nl_optics)
+ call it('f',defs,'SaveVbhistory',  '[RT] Save the history of the wave-functions function',Verb_level=V_nl_optics)
  !
 #endif
  !
@@ -544,7 +547,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  !
  if (initmode==4.and..not.infile_editing) n_ext_fields=0
  do i_field=1,n_ext_fields_max
-   call Afield(i_field)
+   call Afield(defs,i_field)
  enddo
  !
 #endif
@@ -730,53 +733,6 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! 
  contains 
    !
-#if defined _RT || defined _NL
-   !
-   subroutine Afield(i_field)
-     use units,    ONLY  :AU2KWCMm2
-     use parser_m, ONLY  : parser
-     character(10)      :: name
-     integer            :: i_field
-     logical            :: is_def
-     !
-     name='Field'//trim(intc(i_field))
-     !
-     call it(defs,trim(name)//'_Freq',            '[RT '//trim(name)//'] Frequency',&
-&            Efield(i_field)%frequency,unit=E_unit)
-     call it(defs,trim(name)//'_NFreqs',            '[RT '//trim(name)//'] Frequency',&
-&            Efield(i_field)%n_frequencies)
-     call it(defs,trim(name)//'_DFreq',           '[RT '//trim(name)//'] Frequency step',&
-&            Efield(i_field)%W_step,unit=E_unit,verb_level=V_real_time)
-     call it(defs,trim(name)//'_Int',             '[RT '//trim(name)//'] Intensity',&
-&            Efield(i_field)%intensity,unit=I_unit)
-     call it(defs,trim(name)//'_Width',           '[RT '//trim(name)//'] Width',&
-&            Efield(i_field)%width,unit=Time_unit(1))
-     call it(defs,trim(name)//'_FWHM',            '[RT '//trim(name)//'] Full Width at Half Maximum (overwrite width if set)',&
-&            Efield(i_field)%FWHM,unit=Time_unit(1),verb_level=V_real_time)
-     call it(defs,trim(name)//'_kind',            '[RT '//trim(name)//'] Kind(SIN|COS|RES|ANTIRES|GAUSS|DELTA|QSSIN)',&
-&            Efield(i_field)%ef_name)
-     call it(defs,trim(name)//'_pol',             '[RT '//trim(name)//'] Pol(linear|circular)',&
-&            Efield(i_field)%ef_pol)
-     call it(defs,trim(name)//'_Dir',             '[RT '//trim(name)//'] Versor',&
-&            Efield(i_field)%versor)
-     call it(defs,trim(name)//'_Dir_circ',        '[RT '//trim(name)//'] Versor_circ',&
-&            Efield(i_field)%versor_circ,verb_level=V_real_time)
-     call it(defs,trim(name)//'_Tstart',          '[RT '//trim(name)//'] Initial Time',&
-&            Efield(i_field)%t_initial,unit=Time_unit(1))
-     !
-     if (initmode==4.and..not.infile_editing) then
-       !
-       call parser(trim(name)//'_FWHM',is_def)
-       if (     is_def) Efield(i_field)%width=Efield(i_field)%FWHM/(2._SP*sqrt(2._SP*log(2._SP)))
-       if (.not.is_def) Efield(i_field)%FWHM=Efield(i_field)%width*(2._SP*sqrt(2._SP*log(2._SP)))
-       !
-       if (trim(Efield(i_field)%ef_name)/='none') n_ext_fields=n_ext_fields+1
-       !
-     endif
-     !
-   end subroutine
-   !
-#endif
    !
 #if defined _MPI 
    !

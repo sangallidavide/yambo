@@ -459,7 +459,8 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        H_pos(1) = sum(BS_T_grp(I_Tgrp_k_st:I_Tgrp_k-1)%size)+i_Tk+& 
        &              (BS_T_grp(I_Tgrp_k)%i_res_ares-1)*BS_K_dim(1) 
        H_pos(2) = sum(BS_T_grp(I_Tgrp_p_st:I_Tgrp_p-1)%size)+i_Tp+& 
-       &              (BS_T_grp(I_Tgrp_p)%i_res_ares-1)*BS_K_dim(1) 
+       &              (BS_T_grp(I_Tgrp_p)%i_res_ares-1)*BS_K_dim(1)
+       !
        if (H_pos(1)>H_pos(2)) cycle 
        !
        i_k_bz  = BS_T_grp(i_Tgrp_k)%table(i_Tk,1) 
@@ -623,6 +624,11 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        if (mode_now=="C") BS_blk(i_block)%mat(i_Tk,i_Tp)= cI*BS_blk(i_block)%mat(i_Tk,i_Tp)
        !
        BS_blk(i_block)%done(i_Tk,i_Tp)="t"
+       !
+       if (H_pos(1)==H_pos(2)) then
+         if (.not.mode_now=="C") BS_blk(i_block)%table(:,i_Tk)=(/i_p_bz,i_v_p,i_c_p,i_p_sp_pol_c,i_p_sp_pol_v/)
+         if (     mode_now=="C") BS_blk(i_block)%table(:,i_Tk)=(/i_p_bz,i_c_p,i_v_p,i_p_sp_pol_c,i_p_sp_pol_v/)
+       endif
        !
      enddo   ! i_Tk
    enddo     ! i_Tp

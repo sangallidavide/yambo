@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine PARALLEL_collisions( k, COLL )
+subroutine PARALLEL_collisions( k, COLL_grp )
  !
  ! SC
  !====
@@ -153,31 +153,31 @@ subroutine PARALLEL_collisions( k, COLL )
 #include<memory.h>
  !
  type(bz_samp)          :: k
- type(COLLISIONS_group) :: COLL
+ type(COLLISIONS_group) :: COLL_grp
  !
  ! Work Space
  !
  integer :: i_coll,i_k,ib1,ib2,NC_tot,i_q,i_p,i_p_bz
  !
- if ( COLL%N == 0 ) return
+ if ( COLL_grp%N == 0 ) return
  !
- YAMBO_ALLOC(COLL%PAR_map,(COLL%N))
- YAMBO_ALLOC(COLL%PAR_IND%element_1D,(COLL%N))
+ YAMBO_ALLOC(COLL_grp%PAR_map,(COLL_grp%N))
+ YAMBO_ALLOC(COLL_grp%PAR_IND%element_1D,(COLL_grp%N))
  !
  if (.not.allocated(PAR_IND_G_k%element_1D).and.l_eval_collisions ) then
    YAMBO_ALLOC(PAR_IND_G_k%element_1D,(k%nibz))
    PAR_IND_G_k%element_1D=.FALSE.
  endif
- COLL%PAR_IND%element_1D=.FALSE.
- COLL%PAR_N=0
- COLL%PAR_map=0
+ COLL_grp%PAR_IND%element_1D=.FALSE.
+ COLL_grp%PAR_N=0
+ COLL_grp%PAR_map=0
  NC_tot=0
  !
- do i_coll=1,COLL%N
+ do i_coll=1,COLL_grp%N
    !
-   ib1 = COLL%state(i_coll,1)
-   ib2 = COLL%state(i_coll,2)
-   i_k = COLL%state(i_coll,3)
+   ib1 = COLL_grp%state(i_coll,1)
+   ib2 = COLL_grp%state(i_coll,2)
+   i_k = COLL_grp%state(i_coll,3)
    NC_tot=NC_tot+1
    !
    if (l_par_RT) then
@@ -194,9 +194,9 @@ subroutine PARALLEL_collisions( k, COLL )
      if (.not.PAR_IND_QP%element_1D(i_coll)) cycle
    endif
    !
-   COLL%PAR_N=COLL%PAR_N+1
-   COLL%PAR_map(i_coll)=COLL%PAR_N
-   COLL%PAR_IND%element_1D(i_coll)=.TRUE.
+   COLL_grp%PAR_N=COLL_grp%PAR_N+1
+   COLL_grp%PAR_map(i_coll)=COLL_grp%PAR_N
+   COLL_grp%PAR_IND%element_1D(i_coll)=.TRUE.
    !
    if (l_eval_collisions) then
      !
@@ -219,22 +219,22 @@ subroutine PARALLEL_collisions( k, COLL )
    !
  enddo
  !
- call PARALLEL_live_message(trim(COLL%name)//" Number of Collisions",LOADED=COLL%PAR_N,TOTAL=NC_tot)
+ call PARALLEL_live_message(trim(COLL_grp%name)//" Number of Collisions",LOADED=COLL_grp%PAR_N,TOTAL=NC_tot)
  !
- call PARALLEL_check_phase_space(COLL%PAR_N,MSG=trim(COLL%name)//" COLLISIONS")
+ call PARALLEL_check_phase_space(COLL_grp%PAR_N,MSG=trim(COLL_grp%name)//" COLLISIONS")
  !
 end subroutine PARALLEL_collisions
 !
 !
-subroutine PARALLEL_collisions_reset(COLL)
+subroutine PARALLEL_collisions_reset(COLL_grp)
  !
  use collision_ext, ONLY:COLLISIONS_group
  !
 #include<memory.h>
  !
- type(COLLISIONS_group), intent(inout) :: COLL
+ type(COLLISIONS_group), intent(inout) :: COLL_grp
  !
- YAMBO_FREE(COLL%PAR_map)
- YAMBO_FREE(COLL%PAR_IND%element_1D)
+ YAMBO_FREE(COLL_grp%PAR_map)
+ YAMBO_FREE(COLL_grp%PAR_IND%element_1D)
  !
 end subroutine PARALLEL_collisions_reset

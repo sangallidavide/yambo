@@ -73,7 +73,7 @@ module collision_ext
  end type
  !
  type COLLISIONS_group
-   integer               :: D(3,2)=0    ! Dimension (v3 of corresponding COLLISIONS_element)
+   integer               :: D(3,4)=0    ! Dimension (v3 of corresponding COLLISIONS_element)
    character(schlen)     :: name="none"
    integer               :: kind=0
    integer               :: N=0         ! # of collisions (dimension of linked COLLISIONS_element)

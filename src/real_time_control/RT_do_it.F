@@ -23,7 +23,7 @@
 !
 logical function RT_do_it(what)
  !
- use RT_control,     ONLY:OBS_RT_IO_t,Gless_RESTART_RT_IO_t,CARR_RT_IO_t,CACHE_OBS_INTERVAL_time,&
+ use RT_control,     ONLY:OBS_RT_IO_t,Gless_RESTART_RT_IO_t,Vbands_RT_IO_t,CARR_RT_IO_t,CACHE_OBS_INTERVAL_time,&
 &                         CACHE_OBS_last_point,OUTPUT_RT_IO_t,NE_i_start_time,STOP_the_dynamics_NOW
  use real_time,      ONLY:NE_i_time,RT_step,NE_time_step_update_jump,NE_time_step_update_last_point
  use parser_m,       ONLY:parser
@@ -59,6 +59,10 @@ logical function RT_do_it(what)
    INTERVAL_steps=Gless_RESTART_RT_IO_t%INTERVAL_steps
    last_point    =Gless_RESTART_RT_IO_t%last_point
  endif
+ if (what=="Vb") then
+   INTERVAL_steps=Vbands_RT_IO_t%INTERVAL_steps
+   last_point    =Vbands_RT_IO_t%last_point
+ endif
  if (what=="OBS_cache") then
    INTERVAL_steps=nint(CACHE_OBS_INTERVAL_time/RT_step)
    last_point    =CACHE_OBS_last_point
@@ -76,7 +80,7 @@ logical function RT_do_it(what)
  !
  ! Do we STOP now ?
  !==================
- if (what=="G".and.RT_do_it) then
+ if ((what=="G".or.what=="Vb").and.RT_do_it) then
    call it_reset(0)
    call parser('STOP_NOW',STOP_the_dynamics_NOW)
  endif

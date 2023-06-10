@@ -27,7 +27,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  use LIVE_t,       ONLY:live_timing
  use com,          ONLY:msg
  use X_m,          ONLY:X_t
- use drivers,      ONLY:l_bs_fxc,l_bss
+ use drivers,      ONLY:l_bs_fxc,l_bss,l_eval_collisions
  use BS,           ONLY:l_BSE_restart,l_BSE_kernel_complete,&
 &                       BS_K_cutoff,BS_K_cutoff_done,n_BS_blks
  use IO_int,       ONLY:io_control
@@ -95,7 +95,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
    enddo
  endif
  !
- if(l_BSE_kernel_complete.and.l_bss.and.io_BS_err==0) then
+ if(l_BSE_kernel_complete.and.(l_bss.or.l_eval_collisions).and.io_BS_err==0) then
    if(trim(IO_mode)=="full") then
      timing_string="Loading full BSE kernel"
      ID_now=ID
@@ -167,7 +167,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1/),ID=ID)
  io_BS_err=io_BS(iq,X,ID)
  !
- if (io_BS_err==0.and.l_bss) then
+ if (io_BS_err==0.and.(l_bss.or.l_eval_collisions)) then
    if(n_BS_blks>0) call live_timing("Loading BSE kernel",n_BS_blks)
    call io_control(ACTION=OP_RD,COM=NONE,MODE=DUMP,SEC=(/1/),ID=ID)
    io_BS_err=io_BS(iq,X,ID)

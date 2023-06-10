@@ -23,11 +23,11 @@
 !
 integer function io_NL(what,ID)
  !
- use pars,          ONLY:schlen
+ use pars,          ONLY:SP,schlen
  use units,         ONLY:HA2EV, AU2KWCMm2, AUT2FS
  use nl_optics,     ONLY:E_tot_t,E_ext_t,E_ks_t,NL_P_t, &
-&                        n_frequencies
- use real_time,     ONLY:NE_steps
+&                        n_frequencies,l_pump_and_probe
+ use real_time,     ONLY:NE_steps,RT_step
  use RT_control,    ONLY:OBS_RT_IO_t
  use fields,        ONLY:Efield
  use IO_m,          ONLY:io_sec,read_is_on,write_is_on,io_extension
@@ -49,7 +49,8 @@ integer function io_NL(what,ID)
  !
  integer              :: i_fragment,ID_frag
  character(schlen)    :: VAR_name
- integer              :: i_Prb
+ integer              :: i_Prb,i_time,N_IO,last_point_IO
+ real(SP)             :: Time_IO(NE_steps)
  !
 #if defined _TIMING
  call timing('io_NL',OPR='start')
@@ -74,18 +75,27 @@ integer function io_NL(what,ID)
    ! Time variable (just for compatibility reasons)
    !
    if(write_is_on(ID)) then
-     OBS_RT_IO_t%N         =NE_steps
-     OBS_RT_IO_t%last_point=NE_steps
+     N_IO         =NE_steps
+     last_point_IO=NE_steps
+     do i_time=1,NE_steps
+       Time_IO(i_time)=real(i_time-1,SP)*RT_step
+     enddo
    endif
    !
    call io_elemental(ID,VAR="IO_TIME_N_points",VAR_SZ=1,MENU=0) 
-   call io_elemental(ID,I0=OBS_RT_IO_t%N)
+   call io_elemental(ID,I0=N_IO)
    call io_elemental(ID,VAR="IO_TIME_LAST_POINT",VAR_SZ=1,MENU=0) 
-   call io_elemental(ID,I0=OBS_RT_IO_t%last_point)
+   call io_elemental(ID,I0=last_point_IO)
    call io_elemental(ID,VAR="",VAR_SZ=0,MENU=0)
-   if(read_is_on(ID).and..not.allocated(OBS_RT_IO_t%Time)) allocate(OBS_RT_IO_t%Time(NE_steps))
-   call io_bulk(ID,VAR="IO_TIME_points",VAR_SZ=(/OBS_RT_IO_t%N/))
-   call io_bulk(ID,R1=OBS_RT_IO_t%Time)
+   call io_bulk(ID,VAR="IO_TIME_points",VAR_SZ=(/N_IO/))
+   call io_bulk(ID,R1=Time_IO)
+   !
+   if(read_is_on(ID)) then
+     OBS_RT_IO_t%N         =N_IO
+     OBS_RT_IO_t%last_point=last_point_IO
+     if(.not.allocated(OBS_RT_IO_t%Time)) allocate(OBS_RT_IO_t%Time(NE_steps))
+     OBS_RT_IO_t%Time=Time_IO
+   endif
    !
    if (io_NL/=0) goto 1
    !
@@ -116,29 +126,29 @@ integer function io_NL(what,ID)
  !
  i_Prb=1 ! we store only the first field in the fragments
  !
- call io_elemental(ID_frag,VAR="FIELD_NAME",CH0="",VAR_SZ=1,MENU=0)
- call io_elemental(ID_frag,CH0=Efield(i_Prb)%ef_name,VAR=' [FIELDs] Type           ',CHECK=.true.,OP=(/"=="/))
+ call io_elemental(ID_frag,VAR="PROBE_NAME",CH0="",VAR_SZ=1,MENU=0)
+ call io_elemental(ID_frag,CH0=Efield(i_Prb)%ef_name,VAR=' [PROBE] Type           ',CHECK=.true.,OP=(/"=="/))
  call io_elemental(ID_frag,VAR="",VAR_SZ=0,MENU=0)
  !
- call io_elemental(ID_frag,VAR="EXTERNAL_FIELD",VAR_SZ=10,MENU=0)
- call io_elemental(ID_frag,VAR="[FIELDs] Versor                 ",&
+ call io_elemental(ID_frag,VAR="PROBE_FIELD",VAR_SZ=10,MENU=0)
+ call io_elemental(ID_frag,VAR="[PROBE] Versor                 ",&
          &                 R1=Efield(i_Prb)%versor,WARN=.true.,OP=(/"==","==","=="/))
- call io_elemental(ID_frag,VAR="[FIELDs] Intensity     [kWCMm2] ",&
+ call io_elemental(ID_frag,VAR="[PROBE] Intensity     [kWCMm2] ",&
          &                 R0=Efield(i_Prb)%intensity,CHECK=.true.,OP=(/"=="/),UNIT=AU2KWCMm2)
- call io_elemental(ID_frag,VAR="[FIELDs] Field width       [fs] ",&
+ call io_elemental(ID_frag,VAR="[PROBE] Field width       [fs] ",&
          &                 R0=Efield(i_Prb)%width,CHECK=.true.,OP=(/"=="/))
- call io_elemental(ID_frag,VAR="[FIELDs] Frequency range   [eV] ",&
+ call io_elemental(ID_frag,VAR="[PROBE] Frequency range   [eV] ",&
          &                 R1=Efield(i_Prb)%frequency,CHECK=.true.,OP=(/"==","=="/),UNIT=HA2EV)
- call io_elemental(ID_frag,VAR="[FIELDs] Frequency steps        ",&
+ call io_elemental(ID_frag,VAR="[PROBE] Frequency steps        ",&
          &                 I0=Efield(i_Prb)%n_frequencies,CHECK=.true.,OP=(/"=="/))
- call io_elemental(ID_frag,VAR="[FIELDs] Frequency step    [eV] ",&
+ call io_elemental(ID_frag,VAR="[PROBE] Frequency step    [eV] ",&
          &                 R0=Efield(i_Prb)%W_step,CHECK=.true.,OP=(/"=="/),UNIT=HA2EV)
- call io_elemental(ID_frag,VAR='[FIELDs] Initial time      [fs] ',&
+ call io_elemental(ID_frag,VAR='[PROBE] Initial time      [fs] ',&
          &                 R0=Efield(i_Prb)%t_initial,CHECK=.true.,OP=(/"=="/),UNIT=AUT2FS)
  call io_elemental(ID_frag,VAR="",VAR_SZ=0,MENU=0)
  !
  call io_elemental(ID_frag,VAR="FIELD_POL",CH0="",VAR_SZ=1,MENU=0)
- call io_elemental(ID_frag,CH0=Efield(i_Prb)%ef_pol,VAR="[FIELDs] Polarization  ",CHECK=.true.,OP=(/"=="/))
+ call io_elemental(ID_frag,CH0=Efield(i_Prb)%ef_pol,VAR="[PROBE] Polarization  ",CHECK=.true.,OP=(/"=="/))
  call io_elemental(ID_frag,VAR="",VAR_SZ=0,MENU=0)
  !
  ! Polarization

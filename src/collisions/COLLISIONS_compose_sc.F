@@ -29,7 +29,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
  use drivers,          ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_exx,l_sc_hartree
  use QP_m,             ONLY:QP_nk,QP_nb,QP_n_states,QP_Sc,QP_Vnl_xc
  use collision_ext,    ONLY:COH_COLL_element,HXC_COLL_element,COLL_bands,HXC_collisions,&
-&                           COH_collisions,COLLISIONS_have_HARTREE
+&                           COH_collisions,COLLISIONS_have_HARTREE,COLLISIONS_CV_only
  use parallel_m,       ONLY:PAR_IND_QP,HEAD_b_cpu,PAR_IND_G_k
  use parallel_int,     ONLY:PP_redux_wait
  use timing_m,         ONLY:timing
@@ -52,6 +52,8 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
  ! Here all contributions are packed in QP_Vnl_xc
  !
  if (.not.allocated(QP_Vnl_xc))  allocate(QP_Vnl_xc(QP_n_states))
+ !
+ if (COLLISIONS_CV_only) call error(" cannot use cv only collisions in yambo_sc")
  !
  l_sex    =l_sc_sex.or.l_sc_fock.or.(l_sc_hartree.and.COLLISIONS_have_HARTREE)
  QP_Vnl_xc=cZERO
