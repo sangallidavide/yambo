@@ -124,17 +124,17 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
  BUFFER%blc=cZERO
  !
- if(call_kind=="optics") then
-   buffer_nfreq=max(PAR_n_freqs,1)
-   YAMBO_ALLOC(BUFFER_SAVE,(buffer_nfreq))
-   BUFFER_SAVE=cZERO
- endif
- !
  if (compute_on_gpu) then
    YAMBO_ALLOC(KERNEL%blc_d,(KERNEL%BLCrows(1):KERNEL%BLCrows(2),KERNEL%BLCcols(1):KERNEL%BLCcols(2),1))
    YAMBO_ALLOC(BUFFER%blc_d,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
    call dev_memset(KERNEL%blc_d,cZERO)
    call dev_memset(BUFFER%blc_d,cZERO)
+ endif
+ !
+ if(call_kind=="optics") then
+   buffer_nfreq=max(PAR_n_freqs,1)
+   YAMBO_ALLOC(BUFFER_SAVE,(buffer_nfreq))
+   BUFFER_SAVE=cZERO
  endif
  !
  if (l_alda_fxc.and.BUFFER%kind=="SLK") then
@@ -273,7 +273,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
         !$cuf kernel do(2)
         do ig2=Xo_cols(1),Xo_cols(2)
           do ig1=Xo_rows(1),Xo_rows(2)
-            BUFFER_blc_d(ig1,ig2,iw_par)=BUFFER_blc_d(ig1,ig2,iw_par)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
+            BUFFER_blc_d(ig1,ig2,BUFFER%I)=BUFFER_blc_d(ig1,ig2,BUFFER%I)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
           enddo
         enddo
         !
@@ -285,7 +285,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
         !$omp parallel do default(shared), private(ig1,ig2), collapse(2)
         do ig2=BUFFER%cols(1),BUFFER%cols(2)
           do ig1=BUFFER%rows(1),BUFFER%rows(2)
-            BUFFER%blc(ig1,ig2,iw_par)=BUFFER%blc(ig1,ig2,iw_par)*4._SP*pi/bare_qpg(iq,ig1)/bare_qpg(iq,ig2)
+            BUFFER%blc(ig1,ig2,BUFFER%I)=BUFFER%blc(ig1,ig2,BUFFER%I)*4._SP*pi/bare_qpg(iq,ig1)/bare_qpg(iq,ig2)
           enddo
         enddo
         !$omp end parallel do
@@ -296,7 +296,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
    !
    if (PAR_n_freqs>0) call live_timing(steps=1)
    !
-   if(call_kind=="optics") BUFFER_SAVE(iw_par)=BUFFER%blc(i_G_shift,i_G_shift,1)
+   if(call_kind=="optics") BUFFER_SAVE(iw_par)=BUFFER%blc(i_G_shift,i_G_shift,BUFFER%I)
    !
  enddo
  !
@@ -311,9 +311,9 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  !
  call timing(what//' (procedure)',OPR='stop')
  !
- if(call_kind=="screening") call X_redux_pp_redux_micro()
+ if(call_kind=="screening") call X_redux_X_par_micro()
  !
- if(call_kind=="optics")    call X_redux_pp_redux_macro()
+ if(call_kind=="optics")    call X_redux_X_par_macro()
  !
  ! Clean-up of FREQ structure
  !==========
@@ -368,7 +368,7 @@ contains
    end subroutine X_redux_build_kernel
    !
    !
-   subroutine X_redux_pp_redux_micro()
+   subroutine X_redux_X_par_micro()
      !
      call timing(what//' (REDUX)',OPR='start')
      !
@@ -415,10 +415,10 @@ contains
      !
      call timing(what//' (REDUX)',OPR='stop')
      !
-   end subroutine X_redux_pp_redux_micro
+   end subroutine X_redux_X_par_micro
    !
    !
-   subroutine X_redux_pp_redux_macro()
+   subroutine X_redux_X_par_macro()
      !
      call MATRIX_reset(X_par)
      YAMBO_ALLOC(X_par%blc,(1,1,Xw%n_freqs))
@@ -440,8 +440,8 @@ contains
        enddo
      enddo
      !
-     call PP_redux_wait(X_par%blc,COMM=PAR_COM_X_WORLD%COMM)
+     call PP_redux_wait(X_par%blc,COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
      !
-   end subroutine X_redux_pp_redux_macro
+   end subroutine X_redux_X_par_macro
    !
 end subroutine
