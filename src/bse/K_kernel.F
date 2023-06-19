@@ -322,14 +322,6 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !
    call WF_load(WF,NG(1),NG(2),(/1,Ken%nbm/),(/1,Xk%nibz/),space='R',title="-TDDFT",keep_states_to_load=.true.)
    !
-   call TDDFT_ALDA_lower_cutoff(ALDA_cut_scheme)
-   !
-   ! In principle here there is a factor 4 between the energy cutoff on the potential and the one of the kernel
-   ! The following line, or something similar, should be used here and before
-   !QP_nG=G_index_energy_factor(BS_n_g_fxc,0.25_SP)
-   ! However in practice the one on the kernel is never set 4 the potential, i.e. 16 times the one onf the WFs
-   QP_ng_Vxc=BS_n_g_fxc
-   !
    YAMBO_ALLOC(tddft_wf%rhotwr1,(fft_size*n_spinor*n_spinor))
    YAMBO_ALLOC(tddft_wf%rhotwr2,(fft_size*n_spinor*n_spinor))
    YAMBO_ALLOC(tddft_wf%WF_symm1,(fft_size,n_spinor))
@@ -350,6 +342,15 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    if(n_spin>1) then
      YAMBO_FREE(magn)
    endif
+   !
+   call TDDFT_ALDA_lower_cutoff(ALDA_cut_scheme)
+   !
+   ! In principle here there is a factor 4 between the energy cutoff on the potential and the one of the kernel
+   ! The following line, or something similar, should be used here and before
+   !QP_nG=G_index_energy_factor(BS_n_g_fxc,0.25_SP)
+   ! However in practice the one on the kernel is never set 4 the potential, i.e. 16 times the one onf the WFs
+   !
+   QP_ng_Vxc=BS_n_g_fxc
    !
    call WF_free(WF,keep_states_to_load=.true.)
    !

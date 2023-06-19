@@ -77,6 +77,10 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
    ! This is not really needed and could be removed with just a warning
    if (X_do_obs("eel")   .and. .not.l_eps_res_ares     ) call X_obs_onoff("- eel")
    !
+   ! If epsilon is not evaluated or extendable to the negative axis, eels is not evaluated
+   ! This is not really needed and could be removed with just a warning
+   if (X_do_obs("eel")   .and. .not.l_eps_res_ares     ) call X_obs_onoff("- eel")
+   !
    call X_OUTPUT_driver("open "//OBS)
    !
  endif
