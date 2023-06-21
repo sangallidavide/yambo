@@ -125,7 +125,7 @@ subroutine RT_TRabs_output(what,how,ofile,N_files,W,TIME)
      character(10) :: base
      N_files=N_files+1
      base="delta_eps"
-     if (STRING_match(TRabsMODE,"eq")) base="eps"
+     if (STRING_match(TRabsMODE,"eq").or.STRING_match(TRabsMODE,"inter-exc")) base="eps"
      ofile(N_files)="YPP-TR_"//trim(base)//"_"//TRabs_EPS_label(i,j)//"_"//desc
    end subroutine
    !

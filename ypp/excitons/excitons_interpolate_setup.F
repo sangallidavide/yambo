@@ -82,21 +82,22 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,ID_INTERP_EXC,ID_INTERP_OCC,
 #endif
  endif
  !
- call excitons_read(k,Xk,en,Xen,1,"clean",io_err)
+ call excitons_read(k,Xk,en,Xen,1,"clean",.true.,io_err)
  !
  ! Read all eigenvalues and eigenvectors
  !
  do iq=1,q%nibz
    call msg('s','Reading excitons at @ Q-index #',iq)
-   call excitons_read(k,Xk,en,Xen,iq,"check",io_err)
+   call excitons_read(k,Xk,en,Xen,iq,"check",.false.,io_err)
    !
    if(l_exc_occ_interp) then
      call excitons_read(k,Xk,en,Xen,iq,"eigenvectors eigenvalues",io_err)
+     call excitons_read(k,Xk,en,Xen,iq,"eigenvectors eigenvalues",.false.,io_err)
 #if defined _YPP_ELPH
      call EXC_occupations(E_QF,Xk,q,iq,EXCITONS_n_user_states,EXCITONS_user_indexes,EXC_occ(:,iq))
 #endif
    else
-     call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",io_err)
+     call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",.false.,io_err)
    endif
    !
    do i_c=1,EXCITONS_n_user_states
@@ -104,7 +105,7 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,ID_INTERP_EXC,ID_INTERP_OCC,
      BS_all_E(i_c,iq)=BS_E(i_l)
    enddo
    !
-   call excitons_read(k,Xk,en,Xen,iq,"clean",io_err)
+   call excitons_read(k,Xk,en,Xen,iq,"clean",.false.,io_err)
    !
  enddo
  !
