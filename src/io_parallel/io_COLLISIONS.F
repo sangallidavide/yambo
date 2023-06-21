@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2022 the YAMBO team
+!        Copyright (C) 2000-2023 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM CA DS
@@ -29,7 +29,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  use collision_ext, ONLY:COLLISIONS_element,COLLISIONS_group,LAST_COLL_sync,PAR_COLL_min,&
 &                        COLLISIONS_CV_only
  use IO_m,          ONLY:io_sec,io_status,IO_OUTDATED_DB,read_is_on,IO_mode,io_unit,&
-&                        VERIFY,io_extension,write_is_on,nf90_sync,netcdf_call
+&                        VERIFY,io_extension,write_is_on,nf90_sync,netcdf_call,YAMBO_DEF_CHUNK
  use IO_int,        ONLY:io_connect,io_header,io_elemental,ver_is_gt_or_eq,io_fragment, &
 &                        io_variable_bulk,def_variable_bulk,io_disconnect
  use global_XC,     ONLY:QP_SE_GW_NEQ,QP_SE_GW_QED
@@ -51,7 +51,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  !
  character(1)      :: TMP_VAR(1)
  character(schlen) :: db_name
- integer           :: i_coll,stat,N(3)
+ integer           :: i_coll,stat,N(3),COLL_chunksize(3)
  logical           :: def1,def2,io2,io3,io4,file_sync
  !
  call timing('io_COLLISIONS',OPR='start')
@@ -101,7 +101,13 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
    !
    if(COLL_grp%kind==QP_SE_GW_NEQ.or.COLL_grp%kind==QP_SE_GW_QED) then
      ! Real collisions
-     if(def2) call def_variable_bulk(ID,'COLLISIONS_v',2,(/COLL_element%N,COLL_grp%N/),SP,par_io_kind='independent')
+     if(def2) then
+       COLL_chunksize(1:2)=YAMBO_DEF_CHUNK
+       if (COLL_element%N<YAMBO_DEF_CHUNK) COLL_chunksize(1)=COLL_element%N
+       if (COLL_gpl%N<YAMBO_DEF_CHUNK)     COLL_chunksize(2)=0
+       call def_variable_bulk(ID,'COLLISIONS_v',2,(/COLL_element%N,COLL_grp%N/),SP,&
+       &                      par_io_kind='independent',chunksize=COLL_chunksize(1:2))
+     endif
      if(io3 ) then
        call C_F_POINTER(C_LOC(COLL_element%v_r(:COLL_element%N)),tmp_link_real,(/COLL_element%N,1/))
        call  io_variable_bulk(ID,2,R2=tmp_link_real,IPOS=(/1,i_coll/))
@@ -109,7 +115,14 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
      endif
    else
      ! Complex collisions
-     if(def2) call def_variable_bulk(ID,'COLLISIONS_v',2,(/2,COLL_element%N,COLL_grp%N/),SP,par_io_kind='independent')
+     if(def2) then
+       COLL_chunksize(1)=2
+       COLL_chunksize(2:3)=YAMBO_DEF_CHUNK
+       if (COLL_element%N<YAMBO_DEF_CHUNK) COLL_chunksize(2)=COLL_element%N
+       if (COLL_grp%N<YAMBO_DEF_CHUNK)     COLL_chunksize(3)=0
+       call def_variable_bulk(ID,'COLLISIONS_v',2,(/2,COLL_element%N,COLL_grp%N/),SP,&
+       &                      par_io_kind='independent',chunksize=COLL_chunksize(1:2))
+     endif
      if(io3 ) then
        call C_F_POINTER(C_LOC(COLL_element%v_c(:COLL_element%N)),tmp_link_complex,(/COLL_element%N,1/))
        call  io_variable_bulk(ID,2,C2=tmp_link_complex,IPOS=(/1,1,i_coll/))

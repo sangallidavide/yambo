@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2022 the YAMBO team
+!        Copyright (C) 2000-2023 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -26,7 +26,7 @@ subroutine RT_free( )
  use R_lattice,      ONLY:bz_samp_FineGd_reset
  use DIPOLES,        ONLY:DIP_alloc
 #if defined _ELPH
- use ELPH_intfcs,    ONLY:ELPH_alloc
+ use interfaces,     ONLY:ELPH_alloc
  use ELPH,           ONLY:Q_io_map,GKKP_ep_sq,GKKP_pe_sq
 #endif
  use hamiltonian,    ONLY:H_free

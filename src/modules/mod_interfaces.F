@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2022 the YAMBO team
+!        Copyright (C) 2000-2023 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM DS
@@ -273,6 +273,15 @@ module interfaces
      use QP_m,          ONLY:QP_t
      type(QP_t),optional ::qp              
    end subroutine
+   !
+#if defined _ELPH || defined _PHEL
+   subroutine ELPH_alloc(what,GKKP,Nb,Nm,Nk_mem,Nq_mem)
+     use ELPH,          ONLY:GKKP_me
+     character(*)      :: what
+     type(GKKP_me), optional:: GKKP
+     integer,       optional:: Nb(2),Nk_mem,Nm(2),Nq_mem
+   end subroutine
+#endif
    !
    function TDDFT_ALDA_R_space(is,os,isp,osp,tddft_wf,mode)
      use pars,           ONLY:SP
