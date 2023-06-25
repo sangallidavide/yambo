@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine setup(en,Xen,Ken,k,Xk)
+subroutine setup(en,q,Xen,Ken,k,Xk)
  !
  use pars,           ONLY:SP,pi,schlen
  use units,          ONLY:Da2AU
@@ -68,7 +68,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
 #endif
  !
  type(levels)    ::en,Xen,Ken
- type(bz_samp)   ::k,Xk
+ type(bz_samp)   ::q,k,Xk
  !
  ! Work Space
  !
@@ -417,6 +417,14 @@ subroutine setup(en,Xen,Ken,k,Xk)
  ! Once the occupations have been evaluated I dump Xen in Ken
  !
  call E_duplicate(Xen,Ken)
+ ! 
+ ! Test Spatial Inversion for WFs
+ ! Notice that the variable i_space_inv is already defined by
+ ! atoms_spatial_inversion()
+ call WF_spatial_inversion(en,k,q)
+ !
+ ! Magnetization
+ call eval_Mtot(en,k)
  !
 #if defined _SC
  K_kind=X_kind
