@@ -181,8 +181,13 @@ module fields
      sigma=E_field%width
      chirp=E_field%chirp
      !
-     s_sigma_chirp=sigma**2/(2._SP*(sigma**4+chirp**4))
-     c_sigma_chirp=chirp**2/(2._SP*(sigma**4+chirp**4))
+     s_sigma_chirp=cZERO
+     c_sigma_chirp=cZERO
+     !
+     if (abs(sigma)>0._SP .or. abs(chirp)>0._SP) then
+       s_sigma_chirp=sigma**2/(2._SP*(sigma**4+chirp**4))
+       c_sigma_chirp=chirp**2/(2._SP*(sigma**4+chirp**4))
+     endif
      !
      sigma_eff=sqrt((sigma**4+chirp**4)/sigma**2)
      !
