@@ -63,7 +63,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO,rho_map_thresh
  use FFT_m,      ONLY:fft_dim_loaded,fft_size,fft_dim,fft_multiplier
  use IO_m,       ONLY:io_reset,max_io_units,serial_number,frag_WF
- use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,BSS_E_dir,BSS_Q_dir,&
+ use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,BSS_P_dir,BSS_E_dir,BSS_Q_dir,&
 &                     Haydock_threshold,Haydock_iterIO,Haydock_iterMAX,BSS_uses_DbGd,BSS_Wd,&
 &                     BSS_damp_reference,BSS_Vnl_included,BSS_uses_GreenF,BSS_inversion_mode,&
 &                     BSS_perturbative_width,K_INV_EPS,K_INV_PL,K_INV_PI_PH
@@ -472,6 +472,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  BSS_er=(/0._SP,10._SP/)/HA2EV
  BSS_dr=0.1_SP/HA2EV
  BSS_E_dir=(/1._SP,0._SP,0._SP/)
+ BSS_P_dir=(/0._SP,1._SP,0._SP/)
  BSS_Q_dir=(/0._SP,0._SP,1._SP/)
  BSS_uses_DbGd=.FALSE.
  BSS_damp_reference=0._SP
@@ -603,6 +604,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  n_ext_fields=0
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
+   Efield(i1)%t_initial=RT_step
  enddo
  !
  call A_vecpot_reset(A_tot)
@@ -707,6 +709,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
+   Efield(i1)%t_initial=RT_step
    Efield(i1)%frequency=0.1_SP/HA2EV
    Efield(i1)%intensity=0.0_SP
    Efield(i1)%FWHM=2._SP*FS2AUT
