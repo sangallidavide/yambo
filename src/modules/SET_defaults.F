@@ -663,11 +663,11 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  ! RT_ctl
  !
- OBS_RT_IO_t%INTERVAL_time_INPUT              =2._SP*FS2AUT
- CARR_RT_IO_t%INTERVAL_time_INPUT             =2._SP*FS2AUT
- OUTPUT_RT_IO_t%INTERVAL_time_INPUT           =5._SP*FS2AUT
- Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT    =1._SP*FS2AUT
- Vbands_RT_IO_t%INTERVAL_time_INPUT           =1._SP*FS2AUT
+ OBS_RT_IO_t%INTERVAL_time_INPUT              =2.0_SP*FS2AUT
+ CARR_RT_IO_t%INTERVAL_time_INPUT             =2.0_SP*FS2AUT
+ OUTPUT_RT_IO_t%INTERVAL_time_INPUT           =0.1_SP*FS2AUT
+ Gless_RESTART_RT_IO_t%INTERVAL_time_INPUT    =5.0_SP*FS2AUT
+ Vbands_RT_IO_t%INTERVAL_time_INPUT           =5.0_SP*FS2AUT
  SAVE_G_history=.FALSE.
  SAVE_Vb_history=.FALSE.
  RT_NAN_found  =.FALSE.
