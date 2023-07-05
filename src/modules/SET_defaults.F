@@ -31,7 +31,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use global_XC,  ONLY:EXT_NONE
  use X_m,        ONLY:current_iq,self_detect_E_range,X_FILL_UP_matrix_only,eps_2_alpha,l_drude,&
 &                     alpha_dim,use_X_DbGd,X_DbGd_nkpts,Chi_mode,Chi_prop,skip_cond_sum_rule,&
-&                     q_plus_G_direction,Q_Shift_Order,&
+&                     q_plus_G_direction,Q_Shift_Order,l_X_abs,l_X_kerr,l_X_magn,&
 &                     l_X_terminator,X_terminator_E,global_gauge,&
 &                     Chi_linalg_mode,X_use_lin_sys,X_use_gpu,X_DbGd_percentual
  use DIPOLES,    ONLY:use_covariant_approach,use_real_space_approach,&
@@ -396,6 +396,10 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  Q_Shift_Order=1
  l_X_terminator=.FALSE.
  X_terminator_E=40._SP/HA2EV
+ !
+ l_X_abs =.false.
+ l_X_kerr=.false.
+ l_X_magn=.false.
  !
  !QPm
  !

@@ -73,6 +73,9 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  ! logicals and control
  !
  self_detect_E_range=.false.
+ !
+ ! TMP: control response mode via X_abs
+ !      IT would be better to have a dedicated l_X_screening or similar
  l_X_abs=.true.
  !
  ! Check if there is a Efield directions average to be done
@@ -361,6 +364,8 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  enddo
  !
  l_X_terminator=.false.
+ ! TMP: control response mode via X_abs reset
+ l_X_abs=.false.
  !
  ! CLEAN (3)
  !
