@@ -305,6 +305,7 @@ subroutine K_diago_driver(iq,W,X_static)
        !
        ! Left residuals
        if(l_BS_optics.or.l_BS_kerr.or.l_BS_dichroism)  BS_R_left_abs =conjg(BS_R_right_abs)
+       if(               l_BS_kerr.or.l_BS_dichroism)  BS_R_left_kerr=conjg(BS_R_right_kerr)
        if(l_BS_magnons)                                BS_R_left_magn=conjg(BS_R_right_magn)
        !
        ! DS: this also should be changed according to the general structure
