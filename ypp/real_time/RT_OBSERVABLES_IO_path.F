@@ -73,12 +73,13 @@ subroutine RT_OBSERVABLES_IO_paths(what,en)
    ! Remove "." and ".."
    !
    i_f=1
-   do while (i_f<nf)
+   do while (i_f<=nf)
      if ( trim(Probe_path(i_f)) == "." .or. trim(Probe_path(i_f)) == ".." ) then
        forall (i_fp=i_f+1:nf) Probe_path(i_fp-1)=Probe_path(i_fp)
        nf=nf-1
+     else
+       i_f=i_f+1
      endif
-     i_f=i_f+1
    enddo
    !
    Pump_path="none"
@@ -97,6 +98,7 @@ subroutine RT_OBSERVABLES_IO_paths(what,en)
 &         (trim(Probe_Keyword)=="none".and.index(trim(Probe_path(i_f)),trim(jobstr))>0)) then
          N_probes =N_probes+1
          i_f=i_f+1
+	 cycle
        else if ( index(trim(Probe_path(i_f)),trim(Pump_Keyword))>0 ) then
          Pump_path=Probe_path(i_f)
          N_pumps=1
