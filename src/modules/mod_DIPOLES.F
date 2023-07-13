@@ -33,6 +33,7 @@ module DIPOLES
  !
  logical                  :: use_covariant_approach
  logical                  :: use_shifted_grids_approach
+ logical                  :: use_der_k
  logical                  :: use_g_space_approach
  logical                  :: use_real_space_approach
  logical                  :: compute_P2_dipoles
@@ -43,7 +44,8 @@ module DIPOLES
  ! other
  !
  integer                  :: num_shifted_grids
- logical                  :: eval_OVERLAPS
+ logical                  :: compute_overlaps
+ logical                  :: l_force_SndOrd 
  ! 
  ! Descriptor
  !
@@ -69,8 +71,8 @@ module DIPOLES
    integer    :: ng
    real(SP)   :: ehe(2)
    real(SP)   :: q0(3)
-   real(SP)   :: Energy_treshold
-   real(SP)   :: Energy_treshold_vv
+   real(SP)   :: Energy_threshold
+   real(SP)   :: Energy_threshold_vv
    logical    :: v_eff
    logical    :: Vnl_included
    logical    :: bands_ordered
@@ -170,8 +172,8 @@ module DIPOLES
      Dip_out%ng        = Dip_in%ng
      Dip_out%ehe       = Dip_in%ehe
      Dip_out%q0        = Dip_in%q0
-     Dip_out%Energy_treshold    = Dip_in%Energy_treshold
-     Dip_out%Energy_treshold_vv = Dip_in%Energy_treshold_vv
+     Dip_out%Energy_threshold    = Dip_in%Energy_threshold
+     Dip_out%Energy_threshold_vv = Dip_in%Energy_threshold_vv
      Dip_out%v_eff              = Dip_in%v_eff
      Dip_out%Vnl_included       = Dip_in%Vnl_included
      Dip_out%bands_ordered      = Dip_in%bands_ordered
@@ -190,8 +192,8 @@ module DIPOLES
      Dip%ng=0
      Dip%ehe=(/-1._SP,-1._SP/)/HA2EV
      Dip%q0=(/1._SP,0._SP,0._SP/)
-     Dip%Energy_treshold=1.E-5_SP/HA2EV
-     Dip%Energy_treshold_vv=1.E+5_SP/HA2EV
+     Dip%Energy_threshold=1.E-5_SP/HA2EV
+     Dip%Energy_threshold_vv=1.E+5_SP/HA2EV
      Dip%v_eff=.false.
      Dip%Vnl_included=.false.
      Dip%bands_ordered=.true.

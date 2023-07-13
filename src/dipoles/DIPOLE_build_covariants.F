@@ -29,7 +29,7 @@ subroutine DIPOLE_build_covariants(Xen,Xk,Dip)
  use pars,           ONLY:SP,cI,cZERO,pi
  use LIVE_t,         ONLY:live_timing
  use electrons,      ONLY:levels,n_sp_pol
- use DIPOLES,        ONLY:DIPOLE_t,DIP_alloc,DIP_S,DIP_iR,DIP_v
+ use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,l_force_SndOrd
  use R_lattice,      ONLY:bz_samp,k_map
  use vec_operate,    ONLY:k_periodic_idx
  use matrix_operate, ONLY:hermitian
@@ -49,7 +49,7 @@ subroutine DIPOLE_build_covariants(Xen,Xk,Dip)
  ! Work Space
  !
  logical     :: idir_not_done(3)
- logical     :: l_eval_polarization,l_force_SndOrd
+ logical     :: l_eval_polarization
  integer     :: ik,iv,ic,ic_min,iv_max,i_sp_pol,ikm1,id_red,idir,idx(3),ikbz,ik_mem
  integer     :: istep,max_step
  real(SP)    :: Ev_m_Ec_KS
@@ -66,17 +66,6 @@ subroutine DIPOLE_build_covariants(Xen,Xk,Dip)
  if (any(Xen%nbf/=Xen%nbm)) call error(' Covariant dipoles not implemented for metals')
  !
  call parser('EvPolarization'  ,l_eval_polarization)
- call parser('FrSndOrd'        ,l_force_SndOrd)
- !
- if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
- if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
- !
- ! Notice that DIP_S is defined in the BZ       
- !
- call DIP_alloc('DIP_S',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
- DIP_S=cZERO
- !
- call DIPOLE_overlaps(Xk,Dip)
  !
  idir_not_done(:)= (k_map%max_kdir(:)==1)
  !

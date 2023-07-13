@@ -56,14 +56,23 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  integer           :: id,idx_kp(3),idx_k(3),shift(3),g0_idx(3,2)
  real(SP)          :: g0_length(3)
  !
- complex(SP), allocatable DEV_ATTR :: WF_symm(:,:,:,:)
- complex(SP), allocatable DEV_ATTR :: WF_shifted(:,:,:,:)
- complex(SP), allocatable DEV_ATTR :: WF_ik(:,:,:,:)
- complex(SP), allocatable DEV_ATTR :: WF_ikp(:,:,:,:)
+ complex(SP), allocatable DEV_ATTR :: WF_symm(:,:,:)
+ complex(SP), allocatable DEV_ATTR :: WF_shifted(:,:,:)
+ complex(SP), allocatable DEV_ATTR :: WF_ik(:,:,:)
+ complex(SP), allocatable DEV_ATTR :: WF_ikp(:,:,:)
  !
  logical           :: USE_shifted_wf
  !
  call timing("DIPOLE_overlaps",OPR="start")
+ !
+ if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
+ if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
+ !
+ ! Notice that DIP_S is defined in the BZ
+ !
+ call DIP_alloc('DIP_S',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
+ DIP_S=cZERO
+ !
  !
  call k_find_smallest_g0(g0_idx,g0_length)
  iG0=max(maxval(g0_idx(:,1)),maxval(g0_idx(:,2)))
@@ -90,10 +99,10 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  !
  call PARALLEL_WF_index( )
  !
- YAMBO_ALLOC(WF_symm,(wf_ng_1st_BZ,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_shifted,(wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_ik,     (wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_ikp,    (wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
+ YAMBO_ALLOC(WF_symm,   (wf_ng_1st_BZ,  n_spinor,Dip%ib(2)))
+ YAMBO_ALLOC(WF_shifted,(wf_ng_overlaps,n_spinor,Dip%ib(2)))
+ YAMBO_ALLOC(WF_ik,     (wf_ng_overlaps,n_spinor,Dip%ib(2)))
+ YAMBO_ALLOC(WF_ikp,    (wf_ng_overlaps,n_spinor,Dip%ib(2)))
  !
  DIP_S=cZERO
  !
@@ -110,11 +119,12 @@ subroutine DIPOLE_overlaps(Xk,Dip)
      ik = Xk%sstar(ikbz,1)
      is = Xk%sstar(ikbz,2)
      !
-     call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ik,ik/),space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
+     call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
+     &            space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
      !
-     call WF_symm_kpoint((/1,Dip%ib(2)/),ikbz,Xk,WF_symm)
+     call WF_symm_kpoint((/1,Dip%ib(2)/),ikbz,i_sp_pol,Xk,WF_symm)
      !  
-     call WF_shift_kpoint((/1,Dip%ib(2)/),ikbz,WF_shifts(ikbz,:),Xk,WF_symm,WF_ik)
+     call WF_shift_kpoint((/1,Dip%ib(2)/),ikbz,i_sp_pol,WF_shifts(ikbz,:),Xk,WF_symm,WF_ik)
      !
      call WF_free(WF)
      !
@@ -140,9 +150,10 @@ subroutine DIPOLE_overlaps(Xk,Dip)
          ikp = Xk%sstar(ikbzp,1)
          isp = Xk%sstar(ikbzp,2)
          !
-         call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ikp,ikp/),space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
+         call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ikp,ikp/),(/i_sp_pol,i_sp_pol/),&
+         &            space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
          !
-         call WF_symm_kpoint((/1,Dip%ib(2)/),ikbzp,Xk,WF_symm)
+         call WF_symm_kpoint((/1,Dip%ib(2)/),ikbzp,i_sp_pol,Xk,WF_symm)
          !
          ! Shift the wave-function by a G-vector if the neighbor is out of the BZ (USE_shifed_wf=.true.)
          shift=WF_shifts(ikbzp,:)
@@ -152,7 +163,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            if(WF_shifts(ikbzp,id)==2) shift(id)=0
          endif
          !
-         call WF_shift_kpoint((/1,Dip%ib(2)/),ikbzp,shift,Xk,WF_symm,WF_ikp)
+         call WF_shift_kpoint((/1,Dip%ib(2)/),ikbzp,i_sp_pol,shift,Xk,WF_symm,WF_ikp)
          !
          call WF_free(WF)
          !
@@ -161,7 +172,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            do ibp=1,Dip%ib(2)
              if(.not.PAR_IND_CON_BANDS_OVLP%element_1D(ibp)) cycle
              DIP_S(ib,ibp,id+(istep-1)*3,ikbz,i_sp_pol)= &
-             &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib,i_sp_pol),WF_ikp(:,:,ibp,i_sp_pol))
+             &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib),WF_ikp(:,:,ibp)) 
            enddo ! ibp
          enddo ! ib
          !

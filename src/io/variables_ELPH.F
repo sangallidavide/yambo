@@ -27,7 +27,7 @@ integer function variables_ELPH(ID,what)
  use IO_m,           ONLY:io_status,read_is_on,write_is_on,io_mode,DUMP,IO_INCOMPATIBLE_VAR
  use IO_int,         ONLY:ver_is_gt_or_eq,io_variable_elemental,io_bulk,def_variable_elemental
  use ELPH,           ONLY:ph_modes,elph_nb,PH_freqs_sq,elph_nk_bz,ELPH_desc,elph_grids_are_expanded, &
-&                         QP_PH_n_G_bands,PH_W_debye,elph_nQ,PH_kpt_bz,l_GKKP_hosts_bare_dV,&
+&                         QP_PH_n_G_bands,PH_W_debye,elph_nQ,PH_kpt_bz,l_GKKP_hosts_bare_dV,l_GKKP_DW,&
 &                         elph_use_q_grid,PH_qpt,elph_nQ_used,PH_pol_vector,elph_Ham_bands,elph_branches
  use ELPH_intfcs,    ONLY:ELPH_alloc
  use R_lattice,      ONLY:nkbz,nqibz,q_pt
@@ -58,6 +58,7 @@ integer function variables_ELPH(ID,what)
  !
  if (.not.ver_is_gt_or_eq(ID,revision=18920)) call def_variable_elemental(ID,"PARS",6,SP,0)
  if (     ver_is_gt_or_eq(ID,revision=18920)) call def_variable_elemental(ID,"PARS",7,SP,0)
+ if (     ver_is_gt_or_eq(ID,revision=20495)) call def_variable_elemental(ID,"PARS",8,SP,0)
  call io_variable_elemental(ID,VAR="[ELPH] Phonon modes",I0=ph_modes,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=ELPH_desc)
  call io_variable_elemental(ID,VAR="[ELPH] Q points",I0=elph_nQ,CHECK=.true.,OP=(/"=="/),&
 &                             TERMINATOR="[avail]",DESCRIPTOR=ELPH_desc)
@@ -70,6 +71,14 @@ integer function variables_ELPH(ID,what)
    call io_variable_elemental(ID,VAR="[ELPH] Bare interaction",L0=l_GKKP_hosts_bare_dV,&
 &                               CHECK=.true.,OP=(/"=="/),DESCRIPTOR=ELPH_desc)
  endif
+ !
+ if (ver_is_gt_or_eq(ID,revision=20495)) then
+   call io_variable_elemental(ID,VAR="[ELPH] Debye-Waller interaction",L0=l_GKKP_DW, &
+&                             CHECK=.true.,OP=(/"=="/),DESCRIPTOR=ELPH_desc)
+ else
+    l_GKKP_DW=.TRUE.
+ endif
+ !
  if (l_gFsq) then
    call def_variable_elemental(ID,"QP_nb_nk_n_states",3,SP,0)
    call io_variable_elemental(ID,I0=QP_nb)

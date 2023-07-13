@@ -57,7 +57,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  !
  ! Small energy transitions. Dipoles in length gauge are not defined
  if ((.not.l_BS_magnons).and.iq==1) then
-   if ( abs(Eo_eh) < Dip%Energy_treshold .and. trim(global_gauge)=="length") K_Transition_check=.FALSE.
+   if ( abs(Eo_eh) < Dip%Energy_threshold .and. trim(global_gauge)=="length") K_Transition_check=.FALSE.
  endif
  ! Null energy transitions are always removed
  if ( abs(E_eh) == 0._SP )  K_Transition_check=.FALSE.
