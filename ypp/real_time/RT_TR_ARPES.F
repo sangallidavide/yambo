@@ -61,7 +61,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  integer, allocatable  :: BS_E_degs(:)
  !
  character(schlen)     :: headings(3),file_name,title
- real(SP)              :: odata(3)
+ real(SP)              :: odata(3),DIP_dir(3,3)
  !
  complex(SP),external      ::Lorentzian_FT
  !
@@ -128,7 +128,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    ! Set the exciton
    !============
    call excitons_get_user_states(BS_E_degs)
-   call RT_TRabs_rotate_exciton("DIP_iR",cONE,Xen,Xk)
+   call RT_TRabs_rotate_exciton("DIP_iR",DIP_dir,cONE,Xen,Xk)
    deallocate(BS_E_degs)
    i_l_ref=EXCITONS_user_indexes(1)
    deallocate(EXCITONS_user_indexes)
