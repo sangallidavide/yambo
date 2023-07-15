@@ -50,7 +50,7 @@ subroutine PARALLEL_Transitions_grouping()
  n_GRP=PAR_COM_eh_INDEX%n_CPU*BS_n_eh_spaces
  !
  YAMBO_ALLOC(BS_T_grp_1st_el_at_k,(n_GRP,nXkibz))
- YAMBO_ALLOC(BS_nT_grps_at_k,(nXkibz))
+ YAMBO_ALLOC(BS_nT_grps_at_k,(nXkibz,BS_n_eh_spaces))
  allocate(GRP_data(n_GRP),GRP_index(n_GRP))
  !
  ! Here PAR_BS_nT_grps is the number of groups without taking into account the k-parallelization.
@@ -103,12 +103,15 @@ subroutine PARALLEL_Transitions_grouping()
    !
    BS_T_grp_1st_el_at_k(:,i_k)=0
    !
-   do i_Tgrp=1,n_GRP
+   do i_res_ares=1,BS_n_eh_spaces
+   i_counter=PAR_COM_eh_INDEX%n_CPU*(i_res_ares-1)
+   do i_Tgrp=1+i_counter,n_GRP/BS_n_eh_spaces+i_counter
      if (GRP_data(i_Tgrp)>0._SP) then
        BS_nT_grps=BS_nT_grps+1
-       BS_nT_grps_at_k(i_k)=BS_nT_grps_at_k(i_k)+1
-       BS_T_grp_1st_el_at_k(BS_nT_grps_at_k(i_k),i_k)=GRP_data(i_Tgrp)
+       BS_nT_grps_at_k(i_k,i_res_ares)=BS_nT_grps_at_k(i_k,i_res_ares)+1
+       BS_T_grp_1st_el_at_k(sum(BS_nT_grps_at_k(i_k,:)),i_k)=GRP_data(i_Tgrp)
      endif
+   enddo
    enddo
    !
  enddo
@@ -149,9 +152,10 @@ subroutine PARALLEL_Transitions_grouping()
      !
      it_ref=i_t_at_k+sum(BS_nT_at_k(:i_k_r-1))
      !
-     do i_Tgrp_at_k=1,BS_nT_grps_at_k(i_k)
+     i_counter=(i_res_ares-1)*BS_nT_grps_at_k(i_k,1)
+     do i_Tgrp_at_k=1+i_counter,BS_nT_grps_at_k(i_k,i_res_ares)+i_counter
        if (BS_T_grp_1st_el_at_k(i_Tgrp_at_k,i_k)==it_ref) then
-         i_Tgrp=i_Tgrp_at_k+sum(BS_nT_grps_at_k(:i_k-1))
+         i_Tgrp=i_Tgrp_at_k+sum(BS_nT_grps_at_k(:i_k-1,:))
          PAR_IND_T_groups%element_1D(i_Tgrp)=.true.
          PAR_IND_T_groups%n_of_elements(PAR_COM_eh_INDEX%CPU_id+1)=&
 &                                         PAR_IND_T_groups%n_of_elements(PAR_COM_eh_INDEX%CPU_id+1)+1

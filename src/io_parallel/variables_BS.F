@@ -118,12 +118,8 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  call io_variable_elemental(ID,&
 &     VAR="[K] Coupling range",TERMINATOR="[o/o]",R1=BS_eh_win,CHECK=.true.,OP=(/"==","=="/),DESCRIPTOR=desc)
  !
- if(ver_is_gt_or_eq(ID,revision=21261)) then
-   if(ver_is_gt_or_eq(ID,revision=21550)) then
-     call def_variable_elemental(ID,"BSE_L_kind",1,0,0)
-   else
-     call def_variable_elemental(ID,"L_kind",1,0,0)
-   endif
+ if (write_is_on(ID).or.variable_exist(ID,"BSE_L_kind")) then
+   call def_variable_elemental(ID,"BSE_L_kind",1,0,0)
    call io_variable_elemental(ID,VAR='[K] BSE L kind',CH0=BSE_L_kind,CHECK=.true.,DESCRIPTOR=desc)
  endif
  !
