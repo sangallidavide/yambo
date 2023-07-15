@@ -223,7 +223,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  if (l_neq_exc) call msg('s','Exciton polarization ',TRabs_Exc_Pol)
  !
  TRabsDIP_dir=TRabsDIP_dir/v_norm( TRabsDIP_dir )
- if (trim(global_gauge)=='length'  ) TRabsDIP_dir=TRabsDIP_dir*q0_def_norm
+ if (trim(global_gauge)=='length'  ) TRabsDIP_dir=TRabsDIP_dir !*q0_def_norm
  !
  do i_dir=1,N_DIP_dirs
    if (DIP_dir_table(i_dir)==1) DIP_dir(i_dir,:)=TRabsDIP_dir
@@ -332,7 +332,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
    if (l_ABS)  call PP_redux_wait(Epsilon_ij)
    if (l_KERR) call PP_redux_wait(B_Hall)
    !
-   if (trim(global_gauge)=='length'  ) Epsilon_ij = Epsilon_ij / q0_def_norm**2
+   if (trim(global_gauge)=='length'  ) Epsilon_ij = Epsilon_ij !/ q0_def_norm**2
    if (trim(global_gauge)=='velocity' .and. l_full_expression) then
      do ic=1,N_DIP_dirs
        do jc=1,N_DIP_dirs

@@ -297,7 +297,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      call PP_redux_wait(dip_tmp)
      !
      if (trim(global_gauge)=="velocity" ) fac=1._SP / TRabs_E(N_trans)**2
-     if (trim(global_gauge)=="length"   ) fac=1._SP / q0_def_norm**2
+     if (trim(global_gauge)=="length"   ) fac=1._SP !/ q0_def_norm**2
      values(1)=TRabs_E(N_trans)*HA2EV
      do i_dir=1,N_dirs
        do j_dir=1,N_dirs
