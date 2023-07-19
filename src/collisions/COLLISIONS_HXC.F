@@ -128,11 +128,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  if (COLLISIONS_HXC_MB   ) N_g_vecs_X  = QP_ng_Sx
  if (l_compute_screening ) N_g_vecs_C  = QP_ng_Sc
  !
- call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_H,"SH")
- call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_X,"SF")
+ if (IO_BS_err/=0.or.(.not.COLLISIONS_CV_only)) then
+   call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_H,"SH")
+   call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_X,"SF")
+ endif
  !
  if(COLLISIONS_HXC_local) QP_ng_SH=N_g_vecs_H
- if(COLLISIONS_HXC_MB) QP_ng_Sx=N_g_vecs_X
+ if(COLLISIONS_HXC_MB)    QP_ng_Sx=N_g_vecs_X
  !
  NG_max=maxval((/N_g_vecs_H,N_g_vecs_X,N_g_vecs_C/))
  NG_XC =max(N_g_vecs_X,N_g_vecs_C)

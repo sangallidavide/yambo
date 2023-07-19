@@ -152,6 +152,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      if (IO_err_BS==0) then 
        call set_BS_blks(Xk)
        call K_restart(1,X(2),ID_tmp,ID_tmp,ID_tmp,l_tmp)
+       call check_BS_parameters_consistency(Xk)
        call build_inverse_BS_eh_table(Xk)
        call build_BS_kpt_map(Xk)
      endif
@@ -370,6 +371,38 @@ subroutine set_BS_blks(Xk)
  YAMBO_ALLOC(BS_kpt_bz,(3,Xk%nbz))
  !
 end subroutine set_BS_blks
+!
+!
+subroutine check_BS_parameters_consistency(Xk)
+ !
+ use R_lattice,       ONLY:bz_samp
+ use QP_m,            ONLY:QP_ng_SH,QP_ng_Sx,QP_ng_Sc
+ use BS,              ONLY:BS_blk,BS_n_g_W,BS_n_g_exch,BS_K_dim
+ !
+ implicit none
+ !
+ type(bz_samp), intent(in) :: Xk
+ !
+ integer :: i_H,BS_nk
+ !
+ BS_nk=-1
+ do i_H=1,2*BS_K_dim(1)
+   BS_nk = max(BS_blk(i_H)%table(1,1),BS_nk)
+ enddo
+ !
+ if ( Xk%nbz/=BS_nk ) &
+ & call error(" Different number of k-points between bse kernel and SAVE folder")
+ !
+ if (BS_n_g_exch/=QP_ng_SH) &
+ & call error(" Different cutoff between coll(hartree) and bse(exch)")
+ !
+ if (BS_n_g_W   /=QP_ng_Sx) &
+ & call error(" Different cutoff between coll(fock) and bse(direct)")
+ !
+ if (BS_n_g_W   /=QP_ng_Sc) &
+ & call error(" Different cutoff between coll(corr) and bse(direct)")
+ !
+end subroutine check_BS_parameters_consistency
 !
 !
 subroutine build_inverse_BS_eh_table(Xk)
