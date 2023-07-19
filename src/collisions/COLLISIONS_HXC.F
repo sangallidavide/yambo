@@ -111,8 +111,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
    if (io_err<0) call error(' Incomplete and/or broken PPA/Static diel. fun. database')
    !
    if (X%ng<QP_ng_Sc) then
-     QP_ng_Sc=X%ng
-     call warning('SEX size (CORRLvcs) reduced to match the Screening size (NGsBlkXs)')
+     if (IO_BS_err/=0) then
+       QP_ng_Sc=X%ng
+       call warning('SEX size (CORRLvcs) reduced to match the Screening size (NGsBlkXs)')
+     else
+       call error('SEX size (CORRLvcs) bigger than Screening size (NGsBlkXs)')
+     endif
    endif 
    !
  endif
@@ -131,6 +135,10 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  if (IO_BS_err/=0.or.(.not.COLLISIONS_CV_only)) then
    call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_H,"SH")
    call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_X,"SF")
+   if (IO_BS_err/=0) then
+     if(QP_ng_SH/=N_g_vecs_H) call warning("Hartree cutoff is different between cv and cc/vv channels")
+     if(QP_ng_Sx/=N_g_vecs_X) call warning("Exchange cutoff is different between cv and cc/vv channels")
+   endif
  endif
  !
  if(COLLISIONS_HXC_local) QP_ng_SH=N_g_vecs_H
@@ -456,7 +464,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
              !
            endif
            !
-           ! The occupation factor here is already contained in the density matrix (?)
+           ! The occupation factor here is already contained in the density matrix
            !
            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=-M_ij/spin_occ
            !
