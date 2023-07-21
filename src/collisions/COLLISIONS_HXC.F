@@ -228,10 +228,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      endif
    endif
    !
- else
-   !
-   ! to add here or somewhere else checks on the consistency of the parameters ...
-   !
  endif
  !
  n_colls=max(HXC_collisions%N,COH_collisions%N)
@@ -418,19 +414,28 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      use IO_m,          ONLY:RD
      !
      complex(SP)  :: M_ij
-     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz,iB,iB_save,jB
+     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz,iB,iB_save,jB,i_q_fake,i_p_bz_fake
      logical      :: l_conj,l_cI,l_m1
      !
      iB=-1
      iB_save=-1
      jB=-1
      !
-     do i_p=1,Xk%nibz
+     do i_q_fake=1,q%nbz
+       !
+       if (.not.PAR_IND_Q_bz%element_1D(i_q_fake)) cycle
+       !
+       i_p_bz_fake=qindx_S(i_k,i_q_fake,1)
+       i_p        =k%sstar(i_p_bz_fake,1)
+       !
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=COLL_bands(1),COLL_bands(2)
            !
            if ( (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
            if ( (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
+           !
+           if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
+&               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
            !
            i_k_bz=BS_K_io_map(k%k_table(i_k,1))
            i_p_bz=BS_K_io_map(k%k_table(i_p,1))
