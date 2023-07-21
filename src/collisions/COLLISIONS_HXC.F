@@ -136,7 +136,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  if (IO_BS_err/=0.or.(.not.COLLISIONS_CV_only)) then
    call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_H,"SH")
    call fft_check_size(iGo_max,N_g_vecs_C,N_g_vecs_X,"SF")
-   if (IO_BS_err/=0) then
+   if (IO_BS_err==0) then
      if(QP_ng_SH/=N_g_vecs_H) call warning("Hartree cutoff is different between cv and cc/vv channels")
      if(QP_ng_Sx/=N_g_vecs_X) call warning("Exchange cutoff is different between cv and cc/vv channels")
    endif
