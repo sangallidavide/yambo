@@ -414,7 +414,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      use IO_m,          ONLY:RD
      !
      complex(SP)  :: M_ij
-     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz,iB,iB_save,jB,i_q_fake,i_p_bz_fake
+     integer      :: i_BSE,j_BSE,i_k_bz_bse,i_p_bz_bse,iB,iB_save,jB,i_q_fake,i_p_bz
      logical      :: l_conj,l_cI,l_m1
      !
      iB=-1
@@ -425,8 +425,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        !
        if (.not.PAR_IND_Q_bz%element_1D(i_q_fake)) cycle
        !
-       i_p_bz_fake=qindx_S(i_k,i_q_fake,1)
-       i_p        =k%sstar(i_p_bz_fake,1)
+       i_p_bz=qindx_S(i_k,i_q_fake,1)
+       i_p   =k%sstar(i_p_bz,1)
        !
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=COLL_bands(1),COLL_bands(2)
@@ -437,26 +437,26 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
            !
-           i_k_bz=BS_K_io_map(k%k_table(i_k,1))
-           i_p_bz=BS_K_io_map(k%k_table(i_p,1))
+           i_k_bz_bse=BS_K_io_map(k%k_table(i_k,1))
+           i_p_bz_bse=BS_K_io_map(k%k_table(i_p,1))
            !
-           i_BSE=BSS_eh_table_m1(i_k_bz,i_m,i_n,i_sp,i_sp)
-           j_BSE=BSS_eh_table_m1(i_p_bz,i_mp,i_np,i_sp,i_sp)
-	   !
+           i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
+           j_BSE=BSS_eh_table_m1(i_p_bz_bse,i_mp,i_np,i_sp,i_sp)
+           !
            if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
-	     l_cI=.false.
-	     l_m1=.false.
+             l_cI=.false.
+             l_m1=.false.
              ! Resonant block
-	     if(j_BSE>=i_BSE) then; iB=i_BSE ; jB=j_BSE-i_BSE+1; l_conj=.false. ; endif
+             if(j_BSE>=i_BSE) then; iB=i_BSE ; jB=j_BSE-i_BSE+1; l_conj=.false. ; endif
              ! Resonant is hermitian
-	     if(j_BSE< i_BSE) then; iB=j_BSE ; jB=i_BSE-j_BSE+1; l_conj=.true. ; endif
+             if(j_BSE< i_BSE) then; iB=j_BSE ; jB=i_BSE-j_BSE+1; l_conj=.true. ; endif
              !
            else if(i_BSE<=BS_K_dim(1) .and. j_BSE>BS_K_dim(1)) then
              !
-	     l_cI=.true.
-	     l_m1=.false.
-	     l_conj=.false.
+             l_cI=.true.
+             l_m1=.false.
+             l_conj=.false.
              ! Coupling block
              j_BSE=j_BSE-BS_K_dim(1)
              if(j_BSE>=i_BSE) then ; iB=i_BSE+BS_K_dim(1) ; jB=j_BSE-i_BSE+1; endif
@@ -465,9 +465,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
-	     l_cI=.true.
-	     l_m1=.true.
-	     l_conj=.true.
+             l_cI=.true.
+             l_m1=.true.
+             l_conj=.true.
              ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
              if(j_BSE>=i_BSE) then; iB=i_BSE+BS_K_dim(1); jB=j_BSE-i_BSE+1; endif
@@ -476,8 +476,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
              !
-	     l_cI=.false.
-	     l_m1=.true.
+             l_cI=.false.
+             l_m1=.true.
              ! Anti-resonant from resonant: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
              j_BSE=j_BSE-BS_K_dim(1)
@@ -498,7 +498,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              call io_BS_PAR_block(1,iB,ID_BS,"matonly")
              iB_save=iB
            endif
-	   !
+           !
            M_ij= BS_blk(iB)%mat(1,jB)
            if(l_conj) M_ij= conjg(M_ij)
            if(l_cI)   M_ij=  cI * M_ij
@@ -559,7 +559,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            !
            cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
            &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
-	   !
+           !
            if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
            if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
            !
@@ -740,7 +740,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            !
            cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
            &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
-	   !
+           !
            if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
            if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
            !
@@ -775,7 +775,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              enddo
              !$omp end parallel do
            endif
-	   !
+           !
            if(index(H_potential,"SEX")>0 .or. index(H_potential,"FOCK")>0) &
 &            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq) &
 &                                                      -4._SP/spin_occ*pi*(pre_factor1+pre_factor2)
