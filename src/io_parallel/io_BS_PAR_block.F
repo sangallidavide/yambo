@@ -79,6 +79,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  !
  BSK_IO_local=trim(STRING_remove(BSK_IO_mode,"norestart"))
  if(index(mode,"compressed")/=0) BSK_IO_local=trim(mode)
+ if(index(mode,"tableonly")/=0)  BSK_IO_local=trim(mode)
  !
  select case(trim(BSK_IO_local))
  case("1D_linear","compressed_head","compressed_mat")
@@ -193,7 +194,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
    ! Write one block at a time in 2D
    !
    call io_variable_bulk(ID, VAR_IDs(1),  C2=BS_blk(i_block)%mat , IPOS=(/1,x1,x2/) )
-   if(read_is_on(ID)) then
+   if(read_is_on(ID) .and. .not.trim(mode)=="matonly") then
      do i2=1,BS_blk(i_block)%size(2)
        do i1=1,BS_blk(i_block)%size(1)
          if(BS_blk(i_block)%mat(i1,i2)==YAMBO_CMPLX_NO_FILL) cycle
@@ -202,9 +203,13 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
      enddo
    endif
    !
+ case("tableonly")
+   !
+   ! Skip I/O of BS_mat
+   !
  end select
  !
- if (x1==x2) then
+ if (x1==x2 .and. .not.trim(mode)=="matonly") then
    if (BS_blk(i_block)%mode=="C" .or. BS_blk(i_block)%mode=="A") x1=x1+BS_K_dim(1)
    call C_F_POINTER(C_LOC(BS_blk(i_block)%table),tmp_link,(/5,BS_blk(i_block)%size(1)/))
    call io_variable_bulk(ID, ID_table,  I2=tmp_link, IPOS=(/1,x1/) )

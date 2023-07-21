@@ -52,7 +52,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  use plasma,         ONLY:EH_gas
  use frequency,      ONLY:w_samp
  use IO_int,         ONLY:io_control
- use IO_m,           ONLY:OP_RD_CL,OP_RD,RD_CL_IF_END,VERIFY,REP,NONE,DUMP,io_COLLs,manage_action
+ use IO_m,           ONLY:OP_RD_CL,OP_RD,RD_CL,RD_CL_IF_END,VERIFY,REP,NONE,DUMP,io_COLLs,manage_action
  use parallel_m,     ONLY:PAR_IND_G_k,PAR_IND_Bp_mat,PAR_IND_Plasma
  use parallel_int,   ONLY:PP_wait,PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use interfaces,     ONLY:WF_free
@@ -68,7 +68,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  ! WorkSpace
  !
  logical       :: l_collisions_from_bse,l_tmp
- integer       :: ID,IO_err,IO_err_BS,IO_ACT,ID_tmp
+ integer       :: ID,IO_err,IO_err_BS,IO_ACT,ID_head,ID_mat,ID_cmpr
  character(20) :: PAR_ch,FREE_ch
  !
  integer, external :: io_BS_header
@@ -146,12 +146,12 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      !
      ! Check if I can use the BSE kernel for the collisions
      !
-     call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,ID=ID_tmp)
-     IO_err_BS=io_BS_header(1,X(2),ID_tmp,"full")
+     call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,ID=ID_head)
+     IO_err_BS=io_BS_header(1,X(2),ID_head,"full")
      !
      if (IO_err_BS==0) then 
        call set_BS_blks(Xk)
-       call K_restart(1,X(2),ID_tmp,ID_tmp,ID_tmp,l_tmp)
+       call K_restart(1,X(2),ID_head,ID_mat,ID_cmpr,l_tmp)
        call check_BS_parameters_consistency(Xk)
        call build_inverse_BS_eh_table(Xk)
        call build_BS_kpt_map(Xk)
@@ -161,7 +161,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
    !
    if (IO_err/=0) then
      !
-     call COLLISIONS_HXC(X(2),Xk,E,k,q,Xw(2),IO_err_BS)
+     call COLLISIONS_HXC(X(2),Xk,E,k,q,Xw(2),IO_err_BS,ID_mat)
      !
      ! COHSEX clean
      !--------------
@@ -169,6 +169,11 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      if (io_COLLs.and.l_use_Hxc_collisions) call COLLISIONS_alloc_and_free("HXC","v3 table","clean",1)
      if (io_COLLs.and.l_use_COH_collisions) call COLLISIONS_alloc_and_free("COH","v3 table","clean",1)
      !
+   endif
+   !
+   if (l_use_Hxc_collisions.and.IO_err_BS==0) then 
+     call io_control(ACTION=RD_CL,COM=REP,ID=ID_mat)
+     call io_BS_PAR_free(ID_head,ID_mat,"full",.true.)
    endif
    !
  endif
@@ -358,10 +363,10 @@ subroutine set_BS_blks(Xk)
  enddo
  !
  do iB=1,n_BS_blks
-   YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-   allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-   BS_blk(iB)%mat=cZERO
-   BS_blk(iB)%done(:,:)="f"
+   !AMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+   !allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+   !BS_blk(iB)%mat=cZERO
+   !BS_blk(iB)%done(:,:)="f"
    if (BS_blk(iB)%coordinate(1)==BS_blk(iB)%coordinate(2)) then 
      allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
      bs_blk(iB)%table=0

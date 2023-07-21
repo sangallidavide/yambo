@@ -104,6 +104,11 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
      timing_string="Loading BSE_done from compressed file"
      ID_now=ID_compr
    endif
+   if(l_eval_collisions) then
+     IO_mode="tableonly"
+     timing_string="Loading BSE table only"
+     ID_now=ID
+   endif
    if(n_BS_blks>0) call live_timing(trim(timing_string),n_BS_blks)
    do i_block=1,n_BS_blks
      call io_control(ACTION=RD,ID=ID_now)
@@ -151,6 +156,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  endif
  !
  call io_control(ACTION=IO_ACT,COM=REP,ID=ID_head)
+ if(l_eval_collisions) return
  call io_control(ACTION=RD_CL,COM=REP,ID=ID)
  if(     l_BSE_kernel_complete) call io_BS_PAR_free(ID_head,ID,IO_mode,.true.)
  if(.not.l_BSE_kernel_complete) call io_BS_PAR_free(ID_head,ID,IO_mode,.false.)

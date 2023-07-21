@@ -21,7 +21,7 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
+subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  !
  ! HXC collisions 
  !
@@ -61,6 +61,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
  type(bz_samp)            ::k,q,Xk
  type(X_t)                ::X
  type(w_samp)             ::Xw
+ integer                  ::ID_BS
  integer, intent(in)      ::IO_BS_err
  !
  ! Work Space
@@ -413,9 +414,16 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
      use pars,          ONLY:cI
      use BS,            ONLY:BS_blk,BS_K_dim,BS_K_io_map
      use BS_solvers,    ONLY:BSS_eh_table_m1
+     use IO_int,        ONLY:io_control
+     use IO_m,          ONLY:RD
      !
      complex(SP)  :: M_ij
-     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz
+     integer      :: i_BSE,j_BSE,i_k_bz,i_p_bz,iB,iB_save,jB
+     logical      :: l_conj,l_cI,l_m1
+     !
+     iB=-1
+     iB_save=-1
+     jB=-1
      !
      do i_p=1,Xk%nibz
        do i_mp=COLL_bands(1),COLL_bands(2)
@@ -429,40 +437,67 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
            !
            i_BSE=BSS_eh_table_m1(i_k_bz,i_m,i_n,i_sp,i_sp)
            j_BSE=BSS_eh_table_m1(i_p_bz,i_mp,i_np,i_sp,i_sp)
-           !
+	   !
            if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
+	     l_cI=.false.
+	     l_m1=.false.
              ! Resonant block
-             if(j_BSE>=i_BSE) M_ij=       BS_blk(i_BSE)%mat(1,j_BSE-i_BSE+1)
+	     if(j_BSE>=i_BSE) then; iB=i_BSE ; jB=j_BSE-i_BSE+1; l_conj=.false. ; endif
              ! Resonant is hermitian
-             if(j_BSE< i_BSE) M_ij= conjg(BS_blk(j_BSE)%mat(1,i_BSE-j_BSE+1))
+	     if(j_BSE< i_BSE) then; iB=j_BSE ; jB=i_BSE-j_BSE+1; l_conj=.true. ; endif
              !
            else if(i_BSE<=BS_K_dim(1) .and. j_BSE>BS_K_dim(1)) then
              !
+	     l_cI=.true.
+	     l_m1=.false.
+	     l_conj=.false.
              ! Coupling block
              j_BSE=j_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) M_ij=       BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1)*cI
+             if(j_BSE>=i_BSE) then ; iB=i_BSE+BS_K_dim(1) ; jB=j_BSE-i_BSE+1; endif
              ! Coupling is symmetric
-             if(j_BSE< i_BSE) M_ij=       BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1)*cI
+             if(j_BSE< i_BSE) then ; iB=j_BSE+BS_K_dim(1) ; iB=i_BSE-j_BSE+1; endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
+	     l_cI=.true.
+	     l_m1=.true.
+	     l_conj=.true.
              ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE+BS_K_dim(1))%mat(1,j_BSE-i_BSE+1))*cI
+             if(j_BSE>=i_BSE) then; iB=i_BSE+BS_K_dim(1); jB=j_BSE-i_BSE+1; endif
              ! anti-Coupling is symmetric
-             if(j_BSE< i_BSE) M_ij=-conjg(BS_blk(j_BSE+BS_K_dim(1))%mat(1,i_BSE-j_BSE+1))*cI
+             if(j_BSE< i_BSE) then; iB=j_BSE+BS_K_dim(1); jB=i_BSE-j_BSE+1; endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
              !
+	     l_cI=.false.
+	     l_m1=.true.
              ! Anti-resonant from resonant: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
              j_BSE=j_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) M_ij=-conjg(BS_blk(i_BSE)%mat(1,j_BSE-i_BSE+1))
+             if(j_BSE>=i_BSE) then; iB=i_BSE; jB=j_BSE-i_BSE+1; l_conj=.true.; endif
              ! anti-resonant is hermitian
-             if(j_BSE< i_BSE) M_ij=      -BS_blk(j_BSE)%mat(1,i_BSE-j_BSE+1)
+             if(j_BSE< i_BSE) then; iB=j_BSE; jB=i_BSE-j_BSE+1; l_conj=.false.; endif
              !
            endif
+           !
+           if(iB/=iB_save) then
+             if(iB_save/=-1) then
+               deallocate(BS_blk(iB_save)%mat)
+               deallocate(BS_blk(iB_save)%done)
+             endif
+             allocate(BS_blk(iB)%mat (BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+             allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+             call io_control(ACTION=RD,ID=ID_BS)
+             call io_BS_PAR_block(1,iB,ID_BS,"matonly")
+             iB_save=iB
+           endif
+	   !
+           M_ij= BS_blk(iB)%mat(1,jB)
+           if(l_conj) M_ij= conjg(M_ij)
+           if(l_cI)   M_ij=  cI * M_ij
+           if(l_m1)   M_ij=     - M_ij
            !
            ! The occupation factor here is already contained in the density matrix
            !
@@ -471,6 +506,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err)
          enddo
        enddo
      enddo
+     !
+     deallocate(BS_blk(iB_save)%mat)
+     deallocate(BS_blk(iB_save)%done)
      !
    end subroutine map_BSE_to_HXC_collisions
    !
