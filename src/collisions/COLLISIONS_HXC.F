@@ -407,7 +407,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      ! This requires a cI factor in the coupling terms
      !
      use electrons,     ONLY:spin_occ
-     use pars,          ONLY:cI
+     use pars,          ONLY:cI,cZERO
      use BS,            ONLY:BS_blk,BS_K_dim,BS_K_io_map
      use BS_solvers,    ONLY:BSS_eh_table_m1
      use IO_int,        ONLY:io_control
@@ -415,11 +415,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      !
      complex(SP)  :: M_ij
      integer      :: i_BSE,j_BSE,i_k_bz_bse,i_p_bz_bse,iB,iB_save,jB,i_q_fake,i_p_bz
-     logical      :: l_conj,l_cI,l_m1
+     logical      :: l_conj,l_cI,l_m1,p_table(k%nibz)
      !
      iB=-1
      iB_save=-1
      jB=-1
+     p_table=.false.
      !
      do i_q_fake=1,q%nbz
        !
@@ -427,6 +428,14 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        !
        i_p_bz=qindx_S(i_k,i_q_fake,1)
        i_p   =k%sstar(i_p_bz,1)
+       !
+       ! DS: here I'm assuming that the "non overlapping" distribution of q
+       !     gives a "non overlapping" distribution over q.
+       !     To be checked
+       !
+       if (p_table(i_p)) cycle
+       !
+       p_table(i_p)=.true.
        !
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=COLL_bands(1),COLL_bands(2)
@@ -488,12 +497,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            endif
            !
            if(iB/=iB_save) then
-             if(iB_save/=-1) then
-               deallocate(BS_blk(iB_save)%mat)
-               deallocate(BS_blk(iB_save)%done)
-             endif
+             if(iB_save/=-1) deallocate(BS_blk(iB_save)%mat)
              allocate(BS_blk(iB)%mat (BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-             allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+             BS_blk(iB)%mat=cZERO
              call io_control(ACTION=RD,ID=ID_BS)
              call io_BS_PAR_block(1,iB,ID_BS,"matonly")
              iB_save=iB
@@ -513,7 +519,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      enddo
      !
      deallocate(BS_blk(iB_save)%mat)
-     deallocate(BS_blk(iB_save)%done)
      !
    end subroutine map_BSE_to_HXC_collisions
    !
