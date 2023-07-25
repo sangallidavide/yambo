@@ -415,12 +415,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      !
      complex(SP)  :: M_ij
      integer      :: i_BSE,j_BSE,i_k_bz_bse,i_p_bz_bse,iB,iB_save,jB,i_q_fake,i_p_bz
-     logical      :: l_conj,l_cI,l_m1,p_table(k%nibz)
+     logical      :: l_conj,l_cI,l_m1
      !
      iB=-1
      iB_save=-1
      jB=-1
-     p_table=.false.
      !
      do i_q_fake=1,q%nbz
        !
@@ -428,14 +427,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        !
        i_p_bz=qindx_S(i_k,i_q_fake,1)
        i_p   =k%sstar(i_p_bz,1)
-       !
-       ! DS: here I'm assuming that the "non overlapping" distribution of q
-       !     gives a "non overlapping" distribution over q.
-       !     To be checked
-       !
-       if (p_table(i_p)) cycle
-       !
-       p_table(i_p)=.true.
+       !i_p_s =k%sstar(i_p_bz,2)
        !
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=COLL_bands(1),COLL_bands(2)
@@ -447,7 +439,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
            !
            i_k_bz_bse=BS_K_io_map(k%k_table(i_k,1))
-           i_p_bz_bse=BS_K_io_map(k%k_table(i_p,1))
+           !i_p_bz_bse=BS_K_io_map(k%k_table(i_p,i_p_s))
+           i_p_bz_bse=BS_K_io_map(i_p_bz)
            !
            i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
            j_BSE=BSS_eh_table_m1(i_p_bz_bse,i_mp,i_np,i_sp,i_sp)
@@ -510,9 +503,10 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            if(l_cI)   M_ij=  cI * M_ij
            if(l_m1)   M_ij=     - M_ij
            !
-           ! The occupation factor here is already contained in the density matrix
+           ! - The occupation factor here is already contained in the density matrix
+           ! - Compared to the BSE case, the collisions are summed over the points in the star of i_p
            !
-           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=-M_ij/spin_occ
+           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)-M_ij/spin_occ
            !
          enddo
        enddo
@@ -613,7 +607,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
                enddo
              endif
              !
-             HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=4._SP*pi*pre_factor1+Co*pre_factor2
+             HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*pre_factor1+Co*pre_factor2
              !
              call live_timing(steps=1)
              !
@@ -642,7 +636,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
                enddo
              endif
              !
-             HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p)=4._SP*pi*pre_factor1+Co*pre_factor2
+             HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p)=HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p)+4._SP*pi*pre_factor1+Co*pre_factor2
              !
              call live_timing(steps=1)
              !
