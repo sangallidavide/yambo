@@ -20,7 +20,7 @@ objects.mk
 ##################
 config/compilation_helper.sh.inc
 lib/archive/git.list
-
+lib/archive/Ydriver-src
 # Compiled source #
 ###################
 *.com
@@ -128,3 +128,4 @@ Thumbs.db
 myconfig*
 nohup.out
 autom4te.cache
+compile_yambo_gcc

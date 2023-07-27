@@ -33,7 +33,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  use BS,           ONLY:BSE_L_kind,BSE_mode,BS_K_is_ALDA,BS_dip_size,l_BSE_minimize_memory,BS_perturbative_SOC,&
 &                       BS_perturbative_SOC,l_BS_magnons,l_BS_photolum,&
 &                       BS_cpl_K_exchange,BS_n_g_exch,BS_res_K_exchange,BS_K_coupling,BS_res_ares_n_mat,&
-&                       BS_n_eh_spaces,l_BS_ares_from_res,BS_bands,BS_K_anti_resonant
+&                       BS_n_eh_spaces,l_BS_ares_from_res,BS_bands,BS_K_anti_resonant,l_BS_res_from_E
  use TDDFT,        ONLY:FXC_is_retarded,FXC_n_g_corr
  use drivers,      ONLY:l_col_cut,l_rpa_IP,l_alda_fxc,l_bs_fxc
  use D_lattice,    ONLY:l_0D,i_time_rev,i_space_inv,l_1D,l_2D
@@ -84,8 +84,14 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  call parser('ImposeAsym',l_flag)
  if (l_flag)        l_BS_ares_from_res=.FALSE.
  !
+ ! Developer options. Without the code works in default mode
+ ! With the user can switch to experimental coding
+ call parser('SelectResFromE',l_BS_res_from_E)
+ if (l_BS_photolum) l_BS_res_from_E=.TRUE.
+ call parser('SelectResFromF',l_flag)
+ if (l_flag)        l_BS_res_from_E=.FALSE.
+ !
  if (iq/=1.and.i_time_rev==0.and.i_space_inv==0 )  l_BS_ares_from_res=.FALSE.
- if (l_BS_photolum)                                l_BS_ares_from_res=.FALSE.
  if (l_BS_magnons.and.n_sp_pol==2)                 l_BS_ares_from_res=.FALSE.
  ! The next line is to switch of section of the codes due to the calculation
  ! of the ARES part without checking the BSE_mode (see io_BS_PAR_init for example)

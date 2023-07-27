@@ -134,9 +134,10 @@ subroutine X_OUTPUT_driver(WHAT,keys,solver,IQ,IG,DESC,data)
      enddo
    endif
    if (X_do_obs("PL")) then
-     X_obs(4)%N_columns=3
-     X_obs(4)%COL_header(1)   = 'E'
-     X_obs(4)%COL_header(2:3) = (/'PL  ','PL_o'/)
+     X_obs(4)%N_columns=4
+     X_obs(4)%COL_header(1)   = 'E [eV]'
+     X_obs(4)%COL_header(2) = 'PL'
+     X_obs(4)%COL_header(3) = 'PL_o'
    endif
    !
    ! ... pre-formatted

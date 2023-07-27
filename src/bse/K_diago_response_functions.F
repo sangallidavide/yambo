@@ -63,7 +63,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
  real(SP), allocatable     :: vtmpR(:)
  complex(SP), allocatable  :: BS_E_sorted_tmp(:,:)
  integer, allocatable      :: sort_indx(:),first_exc(:),n_of_exc(:)
- complex(SP)               :: gauge_factor,res_kerr,res_magn(2)
+ complex(SP)               :: gauge_factor,res_kerr,res_magn(2), res_pl(2)
  logical                   :: l_ADD_the_ARES_using_the_RES
  !
  n_SOC=1
@@ -134,6 +134,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
        endif
        if(trim(global_gauge)=='length')   para_term_w0=para_term_w0+res_abs*EXC_E(i_pert_SOC)/bare_qpg(1,1)**2
        if(trim(global_gauge)=='velocity') para_term_w0=para_term_w0+res_abs/EXC_E(i_pert_SOC)
+       !
      endif
      if(l_BS_kerr) then
        res_kerr=BS_R_left(i1)*BS_R_right_kerr(i1)*ares_fac
@@ -160,7 +161,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
        endif
      endif
      if(l_BS_photolum) then
-       PL(:,2)=PL(:,2)+PL_prefactor*ares_fac*BS_R_PL(1,i1)*aimag(-1._SP/(W%p(:)-EXC_E(i_pert_SOC)))/pi
+       PL(:,2)=PL(:,2)+PL_prefactor*BS_R_PL(1,i1)*aimag(-1._SP/(W%p(:)-EXC_E(i_pert_SOC)))/pi
        if (l_ADD_the_ARES_using_the_RES) then
          PL(:,2)=PL(:,2)+PL_prefactor*BS_R_PL(2,i1)*aimag(-1._SP/(W%p(:)+conjg(EXC_E(i_pert_SOC))))/pi
        endif
@@ -232,6 +233,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left,BS_R_right,BS
  !
  if(l_BS_abs) then
    if (trim(global_gauge)=='velocity') then
+     ! DS. Note. The sum rule imposition does not work if neq occupations are loaded. Not sure why.
      if (     skip_cond_sum_rule) diam_term_used=diam_term_exact
      if (.not.skip_cond_sum_rule) diam_term_used=para_term_w0
    endif
