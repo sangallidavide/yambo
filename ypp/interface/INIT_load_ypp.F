@@ -29,7 +29,7 @@ subroutine INIT_ypp_load(defs)
  use wave_func,     ONLY:wf_ng
  use LIVE_t,        ONLY:nhash
  use X_m,           ONLY:global_gauge
- use D_lattice,     ONLY:Tel,Bose_Temp,Boltz_Temp
+ use D_lattice,     ONLY:Tel,Bose_Temp,Boltz_Temp,non_periodic_directions
  use R_lattice,     ONLY:BZ_FineGd_mode
  use electrons,     ONLY:n_spinor,nel_cond
  use interpolate,   ONLY:INTERP_shell_factor,INTERP_mode,NN_n_of_nearest
@@ -41,7 +41,8 @@ subroutine INIT_ypp_load(defs)
 &                        PDOS_j,PDOS_wfcs,PDOS_kinds,PDOS_l,PDOS_m,perturbative_SOC_path,PtsPath,r_hole,seed_name,&
 &                        SOC_bands_buffer,SOC_bands_to_map,SOC_split,state_ctl,AVE_exc,BSiq_via_command_line,&
 &                        WF_multiplier,WF_ref,what_to_write,BSiq,PROJECT_mode,PROJECT_N_perp,PROJECT_steps,PROJECT_threshold,&
-&                        DIPs_direction,DIPs_E_range,DIPs_C_bands,DIPs_V_bands,DIPs_kind
+&                        DIPs_direction,DIPs_E_range,DIPs_C_bands,DIPs_V_bands,DIPs_kind,&
+&                        epsi0,EXC_mass,EXC_Phi_Grid,EXC_shift,EXC_temp
  use YPP_symm,      ONLY:wf_ng_cut
 #if defined _YPP_RT
  use YPPm,          ONLY:Nel_fac
@@ -92,6 +93,7 @@ subroutine INIT_ypp_load(defs)
  call it('r',defs,'High_Symm',   '[R] High_Symmetry points and paths') 
  call it('r',defs,'Regular_Grid','[R] Regular grid')
  call it('r',defs,'amplitude',   '[R] Amplitude')
+ call it('r',defs,'ExcRadLife',  '[R] Exciton Radiative Lifetimes')
  call it('r',defs,'plot',        '[R] Plot')
  call it('r',defs,'density',     '[R] Density')
  call it('r',defs,'current',     '[R] Current')
@@ -296,6 +298,15 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'Cells', 'Number of cell repetitions in each direction (odd or 1)',ncell)
  call it(defs,'Hole', '[cc] Hole position in unit cell (positive)',r_hole)
  call it('f',defs,'PrtDOS', 'Print Exciton Density of States') 
+ !
+ ! Exciton lifetimes
+ !
+ call it(defs,'NonPDirs','[EXC life] Non periodic chartesian directions (X,Y,Z,XY...)',non_periodic_directions)
+ call it(defs,'Texc'    ,'[EXC life] Temp',EXC_temp,T_unit)
+ call it(defs,'Mexc'    ,'[EXC life] Exciton Mass components (M_XX, M_YY, M_ZZ)',EXC_mass)
+ call it(defs,'Epsi0'   ,'[EXC life] static dielectric matrix (for 3D case) (eps_XX | eps_YY | eps_ZZ)',epsi0)
+ call it(defs,'PhiGrid' ,'[EXC life] angle grid (for 2D)',EXC_Phi_Grid)
+ call it(defs,'Excshift' ,'[EXC life] Energy shift',EXC_shift,E_unit)
  !
  ! WFs
  !

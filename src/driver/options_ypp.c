@@ -138,7 +138,7 @@ void options_ypp(struct options_struct options[],int *i_opt)
  options[*i_opt].long_desc[0]="<string>=(s)ort,(sp)in,(a)mplitude,(w)ave,(i)nterpolate,";
  options[*i_opt].long_desc[1]="         (e)lias,(g)kkp,(p)h-assisted dos";
 #else
- options[*i_opt].long_desc[0]="<string>=(s)ort,(sp)in,(a)mplitude,(w)ave,(i)nterpolate";
+ options[*i_opt].long_desc[0]="<string>=(s)ort,(l)ifetimes,(sp)in,(a)mplitude,(w)ave,(i)nterpolate";
 #endif
  options[*i_opt].yambo_string="excitons";
  options[*i_opt].section="Plots";

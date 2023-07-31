@@ -97,6 +97,9 @@ module D_lattice
  ! Gradients
  !
  integer, allocatable  :: R_m_R(:,:)
+ !
+ ! EXC lifetimes: Non Periodic  directions
+ !
  complex, allocatable  :: Grad_R(:,:,:)
  !
  ! Periodic Table

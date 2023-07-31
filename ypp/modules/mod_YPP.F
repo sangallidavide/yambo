@@ -263,6 +263,15 @@ module YPPm
  integer           :: loc_bands(2)
  integer           :: loc_kpts(2)
  !
+ !  Exciton lifetimes
+ !
+ real(SP)          :: EXC_temp
+ real(SP)          :: EXC_mass(3)
+ real(SP)          :: EXC_shift
+ real(SP)          :: epsi0(3)
+ integer           :: EXC_Phi_Grid
+ 
+ !
  ! Transition Analysis
  !
  logical           :: ltrans

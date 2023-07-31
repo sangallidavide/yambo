@@ -23,6 +23,7 @@
 !
 subroutine INIT_ypp(E,instr,FINALIZE)
  !
+ use drivers,        ONLY:l_exc_rad_life
  use units,          ONLY:FS2AUT
  use YPPm,           ONLY:l_plot,l_SOC_map,l_map_kpts,l_mag,l_k_grid,l_high_sym_pts,BSiq,&
 &                         l_free_hole,l_fix_syms,l_excitons,l_dipoles,l_exc_wf,DIPs_kind,&
@@ -277,6 +278,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
        l_wavefunction   =STRING_match(rstr_piece(i1+1),'w')
        l_sort           =STRING_match(rstr_piece(i1+1),'s').and..not.STRING_match(rstr_piece(i1+1),'sp')
        l_amplitude      =STRING_match(rstr_piece(i1+1),'a')
+       l_exc_rad_life   =STRING_match(rstr_piece(i1+1),'l')
        !
        l_spin  =STRING_match(rstr_piece(i1+1),'sp').and.n_spin>1
        l_mag   =STRING_match(rstr_piece(i1+1),'m').and.n_spin>1
@@ -414,6 +416,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  if (l_current)        call initactivate(1,'current')
  if (l_density)        call initactivate(1,'density')
  if (l_sort)           infile_editing=.false.
+ if (l_exc_rad_life)   call initactivate(1,'ExcRadLife')
  if (l_dos)            call initactivate(1,'dos')
  if (l_bands)          call initactivate(1,'bnds')
  !
@@ -506,6 +509,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  l_free_hole =runlevel_is_on('freehole')
  l_average_eh=runlevel_is_on('avehole')
  l_amplitude=runlevel_is_on('amplitude')
+ l_exc_rad_life   =runlevel_is_on('ExcRadLife')
  l_exc_wf   =runlevel_is_on('wavefunction').and.runlevel_is_on('excitons')
  l_interp    =runlevel_is_on('interpolate').and.runlevel_is_on('excitons')
  l_sp_wf    =runlevel_is_on('wavefunction').and.runlevel_is_on('electrons')
@@ -709,6 +713,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  if (l_excitons) then
    call initactivate(1,"States En_treshold Res_treshold BSQindex")
    if (l_amplitude) call INIT_QP_ctl_switch('G')
+   if (l_exc_rad_life) call initactivate(1,"NonPDirs Texc Mexc PhiGrid Degen_Step Excshift Epsi0")
    if (l_exc_wf.or.l_amplitude) call initactivate(1,"Degen_Step Weight_treshold")
    if (l_exc_wf.and.(.not.l_free_hole.and..not.l_average_eh)) call initactivate(1,"Cells Hole Dimension") 
    if (l_exc_wf.and.(l_free_hole.or.l_average_eh)) call initactivate(1,"WFMult") 
