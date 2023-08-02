@@ -8,8 +8,12 @@ ifneq (,$(findstring yambo_sc,$(MAKECMDGOALS)))
  PRECMP=-D_SC
  SRC_LIBS=$(PJ_SCLIBS)
  EXE_LIBS=$(PJ_SCLIBS_LD)
+else ifneq (,$(findstring yambo_rt_coh,$(MAKECMDGOALS)))
+ PRECMP=-D_RT
+ SRC_LIBS=$(PJ_RT0LIBS)
+ EXE_LIBS=$(PJ_RT0LIBS_LD)
 else ifneq (,$(findstring yambo_rt,$(MAKECMDGOALS)))
- PRECMP=-D_RT 
+ PRECMP=-D_RT -D_RT_SCATT -D_ELPH
  SRC_LIBS=$(PJ_RTLIBS)
  EXE_LIBS=$(PJ_RTLIBS_LD)
 else ifneq (,$(findstring yambo_ph,$(MAKECMDGOALS)))
@@ -20,15 +24,11 @@ else ifneq (,$(findstring yambo_nl,$(MAKECMDGOALS)))
  PRECMP=-D_NL -D_RT -D_DOUBLE
  SRC_LIBS=$(PJ_NLLIBS)
  EXE_LIBS=$(PJ_NLLIBS_LD)
-else ifneq (,$(findstring yambo_qed,$(MAKECMDGOALS)))
- PRECMP=-D_QED -D_RT -D_RT_SCATT -D_ELPH
- SRC_LIBS=$(PJ_RTLIBS)
- EXE_LIBS=$(PJ_RTLIBS_LD)
 endif
 #
 # Compilation
 #
-yambo yambo_ph yambo_sc yambo_rt yambo_nl: 
+yambo yambo_ph yambo_sc yambo_rt yambo_rt_coh yambo_nl: 
 	@rm -f ${compdir}/log/"compile_"$@".log"
 	@rm -f ${compdir}/config/stamps_and_lists/compilation_stop_$@.stamp
 	@touch ${compdir}/config/stamps_and_lists/compiling_$@.stamp

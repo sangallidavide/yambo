@@ -30,13 +30,22 @@ PJ_PHLIBS_LD = $(BASIC_LIBS_LD) interpolate qp_control setup tddft dipoles pol_f
 PJ_SCLIBS    = $(MAIN_LIBS) collisions hamiltonian sc
 PJ_SCLIBS_LD = $(MAIN_LIBS_LD) hamiltonian collisions sc
 
-PJ_RTLIBS   = $(BASIC_LIBS) interpolate qp_control setup \
+PJ_RT0LIBS   = $(BASIC_LIBS) interpolate qp_control setup \
                    tddft dipoles pol_function qp acfdt bse collisions hamiltonian \
                    real_time_control real_time_hamiltonian real_time_propagation \
                    real_time_initialize real_time_drivers
-PJ_RTLIBS_LD= $(BASIC_LIBS_LD) interpolate real_time_control qp_control setup \
+PJ_RT0LIBS_LD= $(BASIC_LIBS_LD) interpolate real_time_control qp_control setup \
                    tddft dipoles pol_function qp acfdt bse hamiltonian collisions \
                    real_time_hamiltonian real_time_propagation \
+                   real_time_initialize real_time_drivers
+
+PJ_RTLIBS   = $(BASIC_LIBS) interpolate qp_control setup \
+                   tddft dipoles pol_function el-ph qp acfdt bse collisions hamiltonian \
+                   real_time_control real_time_hamiltonian real_time_propagation real_time_lifetimes \
+                   real_time_initialize real_time_drivers
+PJ_RTLIBS_LD= $(BASIC_LIBS_LD) interpolate real_time_control qp_control setup \
+                   tddft dipoles pol_function el-ph qp acfdt bse hamiltonian collisions \
+                   real_time_hamiltonian real_time_propagation real_time_lifetimes \
                    real_time_initialize real_time_drivers
 
 PJ_NLLIBS    = $(BASIC_LIBS) interpolate qp_control setup \
@@ -67,8 +76,8 @@ YPPSC_LIBS         = $(YPP_LIBS)
 YPPSC_LIBS_LD      = $(YPP_LIBS_LD)
 YPPPH_LIBS         = $(YPP_BASIC_LIBS) el-ph excitons
 YPPPH_LIBS_LD      = $(YPP_BASIC_LIBS_LD) el-ph excitons
-YPPRT_LIBS         = $(YPP_BASIC_LIBS) real_time excitons
-YPPRT_LIBS_LD      = $(YPP_BASIC_LIBS_LD) real_time excitons
+YPPRT_LIBS         = $(YPP_BASIC_LIBS) el-ph real_time excitons
+YPPRT_LIBS_LD      = $(YPP_BASIC_LIBS_LD) el-ph real_time excitons
 YPPNL_LIBS         = $(YPPRT_LIBS)
 YPPNL_LIBS_LD      = $(YPPRT_LIBS_LD)
 #
