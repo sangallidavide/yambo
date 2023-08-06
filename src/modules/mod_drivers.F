@@ -95,6 +95,7 @@ module drivers
  !
  logical :: l_rpa_IP             =.FALSE.
  logical :: l_td_hartree         =.FALSE.
+ logical :: l_2nd_born           =.FALSE.
  logical :: l_tddft              =.FALSE.
  logical :: l_alda_fxc           =.FALSE.
  logical :: l_bs_fxc             =.FALSE.

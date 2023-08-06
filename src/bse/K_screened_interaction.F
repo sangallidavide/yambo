@@ -27,13 +27,13 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
  use stderr,       ONLY:intc
  use com,          ONLY:exp_user
  use frequency,    ONLY:w_samp
- use drivers,      ONLY:l_td_hf,l_tddft,l_rim_w
+ use drivers,      ONLY:l_rim_w
  use collision_el, ONLY:elemental_collision,elemental_collision_free
  use R_lattice,    ONLY:bz_samp,RIM_qpg,RIM_anisotropy,RIM_W,RIM_W_d,RIM_W_is_diagonal,&
 &                       RIM_W_ng
  use D_lattice,    ONLY:i_time_rev,i_space_inv
  use X_m,          ONLY:X_ALLOC_elemental,X_t,X_mat,X_mat_d
- use BS,           ONLY:BS_n_g_W,BS_W_is_diagonal,BS_W
+ use BS,           ONLY:BS_n_g_W,BS_W_is_diagonal,BS_W_is_unscreened,BS_W
  use IO_int,       ONLY:io_control
  use IO_m,         ONLY:manage_action,OP_RD_CL,REP,VERIFY,NONE,&
 &                       OP_RD,RD,RD_CL,RD_CL_IF_END
@@ -55,7 +55,7 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
  integer    :: nibz
  !
  integer    :: BS_W_size2,i_g2,i_g3,i_g2_mat,i_g3_mat,iq_W
- logical    :: W_is_em1s,W_is_pp,W_is_unscreened,l_RIM_W_g
+ logical    :: W_is_em1s,W_is_pp,l_RIM_W_g
  !
  real(SP),   allocatable          :: RIM_vpW(:,:)
  real(SP),   allocatable DEV_ATTR :: RIM_vpW_d(:,:)
@@ -65,11 +65,7 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
  integer           :: XID,IO_ACT
  integer, external :: io_X
  !
- ! 2021/02/11 to be modified for functionals with screening
- !
- W_is_unscreened=l_td_hf.or.l_tddft
- !
- if (W_is_unscreened) then
+ if (BS_W_is_unscreened) then
    !
    io_X_err=0
    !
@@ -93,7 +89,7 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
  !
  call elemental_collision_free(isc)
  !
- if (.not.W_is_unscreened) then
+ if (.not.BS_W_is_unscreened) then
    !
    ! PP/Epsm1S DBs
    !
@@ -125,7 +121,7 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
   YAMBO_ALLOC(RIM_vpW,(RIM_W_ng,RIM_W_ng))
  endif
  !
- if (.not.W_is_unscreened) then
+ if (.not.BS_W_is_unscreened) then
    call io_control(ACTION=OP_RD,COM=NONE,SEC=(/1/),ID=XID)
    io_X_err=io_X(X,Xw,XID)
    if (io_X_err<0) then
@@ -139,7 +135,7 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
    isc%qs(2)=iq_W
    call DEV_SUB(scatter_Gamp)(isc,'c')
    !
-   if (.not.W_is_unscreened) then
+   if (.not.BS_W_is_unscreened) then
      !
      IO_ACT=manage_action(RD_CL_IF_END,iq_W,1,q%nibz)
      call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/2*iq_W,2*iq_W+1/),ID=XID)
@@ -255,6 +251,6 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
    YAMBO_FREE(RIM_vpW)
  endif
  !
- if (.not.W_is_unscreened) call X_ALLOC_elemental('X')
+ if (.not.BS_W_is_unscreened) call X_ALLOC_elemental('X')
  !
 end subroutine

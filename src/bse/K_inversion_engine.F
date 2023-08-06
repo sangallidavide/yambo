@@ -21,46 +21,35 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine K_inversion_engine(what,iw_2start,iw_2do,iq,px,W,Lo,Lo_dim,Lo_n_loop,do_it_full)
+subroutine K_inversion_perturbative(what,n_freq,iq,px,W,Lo,Lo_dim,Lo_n_loop)
  !
- use pars,           ONLY:SP,cZERO
+ use pars,           ONLY:SP
  use parallel_m,     ONLY:PP_indexes
  use frequency,      ONLY:w_samp
  use X_m,            ONLY:Epsilon_ii,global_gauge
  use LIVE_t,         ONLY:live_timing
  use R_lattice,      ONLY:bare_qpg
- use wrapper,        ONLY:Vstar_dot_V,M_by_V,V_dot_V
- use wrapper_omp,    ONLY:Vstar_dot_V_omp,M_by_V_omp,V_dot_V_omp
  use BS,             ONLY:BS_H_dim,l_BS_photolum
  use BS_solvers,     ONLY:Co_factor,K_INV_EPS,BSS_dipoles_opt,Co_factor,K_inv_slk,K_slk,K_INV_PL
  use PHOTOLUM,       ONLY:PL,PL_prefactor,BSS_dipoles_PL
  !
-#include<memory.h>
+ implicit none
  !
  character(3)     :: what
- integer          :: iw_2start,iw_2do,iq,Lo_dim,Lo_n_loop
+ integer          :: n_freq,iq,Lo_dim,Lo_n_loop
  type(PP_indexes) :: px
  type(w_samp)     :: W
  complex(SP)      :: Lo(BS_H_dim,W%n_freqs,Lo_dim)
- logical          :: do_it_full
  !
  ! Work Space
  !
- integer      :: i2,iw,i_L
- character(1) :: Gr
+ integer      :: iw,i_L
  complex(SP)              :: gauge_factor
  complex(SP), allocatable :: Mm1(:,:)
  integer,        external :: PL_via_perturbative_inversion
  integer,        external :: EPS_via_perturbative_inversion
  !
- if (do_it_full.and..not.K_slk%kind=="SLK") then
-   YAMBO_ALLOC(Mm1,(BS_H_dim,BS_H_dim))
-   Mm1=cZERO
- endif
- !
- do i2=1,iw_2do
-   !
-   iw=i2+iw_2start-1
+ do iw=1,n_freq
    !
    if (trim(global_gauge)=='length'  ) gauge_factor=-Co_factor/bare_qpg(iq,1)**2
    if (trim(global_gauge)=='velocity') gauge_factor=-Co_factor/   W%p(iw)    **2
@@ -68,13 +57,13 @@ subroutine K_inversion_engine(what,iw_2start,iw_2do,iq,px,W,Lo,Lo_dim,Lo_n_loop,
    ! The parallel loop is controlled in the manin body loop 
    ! when a full inversion is performed
    !
-   if (.not.do_it_full) then
-     !
      if(.not.px%element_1D(iw)) then
        K_INV_EPS%err(iw)=0
        if (l_BS_photolum) K_INV_PL%err(iw)=0
        cycle
      endif
+     !
+     call K_doubles_mount(W%p(iw))
      !
      if (K_INV_EPS%err(iw)/=0) then
        K_INV_EPS%err(iw)=EPS_via_perturbative_inversion(BS_H_dim,Lo_dim,Lo_n_loop,BSS_dipoles_opt(1,:),gauge_factor,&
@@ -88,7 +77,56 @@ subroutine K_inversion_engine(what,iw_2start,iw_2do,iq,px,W,Lo,Lo_dim,Lo_n_loop,
        endif
      endif
      !
-   else
+     call K_doubles_unmount()
+     !
+   call live_timing(steps=1)
+   !
+ enddo
+ !
+ call live_timing()
+ !
+end subroutine K_inversion_perturbative
+!
+!
+subroutine K_inversion_exact(what,iw,iq,W,Lo,Lo_dim,Lo_n_loop)
+ !
+ use pars,           ONLY:SP,cZERO
+ use parallel_m,     ONLY:PP_indexes
+ use frequency,      ONLY:w_samp
+ use X_m,            ONLY:Epsilon_ii,global_gauge
+ use R_lattice,      ONLY:bare_qpg
+ use wrapper,        ONLY:Vstar_dot_V,M_by_V,V_dot_V
+ use wrapper_omp,    ONLY:Vstar_dot_V_omp,M_by_V_omp,V_dot_V_omp
+ use BS,             ONLY:BS_H_dim,l_BS_photolum
+ use BS_solvers,     ONLY:Co_factor,K_INV_EPS,BSS_dipoles_opt,Co_factor,K_inv_slk,K_slk,K_INV_PL
+ use PHOTOLUM,       ONLY:PL,PL_prefactor,BSS_dipoles_PL
+ !
+#include<memory.h>
+ !
+ character(3)     :: what
+ integer          :: iw,iq,Lo_dim,Lo_n_loop
+ type(w_samp)     :: W
+ complex(SP)      :: Lo(BS_H_dim,W%n_freqs,Lo_dim)
+ !
+ ! Work Space
+ !
+ integer      :: i_L
+ character(1) :: Gr
+ complex(SP)              :: gauge_factor
+ complex(SP), allocatable :: Mm1(:,:)
+ !
+ if (.not.K_slk%kind=="SLK") then
+   YAMBO_ALLOC(Mm1,(BS_H_dim,BS_H_dim))
+   Mm1=cZERO
+ endif
+ !
+   !
+   if (trim(global_gauge)=='length'  ) gauge_factor=-Co_factor/bare_qpg(iq,1)**2
+   if (trim(global_gauge)=='velocity') gauge_factor=-Co_factor/   W%p(iw)    **2
+   !
+   !
+   call K_doubles_mount(W%p(iw))
+   !
      !
      do i_L=1,Lo_n_loop
        !
@@ -114,23 +152,16 @@ subroutine K_inversion_engine(what,iw_2start,iw_2do,iq,px,W,Lo,Lo_dim,Lo_n_loop,
        !
      enddo
      !
-   endif
-   !       
-   if (.not.do_it_full) call live_timing(steps=1)
    !
- enddo
+   call K_doubles_unmount()
  !
- if (do_it_full) then
-   YAMBO_FREE(Mm1)
- else
-   call live_timing()
- endif
+ YAMBO_FREE(Mm1)
  !
  contains
    !
    subroutine PL_compose(i_L_)
      complex(SP) :: Vp(BS_H_dim),V(BS_H_dim)
-     integer     :: i_L_,i_c,i_cv,i1,i2
+     integer     :: i_L_,i_c,i_cv,i1
      do i_c=1,3
        if (K_slk%kind=="SLK") then
 #if defined _SCALAPACK
@@ -172,4 +203,4 @@ subroutine K_inversion_engine(what,iw_2start,iw_2do,iq,px,W,Lo,Lo_dim,Lo_n_loop,
      endif
    end subroutine
    !
-end subroutine K_inversion_engine
+end subroutine K_inversion_exact

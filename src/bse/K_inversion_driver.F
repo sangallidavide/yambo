@@ -183,6 +183,8 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  !
  call K_inversion_Lo(iq,W,E,k,Lo_dim,Lo_n_loop,Lo)
  !
+ call K_doubles_mount_init()
+ !
  ! Initialize & write the output file 
  !====================================
  call X_OUTPUT_driver("DEF INIT",solver="Inversion") 
@@ -200,7 +202,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
 &                              TOTAL=W%n_freqs,NCPU=PAR_COM_SLK_INDEX_local%n_CPU)
    call live_timing('Perturbative inversion ',PAR_IND_freqs%n_of_elements(PAR_IND_FREQ_ID))
    !
-   call K_inversion_engine("any",1,W%n_freqs,iq,PAR_IND_freqs,W,Lo,Lo_dim,Lo_n_loop,.FALSE.)
+   call K_inversion_perturbative("any",W%n_freqs,iq,PAR_IND_freqs,W,Lo,Lo_dim,Lo_n_loop)
    !
    call PP_redux_wait(K_INV_EPS%err,COMM=PAR_COM_SLK_INDEX_local%COMM)
    call PP_redux_wait(Epsilon_ii(:,2),COMM=PAR_COM_SLK_INDEX_local%COMM)
@@ -255,6 +257,8 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  if (l_BS_photolum) then
    if (K_INV_PL%n_full_inv_freqs>0.and.FULL) call do_it_FULL(K_INV_PL)
  endif
+ !
+ call K_doubles_mount_reset()
  !
  ! Try a polinomial interpolation on the null values (only for EPS)
  !==================================================================
@@ -311,7 +315,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
        !
        iw=TYP%iw_full(i1)
        !
-       call K_inversion_engine(TYP%what,iw,1,iq,PAR_IND_freqs,W,Lo,Lo_dim,Lo_n_loop,.TRUE.)
+       call K_inversion_exact(TYP%what,iw,iq,W,Lo,Lo_dim,Lo_n_loop)
        !
        call live_timing(steps=1)
        !

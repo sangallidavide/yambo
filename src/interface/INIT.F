@@ -33,7 +33,8 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
 &                         l_chi,l_cohsex,l_life,l_rpa_IP,l_td_hartree,l_tddft,list_dbs,l_td_hf,l_setup,l_sc_run,l_rim,l_rim_w,&
 &                         l_real_time,l_ppa,l_lrc_fxc,l_gw0,l_elel_corr,l_elel_scatt,l_elph_corr,l_td_sex,&
 &                         l_elph_Hamiltonian,l_elph_scatt,l_elphoton_corr,l_elphoton_scatt,l_em1d,l_eval_collisions,&
-&                         l_sc_magnetic,l_sc_electric,l_dipoles,l_pf_fxc,l_nl_optics,l_mpa,l_phel_corr,l_X,l_screen
+&                         l_sc_magnetic,l_sc_electric,l_dipoles,l_pf_fxc,l_nl_optics,l_mpa,l_phel_corr,l_X,l_screen,&
+&                         l_2nd_born
 #if defined _SCALAPACK
  use drivers,        ONLY:l_slk_test
 #endif
@@ -54,7 +55,7 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
  use stderr,         ONLY:write_to_log,log_as_a_file,logfile,logfile_unit,STRING_same
  use R_lattice,      ONLY:q0_def_norm,bz_samp,bz_samp_reset
  use BS,             ONLY:BS_bands,BS_n_g_W,BS_eh_en,BSE_mode,BSK_mode,BS_K_coupling,BS_res_K_corr,BS_res_K_exchange,&
-&                         BS_W_is_diagonal,BS_cpl_K_corr,BS_cpl_K_exchange
+&                         BS_W_is_unscreened,BS_W_is_diagonal,BS_cpl_K_corr,BS_cpl_K_exchange
  use BS_solvers,     ONLY:BSS_mode,BSS_q0
 #if defined  _PHEL
  use PHEL,           ONLY:PH_Q
@@ -379,6 +380,7 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
      l_bs_fxc     = STRING_same(trim(Chi_mode),"BSFXC").or.STRING_same(trim(BSK_mode),"BSFXC")
      l_tddft      = l_alda_fxc.or.l_lrc_fxc.or.l_bs_fxc
      l_td_hf      = STRING_same(trim(BSK_mode),"HF")
+     l_2nd_born   = STRING_same(trim(BSK_mode),"2ndBorn")
      l_td_sex     = STRING_same(trim(BSK_mode),"SEX")
      !
    end subroutine LOCAL_from_runlevels_to_logicals
@@ -489,6 +491,8 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
    !
    subroutine LOCAL_after_input_IO
      !
+     logical :: l_tddft_hybr_unscr,l_tddft_hybr
+     !
      ! q0 renormalization
      !
      BSS_q0(:) = BSS_q0(:)*q0_def_norm/v_norm( BSS_q0)
@@ -497,14 +501,17 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
      if (STRING_same(trim(BSE_mode),"causal") ) BSE_mode="retarded"
      !
      if (l_bse) then
-       BS_res_K_exchange=l_td_hartree.or.l_tddft.or.l_td_hf.or.l_td_sex
-       BS_res_K_corr    =l_bs_fxc.or.l_td_hf.or.l_td_sex.or.(l_tddft.and.((WF_exx_fraction > 0._SP).or.(WF_exx_screening> 0._SP)))
-       BS_W_is_diagonal =l_td_hf .or. (l_tddft.and.(WF_exx_fraction > 0._SP).and. .not.(WF_exx_screening> 0._SP) )
+       l_tddft_hybr      =l_tddft.and.((WF_exx_fraction >0._SP)  .or.    (WF_exx_screening> 0._SP) )
+       l_tddft_hybr_unscr=l_tddft.and.((WF_exx_fraction >0._SP).and..not.(WF_exx_screening> 0._SP) )
+       BS_res_K_exchange=l_td_hartree.or.l_tddft.or.l_td_hf.or.l_2nd_born.or.l_td_sex
+       BS_res_K_corr    =l_bs_fxc.or.l_td_hf.or.l_2nd_born.or.l_td_sex.or.l_tddft_hybr
+       BS_W_is_unscreened=l_td_hf .or.l_2nd_born .or. l_tddft_hybr_unscr
        BS_K_coupling    =index(BSE_mode,'coupling')>0
        if (BS_K_coupling) then
          BS_cpl_K_exchange=BS_res_K_exchange  
          BS_cpl_K_corr    =BS_res_K_corr      
        endif
+       BS_W_is_diagonal =BS_W_is_unscreened
        call parser('WehDiag',dummy_logical)
        if (     dummy_logical) BS_W_is_diagonal=.TRUE. 
        call parser('WehCpl' ,dummy_logical )

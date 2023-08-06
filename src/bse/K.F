@@ -28,7 +28,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  use pars,          ONLY:SP,schlen,pi,cZERO,cI
  use stderr,        ONLY:intc
  use LOGO,          ONLY:pickup_a_random
- use drivers,       ONLY:l_bs_fxc,l_tddft,l_rim_w
+ use drivers,       ONLY:l_bs_fxc,l_2nd_born,l_tddft,l_rim_w
  use frequency,     ONLY:w_samp
  use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor
  use FFT_m,         ONLY:fft_size
@@ -696,6 +696,9 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  endif
  !
  if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) qindx_tmp=qindx_B_close(qindx_ID,qindx_ID_frag)
+ !
+ ! NB: this requires a BS_mat_tmp for the correlated version of 2nd Born
+ if (l_2nd_born) call K_doubles(Ken)
  !
  YAMBO_FREE(BS_W)
  YAMBO_FREE(RIM_W)

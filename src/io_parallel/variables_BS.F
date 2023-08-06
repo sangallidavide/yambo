@@ -25,10 +25,9 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  !
  use pars,          ONLY:SP,IP,LP,IP_YIO,LP_YIO,CR_YIO
  use units,         ONLY:HA2EV
- use drivers,       ONLY:l_td_hf
  use X_m,           ONLY:X_t
  use R_lattice,     ONLY:RIM_ng,RIM_n_rand_pts,cut_geometry
- use BS,            ONLY:BS_identifier,BS_K_dim,BS_bands,&
+ use BS,            ONLY:BS_identifier,BS_K_dim,BS_bands,BS_W_is_unscreened,&
 &                        BS_K_coupling,BS_res_K_exchange,BS_res_K_corr,&
 &                        BS_n_g_exch,BS_n_g_W,BS_eh_en,BS_eh_win,BS_W_is_diagonal,&
 &                        BS_K_is_ALDA,BS_cpl_K_exchange,BSE_L_kind,&
@@ -93,7 +92,7 @@ integer function variables_BS(ID,iq,desc,CLOSE_the_menu,X)
  !
  call def_variable_elemental(ID,"W_BARE",1,LP_YIO,0)
  call io_variable_elemental(ID,DB_L0=td_hf_disk,&
-&       VAR="[K] W interaction is bare",L0=l_td_hf,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc)
+&       VAR="[K] W interaction is bare",L0=BS_W_is_unscreened,CHECK=.true.,OP=(/"=="/),DESCRIPTOR=desc)
  !
  call def_variable_elemental(ID,"ALDA_KERNEL",1,LP_YIO,0)
  call io_variable_elemental(ID,&
