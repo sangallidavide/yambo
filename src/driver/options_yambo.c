@@ -129,7 +129,7 @@ void options_yambo(struct options_struct options[],int *i_opt)
  options[*i_opt].section=desc;
  *i_opt=*i_opt+1;
  options[*i_opt].short_desc="Kernel";
- options[*i_opt].long_desc[0]="<string>=hartree/alda/lrc/hf/sex/bsfxc";
+ options[*i_opt].long_desc[0]="<string>=hartree/alda/lrc/hf/2B/sex/bsfxc";
  options[*i_opt].long_desc[1]="hf/sex only eh-space; lrc only G-space";
  options[*i_opt].long_opt="kernel";
  options[*i_opt].short_opt='k';

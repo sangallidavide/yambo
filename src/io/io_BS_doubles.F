@@ -38,7 +38,6 @@ integer function io_BS_doubles(ID)
  !
  integer          :: is,id2,icin,ncin
  character(schlen):: db_name
- real(SP)         :: BS_mat_doubles_disk(2,BS_K_dim(1),BS_K_doubles_dim)
  !
  db_name='BS_C_doubles'
  !
@@ -50,10 +49,9 @@ integer function io_BS_doubles(ID)
    ! As this DB must respect the BS ideentifier I only need to
    ! check the K QP corrections                    <----------------- ?????????
    !
-   io_BS_doubles=io_header(ID,XC_KIND="K_E force")         !<----------- ??
+   io_BS_doubles=io_header(ID,XC_KIND="K_E") ! force")         !<----------- ??
    !
-   call io_elemental(ID,VAR="PARS",VAR_SZ=1,MENU=0)
-   !
+   call io_elemental(ID,VAR="BSK identifier",VAR_SZ=1,MENU=0)
    call io_elemental(ID,VAR=&
 &       " BSK Identifier                  :",I0=BS_identifier,CHECK=.TRUE.,OP=(/"=="/))
    call io_elemental(ID,VAR="",VAR_SZ=0,MENU=1)
@@ -81,16 +79,8 @@ integer function io_BS_doubles(ID)
    !
    do icin=1,ncin
      !
-     if (write_is_on(ID)) BS_mat_doubles_disk(1,:,:)=real(BS_mat_doubles(:,:,icin))
-     if (write_is_on(ID)) BS_mat_doubles_disk(2,:,:)=aimag(BS_mat_doubles(:,:,icin))
-     !
-     call io_bulk(ID,'BS_DOUBLES_REAL_KIN'//trim(intc(icin)),VAR_SZ=(/BS_K_dim(1),BS_K_doubles_dim/))
-     call io_bulk(ID,R2=BS_mat_doubles_disk(1,:,:))
-     call io_bulk(ID,'BS_DOUBLES_IMG_KIN'//trim(intc(icin)),VAR_SZ=(/BS_K_dim(1),BS_K_doubles_dim/))
-     call io_bulk(ID,R2=BS_mat_doubles_disk(2,:,:))
-     !
-     if (read_is_on(ID)) BS_mat_doubles(:,:,icin)=&
-&                 BS_mat_doubles_disk(1,:,:)+(0._SP,1._SP)*BS_mat_doubles_disk(2,:,:)
+     call io_bulk(ID,'BS_MAT_DOUBLES'//trim(intc(icin)),VAR_SZ=(/2,BS_K_dim(1),BS_K_doubles_dim/))
+     call io_bulk(ID,C2=BS_mat_doubles(:,:,icin))
      !
    enddo
    !

@@ -65,7 +65,7 @@ subroutine K_doubles_mount(omega)
 &     BS_mat_doubles(:,i_doubles,icin)/(real(omega)-BS_doubles_E(i_doubles))
    call M_by_M('n','c',BS_mat_dim,BS_mat_dim,BS_K_doubles_dim,cONE,&
 &    BS_mat_doubles(:,:,ncin+1),BS_mat_dim,BS_mat_doubles(:,:,icin),BS_mat_dim,&
-&    cZERO,BS_mat_tmp(:,:,2),BS_mat_dim)    
+&    cZERO,BS_mat_tmp(:,:,2),BS_mat_dim)
    BS_mat(:,:)=BS_mat(:,:)+BS_mat_tmp(:,:,2)
  enddo
  !
@@ -95,6 +95,7 @@ end subroutine K_doubles_unmount
 !
 subroutine K_doubles_mount_init()
  !
+ use pars,          ONLY:cZERO
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:OP_RD_CL,REP,VERIFY
  use BS,            ONLY:BS_K_dim
@@ -121,9 +122,12 @@ subroutine K_doubles_mount_init()
  YAMBO_ALLOC(BS_doubles_table,(BS_K_doubles_dim,4))                         
  !
  BS_mat_tmp(:,:,1)=BS_mat
+ BS_mat_doubles=cZERO
  !                                                                      
  call io_control(action=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1,2/),ID=ID) 
- i_err=io_BS_doubles(ID)                                                 
+ i_err=io_BS_doubles(ID)
+ !
+ if (i_err/=0) call error(" Error loading ndb.BS_C_doubles database")
  !
 end subroutine K_doubles_mount_init
 !

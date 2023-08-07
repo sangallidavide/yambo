@@ -54,7 +54,7 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
  real(SP)   :: rtmp
  integer    :: nibz
  !
- integer    :: BS_W_size2,i_g2,i_g3,i_g2_mat,i_g3_mat,iq_W
+ integer    :: BS_W_size2,BS_W_nq,i_g2,i_g3,i_g2_mat,i_g3_mat,iq_W
  logical    :: W_is_em1s,W_is_pp,l_RIM_W_g
  !
  real(SP),   allocatable          :: RIM_vpW(:,:)
@@ -106,12 +106,10 @@ subroutine K_screened_interaction(X,Xw,q,io_X_err)
  !
  ! When TR is present but not the SI X_mat indexes need to be exchanged 
  ! when the TR is applied
+ BS_W_nq=q%nibz
+ if (i_space_inv==0.and.i_time_rev==1.and..not.BS_W_is_diagonal) BS_W_nq=2*q%nibz
  !
- if (i_space_inv==0.and.i_time_rev==1.and..not.BS_W_is_diagonal) then
-   YAMBO_ALLOC(BS_W,(BS_n_g_W,BS_W_size2,2*q%nibz))
- else
-   YAMBO_ALLOC(BS_W,(BS_n_g_W,BS_W_size2,q%nibz))
- endif
+ YAMBO_ALLOC(BS_W,(BS_n_g_W,BS_W_size2,BS_W_nq))
  !
  YAMBO_ALLOC(isc%gamp,(BS_n_g_W,BS_W_size2))
  if (have_cuda) then

@@ -30,27 +30,25 @@ subroutine K_doubles(Ken)
  ! matrix BS_mat_doubles to the subroutine BS_doubles_mount.F which will
  ! compute the second order kernel for a specific frequency
  !
+ ! WARNING: at present coded only for the k=q=0 case
+ !
  use pars,           ONLY:cZERO,SP,pi
  use drivers,        ONLY:l_2nd_born
  use electrons,      ONLY:levels,n_sp_pol,spin_occ,spin
  use wave_func,      ONLY:WF
- use interfaces,     ONLY:WF_load,WF_free,LINEAR_algebra_driver
+ use interfaces,     ONLY:WF_load,WF_free
  use parallel_int,   ONLY:PP_wait,PP_redux_wait,PARALLEL_index
  use parallel_m,     ONLY:pp_indexes,myid,pp_indexes_reset
- use R_lattice,      ONLY:bare_qpg
  use com,            ONLY:msg
  use LIVE_t,         ONLY:live_timing
  use wrapper,        ONLY:V_dot_V,Vstar_dot_V
- use BS,             ONLY:BS_bands,BS_W,BS_W_is_diagonal,&
-&                         BS_n_g_W,WF_phase,BS_identifier,BS_K_dim
- use BS_solvers,     ONLY:BSS_eh_table,BS_mat
+ use BS,             ONLY:BS_bands,BS_W,BS_W_is_diagonal,BS_n_g_W,BS_K_dim
+ use BS_solvers,     ONLY:BSS_eh_table
  use BS_doubles,     ONLY:BS_mat_doubles,BS_res_K_doubles,BS_K_doubles_dim,  &
 &                         BS_doubles_table,BS_bands_doubles,BS_doubles_E,    &
-&                         static_approx,&
-! DOUBLES CORR PROJECT
-&                        BS_mat_tmp,Eigen_doubles,doubles_corr
- use linear_algebra, ONLY:DIAGO,USE_LK
+&                         doubles_corr,static_approx
  !use X_m,           ONLY:DIP_iq_dot_r
+ !use R_lattice,      ONLY:bare_qpg
  use collision_el,   ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,REP,VERIFY,OP_WR_CL
@@ -66,9 +64,6 @@ subroutine K_doubles(Ken)
 &              iOvv,iOcc,i1,i2,i3,ncin,&
 &              icv,ic,iv,nc,nv,nv_doubles,nc_doubles,i_doubles
  complex(SP),allocatable :: Interaction_cccv(:,:,:,:),Interaction_vvcv(:,:,:,:)
- ! DOUBLES CORR PROJECT
- integer    ,allocatable :: BSS_eh_table_m1(:,:)
- real(SP)   ,allocatable :: BS_E_tmp(:)
  !
  ! Elements for the construction of the Kernel:
  ! 1 - interaction
@@ -91,7 +86,7 @@ subroutine K_doubles(Ken)
  open(unit=3459, file='BS_mat_doubles.txt', status='unknown')
 #endif
  !
- call section('*','Bethe-Salpeter Kernel + DOUBLES')
+ call section('=','Bethe-Salpeter Kernel + DOUBLES')
  !
  ! Check for the doubles DB, if already present exit from the subroutine
  call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1/),ID=ID)
@@ -105,10 +100,6 @@ subroutine K_doubles(Ken)
  ! *************************
  call K_doubles_alloc(1) 
  !
- ! Load wave funtions
- call WF_load(WF,BS_n_g_W,1,(/BS_bands_doubles(1),BS_bands_doubles(2)/),(/1,1/),&
-&             space='R',title='-BSK_doubles')
- !
  ! ********************************
  ! ***** Before the main loop *****
  ! ********************************
@@ -118,12 +109,12 @@ subroutine K_doubles(Ken)
  do iv1=BS_bands_doubles(1),Ken%nbf(1)
    do ic1=Ken%nbf(1)+1,BS_bands_doubles(2)
      icv1=icv1+1
-     if (doubles_corr) BSS_eh_table_m1(iv1,ic1)=icv1
      do iv2=BS_bands_doubles(1),Ken%nbf(1)
        do ic2=Ken%nbf(1)+1,BS_bands_doubles(2)
          i_doubles=i_doubles+1
          BS_doubles_table(i_doubles,:)=(/iv1,iv2,ic1,ic2/)
-         BS_doubles_E(i_doubles)=Ken%E(ic1,1,1)+Ken%E(ic2,1,1)-Ken%E(iv1,1,1)-Ken%E(iv2,1,1)
+	 !BS_doubles_E(i_doubles)=Ken%E(ic1,1,1)+Ken%E(ic2,1,1)-Ken%E(iv1,1,1)-Ken%E(iv2,1,1)
+         BS_doubles_E(i_doubles)=Ken%Eo(ic1,1,1)+Ken%Eo(ic2,1,1)-Ken%Eo(iv1,1,1)-Ken%Eo(iv2,1,1)
          ! STATIC APPROX <
          ! Check for BS_doubles_E. If greater than ?? eV then the corrisponding 
          ! index is recorded so that will be possible to do a static approximation
@@ -143,6 +134,10 @@ subroutine K_doubles(Ken)
    enddo
  enddo
  !
+ ! Load wave funtions
+ call WF_load(WF,BS_n_g_W,1,(/BS_bands_doubles(1),BS_bands_doubles(2)/),(/1,1/),&
+&             space='R',title='-BSK_doubles')
+ !
  ! Oscillators construction
  ! 1 - preparations lines
  call elemental_collision_free(isc)
@@ -151,8 +146,8 @@ subroutine K_doubles(Ken)
  isc%qs(:)=1
  isc%ngrho=BS_n_g_W
  isc%iqref=1
- allocate(isc%rhotw(BS_n_g_W))
- allocate(isc%gamp(1,BS_n_g_W))
+ !
+ call elemental_collision_alloc(isc,NG=BS_n_g_W,NG_GAMP=(/BS_n_g_W,1/),TITLE='2ndBorn')
  !
  ! 2 - Ovv construction
  ! Paral <
@@ -173,7 +168,7 @@ subroutine K_doubles(Ken)
      call scatter_Bamp(isc)
      forall(i1=1:BS_n_g_W) Ovv(i1,iv1-BS_bands_doubles(1)+1,iv-BS_bands(1)+1)=isc%rhotw(i1)
 #if defined _DEBUG
-     !write(3456,*) iv1,iv,Ovv(:,iv1,iv-BS_bands(1)+1)
+     write(3456,*) iv1,iv,Ovv(:,iv1,iv-BS_bands(1)+1)
 #endif
    enddo
  enddo
@@ -242,6 +237,8 @@ subroutine K_doubles(Ken)
  ! Paral >
  ! 
  call elemental_collision_free(isc)
+ !
+ call WF_free(WF)
  !
  !  ********************************************
  !  *******       Main loop: start       *******
@@ -342,26 +339,41 @@ subroutine K_doubles(Ken)
  !
  if (BS_res_K_doubles) then
    !
-   call K_doubles_alloc(2) 
+   call K_doubles_alloc(2)
+   !
+   ! TMP coding, needed for BSS_eh_table
+   call K_components_folded_in_serial_arrays(1)
    !
    !  Step 2: Here the code constructs the half-diagrams
    !          D1(icv,i_doubles) and D2(icv,i_doubles),
    !          starting from U_{cc1,c2v2} and U_{v1v,c2v2}
    !
-   !          c  ===<===:===<===  c1              c  ===<===x===<===  c1
-   !                    :                                   
-   !                q  /:\                                    ==<===  c2
-   !                    :                                    /
-   !        D1          :===<===  c2          D2             ===>===  v2
-   !                     \                                  : 
-   !                      ==>===  v2                     q \:/
-   !                                                        :
-   !          v  ===>===x===>===  v1                 ===>===:===>===  v1
+   !  The code is just for zero momentum. However here I draw the
+   !  general case at finite momentum. There are 6 momenta index,
+   !  e.g. 2 more compared to SBSE, but also two extra conservation,
+   !  which brings all downd to the same number of momenta
+   !
+   !                             p2=k2-q_W
+   !
+   !               D1                             D2
+   !    (v1=v; k1=k; p1=k-q_W)          (c1=c; p1=k; k1=k-q_W)
+   !
+   !   c,k ===<===:===<=== c1,p1       c,k ===<===x===<===  c1,p1
+   !              :
+   !         q_W /:\                                ==<===  c2,k2
+   !              :                                /
+   !              :===<=== c2,k2                  :===>===  v2,p2
+   !               \                              : 
+   !                ==>=== v2,p2               q \:/
+   !                                              :
+   ! v,k-q ===>===x===>=== v1,k1-q   v,k-q ===>===:===>===  v1,k1-q
+   !
+   !          We have, for D1 v=v1, k=k1 ; 
    !
    !          and the final simmetrized expression:
    !          C_{sd}=0.5*[D1+D2 -(c1<->c2) -(v1<->v2) +(c1,v1<->c2,v2)]
    !          Here the prefactor 0.5 to each half-diagram is needed as we have 8 half-diagrams
-   !          which composed will give 8*8=64 diagrams, but equal at groups of 4
+   !          which, composed, will give 8*8=64 diagrams, but equal at groups of 4
    !          (i.e. D1*D2 = D1(c1<->c2)*D2(c1<->c2) = ...) so we have to divide by 4(=0.5*0.5)
    !
    !  In the code:
@@ -453,72 +465,11 @@ subroutine K_doubles(Ken)
    call pp_indexes_reset(px)
    ! Paral >
    !
+   !if (doubles_corr) call K_doubles_correlated()
    !
-   !
-   ! DUOBLES CORRELATION PROJECT
-   ! *******************************
-   ! We do a static diagonalization to get the RPA eigenvalues and
-   ! eigenvectors. Then construct from these the RPA doubles eigenvectors.
-   ! (Write a new database for the doubles with CU instead of C (this for restart) 
-   ! and BS_doubles_E(i_doubles)=E_1^RPA+E_2^RPA
-   !
-   if (doubles_corr) then
-     BS_mat_doubles(:,:,2)=(0.,0.)
-     BS_doubles_E(:)=0.
-     do icv1=2,BS_K_dim(1)
-       forall(icv2=1:icv1-1) BS_mat_tmp(icv1,icv2,1)=conjg(BS_mat_tmp(icv2,icv1,1))
-     enddo
-     do icv1=1,BS_K_dim(1)
-       iv1=BSS_eh_table(icv1,2)
-       ic1=BSS_eh_table(icv1,3)
-       BS_mat_tmp(icv1,icv1,1)=BS_mat_tmp(icv1,icv1,1)+Ken%E(ic1,1,1)-Ken%E(iv1,1,1)
-     enddo
-     call LINEAR_algebra_driver(DIAGO,M=BS_mat_tmp(:,:,1),E_real=BS_E_tmp)
-     !
-     ! Paral <
-     call PARALLEL_index(px,(/BS_K_doubles_dim/),(/1/))
-     call PP_wait()
-     call live_timing('Doubles correlation',px%n_of_elements(myid+1))
-     ! Paral >
-     !
-     do i_doubles=1,BS_K_doubles_dim
-       ! Paral <
-       if (.not.px%element_1D(i_doubles)) cycle
-       call live_timing(steps=1)
-       ! Paral >
-       iv1=BS_doubles_table(i_doubles,1)
-       iv2=BS_doubles_table(i_doubles,2)
-       ic1=BS_doubles_table(i_doubles,3)
-       ic2=BS_doubles_table(i_doubles,4)
-       icv1=BSS_eh_table_m1(iv1,ic1)
-       icv2=BSS_eh_table_m1(iv2,ic2)
-       BS_doubles_E(i_doubles)=BS_E_tmp(icv1)+BS_E_tmp(icv2)
-       ! Important: here the indexes loops in the same way in i_doubles and icv1,icv2 in the
-       ! tables, i_doubles=icv1,ivc2=iv1,ic1,iv2,ic2 ---> the last index goes faster
-       do icv=1,BS_K_dim(1)
-         Eigen_doubles( 1+(icv-1)*BS_K_dim(1) : icv*BS_K_dim(1) ,1)=&
-&                  BS_mat_tmp(:,icv1,1)*BS_mat_tmp(icv,icv2,1)
-       enddo
-       call cgemv('n',BS_K_dim(1),BS_K_doubles_dim,(1._SP,0._SP),&
-&        BS_mat_doubles(:,:,1),BS_K_dim(1),Eigen_doubles(:,1),1,&
-&        (0._SP,0._SP),BS_mat_doubles(:,i_doubles,2),1)
-     enddo
-     !
-     ! Paral <
-     call pp_redux_wait(BS_mat_doubles(:,:,2))
-     call pp_redux_wait(BS_doubles_E)
-     call live_timing()
-     call pp_indexes_reset(px)
-     ! Paral >
-     BS_mat_doubles(:,:,1)=BS_mat_doubles(:,:,2)
-     !
-#if defined _DEBUG
-     do icv=1,BS_K_dim(1)
-       write(*,*) BS_E_tmp(icv)*27.2116
-     enddo
-#endif
-     !
-   endif
+   ! DS 2023/08/07
+   ! Instead of introducing a new ndb, if would be better to directly do
+   ! the I/O of the coulomb integrals, called Interaction_ccvc, etc, here
    !
    ! Write BS_mat_doubles to disk
    call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1,2/),ID=ID)
@@ -527,7 +478,6 @@ subroutine K_doubles(Ken)
    call K_doubles_free(2)
    !
  endif
- stop
  !
  !  ********************************************
  !  *******       Main loop: end         *******
@@ -568,7 +518,7 @@ contains
   ! Check fo the dimension of the kernel
   if (BS_K_doubles_dim==0) call error(' Null BSE doubles kernel block dimension(s) found. Increase doubles range')
   !
-  call msg('rsn','[BSE] Doubles dimension      :',BS_K_doubles_dim)
+  call msg('rsn','[BSE] Doubles dimension      ',BS_K_doubles_dim)
   !
  end subroutine K_doubles_init
  !
@@ -588,10 +538,6 @@ contains
     allocate(BS_doubles_E(BS_K_doubles_dim))
     BS_doubles_E=cZERO
     !
-    if (doubles_corr) then
-      allocate(BSS_eh_table_m1(BS_bands_doubles(2),BS_bands_doubles(2)))
-      BSS_eh_table_m1=0
-    endif
     !allocate(static_approx(BS_K_doubles_dim))
     !static_approx=0
     !
@@ -611,10 +557,6 @@ contains
   case(2)
     YAMBO_ALLOC(BS_mat_doubles,(BS_K_dim(1),BS_K_doubles_dim,ncin+1))
     BS_mat_doubles=cZERO
-    if (doubles_corr) then
-      allocate(BS_E_tmp(BS_K_dim(1)))
-      allocate(Eigen_doubles(BS_K_dim(1)**2,1))
-    endif
   end select
   !
  end subroutine K_doubles_alloc
@@ -640,14 +582,9 @@ contains
     YAMBO_FREE(BS_doubles_table)
     deallocate(BS_doubles_E)
     !deallocate(static_approx)
-   if (doubles_corr) then
-     deallocate(BSS_eh_table_m1)
-     deallocate(BS_E_tmp)
-     deallocate(Eigen_doubles)
-   endif
+    !
   end select
   !
  end subroutine K_doubles_free
  !
 end subroutine K_doubles
-!

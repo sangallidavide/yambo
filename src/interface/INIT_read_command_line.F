@@ -202,6 +202,7 @@ subroutine INIT_read_command_line(rstr,init_)
          if( STRING_same(trim(rstr_piece(i1+1)) , 'hf'))       BSK_mode='HF'
          if( STRING_same(trim(rstr_piece(i1+1)) , 'alda'))     BSK_mode='ALDA'
          if( STRING_same(trim(rstr_piece(i1+1)) , 'sex'))      BSK_mode='SEX'
+         if( STRING_same(trim(rstr_piece(i1+1)) , '2B'))       BSK_mode='2ndBorn'
          if( STRING_same(trim(rstr_piece(i1+1)) , 'bsfxc'))    BSK_mode='BSfxc'
          if( STRING_same(trim(rstr_piece(i1+1)) , 'ip'))       BSK_mode='IP'
        else if(l_chi.or.l_em1s.or.l_em1d.or.l_ppa.or.l_mpa) then

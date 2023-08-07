@@ -598,6 +598,10 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
          !
          ! :::COUPLING TERM:::
          !=============================
+	 !
+	 ! 2023/08/07: in the old implementation of the double project
+	 !             the G=0 component of O2x [e.g. BS_T_grp(i_Tgrp_p)%O_x(:,i_Tp)]
+         !             had a -1 sign in coupling, no idea why.
          !
          ! Exchange
          if (BS_cpl_K_exchange) H_x=K_exchange_kernel_coupling(iq, BS_n_g_exch,              &
