@@ -45,6 +45,7 @@ integer function io_DB1(E,k,ID)
 &                           DUMP,io_mode,write_is_on,io_code_version
  use QP_m,             ONLY:QP_nk,QP_nb,QP_n_G_bands
  use BS,               ONLY:BS_bands
+ use BS_doubles,       ONLY:BS_bands_doubles
  use xc_functionals,   ONLY:GS_xc_KIND,GS_xc_FUNCTIONAL,GS_exx_FRACTION,GS_exx_SCREENING
  use global_XC,        ONLY:setup_global_XC,EXT_NONE
 #if defined _SC || defined _RT
@@ -244,6 +245,7 @@ integer function io_DB1(E,k,ID)
      QP_n_G_bands=(/1,E%nb/)
      !
      if(any(BS_bands(:)==0)) BS_bands=(/1,E%nb/)
+     if(any(BS_bands_doubles(:)==0)) BS_bands_doubles=(/1,E%nb/)
 #if defined _SC || defined _RT
      if(any(COLL_bands(:)==0)) COLL_bands=(/1,E%nb/)
      if(any(H_ref_bands(:)==0)) H_ref_bands=(/1,E%nb/)

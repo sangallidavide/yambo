@@ -33,6 +33,7 @@ subroutine K_doubles(Ken)
  ! WARNING: at present coded only for the k=q=0 case
  !
  use pars,           ONLY:cZERO,SP,pi
+ use units,          ONLY:HA2EV
  use drivers,        ONLY:l_2nd_born
  use electrons,      ONLY:levels,n_sp_pol,spin_occ,spin
  use wave_func,      ONLY:WF
@@ -42,11 +43,12 @@ subroutine K_doubles(Ken)
  use com,            ONLY:msg
  use LIVE_t,         ONLY:live_timing
  use wrapper,        ONLY:V_dot_V,Vstar_dot_V
- use BS,             ONLY:BS_bands,BS_W,BS_W_is_diagonal,BS_n_g_W,BS_K_dim
+ use BS,             ONLY:BS_bands,BS_W,BS_W_is_diagonal,BS_n_g_W,BS_K_dim,  &
+&                         BS_eh_en
  use BS_solvers,     ONLY:BSS_eh_table
  use BS_doubles,     ONLY:BS_mat_doubles,BS_res_K_doubles,BS_K_doubles_dim,  &
 &                         BS_doubles_table,BS_bands_doubles,BS_doubles_E,    &
-&                         doubles_corr,static_approx
+&                         doubles_corr,static_approx,BS_Ethresh_doubles
  !use X_m,           ONLY:DIP_iq_dot_r
  !use R_lattice,      ONLY:bare_qpg
  use collision_el,   ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
@@ -63,6 +65,7 @@ subroutine K_doubles(Ken)
  integer    :: iv1,ic1,iv2,ic2,iv3,ic3,icv1,icv2,icv3,icin,&
 &              iOvv,iOcc,i1,i2,i3,ncin,&
 &              icv,ic,iv,nc,nv,nv_doubles,nc_doubles,i_doubles
+ complex(SP) :: BS_dbls_C1,BS_dbls_C2
  complex(SP),allocatable :: Interaction_cccv(:,:,:,:),Interaction_vvcv(:,:,:,:)
  !
  ! Elements for the construction of the Kernel:
@@ -86,7 +89,7 @@ subroutine K_doubles(Ken)
  open(unit=3459, file='BS_mat_doubles.txt', status='unknown')
 #endif
  !
- call section('=','Bethe-Salpeter Kernel + DOUBLES')
+ call section('=','2nd Born half diagrams')
  !
  ! Check for the doubles DB, if already present exit from the subroutine
  call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1/),ID=ID)
@@ -105,29 +108,27 @@ subroutine K_doubles(Ken)
  ! ********************************
  ! Doubles tables for indexes and energies
  i_doubles=0
- icv1=0
  do iv1=BS_bands_doubles(1),Ken%nbf(1)
    do ic1=Ken%nbf(1)+1,BS_bands_doubles(2)
-     icv1=icv1+1
      do iv2=BS_bands_doubles(1),Ken%nbf(1)
        do ic2=Ken%nbf(1)+1,BS_bands_doubles(2)
          i_doubles=i_doubles+1
          BS_doubles_table(i_doubles,:)=(/iv1,iv2,ic1,ic2/)
-	 !BS_doubles_E(i_doubles)=Ken%E(ic1,1,1)+Ken%E(ic2,1,1)-Ken%E(iv1,1,1)-Ken%E(iv2,1,1)
-         BS_doubles_E(i_doubles)=Ken%Eo(ic1,1,1)+Ken%Eo(ic2,1,1)-Ken%Eo(iv1,1,1)-Ken%Eo(iv2,1,1)
+         BS_doubles_E(i_doubles)=Ken%E(ic1,1,1)+Ken%E(ic2,1,1)-Ken%E(iv1,1,1)-Ken%E(iv2,1,1)
+         !BS_doubles_E(i_doubles)=Ken%Eo(ic1,1,1)+Ken%Eo(ic2,1,1)-Ken%Eo(iv1,1,1)-Ken%Eo(iv2,1,1)
          ! STATIC APPROX <
          ! Check for BS_doubles_E. If greater than ?? eV then the corrisponding 
          ! index is recorded so that will be possible to do a static approximation
          ! for the kernel for that index
-         !if ( BS_doubles_E(i_doubles)*27.2116> ?? ) then
-         !  static_approx(i_doubles)=1
+         if ( BS_doubles_E(i_doubles)>BS_Ethresh_doubles ) then
+           static_approx(i_doubles)=1
 #if defined _DEBUG
-         !  write(3456,*) i_doubles
+           write(3456,*) i_doubles
 #endif
-         !endif
+         endif
          ! STATIC APPROX >
 #if defined _DEBUG
-         !write(3456,*) ic1,ic2,iv1,iv2,BS_doubles_E(i_doubles)*27.2116
+         write(3456,*) ic1,ic2,iv1,iv2,BS_doubles_E(i_doubles)*27.2116
 #endif
        enddo
      enddo
@@ -389,14 +390,13 @@ subroutine K_doubles(Ken)
 #endif
    !
    ! Paral <
-   call PARALLEL_index(px,(/4*ncin,BS_K_doubles_dim/))
+   call PARALLEL_index(px,(/BS_K_doubles_dim/))
    call PP_wait()
    call live_timing('BS_mat_doubles',px%n_of_elements(myid+1))
    ! Paral >
-   do icin=1,4*ncin
      do i_doubles=1,BS_K_doubles_dim
        ! Paral <
-       if (.not.px%element_2D(icin,i_doubles)) cycle
+       if (.not.px%element_1D(i_doubles)) cycle
        call live_timing(steps=1)
        ! Paral >
        iv1=BS_doubles_table(i_doubles,1)-BS_bands_doubles(1)+1
@@ -407,57 +407,38 @@ subroutine K_doubles(Ken)
        do icv=1,BS_K_dim(1)
          iv=BSS_eh_table(icv,2)-BS_bands(1)+1
          ic=BSS_eh_table(icv,3)-Ken%nbf(1)
-         select case (icin)
-           case(1)
-             if ( (iv+BS_bands(1)) /= (iv1+BS_bands_doubles(1)) ) cycle
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                   Interaction_cccv(ic,ic1,ic2,iv2)                  !D1
-           case(2)
-             if ( (iv+BS_bands(1)) /= (iv2+BS_bands_doubles(1)) ) cycle 
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                   Interaction_cccv(ic,ic2,ic1,iv1)                  !D1cv
-           case(3)
-             if (ic/=ic1) cycle
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                   Interaction_vvcv(iv1,iv,ic2,iv2)                  !D2
-           case(4)
-             if (ic/=ic2) cycle 
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                   Interaction_vvcv(iv2,iv,ic1,iv1)                  !D2cv
-           case(5)
-             if ( (iv+BS_bands(1)) /= (iv1+BS_bands_doubles(1)) ) cycle
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                  -Interaction_cccv(ic,ic2,ic1,iv2)                  !D1c
-           case(6)
-             if ( (iv+BS_bands(1)) /= (iv2+BS_bands_doubles(1)) ) cycle 
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                  -Interaction_cccv(ic,ic1,ic2,iv1)                  !D1v
-           case(7)
-             if (ic/=ic1) cycle
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                  -Interaction_vvcv(iv2,iv,ic2,iv1)                  !D2v
-           case(8)
-             if (ic/=ic2) cycle
-             BS_mat_doubles(icv,i_doubles,ncin+1)=&
-&                  -Interaction_vvcv(iv1,iv,ic1,iv2)                  !D2c
-         end select
+	 BS_dbls_C1=cZERO
+	 BS_dbls_C2=cZERO
+         if ( (iv+BS_bands(1)) == (iv1+BS_bands_doubles(1)) ) &
+         &  BS_dbls_C1=BS_dbls_C1+Interaction_cccv(ic,ic1,ic2,iv2) !D1
+         if ( (iv+BS_bands(1)) == (iv2+BS_bands_doubles(1)) ) &
+         &  BS_dbls_C1=BS_dbls_C1+Interaction_cccv(ic,ic2,ic1,iv1) !D1cv
+         if (ic==ic1) &
+         &  BS_dbls_C1=BS_dbls_C1+Interaction_vvcv(iv1,iv,ic2,iv2) !D2
+         if (ic==ic2) &
+         &  BS_dbls_C1=BS_dbls_C1+Interaction_vvcv(iv2,iv,ic1,iv1) !D2cv
+         if ( (iv+BS_bands(1)) == (iv1+BS_bands_doubles(1)) .and. ncin==2 ) &
+         &  BS_dbls_C2=BS_dbls_C2-Interaction_cccv(ic,ic2,ic1,iv2) !D1c
+         if ( (iv+BS_bands(1)) == (iv2+BS_bands_doubles(1)) .and. ncin==2 ) &
+         & BS_dbls_C2=BS_dbls_C2-Interaction_cccv(ic,ic1,ic2,iv1)  !D1v
+         if (ic==ic1 .and. ncin==2 ) &
+         & BS_dbls_C2=BS_dbls_C2-Interaction_vvcv(iv2,iv,ic2,iv1)  !D2v
+         if (ic==ic2 .and. ncin==2 ) &
+         & BS_dbls_C2=BS_dbls_C2-Interaction_vvcv(iv1,iv,ic1,iv2)  !D2c
 #if defined _DEBUG
        write(3459,*) ic+Ken%nbf(1),iv+BS_bands(1)-1,&
 &                    ic1+Ken%nbf(1),ic2+Ken%nbf(1),iv1+BS_bands_doubles(1)-1,iv2+BS_bands_doubles(1)-1,&
-&                    (real(BS_mat_doubles(icv,i_doubles,i1)),i1=1,8),&
-&                    (aimag(BS_mat_doubles(icv,i_doubles,i1)),i1=1,8)
+&                    real(BS_dbls_C1),real(BS_dbls_C2),&
+&                    aimag(BS_dbls_C1),aimag(BS_dbls_C2)
 #endif
+         !
+         ! sqrt(0.5) is due to second order
+         ! For BS_mat_doubles_1 we obtain an overall factor 0.5
+         ! For BS_mat_doubles_2 we obtain an overall factor 0.5
+         BS_mat_doubles(icv,i_doubles,1)=0.5*BS_dbls_C1
+         if(ncin==2) BS_mat_doubles(icv,i_doubles,2)=0.5*sqrt(0.5)*(BS_dbls_C1+BS_dbls_C2)
        enddo
      enddo
-     !
-     ! sqrt(0.5) is due to second order
-     ! For BS_mat_doubles_1 we obtain an overall factor 0.5
-     ! For BS_mat_doubles_2 we obtain an overall factor 0.5
-     if(icin<=4) BS_mat_doubles(:,:,1)=BS_mat_doubles(:,:,1)+0.5*BS_mat_doubles(:,:,ncin+1)
-     if(.not.doubles_corr) BS_mat_doubles(:,:,2)=&
-&                    BS_mat_doubles(:,:,2)+0.5*sqrt(0.5)*BS_mat_doubles(:,:,ncin+1)
-     BS_mat_doubles(:,:,ncin+1)=(0.,0.)
-   enddo
    !
    ! Paral <
    call pp_redux_wait(BS_mat_doubles)
@@ -496,14 +477,14 @@ contains
   !
   implicit none
   !
+  if (Ken%nk>1) call error("2nd Born kernel coded only for gamma point")
+  !
   ! Davide doubles
   ! preparation lines:
   BS_res_K_doubles=l_2nd_born
   ! For now only standard 2nd Born
   doubles_corr=.true.
   !doubles_corr=.false.
-  BS_bands_doubles(1)=BS_bands(1)
-  BS_bands_doubles(2)=BS_bands(2)
   !
   nc=BS_bands(2)-Ken%nbf(1)
   nv=Ken%nbf(1)-BS_bands(1)+1
@@ -511,6 +492,8 @@ contains
   nv_doubles=Ken%nbf(1)-BS_bands_doubles(1)+1
   !
   BS_K_doubles_dim=(nc_doubles*nv_doubles)**2
+  if (BS_Ethresh_doubles<0._SP) &
+  & BS_Ethresh_doubles=BS_eh_en(2)+0.1*(BS_eh_en(2)-BS_eh_en(1))+2._SP/HA2EV 
   !
   ncin=2
   if(doubles_corr) ncin=1
@@ -538,8 +521,8 @@ contains
     allocate(BS_doubles_E(BS_K_doubles_dim))
     BS_doubles_E=cZERO
     !
-    !allocate(static_approx(BS_K_doubles_dim))
-    !static_approx=0
+    allocate(static_approx(BS_K_doubles_dim))
+    static_approx=0
     !
     ! Allocation: Oscillators
     YAMBO_ALLOC(Ovv,(BS_n_g_W,nv_doubles,nv))
@@ -581,7 +564,7 @@ contains
     YAMBO_FREE(BS_mat_doubles)
     YAMBO_FREE(BS_doubles_table)
     deallocate(BS_doubles_E)
-    !deallocate(static_approx)
+    deallocate(static_approx)
     !
   end select
   !

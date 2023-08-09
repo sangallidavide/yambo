@@ -29,11 +29,13 @@ module BS_doubles
  !
  integer  :: BS_K_doubles_dim,BS_bands_doubles(2)
  logical  :: BS_res_K_doubles,eps2eel,doubles_corr
+ real(SP) :: BS_Ethresh_doubles
  integer     , allocatable ::  BS_doubles_table(:,:),BS_table_fixed_E(:,:)
  integer     , allocatable ::  tab_check2icv_zero(:),degeneracy_zero(:)
  integer     , allocatable ::  change(:,:), inv_change(:,:), tab_poles2iw(:)
  integer     , allocatable ::  static_approx(:)
  complex(SP) , allocatable ::  BS_mat_doubles(:,:,:)
+ complex(SP) , allocatable ::  BS_mat_doubles_dyn(:,:)
  complex(SP) , allocatable ::  BS_mat_tmp(:,:,:)
  complex(SP) , allocatable ::  Eigen_singles(:,:),Eigen_doubles(:,:)
  real(SP)    , allocatable ::  BS_doubles_E(:)

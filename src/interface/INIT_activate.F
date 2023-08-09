@@ -231,8 +231,9 @@ subroutine INIT_activate()
    !                     
    call initactivate(1,'BSENGexx ALLGexx')
    !
-   if(l_td_hf.or.l_td_sex.or.l_2nd_born) call initactivate(1,'BSENGBlk')
-   if(l_td_sex)            call initactivate(1,'WehDiag WehCpl')
+   if(l_td_hf.or.l_td_sex.or.l_2nd_born) call initactivate(1,'BSENGBlk WehCpl')
+   if(l_2nd_born)          call initactivate(1,'BSEBandsDbls BSEDblsEThresh')
+   if(l_td_sex)            call initactivate(1,'WehDiag')
    if(l_alda_fxc) then
      call initactivate(1,'BSENGfxc FxcLibxc FxcCutScheme')
      if( (WF_exx_fraction>0.) .or. (WF_exx_screening>0.) ) call initactivate(1,'BSENGBlk WehDiag WehCpl')

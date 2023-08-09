@@ -56,7 +56,7 @@ subroutine K_components_folded_in_serial_arrays(iq)
  !
  if (allocated(BSS_eh_table)) return
  !
- call timing('BSE components folding',OPR='start')
+ call timing('BSE components unfolding',OPR='start')
  !
  ! ALLOCATION
  !============
@@ -66,7 +66,7 @@ subroutine K_components_folded_in_serial_arrays(iq)
  call BSS_DICH_alloc( )
  call BSS_PL_alloc( )
  !
- if (BS_nT_grps>0) call live_timing("Folding BSE Kernel",PAR_IND_T_groups%n_of_elements(PAR_COM_eh_INDEX%CPU_id+1))
+ if (BS_nT_grps>0) call live_timing("Unfolding BSE components",PAR_IND_T_groups%n_of_elements(PAR_COM_eh_INDEX%CPU_id+1))
  !
  BS_n_eh_spaces_solver=1
  if(BS_n_eh_spaces==1.and.BS_K_coupling) BS_n_eh_spaces_solver=2
@@ -185,6 +185,6 @@ subroutine K_components_folded_in_serial_arrays(iq)
    call PP_redux_wait(BSS_eh_E_SOC_corr,COMM=PAR_COM_eh_INDEX%COMM)
  endif
  !
- call timing('BSE components folding',OPR='stop')
+ call timing('BSE components unfolding',OPR='stop')
  !
 end subroutine K_components_folded_in_serial_arrays

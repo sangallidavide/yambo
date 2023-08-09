@@ -63,6 +63,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use wave_func,  ONLY:wf_ng,wf_norm_test,wf_nb_io,wf_nb_io_groups,WF,WF_buffer,WF_buffered_IO
  use FFT_m,      ONLY:fft_dim_loaded,fft_size,fft_dim,fft_multiplier
  use IO_m,       ONLY:io_reset,max_io_units,serial_number,frag_WF
+ use BS_doubles, ONLY:BS_Ethresh_doubles
  use BS_solvers, ONLY:BSS_mode,BSS_n_freqs,BSS_er,BSS_dr,&
 &                     BSS_q0,Haydock_threshold,Haydock_iterIO,Haydock_iterMAX,BSS_uses_DbGd,BSS_Wd,&
 &                     BSS_damp_reference,BSS_Vnl_included,BSS_uses_GreenF,BSS_inversion_mode,&
@@ -439,6 +440,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  BS_n_g_W=-1
  BS_eh_en=(/-1._SP,-1._SP/)/HA2EV
+ BS_Ethresh_doubles=-1._SP
  BS_identifier=0
  BS_q=1
  BS_eh_win=100._SP
