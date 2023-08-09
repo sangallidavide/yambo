@@ -93,20 +93,22 @@ subroutine K_doubles_unmount()
 end subroutine K_doubles_unmount
 !
 !
-subroutine K_doubles_mount_init()
+subroutine K_doubles_mount_init(mode)
  !
- use pars,          ONLY:cZERO
+ use pars,          ONLY:SP,cZERO
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:OP_RD_CL,REP,VERIFY
  use BS,            ONLY:BS_K_dim
- use BS_solvers,    ONLY:BS_mat
+ use BS_solvers,    ONLY:BS_mat,BSS_n_eig
  use BS_doubles,    ONLY:BS_mat_doubles,BS_mat_tmp,BS_K_doubles_dim,    &
 &                        BS_doubles_table,BS_bands_doubles,BS_doubles_E,&
-&                        doubles_corr,BS_res_K_doubles
+&                        doubles_corr,BS_res_K_doubles,Eigen_singles,Eigen_doubles
  !
 #include<memory.h>
  !
- integer :: BS_mat_dim,ncin,i_err,ID
+ character(*), intent(in) :: mode
+ !
+ integer :: BS_mat_dim,max_doubles_contrib,ncin,i_err,ID
  integer, external :: io_BS_doubles
  !
  if(.not.BS_res_K_doubles) return
@@ -121,6 +123,14 @@ subroutine K_doubles_mount_init()
  YAMBO_ALLOC(BS_doubles_E,(BS_K_doubles_dim))                               
  YAMBO_ALLOC(BS_doubles_table,(BS_K_doubles_dim,4))                         
  !
+ if (mode=="diago") then
+   max_doubles_contrib=BS_K_dim(1)
+   YAMBO_ALLOC(Eigen_singles,(BS_mat_dim,BSS_n_eig))
+   YAMBO_ALLOC(Eigen_doubles,(max_doubles_contrib,BSS_n_eig))
+   Eigen_singles(:,:)=0._SP
+   Eigen_doubles(:,:)=0._SP
+ endif
+ !
  BS_mat_tmp(:,:,1)=BS_mat
  BS_mat_doubles=cZERO
  !                                                                      
@@ -132,13 +142,15 @@ subroutine K_doubles_mount_init()
 end subroutine K_doubles_mount_init
 !
 !
-subroutine K_doubles_mount_reset()
+subroutine K_doubles_mount_reset(mode)
  !
  use BS_doubles,    ONLY:BS_mat_doubles,BS_mat_tmp,  &
 &                        BS_doubles_table,BS_doubles_E, &
-&                        BS_res_K_doubles
+&                        BS_res_K_doubles,Eigen_singles,Eigen_doubles
  !
 #include<memory.h>
+ !
+ character(*), intent(in) :: mode
  !
  if(.not.BS_res_K_doubles) return
  !
@@ -146,5 +158,10 @@ subroutine K_doubles_mount_reset()
  YAMBO_FREE(BS_mat_doubles)             
  YAMBO_FREE(BS_doubles_E)                               
  YAMBO_FREE(BS_doubles_table)                         
+ !
+ if (mode=="diago") then
+   YAMBO_FREE(Eigen_singles)
+   YAMBO_FREE(Eigen_doubles)
+ endif
  !
 end subroutine K_doubles_mount_reset

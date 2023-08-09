@@ -195,7 +195,10 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  call K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  !
- if( l_BSE_kernel_complete ) return
+ if( l_BSE_kernel_complete ) then
+   call K_doubles(Ken)
+   return
+ endif
  !
  io_QINDX_err=0
  if (any((/BS_res_K_corr,BS_cpl_K_corr/)).and..not.l_bs_fxc) io_QINDX_err=qindx_B_init(qindx_ID,qindx_ID_frag)

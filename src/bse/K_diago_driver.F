@@ -43,6 +43,7 @@ subroutine K_diago_driver(iq,W,X_static)
 &                         BS_res_ares_n_mat,l_BS_optics !,BS_Blocks_symmetrize_K,&
  use BS_solvers,     ONLY:io_BSS_diago,BSS_perturbative_width,BSS_mode,&
 &                         BSS_write_eig_2_db,BSS_eh_W,BS_mat,BSS_n_eig,BS_E
+ use BS_doubles,     ONLY:BS_K_doubles_dim,BS_res_K_doubles
  use X_m,            ONLY:X_t,X_OUTPUT_driver
  use electrons,      ONLY:n_sp_pol
  use frequency,      ONLY:w_samp
@@ -150,6 +151,7 @@ subroutine K_diago_driver(iq,W,X_static)
    if(l_diago) then
      if(.not.BS_K_coupling) BSS_n_eig = BS_K_dim(i_BS_mat)
      if(     BS_K_coupling) BSS_n_eig = BS_H_dim
+     if(BS_res_K_doubles) BSS_n_eig=BS_K_dim(i_BS_mat)+BS_K_doubles_dim
    endif
    Input_n_eig=BSS_n_eig
    !
@@ -214,7 +216,7 @@ subroutine K_diago_driver(iq,W,X_static)
      !
      ! Diagonalization of the excitonic hamiltonian
      !==============================================
-     if(l_diago) call live_timing('BSK diagonalize',1)
+     if(l_diago.and.(.not.BS_res_K_doubles)) call live_timing('BSK diagonalize',1)
      !
      if (K_is_not_hermitian) then
        !
@@ -227,7 +229,13 @@ subroutine K_diago_driver(iq,W,X_static)
        !
      else
        !
-       if(l_diago) call LINEAR_ALGEBRA_driver(DIAGO,M=BS_mat,E_real=BS_E_real)
+       if(l_diago) then
+         if(BS_res_K_doubles) then
+           call K_doubles_diagonalization(W,BSS_n_eig,BS_E_real,BSS_n_eig)
+         else
+           call LINEAR_ALGEBRA_driver(DIAGO,M=BS_mat,E_real=BS_E_real)
+         endif
+       endif
 #if defined _SLEPC && !defined _NL
        if(l_slepc) call MATRIX_slepc(slepc_mat,l_target_energy,BSS_n_eig,BS_mat,E_real=BS_E_real)
 #endif
@@ -248,7 +256,7 @@ subroutine K_diago_driver(iq,W,X_static)
      if(l_slepc) call MatDestroy(slepc_mat,ierr)
 #endif
      !
-     if(l_diago) call live_timing( )
+     if(l_diago.and.(.not.BS_res_K_doubles)) call live_timing( )
      !
      ! Construct the residuals of epsilon
      !====================================

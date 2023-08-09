@@ -183,7 +183,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
  !
  call K_inversion_Lo(iq,W,E,k,Lo_dim,Lo_n_loop,Lo)
  !
- call K_doubles_mount_init()
+ call K_doubles_mount_init("inv")
  !
  ! Initialize & write the output file 
  !====================================
@@ -258,7 +258,7 @@ subroutine K_inversion_driver(iq,W,E,k,q)
    if (K_INV_PL%n_full_inv_freqs>0.and.FULL) call do_it_FULL(K_INV_PL)
  endif
  !
- call K_doubles_mount_reset()
+ call K_doubles_mount_reset("inv")
  !
  ! Try a polinomial interpolation on the null values (only for EPS)
  !==================================================================

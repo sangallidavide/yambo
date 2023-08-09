@@ -28,7 +28,7 @@ module mod_xc2y
  !
  implicit none
  !
- integer, parameter :: N_Abinit_XC = 28,N_PW_X = 12, N_PW_C = 13, N_PW_GX = 21, N_PW_GC = 14
+ integer, parameter :: N_Abinit_XC = 40,N_PW_X = 12, N_PW_C = 13, N_PW_GX = 21, N_PW_GC = 14
  !
  !  Map for ABINIT/ETSF_IO
  !
@@ -60,7 +60,19 @@ module mod_xc2y
     XC_NOT_AVAILABLE,                             & !ixc= 25
     XC_GGA_XC_HCTH_147*XC_FACTOR,                 & !ixc= 26 
     XC_GGA_XC_HCTH_407*XC_FACTOR,                 & !ixc= 27 
-    XC_NOT_AVAILABLE/)                              !ixc= 28
+    XC_NOT_AVAILABLE,                             & !ixc= 28
+    XC_NOT_AVAILABLE,                             & !ixc= 29
+    XC_NOT_AVAILABLE,                             & !ixc= 30
+    XC_NOT_AVAILABLE,                             & !ixc= 31
+    XC_NOT_AVAILABLE,                             & !ixc= 32
+    XC_NOT_AVAILABLE,                             & !ixc= 33
+    XC_NOT_AVAILABLE,                             & !ixc= 34
+    XC_NOT_AVAILABLE,                             & !ixc= 35
+    XC_NOT_AVAILABLE,                             & !ixc= 36
+    XC_NOT_AVAILABLE,                             & !ixc= 37
+    XC_NOT_AVAILABLE,                             & !ixc= 38
+    XC_NOT_AVAILABLE,                             & !ixc= 39
+    NOXC/)                                          !ixc= 40
  !
  ! Map for PWSCF (note that some of the acronims were used in past versions of pw.x 
  ! 
@@ -99,6 +111,7 @@ module mod_xc2y
  contains
    !
    integer function XC_yamboID(dft_program,abinit_func,pw_func)
+   use xc_functionals, ONLY: GS_exx_FRACTION
    character(len=6), intent(in)   :: dft_program
    integer, intent(in),optional   :: abinit_func
    character(256), intent(in),optional :: pw_func
@@ -114,6 +127,7 @@ module mod_xc2y
          XC_yamboID = -abinit_func ! In this case abinit uses libxc, thus the same convention as in Yambo (except for the sign) 
        else if (abinit_func.gt.0) then
          XC_yamboID = XC_A2Y(abinit_func) ! Standard abinit XC convention, use the map
+	 if (abinit_func==40) GS_exx_FRACTION=1. 
        else
          XC_yamboID = NOXC
        end if

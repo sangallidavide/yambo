@@ -44,8 +44,10 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  ! Here s={cv},d={c1c2,v1v2}
  ! 
  !
- use pars,           ONLY:SP
- use BS,             ONLY:BS_mat,BS_K_dim,BSS_rhoq0
+ use pars,           ONLY:SP,cZERO,cONE,cI
+ use com,            ONLY:msg
+ use BS,             ONLY:BS_K_dim
+ use BS_solvers,     ONLY:BS_mat
  use BS_doubles,     ONLY:BS_doubles_E,BS_K_doubles_dim,BS_mat_doubles,&
 &                         BS_doubles_table,BS_table_fixed_E,Eigen_singles,&
 &                         Eigen_doubles,BS_mat_tmp,&
@@ -54,15 +56,17 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
 ! DOUBLES CORR PROJECT
 &                         doubles_corr
  use frequency,      ONLY:W_duplicate,W_reset,w_samp
- use units,          ONLY:HARTREE
- use matrix_operate, ONLY:mat_dia_inv,DIAGO,USE_LK
- use IO_m,           ONLY:io_control,OP_RD_CL,REP,VERIFY
- use memory_m,       ONLY:mem_est
- use par_proc_m,     ONLY:pp_redux_wait,pp_indexes,myid,pp_indexes_reset
- use par_indexes_m,  ONLY:par_indexes
- use timing,         ONLY:live_timing
+ use units,          ONLY:HA2EV
+ use linear_algebra, ONLY:DIAGO
+ use interfaces,     ONLY:LINEAR_ALGEBRA_driver
+ use IO_int,         ONLY:io_control
+ use IO_m,           ONLY:OP_RD_CL,REP,VERIFY
+ use parallel_int,   ONLY:PP_wait,PP_redux_wait,PARALLEL_index
+ use parallel_m,     ONLY:pp_indexes,myid,pp_indexes_reset
+ use LIVE_t,         ONLY:live_timing
  !
  implicit none
+ !
  ! Paral
  type(pp_indexes)         ::px
  !
@@ -71,7 +75,7 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  type(w_samp)             :: W
  !
  ! Output variables
- complex                  :: BS_E_out(max_n_poles)
+ real(SP)                 :: BS_E_out(max_n_poles)
  integer                  :: n_poles_out
  !
  ! Dummies
@@ -92,10 +96,10 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  ! New frequency grid
  type(w_samp)             :: W_new
  real(SP)                 :: E_min,E_max,delta
- complex(SP)              :: E_start,E_end 
+ complex(SP)              :: E_start,E_end,pole
  !
  ! Degeneracies
- integer                  :: pos_max(BS_K_dim,W%n(1))
+ integer                  :: pos_max(BS_K_dim(1),W%n_freqs)
  !
  ! I/O
  integer                  :: i_err,ID
@@ -106,41 +110,15 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  !
  call section('=','Doubles diagonalization solver')
  !
+ call K_doubles_mount_init("diago")
+ !
  ! Inizialisation
- max_doubles_contrib=BS_K_dim  ! 2*(BS_K_dim**2)
- print_eigen_doubles=.false.
- lib_driver=USE_LK
  ncin=2
  if(doubles_corr) ncin=1
+ max_doubles_contrib=BS_K_dim(1)  ! 2*(BS_K_dim**2)
+ print_eigen_doubles=.false.
  !
- ! ******************
- ! **  Allocation  **
- ! ******************
- allocate(BS_mat_tmp(BS_K_dim,BS_K_dim,2))
- call mem_est("BS_mat_tmp",(/(BS_K_dim**2)*4/))
- allocate(BS_E_tmp(BS_K_dim))
- call mem_est("BS_E_tmp",(/BS_K_dim/),(/SP/))
- allocate(BS_E_real_freq(BS_K_dim,W%n(1)))
- call mem_est("BS_E_real_freq",(/BS_K_dim,W%n(1)/),(/SP/))
- allocate(Eigen_singles(BS_K_dim,max_n_poles))
- allocate(Eigen_doubles(max_doubles_contrib,max_n_poles),Eigen_doubles_index(max_doubles_contrib,max_n_poles,5))
- call mem_est("Eigen_singles Eigen_doubles",&
-&              (/BS_K_dim*max_n_poles,max_doubles_contrib*max_n_poles/),(/SP,SP/))
- allocate(Eigen_doubles_tmp(BS_K_doubles_dim,ncin))
- call mem_est("Eigen_doubles_tmp",(/BS_K_doubles_dim*ncin/),(/SP/))
- Eigen_singles(:,:)=0.
- Eigen_doubles(:,:)=0.
- Eigen_doubles_index(:,:,:)=-1
- allocate(BS_mat_doubles(BS_K_dim,BS_K_doubles_dim,ncin+1))
- call mem_est("BS_mat_doubles",(/size(BS_mat_doubles)*2/))
- allocate(BS_doubles_E(BS_K_doubles_dim))
- call mem_est("BS_doubles_E",(/size(BS_doubles_E)/))
- allocate(BS_doubles_table(BS_K_doubles_dim,4))
- !
- !
- ! Read the doubles database
- call io_control(action=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1,2/),ID=ID)
- i_err=ioBS_doubles(ID)
+ call local_alloc()
  !
  ! ***********************
  ! *****  Main loop  *****
@@ -155,47 +133,47 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  ! with smaller intervals in the region where doubles energies
  ! lays, so where the kernel has a strong frequency dependence
  i1=1
- i2=W%n(1)
+ i2=W%n_freqs
  iw=1
  E_min=minval(BS_doubles_E)
  E_max=maxval(BS_doubles_E)
  E_start=W%p(1)
- E_end=W%p(W%n(1))
- delta=real(E_end-E_start)/(W%n(1)-1)
+ E_end=W%p(W%n_freqs)
+ delta=real(E_end-E_start)/(W%n_freqs-1)
  call W_duplicate(W,W_new)
  ! If the eigenvalues lay out of the frequency interval W_new=W else
  ! the new grid is computed
  if((.not.(E_min<real(E_start).and.E_max<real(E_start)))&
 &    .and.(.not.(E_min>real(E_end).and.E_max<real(E_end)))) then
    ! Grid with large intervals.
-   if (E_min-2/HARTREE>real(W%p(1))) then
-     do iw=1,W%n(1),4
+   if (E_min-2/HA2EV>real(W%p(1))) then
+     do iw=1,W%n_freqs,4
        W_new%p(i1)=W%p(iw)
        i1=i1+1
-       if (real(W%p(iw))>(E_min-2/HARTREE)) exit 
+       if (real(W%p(iw))>(E_min-2/HA2EV)) exit 
      enddo
    endif
-   if (E_max+2/HARTREE<real(W%p(W%n(1)))) then
-     do iw=W%n(1),1,-4
+   if (E_max+2/HA2EV<real(W%p(W%n_freqs))) then
+     do iw=W%n_freqs,1,-4
        W_new%p(i2)=W%p(iw)
        i2=i2-1
-       if (real(W%p(iw))<(E_max+2/HARTREE)) exit
+       if (real(W%p(iw))<(E_max+2/HA2EV)) exit
      enddo
    endif
    ! Grid with standard intervals.
-   if (E_min-2/HARTREE>real(W%p(1))) then
+   if (E_min-2/HA2EV>real(W%p(1))) then
      do iw=i1,i2
        W_new%p(iw)=W_new%p(i1-1)+(1.,0.)*delta*(iw-i1+1)
        i1=i1+1
-       if (real(W_new%p(iw))>(E_min-0.2/HARTREE)) exit 
+       if (real(W_new%p(iw))>(E_min-0.2/HA2EV)) exit 
      enddo
      E_start=W_new%p(iw)+delta
    endif
-   if (E_max+2/HARTREE<real(W%p(W%n(1)))) then
+   if (E_max+2/HA2EV<real(W%p(W%n_freqs))) then
      do iw=i2,i1,-1
        W_new%p(iw)=W_new%p(i2+1)+(1.,0.)*delta*(iw-i2-1)
        i2=i2-1
-       if (real(W_new%p(iw))<(E_max+0.2/HARTREE)) exit 
+       if (real(W_new%p(iw))<(E_max+0.2/HA2EV)) exit 
      enddo
      E_end=W_new%p(iw)-delta
    endif
@@ -212,27 +190,27 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  !
  ! Paral+timing<
  call pp_indexes_reset(px)
- call par_indexes(px,(/W_new%n(1)/),(/1/))
- call pp_redux_wait
- call live_timing('Diag over a grid',px%stps(myid+1))
+ call PARALLEL_index(px,(/W_new%n_freqs/),(/1/))
+ call PP_wait
+ call live_timing('Diag over a grid',px%n_of_elements(myid+1))
  ! Paral+timing >
  !
  !
  BS_E_real_freq(:,:)=0.
  pos_max(:,:)=0.
  BS_mat_tmp(:,:,1)=BS_mat(:,:)
- do iw=1,W_new%n(1)
+ do iw=1,W_new%n_freqs
    ! Paral+timing <
-   if (.not.px%i1p(iw)) cycle
+   if (.not.px%element_1D(iw)) cycle
    call live_timing(steps=1)
    ! Paral+timing >
    call K_doubles_mount(W_new%p(iw))
-   call mat_dia_inv(DIAGO,lib_driver,BS_mat,E_real=BS_E_tmp)
+   call LINEAR_ALGEBRA_driver(DIAGO,M=BS_mat,E_real=BS_E_tmp)
    BS_E_real_freq(:,iw)=BS_E_tmp(:)
-   do icv1=1,BS_K_dim
+   do icv1=1,BS_K_dim(1)
      pos_max(icv1,iw)=maxloc(abs(BS_mat(:,icv1)),1)
    enddo
-   BS_mat(:,:)=BS_mat_tmp(:,:,1)
+   call K_doubles_unmount()
  enddo
  !
  ! Paral+timing <
@@ -248,9 +226,9 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  call K_doubles_degeneracies(BS_E_real_freq,pos_max,W_new,n_check)
  !
 ! ! DEBUG <
-! do iw=1,W%n(1)
-!   write(677,*)  real(W_new%p(iw))*HARTREE,&
-!&                (BS_E_real_freq(change(icv1,iw),iw)*HARTREE,icv1=1,BS_K_dim)
+! do iw=1,W%n_freqs
+!   write(677,*)  real(W_new%p(iw))*HA2EV,&
+!& (BS_E_real_freq(change(icv1,iw),iw)*HA2EV,icv1=1,BS_K_dim(1))
 ! enddo
 ! ! DEBUG >
  !
@@ -278,21 +256,22 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  ! the same number of time the BS_mat matrix.
  ! Presently thi is not a problem as K_doubles_degeneracy is a fake subroutine
  ! and all poles have degeneracy 1
- call par_indexes(px,(/n_poles_out/))
- call pp_redux_wait
- call live_timing('Eigenvalues',px%stps(myid+1))
+ call PARALLEL_index(px,(/n_poles_out/))
+ call PP_wait
+ call live_timing('Eigenvalues',px%n_of_elements(myid+1))
  ! Paral >
  do i_pole=1,n_poles_out
    ! Paral <
-   if (.not.px%i1p(i_pole)) cycle
+   if (.not.px%element_1D(i_pole)) cycle
    call live_timing(steps=1)
-   ! Paral >   
+   ! Paral >
    iw=tab_poles2iw(i_pole)
    icv=BS_table_fixed_E(i_pole,1)
    i_molt=BS_table_fixed_E(i_pole,2)
    icv1=change(icv,iw)
-   call K_doubles_mount(real(BS_E_out(i_pole)))
-   call mat_dia_inv(DIAGO,lib_driver,BS_mat,E_real=BS_E_tmp) 
+   pole=BS_E_out(i_pole)+cI*aimag(W%p(1))
+   call K_doubles_mount(pole)
+   call LINEAR_ALGEBRA_driver(DIAGO,M=BS_mat,E_real=BS_E_tmp)
    do i2=1,degeneracy_zero(icv)+1
      i_solution=tab_poles2solutions(i_pole)+degeneracy_zero(icv)
      Eigen_singles(:,i_pole)=BS_mat(:,icv1+i2-1)
@@ -300,11 +279,11 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  ! Here we compute the doubles for each eigenvector
      norm=0
      do icin=1,ncin
-       call cgemv('c',BS_K_dim,BS_K_doubles_dim,(1._SP,0._SP),&
-&        BS_mat_doubles(:,:,icin),BS_K_dim,Eigen_singles(:,i_solution),1,&
-&        (0._SP,0._SP),Eigen_doubles_tmp(:,icin),1)
+       call cgemv('c',BS_K_dim(1),BS_K_doubles_dim,cONE,&
+&        BS_mat_doubles(:,:,icin),BS_K_dim(1),Eigen_singles(:,i_solution),1,&
+&        cZERO,Eigen_doubles_tmp(:,icin),1)
        forall (i_doubles=1:BS_K_doubles_dim) Eigen_doubles_tmp(i_doubles,icin)=&
-&              Eigen_doubles_tmp(i_doubles,icin)/(BS_E_out(i_pole)-BS_doubles_E(i_doubles))
+&              Eigen_doubles_tmp(i_doubles,icin)/(pole-BS_doubles_E(i_doubles))
        doubles_norm(icin)=scnrm2(BS_K_doubles_dim,Eigen_doubles_tmp(:,icin),1)
        doubles_norm(icin)=doubles_norm(icin)**2
        norm=norm+doubles_norm(icin)
@@ -343,7 +322,7 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
      endif
      !
    enddo
-   BS_mat(:,:)=BS_mat_tmp(:,:,1)
+   call K_doubles_unmount()
  enddo
  !
  ! Paral <
@@ -361,20 +340,48 @@ subroutine K_doubles_diagonalization(W,max_n_poles,BS_E_out,n_poles_out)
  icv=BS_table_fixed_E(n_poles_out,1)
  n_poles_out=tab_poles2solutions(n_poles_out)+degeneracy_zero(icv)
  !
- !
  ! Deallocate
- deallocate(BS_mat_tmp,BS_mat_doubles)
- call mem_est("BS_mat_tmp BS_mat_doubles")
- deallocate(BS_E_tmp,BS_E_real_freq,BS_doubles_E)
- call mem_est("BS_E_tmp BS_E_real_freq BS_doubles_E")
- deallocate(Eigen_doubles_tmp)
- call mem_est("Eigen_doubles_tmp")
- deallocate(BS_doubles_table,Eigen_doubles_index)
  deallocate(tab_poles2solutions)
  !
  ! ***** DEGENERACY DEALLOCATION *****
  deallocate(change)
  deallocate(tab_check2icv_zero,degeneracy_zero)
  deallocate(tab_poles2iw)
+  !
+  call msg('rsn','[BSE] Doubles poles',(/BS_K_dim,BS_K_doubles_dim,n_poles_out/))
  !
+ call BS_mat_reset()
+ !
+ call K_doubles_mount_reset("diago")
+ !
+ call local_free()
+ !
+ contains
+  !
+  subroutine local_alloc()
+#include<memory.h>
+    integer :: BS_mat_dim
+    BS_mat_dim=BS_K_dim(1)
+    YAMBO_ALLOC(BS_E_tmp,(BS_mat_dim)) 
+    YAMBO_ALLOC(BS_E_real_freq,(BS_mat_dim,W%n_freqs))
+    YAMBO_ALLOC(Eigen_doubles_index,(max_doubles_contrib,max_n_poles,5))
+    YAMBO_ALLOC(Eigen_doubles_tmp,(BS_K_doubles_dim,ncin))
+    Eigen_doubles_index(:,:,:)=-1
+  end subroutine local_alloc
+  !
+  subroutine local_free()
+#include<memory.h>
+    YAMBO_FREE(BS_E_tmp)
+    YAMBO_FREE(BS_E_real_freq)
+    YAMBO_FREE(Eigen_doubles_index)
+    YAMBO_FREE(Eigen_doubles_tmp)
+  end subroutine local_free
+  !
+  subroutine BS_mat_reset()
+#include<memory.h>
+    YAMBO_FREE(BS_mat)
+    YAMBO_ALLOC(BS_mat,(BS_K_dim(1),n_poles_out))
+    BS_mat(:,:)=Eigen_singles(:,1:n_poles_out)
+  end subroutine BS_mat_reset
+  !
 end subroutine

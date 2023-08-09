@@ -25,10 +25,7 @@ subroutine K_fixed_point(E_in,E_out,n_E_theory,n_check_in,n_E,freq)
  use BS_doubles,    ONLY:BS_K_doubles_dim,BS_table_fixed_E,&
 &                        change,tab_poles2iw,tab_check2icv_zero,degeneracy_zero
  use frequency,     ONLY:w_samp
- use memory_m,      ONLY:mem_est
- !use par_proc_m,    ONLY:pp_redux_wait,pp_indexes,myid,pp_indexes_reset
- !use par_indexes_m, ONLY:par_indexes
- use timing,        ONLY:live_timing
+ use LIVE_t,        ONLY:live_timing
  !
  implicit none
  ! Paral : to parallelize this we need to change how n_E
@@ -38,12 +35,12 @@ subroutine K_fixed_point(E_in,E_out,n_E_theory,n_check_in,n_E,freq)
  ! Input variables
  type(w_samp)       :: freq
  integer            :: n_E_theory,n_check_in
- real               :: E_in(BS_K_dim,freq%n(1))
+ real(SP)           :: E_in(BS_K_dim(1),freq%n_freqs)
  !
  ! Output variables
  ! Even the table BS_table_fixed is allocated and 
  ! constructed from this subroutine
- complex            :: E_out(n_E_theory)
+ real(SP)           :: E_out(n_E_theory)
  integer            :: n_E
  !
  ! Work space
@@ -72,7 +69,7 @@ subroutine K_fixed_point(E_in,E_out,n_E_theory,n_check_in,n_E,freq)
  !call par_indexes(px,(/n_check_in/),(/1/))
  !call pp_redux_wait
  !call live_timing('E_out',px%stps(myid+1))
- call live_timing('E_out',n_check_in,.true.)
+ call live_timing('E_out',n_check_in)
  ! Paral >
  !
  do i_check=1,n_check_in
@@ -94,7 +91,7 @@ subroutine K_fixed_point(E_in,E_out,n_E_theory,n_check_in,n_E,freq)
      tab_poles2iw(n_E)=1    
      cycle
    endif
-   do iw=1,freq%n(1)
+   do iw=1,freq%n_freqs
      icv1=change(icv,iw)
      tmp_function=real(freq%p(iw))-E_in(icv1,iw)
      ! The following "if" works in the loop after we found a pole untill the

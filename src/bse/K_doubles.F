@@ -483,8 +483,8 @@ contains
   ! preparation lines:
   BS_res_K_doubles=l_2nd_born
   ! For now only standard 2nd Born
-  doubles_corr=.true.
-  !doubles_corr=.false.
+  !doubles_corr=.true.
+  doubles_corr=.false.
   !
   nc=BS_bands(2)-Ken%nbf(1)
   nv=Ken%nbf(1)-BS_bands(1)+1
