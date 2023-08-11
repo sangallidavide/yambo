@@ -49,7 +49,7 @@ subroutine RT_X_LRR_real_field(en)
  integer      :: i_t,i_w,i_p_dir,iE_err,i_Probe,i_field,n_fields,n_freqs,NW
  logical      :: l_rm_asympt_limit
  real(SP)     :: W_reached,Field_time,outdata(6),E_ver(3,3),Fac
- complex(SP)  :: OBS_proj,OBS_vec(3),E_w_SP(3),Field,E_of_t(2),A_of_t(2),theta,delta,Field_freq
+ complex(SP)  :: OBS_proj,OBS_vec(3),E_w_SP(3),Field,E_ver_cmplx(3,3),E_of_t(2),A_of_t(2),theta,delta,Field_freq
  complex(SP), allocatable :: EELS(:,:),EPS(:,:)
  !
 #if defined _YPP_NL
@@ -231,13 +231,15 @@ subroutine RT_X_LRR_real_field(en)
      E_ver(:,1)=abs(E_w_SP/v_norm(abs(E_w_SP)))
    endif
    !
+   E_ver_cmplx=cmplx(E_ver,kind=SP)
+   !
    do i_p_dir=1,3
      !
      if(trim(X_kind)=="rhorho") OBS_vec=cmplx( Pol(1)%F_w(i_w,:),kind=SP)
      if(trim(X_kind)=="jj")     OBS_vec=cmplx(Curr(1)%F_w(i_w,:),kind=SP)/ElField%W(i_w)**2
      !
-     OBS_proj=dot_product(E_ver(:,i_p_dir),OBS_vec)
-     if(Efield(i_Probe)%ef_pol=="circular") Field=dot_product(E_ver(:,i_p_dir),E_w_SP )
+     OBS_proj=dot_product(E_ver_cmplx(:,i_p_dir),OBS_vec)
+     if(Efield(i_Probe)%ef_pol=="circular") Field=dot_product(E_ver_cmplx(:,i_p_dir),E_w_SP )
      !
      if(     l_RT_induced_field) EELS(i_w,i_p_dir) = 4._SP*pi*OBS_proj/Field
      if(.not.l_RT_induced_field) EPS( i_w,i_p_dir) = 4._SP*pi*OBS_proj/Field
