@@ -25,7 +25,8 @@ ifeq ($(wildcard config/mk/global/defs.mk),config/mk/global/defs.mk)
  include config/mk/global/defs.mk
  include config/mk/defs.mk
 else ifeq ($(MAKECMDGOALS), download)
-else ifeq ($(MAKECMDGOALS), check)
+else ifeq ($(MAKECMDGOALS), check-files)
+else ifeq ($(MAKECMDGOALS), check-packages)
 else
  include config/mk/global/no_configure_help.mk
 endif
@@ -75,10 +76,11 @@ all:
 ext-libs:
 	@for target in $(EXT_LIBS) ; do if ! test "$$target" = Ydriver; then $(MAKE) $(MAKEFLAGS) $$target; fi; done
 int-libs:
-	@for target in $(INT_LIBS) ; do $(MAKE) $(MAKEFLAGS) $$target; done
+	@for target in $(INT_LIBS) ; do $(MAKE) $(MAKEFLAGS) $$target; \
+	if test ! -f "lib/lib$$target."*; then echo "$$target build failed"; exit 1; fi done
 yambo-int-libs: 
 	@for target in $(YAMBO_INT_LIBS) ; do $(MAKE) $(MAKEFLAGS) $$target; done
-conf-check:
+check-packages:
 	@$(global_check)
 #
 #=====================
