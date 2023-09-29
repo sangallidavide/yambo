@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2023 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -100,4 +100,3 @@ subroutine fft_3d(c,n,fft_sign)
 #endif
  !
 end subroutine
-
