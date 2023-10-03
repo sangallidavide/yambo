@@ -1,6 +1,6 @@
-AC_INIT(Yambo, 5.1.0 r.23331 h.63c37907b, yambo@yambo-code.org)
+AC_INIT(Yambo, 5.2.0 r.23331 h.63c37907b, yambo@yambo-code.org)
 SVERSION="5"
-SSUBVERSION="1"
+SSUBVERSION="2"
 SPATCHLEVEL="0"
 SREVISION="23331"
 SHASH="63c37907b"
