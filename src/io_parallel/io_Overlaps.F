@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2023 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM CA MG DS
@@ -40,7 +40,7 @@ integer function io_Overlaps(Dip,ID)
  ! Work Space
  !
  integer :: ik_bz,i_fragment,i_sp_pol,DIP_size(6),DIP_ipos(6),VAR_ID
- integer, external    :: variables_DIPOLES
+ integer, external    :: variables_Overlaps
  character(schlen)    :: VAR_name
  !
  if (.not.io_DIP) then
@@ -72,7 +72,7 @@ integer function io_Overlaps(Dip,ID)
    io_Overlaps=io_header(ID,R_LATT=.true.,WF=.true.,IMPOSE_SN=.true.,TEMP=.true.,FRAG=frag_DIP)
    if (io_Overlaps/=0) goto 1
    !
-   io_Overlaps=variables_DIPOLES(Dip,ID)
+   io_Overlaps=variables_Overlaps(Dip,ID)
    if (io_Overlaps/=0) goto 1
    !
  endif

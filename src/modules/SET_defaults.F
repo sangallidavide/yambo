@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2023 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -48,7 +48,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use functions,  ONLY:bose_E_cut
  use D_lattice,  ONLY:i_space_inv,inv_index,n_atoms_species_max,n_atomic_species,mag_syms,&
 &                     input_Tel_is_negative,non_periodic_directions,lattice,Bose_Temp,    &
-&                     molecule_position
+&                     molecule_position,l_0D,l_1D,l_2D,l_3D
  use pseudo,     ONLY:pp_n_l_times_proj_max,pp_kbv_dim
  use R_lattice,  ONLY:n_g_shells,ng_closed,bse_scattering,coll_scattering,&
 &                     Xk_grid_is_uniform,RIM_id_epsm1_reference,RIM_epsm1,&
@@ -271,6 +271,10 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  molecule_position=0._SP
  lattice='Unknown'
  Bose_Temp=-1./HA2EV
+ l_3D=.TRUE.
+ l_2D=.FALSE.
+ l_1D=.FALSE.
+ l_0D=.FALSE.
  !
  ! R_lattice
  !
@@ -589,6 +593,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  n_ext_fields=0
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
+   Efield(i1)%t_initial=RT_step
  enddo
  !
  call A_vecpot_reset(A_tot)
@@ -693,6 +698,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
  do i1=1,n_ext_fields_max
    call Efield_reset(Efield(i1))
+   Efield(i1)%t_initial=RT_step
    Efield(i1)%frequency=0.1_SP/HA2EV
    Efield(i1)%intensity=0.0_SP
    Efield(i1)%FWHM=2._SP*FS2AUT

@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2023 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -36,8 +36,8 @@ subroutine DEV_SUB(scatter_Gamp)(isc,mode)
  use drivers,       ONLY:l_col_cut
  use collision_el,  ONLY:elemental_collision
  use R_lattice,     ONLY:d3q_factor,RIM_ng,RIM_qpg,RIM_is_diagonal,&
-&                        bare_qpg,RIM_anisotropy,RIM_n_rand_pts,cut_is_slab
- use R_lattice,     ONLY:RIM_qpg_d,bare_qpg_d
+&                        bare_qpg,RIM_anisotropy,RIM_n_rand_pts,cut_is_slab,&
+&                        RIM_qpg_d,bare_qpg_d
  use deviceXlib_m
  use timing_m
  !

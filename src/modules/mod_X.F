@@ -1,5 +1,5 @@
 !
-!        Copyright (C) 2000-2023 the YAMBO team
+!        Copyright (C) 2000-2022 the YAMBO team
 !              http://www.yambo-code.org
 !
 ! Authors (see AUTHORS file for details): AM
@@ -207,15 +207,6 @@ module X_m
      type(bz_fine_grid),intent(in) :: k_FGbz
      real(SP),            optional :: nTrans_percent,Radius
    end subroutine
-   !
-   logical function EPS_2_eels(wv,nw,be_verbose,ordering,eps,eel)
-     use pars,          ONLY:SP
-     integer              :: nw 
-     complex(SP)          :: wv(nw)
-     logical              :: be_verbose
-     character(2)         :: ordering
-     complex(SP) ,optional:: eps(nw),eel(nw)
-   end function
    !
    subroutine X_ALLOC_elemental(WHAT,DIM)
      character(*)      :: WHAT
