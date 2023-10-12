@@ -1,25 +1,9 @@
 !
-!        Copyright (C) 2000-2022 the YAMBO team
-!              http://www.yambo-code.org
+! License-Identifier: GPL
+!
+! Copyright (C) 2016 The Yambo Team
 !
 ! Authors (see AUTHORS file for details): MG CA
-! 
-! This file is distributed under the terms of the GNU 
-! General Public License. You can redistribute it and/or 
-! modify it under the terms of the GNU General Public 
-! License as published by the Free Software Foundation; 
-! either version 2, or (at your option) any later version.
-!
-! This program is distributed in the hope that it will 
-! be useful, but WITHOUT ANY WARRANTY; without even the 
-! implied warranty of MERCHANTABILITY or FITNESS FOR A 
-! PARTICULAR PURPOSE.  See the GNU General Public License 
-! for more details.
-!
-! You should have received a copy of the GNU General Public 
-! License along with this program; if not, write to the Free 
-! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
-! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
 subroutine NL_driver(E,X,k,q,Dip)
  !
@@ -44,7 +28,6 @@ subroutine NL_driver(E,X,k,q,Dip)
 &                         HF,SEX,NL_bands,NL_nbands,V_bands_t,NL_alloc_k_distributed
  use real_time,      ONLY:RT_step,NE_steps,NE_i_time,NE_time,RT_nbands,RT_bands, &
                           eval_DFT,eval_HARTREE,RT_P,RT_ind_J
- use RT_control,     ONLY:OBS_RT_IO_t
  use IO_m,           ONLY:io_COLLs
  use parallel_int,   ONLY:PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use parallel_m,     ONLY:PAR_IND_freqs,PAR_IND_freqs_ID,PAR_IND_Xk_ibz
@@ -277,6 +260,7 @@ subroutine NL_driver(E,X,k,q,Dip)
      ! Store Variables
      !
      NL_P_t (NE_i_time,:)=real(NL_P(1:3),SP)
+     NL_J_t (NE_i_time,:)=real(NL_J(1:6),SP)
      E_ext_t(NE_i_time,:)=E_ext
      E_tot_t(NE_i_time,:)=E_tot
      E_ks_t (NE_i_time,:)=E_ks
