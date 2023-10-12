@@ -17,6 +17,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
  use electrons,      ONLY:n_sp_pol,n_spinor
  use frequency,      ONLY:w_samp
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index
+ use parser_m,       ONLY:parser ![FP: workaround to get EELS with slepc]
  use parallel_m,     ONLY:myid,PP_indexes,PP_indexes_reset
  use LIVE_t,         ONLY:live_timing
  use BS,             ONLY:BS_perturbative_SOC,BS_res_ares_n_mat,l_BS_abs,l_BS_jdos,l_BS_esort,&
@@ -51,6 +52,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
  integer, allocatable      :: sort_indx(:),first_exc(:),n_of_exc(:)
  complex(SP)               :: gauge_factor,res_kerr,res_dich,res_magn(2)
  logical                   :: l_ADD_the_ARES_using_the_RES
+ logical   :: l_force_eels ![FP: workaround to get eels with slepc]
  !
  n_SOC=1
  ares_fac=(-1)**(i_BS_mat-1)
@@ -118,7 +120,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
        if (l_ADD_the_ARES_using_the_RES) then
          Epsilon_ii(:,2)=Epsilon_ii(:,2)+conjg(res_abs)/(W%p(:)+conjg(EXC_E(i_pert_SOC)))
        endif
-       if(trim(global_gauge)=='length')   para_term_w0=para_term_w0+res_abs*EXC_E(i_pert_SOC)/bare_qpg(1,1)**2
+       if(trim(global_gauge)=='length')   para_term_w0=para_term_w0+res_abs*EXC_E(i_pert_SOC)/bare_qpg(1,i_G_shift)**2
        if(trim(global_gauge)=='velocity') para_term_w0=para_term_w0+res_abs/EXC_E(i_pert_SOC)
      endif
      if(l_BS_kerr) then
@@ -244,10 +246,14 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
      if (.not.skip_cond_sum_rule) diam_term_used=para_term_w0
    endif
    !
-   if(trim(global_gauge)=='length'  ) Epsilon_ii(:,2)= (Epsilon_ii(:,2))*Co_factor/  bare_qpg(iq,i_G_shift)**2
+   if(trim(global_gauge)=='length'  ) Epsilon_ii(:,2)= (Epsilon_ii(:,2))*Co_factor/  bare_qpg(iq,i_G_shift) **2
    if(trim(global_gauge)=='velocity') Epsilon_ii(:,2)= (Epsilon_ii(:,2)-diam_term_used)*Co_factor/  W%p(:)  **2
    !
-   if(BSS_eels_to_eps) Epsilon_ii(:,2)=(1._SP-Epsilon_ii(:,2))**(-1)-1._SP
+   ! FP: workaround to get eels with slepc
+   ! FP: Be careful: This will write the EELS inside the "o-eps" output file!
+   call parser('ForceEELS',l_force_eels)
+   !if(BSS_eels_to_eps) Epsilon_ii(:,2)=(1._SP-Epsilon_ii(:,2))**(-1)-1._SP
+   if(BSS_eels_to_eps.and..not.l_force_eels) Epsilon_ii(:,2)=(1._SP-Epsilon_ii(:,2))**(-1)-1._SP
    !
    ! Drude term
    !============

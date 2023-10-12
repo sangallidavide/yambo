@@ -67,7 +67,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  ! These are trivial to compute at finite q, instead they are 
  ! obtained via the dipoles in the q->0 limit and stored to disk
  !
- if (iq==1 .and. i_G_shift==1) then
+ if (iq==1.and.i_G_shift==1) then
    call DIPOLE_IO(Xk,Ken,Dip,'read ',io_err,'K')
  else
    call WF_load(WF,1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),title='-Oscillators/R space/K_IP')
@@ -77,7 +77,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  BSS_Vnl_included=Dip%Vnl_included
  !
- if (iq==1 .and. i_G_shift==1) then
+ if (iq==1.and.i_G_shift==1) then
    !
    BSS_P_dir=cross_product(BSS_Q_dir,BSS_E_dir)
    !
@@ -131,7 +131,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
      i_sp_pol_c = BS_T_grp(i_T_g)%table(i_T,4)
      i_sp_pol_v = BS_T_grp(i_T_g)%table(i_T,5)
      !
-     if(iq/=1 .or. i_G_shift/=1) then
+     if(iq/=1.or.i_G_shift/=1) then
        !
        ok_bz=qindx_X(iq,ik_bz,1)
        iGo  =qindx_X(iq,ik_bz,2)
@@ -154,7 +154,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
      ! Absorption, KERR, PL, Dichroism
      if(l_BS_abs.or.l_BS_kerr.or.l_BS_photolum.or.l_BS_dichroism) then
        !
-       if(iq==1 .and. i_G_shift==1) then
+       if(iq==1.and.i_G_shift==1) then
          DIP_expanded=-cI*DIP_rotated(ic,iv,ik_bz,i_sp_pol_c,DIP_kind,Xk)
          do i_dip=1,BS_dip_size
            DIP_projected(i_dip)=dot_product(BS_field_direction(:,i_dip),DIP_expanded)
@@ -174,7 +174,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
      !
      ! Dichroism
      if (l_BS_dichroism) then
-       if(iq==1 .and. i_G_shift==1) then  
+       if(iq==1.and.i_G_shift==1) then  
          DIP_expanded=DIP_rotated(ic,iv,ik_bz,i_sp_pol_c,"DIP_L",Xk)
          do i_dip=1,BS_dip_size
            DIP_projected(i_dip)=dot_product(BS_field_direction(:,i_dip),DIP_expanded)
@@ -198,7 +198,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
        ! However to follow the same structure in K_IP.F fow WFs load / DIPOLE_IO here I keep it
        ! The implementation with scatter can be used to double check the spin dipoles
        !
-       if(iq==1 .and. i_G_shift==1) then
+       if(iq==1.and.i_G_shift==1) then
          DIP_expanded   = DIP_rotated(ic,iv,ik_bz,i_sp_pol_c,"DIP_S",Xk)
        else
          call scatter_Bamp_spin(BSE_scatt,'x')
