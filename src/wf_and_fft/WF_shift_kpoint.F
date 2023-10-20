@@ -7,29 +7,32 @@
 !
 #include<dev_defs.h>
 !
-subroutine DEV_SUB_ALT(WF_shift_kpoint)(b_to_shift,ikbz,wf_shift,Xk,WF_k_in,WF_k_out)
+subroutine DEV_SUB_ALT(WF_shift_kpoint)(b_to_shift,ikbz,wf_shift,Xk,WF_k_out)
  !
  use pars,          ONLY:SP,cZERO
  use electrons,     ONLY:n_spinor,n_sp_pol
  use R_lattice,     ONLY:k_map,bz_samp
  use R_lattice,     ONLY:DEV_VAR(G_m_G)
- use wave_func,     ONLY:wf_ng_1st_BZ,wf_ng_overlaps
+ use wave_func,     ONLY:wf_ng_1st_BZ,wf_ng_overlaps,WF
  use deviceXlib_m,  ONLY:dev_memcpy
  !
  implicit none
  !
  integer,       intent(in) :: wf_shift(3),ikbz,b_to_shift(2)
  type(bz_samp), intent(in) :: Xk
- complex(SP), intent(in)  DEV_ATTR :: WF_k_in (wf_ng_1st_BZ,  n_spinor,b_to_shift(1):b_to_shift(2),n_sp_pol)
  complex(SP), intent(out) DEV_ATTR :: WF_k_out(wf_ng_overlaps,n_spinor,b_to_shift(1):b_to_shift(2),n_sp_pol)
  !
  ! Work space
  !
+ complex(SP), pointer     DEV_ATTR :: WF_k_in(:,:,:)
+ !
  integer :: id,ik,is
  complex(SP) DEV_ATTR :: WF_tmp(wf_ng_overlaps,n_spinor,b_to_shift(1):b_to_shift(2),n_sp_pol)
- integer :: ig,igp,i_b_ref
+ integer :: ig,igp,i_b_ref,i_wf
  integer :: g0_idx(3,2),g0_idx_val
  integer :: i_spinor,i_b,i_sp_pol
+ !
+ WF_k_in => DEV_VAR(WF%c)
  !
  ik = Xk%sstar(ikbz,1)
  is = Xk%sstar(ikbz,2)
@@ -37,7 +40,12 @@ subroutine DEV_SUB_ALT(WF_shift_kpoint)(b_to_shift,ikbz,wf_shift,Xk,WF_k_in,WF_k
  i_b_ref=b_to_shift(1)
  !
  WF_tmp=cZERO
- call dev_memcpy(WF_tmp,WF_k_in, range1=(/1,wf_ng_1st_BZ/))
+ do i_sp_pol=1,n_sp_pol
+   do i_b=b_to_shift(1),b_to_shift(2)
+     i_wf=WF%index(i_b,ik,i_sp_pol)
+     call dev_memcpy(WF_tmp(:,:,i_b,i_sp_pol),WF_k_in(:,:,i_wf), range1=(/1,wf_ng_1st_BZ/))
+   enddo
+ enddo
  !
  do id=1,3
    !

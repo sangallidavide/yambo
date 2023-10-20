@@ -1,19 +1,19 @@
 !
 ! License-Identifier: GPL
 !
-! Copyright (C) 2015 The Yambo Team
+! Copyright (C) 2023 The Yambo Team
 !
-! Authors (see AUTHORS file for details): MG CA DS AF
+! Authors (see AUTHORS file for details): DS AF
 !
 #include<dev_defs.h>                                                    
 !
-subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
+subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF_i,WF_o)
  !
  use pars,          ONLY:SP,cZERO
  use electrons,     ONLY:n_sp_pol,n_spinor
  use wave_func,     ONLY:WAVEs
- use wave_func,     ONLY:WF,wf_ng,wf_ng_1st_BZ
- use R_lattice,     ONLY:bz_samp,DEV_VAR(g_rot)
+ use FFT_m,         ONLY:DEV_VAR(fft_rot_r),fft_size
+ use R_lattice,     ONLY:bz_samp
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),i_time_rev,nsym
  use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
  !
@@ -26,7 +26,7 @@ subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
  complex(SP), pointer     DEV_ATTR :: WF_pi(:,:,:)
  complex(SP), pointer     DEV_ATTR :: WF_po(:,:,:)
  integer :: i_sp_pol,ib,i_wf
- integer :: i_g,i_spinor
+ integer :: ifft,i_spinor
  !
  WF_pi => DEV_VAR(WF_i%c)
  WF_po => DEV_VAR(WF_o%c)
@@ -55,22 +55,27 @@ subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
          !
 #ifdef _CUDA
          !$cuf kernel do(1) <<<*,*>>>
+#else
+         !$omp parallel do default(shared), private(ifft)
 #endif
-         do i_g=1,wf_ng
-           WF_po(DEV_VAR(g_rot)(i_g,isymm),1,i_wf)=WF_pi(i_g,1,i_wf)
+         do ifft = 1, fft_size
+           WF_po(ifft,1,i_wf)=WF_pi(DEV_VAR(fft_rot_r)(ifft,isymm),1,i_wf)
          enddo
          !
        else
          !
 #ifdef _CUDA
          !$cuf kernel do(1) <<<*,*>>>
+#else
+         !$omp parallel do default(shared), private(ifft)
 #endif
-         do i_g=1,wf_ng
-           WF_po(DEV_VAR(g_rot)(i_g,isymm),1,i_wf)=DEV_VAR(spin_sop)(1,1,isymm)*WF_pi(i_g,1,i_wf)+ &
-&                                                         DEV_VAR(spin_sop)(1,2,isymm)*WF_pi(i_g,2,i_wf)
-           WF_po(DEV_VAR(g_rot)(i_g,isymm),2,i_wf)=DEV_VAR(spin_sop)(2,1,isymm)*WF_pi(i_g,1,i_wf)+ &
-&                                                         DEV_VAR(spin_sop)(2,2,isymm)*WF_pi(i_g,2,i_wf)
+         do ifft = 1, fft_size
+           WF_po(ifft,1,i_wf)=DEV_VAR(spin_sop)(1,1,isymm)*WF_pi(DEV_VAR(fft_rot_r)(ifft,isymm),1,i_wf)+ &
+                   DEV_VAR(spin_sop)(1,2,isymm)*WF_pi(DEV_VAR(fft_rot_r)(ifft,isymm),2,i_wf)
+           WF_po(ifft,2,i_wf)=DEV_VAR(spin_sop)(2,1,isymm)*WF_pi(DEV_VAR(fft_rot_r)(ifft,isymm),1,i_wf)+ &
+                   DEV_VAR(spin_sop)(2,2,isymm)*WF_pi(DEV_VAR(fft_rot_r)(ifft,isymm),2,i_wf)
          enddo
+         !
        endif
        !
      enddo
@@ -78,8 +83,8 @@ subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
    !
    ! take care of time reversal if needed
    !
-   if(isymm>nsym/(1+i_time_rev)) call dev_conjg(WF_po)
+   if(isymm>nsym/(i_time_rev+1)) call dev_conjg(WF_po)
    !
  endif
  !
-end subroutine WF_symm_kpoint
+end subroutine WF_symm_kpoint_r

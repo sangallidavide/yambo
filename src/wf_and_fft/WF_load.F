@@ -21,7 +21,7 @@
 !!
 !! @param[out]      WF                  Wave-function object
 !
-subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,&
+subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,&
 &                  space,title,impose_free_and_alloc,force_WFo,keep_states_to_load,quiet)
  !
  ! Load and (eventually) FFTs the wavefunctions
@@ -55,7 +55,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
  integer               :: iG_in,iGo_max_in,bands_to_load(2),kpts_to_load(2)
  type(WAVEs), target   :: WF
- integer,     optional :: sp_pol_to_load(2)
+ integer,     optional :: sp_pol_to_load(2),isymm
  character(*),optional :: space
  character(*),optional :: title
  logical,     optional :: impose_free_and_alloc
@@ -456,16 +456,24 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
      enddo      ! i_b_grp
    enddo        ! i_k
  enddo          ! i_sp_pol
-
- if (have_cuda) then
-   !
-   call msg('rns', '[WF] Copying WF data from GPU device')
-   if(WF%space=='R') then
-     WF%c = WF%c_d
-   else
-     WF%c_d = WF%c
+ !
+ if (have_cuda .and. WF%space/='R') then
+   call msg('rns', '[WF] Copying WF data to GPU device')
+   WF%c_d = WF%c
+ endif
+ !
+ if (present(isymm)) then
+   if (WF%k(1)/=WF%k(2)) call error(" Loading of rotated WFs allowed only in single k-point mode")
+   if (isymm>1) then
+     call msg('rns', '[WF] Rotating the WFs')
+     if (WF%space=='R') call WF_symm_kpoint_r(WF%b,WF%k(1),isymm,WF,WF)
+     if (WF%space=='G') call WF_symm_kpoint  (WF%b,WF%k(1),isymm,WF,WF)
    endif
-   !
+ endif
+ !
+ if (have_cuda .and. WF%space=='R') then
+   call msg('rns', '[WF] Copying WF data from GPU device')
+   WF%c = WF%c_d
  endif
  !
  call timing('WF_load_FFT',"stop")
