@@ -417,7 +417,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
        isc%os=(/QP_table(i_qp,2),QP_table(i_qp,3),1,spin(QP_table(i_qp,:))/)
        isc%qs=(/1,1,1/)
 
-       call DEV_SUB(scatter_Bamp)(isc)
+       call DEV_SUB(scatter_Bamp)(isc,WF,WF)
        if (have_cuda) call dev_memcpy(isc%rhotw,isc%rhotw_d)
        !
        if (l_GW_terminator) then
@@ -505,12 +505,12 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
        !
        isc%os(1)=ib
        !
-       call DEV_SUB(scatter_Bamp)(isc)
+       call DEV_SUB(scatter_Bamp)(isc,WF,WF)
        if (have_cuda) call dev_memcpy(isc%rhotw, isc%rhotw_d)
        iscp%os=isc%os
        !
        if (any(isc%is/=iscp%is)) then
-         call DEV_SUB(scatter_Bamp)(iscp)
+         call DEV_SUB(scatter_Bamp)(iscp,WF,WF)
          if (have_cuda) call dev_memcpy(iscp%rhotw, iscp%rhotw_d)
        else
          iscp%rhotw=isc%rhotw

@@ -133,7 +133,7 @@ subroutine K_dipoles(iq,Ken,Xk,Dip)
            DIP_projected(i_dip)=dot_product(BS_field_direction(:,i_dip),DIP_expanded)
          enddo
        else
-         if(trim(global_gauge)=="length")   call scatter_Bamp(BSE_scatt)
+         if(trim(global_gauge)=="length")   call scatter_Bamp(BSE_scatt,WF,WF)
          if(trim(global_gauge)=="velocity") call scatter_Bamp_using_the_gradient(BSE_scatt,"o")
          DIP_projected(1)=-conjg(BSE_scatt%rhotw(1))
        endif

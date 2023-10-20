@@ -25,6 +25,7 @@ subroutine scatter_Bamp_using_the_gradient(isc,which)
  use pars,           ONLY:SP
  use electrons,      ONLY:n_spinor
  use collision_el,   ONLY:elemental_collision
+ use wave_func,      ONLY:WF
  use interfaces,     ONLY:WF_apply_symm
  use D_lattice,      ONLY:idt_index
  use R_lattice,      ONLY:g_rot
@@ -42,10 +43,10 @@ subroutine scatter_Bamp_using_the_gradient(isc,which)
  integer     :: qs,iGo,ig, ir,ic,ig_
  !
  ! |ib ik_is i_sp>
- call WF_apply_symm(isc%is,isc%WF_symm_i)
+ call WF_apply_symm(isc%is,WF,isc%WF_symm_i)
  !
  ! | ob ok_os o_sp>   
- call WF_apply_symm(isc%os,isc%WF_symm_o)
+ call WF_apply_symm(isc%os,WF,isc%WF_symm_o)
  !
  ! \grad <ib ik_is i_sp|
  if (which=="i") call eval_Gradient(isc%WF_symm_i,WF_der,n_spinor,"wave")

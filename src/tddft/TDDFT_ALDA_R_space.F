@@ -25,6 +25,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,tddft_wf,mode)
  use FFT_m,          ONLY:fft_size
  use xc_functionals, ONLY:F_xc_mat
  use BS,             ONLY:l_BS_magnons
+ use wave_func,      ONLY:WF
  use wrapper_omp,    ONLY:V_dot_V_omp
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
  use timing_m,       ONLY:timing

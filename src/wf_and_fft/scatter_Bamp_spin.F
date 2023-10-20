@@ -25,6 +25,7 @@ subroutine scatter_Bamp_spin(isc,which)
  use interfaces,     ONLY:WF_apply_symm
  use D_lattice,      ONLY:idt_index
  use R_lattice,      ONLY:g_rot
+ use wave_func,      ONLY:WF
  use FFT_m,          ONLY:fft_size,fft_dim,fftw_plan,fft_g_table
  !
  implicit none
@@ -39,10 +40,10 @@ subroutine scatter_Bamp_spin(isc,which)
  integer     :: qs,iGo,ig, ir,ic,ig_
  !
  ! |ib ik_is i_sp>
- call WF_apply_symm(isc%is,isc%WF_symm_i)
+ call WF_apply_symm(isc%is,WF,isc%WF_symm_i)
  !
  ! | ob ok_os o_sp>   
- call WF_apply_symm(isc%os,isc%WF_symm_o)
+ call WF_apply_symm(isc%os,WF,isc%WF_symm_o)
  !
  if (n_sp_pol==2) then
    if (which=="x") WF_spin=isc%WF_symm_i

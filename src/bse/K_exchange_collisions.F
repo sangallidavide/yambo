@@ -14,6 +14,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
  use R_lattice,      ONLY:g_rot,g_rot_d,qindx_X,bz_samp
  use stderr,         ONLY:STRING_match
  use electrons,      ONLY:n_sp_pol
+ use wave_func,      ONLY:WF
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
  use collision_el,   ONLY:elemental_collision_free,elemental_collision_alloc
@@ -111,7 +112,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
      !
      if  (i_s==1.or.i_T_grp_last_with_identity_sym<0) then
        !
-       call DEV_SUB(scatter_Bamp)(K_EXCH_collision)
+       call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF,WF)
        !
 #ifdef _CUDA
        call dev_memcpy(BS_T_grp(i_T_grp)%O_x_d(:,i_T_el),K_EXCH_collision%rhotw_d,range1=(/2,BS_n_g_exch/) )
@@ -149,7 +150,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
      !
    else
      !
-     call DEV_SUB(scatter_Bamp)(K_EXCH_collision)
+     call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF,WF)
      !
      BS_T_grp(i_T_grp)%DEV_VAR(O_x)(1,i_T_el)=cZERO
      !

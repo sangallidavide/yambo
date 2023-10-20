@@ -375,7 +375,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
      isc_H%is  =(/i_n,i_k,i_k_s,i_sp/)
      isc_H%os  =(/i_m,i_k,i_k_s,i_sp/)
      !
-     call scatter_Bamp(isc_H)
+     call scatter_Bamp(isc_H,WF,WF)
      !
      do i_q_fake=1,q%nbz
        !
@@ -396,7 +396,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
            iscp_H%os =(/i_mp,i_p,1,i_sp/)
            !
            eval_coll=.not.all((/i_n==i_np,i_m==i_mp,i_k==i_p/))
-           if (     eval_coll) call scatter_Bamp(iscp_H)
+           if (     eval_coll) call scatter_Bamp(iscp_H,WF,WF)
            if (.not.eval_coll) iscp_H%rhotw=isc_H%rhotw
            !
            rhotw_tmp=iscp_H%rhotw
@@ -564,7 +564,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
          !
          iscp_XC%os(1)=i_mp
          !
-         call scatter_Bamp(iscp_XC)
+         call scatter_Bamp(iscp_XC,WF,WF)
          !
          do i_np=COLL_bands(1),COLL_bands(2)
            !
@@ -575,7 +575,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
            isc_XC%os(1)=i_np
            !
            if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os)) then
-             call scatter_Bamp(isc_XC)
+             call scatter_Bamp(isc_XC,WF,WF)
            else
              isc_XC%rhotw=iscp_XC%rhotw
            endif

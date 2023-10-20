@@ -24,7 +24,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  !
  ! Work Space
  !
- integer :: ik_bz,i_sym,ik,ik_m_q,iv,ic,Nv(n_sp_pol),Nc(n_sp_pol),i_sp,i_pole,ic_min,Nc_XTerm(n_sp_pol),N_tot
+ integer :: ik_bz,ik_m_q_bz,ik,ik_m_q,iv,ic,Nv(n_sp_pol),Nc(n_sp_pol),i_sp,i_pole,ic_min,Nc_XTerm(n_sp_pol),N_tot
  logical :: MPI_logicals_on,l_XTerm_vv
  real(SP):: E_eh,E_in,f_eh,local_tresh
  real(SP), allocatable :: poles(:),Ein_poles(:)
@@ -79,9 +79,10 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
            if (.not.PAR_IND_CON_BANDS_X(X%whoami)%element_1D(ic)) cycle 
          endif
          !
-         i_sym  =qindx_X(iabs(iq),ik_bz,1)
+         ik_m_q_bz =qindx_X(iabs(iq),ik_bz,1)
+         !
          ik     =Xk%sstar(ik_bz,1) 
-         ik_m_q =Xk%sstar(i_sym,1)
+         ik_m_q =Xk%sstar(ik_m_q_bz,1)
          !
          ! terminator handling
          if (ic>=X%ib(1).and.ic<=Xen%nbm(i_sp).and.l_X_terminator) then

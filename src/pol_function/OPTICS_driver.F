@@ -27,7 +27,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
  use TDDFT,         ONLY:FXC_desc,FXC_type,&
 &                        F_xc_gspace,FXC_K_diagonal
- use interfaces,    ONLY:WF_load,WF_free,WF_load
+ use interfaces,    ONLY:WF_load,WF_free
  use matrix,        ONLY:MATRIX_reset
  use IO_int,        ONLY:IO_and_Messaging_switch
  !
@@ -376,7 +376,6 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  !
  call MATRIX_reset(X_par_lower_triangle)
  deallocate(X_par)
- call WF_free(WF)
  call PP_wait()
  if (allocated(F_xc_gspace)) then
    YAMBO_FREE(F_xc_gspace)

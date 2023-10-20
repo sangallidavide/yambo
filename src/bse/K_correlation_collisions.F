@@ -26,6 +26,7 @@ subroutine K_correlation_collisions(iq,i_block,qindx_ID_frag,Xk,q)
  use pars,          ONLY:SP
  use D_lattice,     ONLY:nsym
  use R_lattice,     ONLY:qindx_X,bz_samp
+ use wave_func,     ONLY:WF
  use BS,            ONLY:O_ng,BS_bands,BS_res_K_corr,BS_blk,&
 &                        BS_oscillators_alloc,K_CORR_collision,BS_T_grp,&
 &                        BS_K_dim,l_BS_ares_from_res
@@ -444,7 +445,7 @@ subroutine K_correlation_collisions(iq,i_block,qindx_ID_frag,Xk,q)
      !
      iB_oscillator = BS_blk(iB)%O_table(1,i_s_collision,ikit,ikot,ibi,ibo,i_sp_pol_i)
      !
-     call DEV_SUB(scatter_Bamp)(isc)
+     call DEV_SUB(scatter_Bamp)(isc,WF,WF)
      call dev_memcpy( DEV_VAR(BS_blk(iB)%O_c)(:,iB_oscillator), DEV_VAR(isc%rhotw) )
      !
      O_todo_table(i_s_collision,ikit,ikot,ibi,ibo,i_sp_pol_i) = .false.

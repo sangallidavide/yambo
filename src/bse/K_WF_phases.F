@@ -28,6 +28,7 @@ subroutine K_WF_phases(Xk)
  use FFT_m,         ONLY:fft_size
  use D_lattice,     ONLY:nsym
  use R_lattice,     ONLY:bz_samp
+ use wave_func,     ONLY:WF
  use BS,            ONLY:WF_phase,BS_res_K_corr,BS_bands
  use com,           ONLY:msg
  use parallel_m,    ONLY:PAR_IND_WF_linear
@@ -87,8 +88,8 @@ subroutine K_WF_phases(Xk)
            !
            if (WF_phase(i_k,i_s,i_b,i_sp_pol)/=cZERO) cycle
            !
-           call WF_apply_symm((/i_b,i_k,i_s      ,i_sp_pol/),WF_symm1)
-           call WF_apply_symm((/i_b,i_k,i_s_star ,i_sp_pol/),WF_symm2)
+           call WF_apply_symm((/i_b,i_k,i_s      ,i_sp_pol/),WF,WF_symm1)
+           call WF_apply_symm((/i_b,i_k,i_s_star ,i_sp_pol/),WF,WF_symm2)
            !
            wf_cmp=dot_product((/WF_symm1(:,:)/),(/WF_symm2(:,:)/))
            !

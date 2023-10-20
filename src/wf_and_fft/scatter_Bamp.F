@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AMDSAF
 !
-subroutine DEV_SUB(scatter_Bamp)(isc)
+subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok)
  !
  ! rhotw(G)=<ib ik_is i_sp| e^[I(RsG-G0).r] | ob ok_os o_sp>   
  !
@@ -24,6 +24,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  use collision_el,   ONLY:elemental_collision
  use D_lattice,      ONLY:idt_index
  use R_lattice,      ONLY:DEV_VAR(g_rot)
+ use wave_func,      ONLY:WAVEs
  use pseudo,         ONLY:pp_is_uspp
  use FFT_m,          ONLY:fftw_plan,cufft_plan,fft_size,fft_dim,DEV_VAR(fft_g_table)
  use interfaces,     ONLY:WF_apply_symm
@@ -31,7 +32,9 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  implicit none
  !
  type(elemental_collision), target::isc
- 
+ !
+ type (WAVEs), target, intent(in) :: WF_ik,WF_ok
+ !
  integer :: qs,iGo
  integer :: ig,ir,isc_ngrho,ib,ibp
  complex(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
@@ -53,10 +56,10 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
 #endif
  !
  ! |ib ik_is i_sp>
- call WF_apply_symm(isc%is,WF_symm_i_p)
+ call WF_apply_symm(isc%is,WF_ik,WF_symm_i_p)
  !
  ! | ob ok_os o_sp>   
- call WF_apply_symm(isc%os,WF_symm_o_p)
+ call WF_apply_symm(isc%os,WF_ok,WF_symm_o_p)
  !
  ! \tilde{\rho} in Real Space
  !

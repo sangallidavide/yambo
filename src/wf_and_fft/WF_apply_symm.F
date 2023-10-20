@@ -5,12 +5,12 @@
 !
 ! Authors (see AUTHORS file for details): DS AF
 !
-subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
+subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  !
  ! INCLUDED in: WF_apply_symm_incl.F 
  !
  use pars,          ONLY:SP
- use wave_func,     ONLY:WF
+ use wave_func,     ONLY:WAVEs
  use FFT_m,         ONLY:DEV_VAR(fft_rot_r),fft_size
  use stderr,        ONLY:intc
  use parallel_m,    ONLY:myid
@@ -20,13 +20,14 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  !
  implicit none
  !
- integer,     intent(in)  :: isc(4)
+ integer,              intent(in)  :: isc(4)
+ type (WAVEs), target, intent(in)  :: WF
  complex(SP), intent(out) DEV_ATTR :: WF_symm(fft_size,n_spinor)
  !
  complex(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
  integer  :: i_wf
  integer  :: ifft,isymm
-
+ !
  i_wf=WF%index(isc(1),isc(2),isc(4))
  !
 #if defined _MPI

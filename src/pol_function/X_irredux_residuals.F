@@ -7,7 +7,7 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
+subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
  !
  ! This subroutine must be kept thread-safe, since it is used
  ! inside an external omp loop.
@@ -25,6 +25,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
  use R_lattice,     ONLY:qindx_X,bz_samp,q0_def_norm
  use vec_operate,   ONLY:v_norm
  use collision_el,  ONLY:elemental_collision
+ use wave_func,     ONLY:WAVEs
  use deviceXlib_m
  !
 #include<dev_defs.h>
@@ -38,6 +39,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
  type(bz_samp),intent(in) :: Xk
  type(X_t),    intent(in) :: X
  type(DIPOLE_t),intent(in):: Dip
+ type (WAVEs), target, intent(in) :: WF_k,WF_kmq
  integer,      intent(in) :: i_cg,iq
  complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
  !
@@ -127,7 +129,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      if (.not. X%ng==1) then
        if ( any((/isave(1)/=iv,isave(2)/=ic,isave(3)/=ik,isave(4)/=i_spin/)) ) then
          !
-         call DEV_SUB(scatter_Bamp)(Xo_scatt)
+         call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq)
          !
          ! rhotw_save=Xo_scatt%rhotw
          call dev_memcpy(DEV_VAR(rhotw_save),DEV_VAR(Xo_scatt%rhotw))
@@ -178,7 +180,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      Xo_scatt%os=(/iv,ikp,isp,i_spin/)
      Xo_scatt%qs=(/qindx_X(iq,ikbz,2),iq,1/)
      !
-     call DEV_SUB(scatter_Bamp)(Xo_scatt)
+     call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq)
      !
    endif
    !
@@ -218,7 +220,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      if (X%ng==1) then
        DEV_VAR(Xo_scatt%rhotw)(1)=cONE 
      else
-       call DEV_SUB(scatter_Bamp)(Xo_scatt)
+       call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq)
      endif
      !
      ! symm

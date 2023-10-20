@@ -313,20 +313,24 @@ module interfaces
  !
  interface WF_apply_symm
    !
-   subroutine WF_apply_symm_cpu(isc,WF_symm)
+   subroutine WF_apply_symm_cpu(isc,WF,WF_symm)
      use pars,          ONLY:SP
      use FFT_m,         ONLY:fft_size
      use electrons,     ONLY:n_spinor
+     use wave_func,     ONLY:WAVEs
      integer,     intent(in)  :: isc(4)
+     type(WAVEs), target, intent(in) :: WF
      complex(SP), intent(out) :: WF_symm(fft_size,n_spinor)
    end subroutine WF_apply_symm_cpu
    !
 #ifdef _CUDA
-   subroutine WF_apply_symm_gpu(isc,WF_symm_d)
+   subroutine WF_apply_symm_gpu(isc,WF,WF_symm_d)
      use pars,          ONLY:SP
      use FFT_m,         ONLY:fft_size
      use electrons,     ONLY:n_spinor
+     use wave_func,     ONLY:WAVEs
      integer,     intent(in)  :: isc(4)
+     type(WAVEs), target, intent(in) :: WF
      complex(SP), intent(out) DEV_ATTR :: WF_symm_d(fft_size,n_spinor)
    end subroutine WF_apply_symm_gpu
 #endif
