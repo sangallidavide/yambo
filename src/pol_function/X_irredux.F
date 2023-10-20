@@ -277,16 +277,16 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      if ( shifted_grids ) then
        ik_bz=X_poles_tab(i_cg,1)
        if ( .not.skip_WF_load .and. ik_bz/=ik_last ) then
+         ik_last=ik_bz
+         ikmq_bz =qindx_X(iq,ik_bz,1)
          call WF_free(WF_k)
          call WF_free(WF_kmq)
          ik   = Xk%sstar(ik_bz,1)
-         is   = 1!Xk%sstar(ik_bz,2)
+         is   = Xk%sstar(ik_bz,2)
          call WF_load(WF_k  ,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ik,  ik  /),isymm=is,title='-X')
-         ikmq_bz =qindx_X(iq,ik_bz,1)
          ikmq = Xk%sstar(ikmq_bz,1)
-         is   = 1!Xk%sstar(ikmq_bz,2)
+         is   = Xk%sstar(ikmq_bz,2)
          call WF_load(WF_kmq,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ikmq,ikmq/),isymm=is,title='-X')
-         ik_last=ik_bz
        endif
        !
        call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq)
@@ -336,11 +336,11 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
        call WF_free(WF_k)
        call WF_free(WF_kmq)
        ik   = Xk%sstar(ik_bz,1)
-       is   = Xk%sstar(ik_bz,2)
+       is   = 1!Xk%sstar(ik_bz,2)
        call WF_load(WF_k  ,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ik,  ik  /),isymm=is,title='-X',keep_states_to_load=.TRUE.)       
        ikmq_bz =qindx_X(iq,ik_bz,1)
        ikmq = Xk%sstar(ikmq_bz,1)
-       is   = Xk%sstar(ikmq_bz,2)
+       is   = 1!Xk%sstar(ikmq_bz,2)
        call WF_load(WF_kmq,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ikmq,ikmq/),isymm=is,title='-X',keep_states_to_load=.TRUE.)
        ik_last=ik_bz
      endif

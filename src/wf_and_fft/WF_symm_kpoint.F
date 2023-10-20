@@ -21,7 +21,7 @@ subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
  !
  integer,       intent(in)  :: ik,isymm,b_to_load(2)
  type (WAVEs), target, intent(in)  :: WF_i
- type (WAVEs), target, intent(in)  :: WF_o
+ type (WAVEs), target, intent(out) :: WF_o
  !
  complex(SP), pointer     DEV_ATTR :: WF_pi(:,:,:)
  complex(SP), pointer     DEV_ATTR :: WF_po(:,:,:)

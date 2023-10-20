@@ -40,7 +40,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  WF_p => DEV_VAR(WF%c)
  isymm = isc(3)
  !
- if(isymm==idt_index) then ! .or. shifted_grids) then
+ if(isymm==idt_index .or. shifted_grids) then
    !
    call dev_memcpy(WF_symm,DEV_VAR(WF%c)(:,:,i_wf))
    return
