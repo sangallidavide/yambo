@@ -7,7 +7,7 @@
 !
 #include<dev_defs.h>                                                    
 !
-subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
+subroutine WF_symm_kpoint_g(b_to_load,ik,isymm,WF_i,WF_o)
  !
  use pars,          ONLY:SP,cZERO
  use electrons,     ONLY:n_sp_pol,n_spinor
@@ -82,4 +82,4 @@ subroutine WF_symm_kpoint(b_to_load,ik,isymm,WF_i,WF_o)
    !
  endif
  !
-end subroutine WF_symm_kpoint
+end subroutine WF_symm_kpoint_g
