@@ -7,7 +7,7 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq,shifted_grids)
+subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
  !
  ! This subroutine must be kept thread-safe, since it is used
  ! inside an external omp loop.
@@ -41,7 +41,6 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq,
  type(DIPOLE_t),intent(in):: Dip
  type (WAVEs), target, intent(in) :: WF_k,WF_kmq
  integer,      intent(in) :: i_cg,iq
- logical,      intent(in) :: shifted_grids
  complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
  !
  ! Work sapce
@@ -93,11 +92,6 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq,
    !
    ikp= Xk%sstar(ikpbz,1)
    isp= Xk%sstar(ikpbz,2)
-   !
-   if (shifted_grids) then
-     is=1
-     isp=1
-   endif
    !
    l_X_term_vv = (l_X_terminator.and.ic>=X%ib(1).and.ic<=Xen%nbm(i_spin))
    !

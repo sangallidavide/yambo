@@ -15,6 +15,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  use stderr,        ONLY:intc
  use parallel_m,    ONLY:myid
  use electrons,     ONLY:n_spinor
+ use X_m,           ONLY:shifted_grids
  use D_lattice,     ONLY:nsym,DEV_VAR(spin_sop),i_time_rev,idt_index
  use deviceXlib_m
  !
@@ -39,7 +40,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  WF_p => DEV_VAR(WF%c)
  isymm = isc(3)
  !
- if(isc(3)==idt_index) then
+ if(isymm==idt_index) then ! .or. shifted_grids) then
    !
    call dev_memcpy(WF_symm,DEV_VAR(WF%c)(:,:,i_wf))
    return

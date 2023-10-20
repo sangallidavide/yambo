@@ -45,7 +45,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc
  use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,X_lower_triangle_matrix_in_use,&
-&                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
+&                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,shifted_grids,&
 &                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states
  use X_m,           ONLY:rhotw_save_d
  use cuda_m,        ONLY:have_cuda
@@ -77,7 +77,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
 &                            is,ik_last,ik,ik_bz,ikmq,ikmq_bz
- logical                  :: force_bare_X_G,Drude_pole,skip_WF_load,shifted_grids
+ logical                  :: force_bare_X_G,Drude_pole,skip_WF_load
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
  complex(SP),allocatable  :: Xo_res(:,:)
@@ -280,17 +280,18 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
          call WF_free(WF_k)
          call WF_free(WF_kmq)
          ik   = Xk%sstar(ik_bz,1)
-         is   = Xk%sstar(ik_bz,2)
+         is   = 1!Xk%sstar(ik_bz,2)
          call WF_load(WF_k  ,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ik,  ik  /),isymm=is,title='-X')
          ikmq_bz =qindx_X(iq,ik_bz,1)
          ikmq = Xk%sstar(ikmq_bz,1)
-         is   = Xk%sstar(ikmq_bz,2)
+         is   = 1!Xk%sstar(ikmq_bz,2)
          call WF_load(WF_kmq,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ikmq,ikmq/),isymm=is,title='-X')
+         ik_last=ik_bz
        endif
        !
-       call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq,shifted_grids)
+       call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq)
      else
-       call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_k,shifted_grids)
+       call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_k)
      endif
      !
      !
@@ -346,9 +347,9 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      !
      ! 1) First compute the residuals
      !================================
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq,shifted_grids)
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq)
    else
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_k,shifted_grids)
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_k)
    endif
    !
    ! 2) Then the frequency dependent term

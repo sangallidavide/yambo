@@ -39,6 +39,8 @@ module X_m
  !
  logical                  :: skip_cond_sum_rule
  !
+ logical                  :: shifted_grids
+ !
  ! Large Q-vector support 
  !
  real(SP)                 :: q_plus_G_direction(3)
