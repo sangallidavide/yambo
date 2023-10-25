@@ -27,7 +27,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  use X_m,           ONLY:X_t
  use QP_m,          ONLY:QP_ng_Vxc
  use BS,            ONLY:BS_bands,BS_res_K_corr,BS_W,BS_W_is_diagonal,&
-&                        BS_res_K_exchange,BS_Block_size,&
+&                        BS_res_K_exchange,BS_Block_size,l_BSE_kernel_full,&
 &                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
 &                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
@@ -445,7 +445,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        H_pos(2) = sum(BS_T_grp(I_Tgrp_p_st:I_Tgrp_p-1)%size)+i_Tp+& 
        &              (BS_T_grp(I_Tgrp_p)%i_res_ares-1)*BS_K_dim(1)
        !
-       if (H_pos(1)>H_pos(2)) cycle 
+       if (H_pos(1)>H_pos(2) .and. .not. l_BSE_kernel_full) cycle
        !
        i_k_bz  = BS_T_grp(i_Tgrp_k)%table(i_Tk,1) 
        i_p_bz  = BS_T_grp(i_Tgrp_p)%table(i_Tp,1) 
@@ -509,7 +509,6 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        i_k_sp_pol_v=BS_T_grp(i_Tgrp_k)%table(i_Tk,5) 
        i_p_sp_pol_v=BS_T_grp(i_Tgrp_p)%table(i_Tp,5) 
        !
-       ! 
        ig_kmq    = qindx_X(iq,i_k_bz,2) 
        ig_pmq    = qindx_X(iq,i_p_bz,2) 
        !        

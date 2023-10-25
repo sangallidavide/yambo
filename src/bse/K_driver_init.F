@@ -176,6 +176,8 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  ! Slepc are not (yet) able to deal with a pseudo-hermitian algorithm 
  !
  call parser('ImposeSymm',l_flag)
+ ! The following could be avoided, by promoting l_slepc_special to a module logical,
+ ! and using it in K_multiply_by_V (and K_multiply_by_V_traspose)
  if (l_slepc_special.and..not.l_flag) l_BS_ares_from_res=.FALSE.
  BSS_slepc_double_grp=l_BS_ares_from_res.and.l_slepc_special
  !

@@ -20,7 +20,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
 &                        l_rt_carriers_in_use,l_rim_w
  use parallel_int,  ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_index,&
 &                        PARALLEL_WF_distribute
- use parallel_m,    ONLY:PAR_IND_Xk_ibz,PAR_IND_G_b,PAR_IND_QP,&
+ use parallel_m,    ONLY:PAR_IND_Xk_ibz,PAR_IND_G_b,PAR_IND_QP,PAR_COM_QP_A2A,&
 &                        PAR_IND_Q_ibz,PAR_IND_Q_ibz_ID,PAR_IND_QP_ID,&
 &                        PAR_Q_ibz_index,n_WF_bands_to_load,HEAD_QP_cpu
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
@@ -41,7 +41,6 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  use matrix_operate,ONLY:mat_transpose
  use timing_m,      ONLY:timing
 #if defined _SC
- use parallel_m,    ONLY:PAR_COM_QP_A2A
  use SC,            ONLY:it_now,it_to_start
 #endif
  use deviceXlib_m,  ONLY:dev_memcpy
@@ -64,14 +63,15 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  !
  ! Work Space
  !
- integer                  ::i_qp,i_w,iqbz,iqibz,ib,ig1,ig2,alloc_err,iqs,iscs_save(2,4),&
-&                           i_qp_to_start,iq_to_start,is,iq_mem,X_range(2),io_err,ID,IO_ACT,timing_steps
+ integer                  ::i_qp,i_w,iqbz,iqibz,ib,i_v,i_c,i_k,i_kmq,i_kmq_bz,i_kmq_s,   &
+&                           ig1,ig2,iqs,i_qp_to_start,iq_to_start,is,iq_mem,i_sp_pol,    &
+&                           alloc_err,iscs_save(2,4),X_range(2),io_err,ID,IO_ACT,timing_steps
  complex(SP), allocatable ::W_(:),dc(:),eet_factor(:,:)
  type(elemental_collision),target ::isc,iscp
  type(w_samp)     ::Sc_W(qp%n_states)
  character(schlen)::ch,SECTION_name,W_name
  !
- logical          ::X_is_TR_rotated,l_X_ALLOC_elemental,l_RIM_W_g
+ logical          ::X_is_TR_rotated,l_X_ALLOC_elemental,l_RIM_W_g,fill_QP_sc
  real(SP)         ::eet_cutoff0(n_sp_pol),E_kmq,f_kmq,eet_cutoff1(n_sp_pol),PPA_E
  complex(SP)      ::PPA_R,local_rhotw(X%ng),pre_factor
  complex(DP)      ::dp_dummy,ctmp
@@ -179,27 +179,25 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  ! WF distributed & load
  !=======================
  !
- if ( .not.l_sc_run ) call PARALLEL_global_indexes(E,k,q,"Self_Energy")
- !
- ! Redefine iq_to_start to be CPU-dependent
- !
- do iqbz=1,q%nbz 
-   if (PAR_IND_Q_ibz%element_1D(q%sstar(iqbz,1))) then
-     iq_to_start=iqbz
-     exit
-   endif
- enddo
- !
- if( .not.l_sc_run ) then
+ if ( .not.l_sc_run ) then
+   call PARALLEL_global_indexes(E,k,q,"Self_Energy")
    call PARALLEL_WF_distribute(K_index=PAR_IND_Xk_ibz,B_index=PAR_IND_G_b,CLEAN_UP=.TRUE.)
    call PARALLEL_WF_distribute(QP_index=PAR_IND_QP)
    call PARALLEL_WF_index( )
  endif
  !
- ch='-GW'
-#if defined _SC
- if(l_sc_run) ch='-SC'
-#endif
+ if(.not.l_sc_run) ch='-GW'
+ if(     l_sc_run) ch='-SC'
+ !
+ ! Redefine iq_to_start to be CPU-dependent
+ !
+ do iqbz=1,q%nbz 
+   iqibz=q%sstar(iqbz,1)
+   if (PAR_IND_Q_ibz%element_1D(iqibz)) then
+     iq_to_start=iqbz
+     exit
+   endif
+ enddo
  !
  ! wf and collisions dimension
  !-----------------------------
@@ -246,9 +244,9 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
 &             PAR_IND_Q_ibz%n_of_elements(PAR_IND_Q_ibz_ID+1)*&
 &             count( PAR_IND_G_b%element_1D(QP_n_G_bands(1):QP_n_G_bands(2)) )
  !
- ch=trim(SECTION_name)
+ if (.not.l_sc_run) ch=trim(SECTION_name)
 #if defined _SC
- if (l_sc_run) ch=trim(SECTION_name)//'@it'//trim(intc(it_now))
+ if (     l_sc_run) ch=trim(SECTION_name)//'@it'//trim(intc(it_now))
 #endif
  call live_timing(trim(ch),timing_steps)
  !
@@ -259,11 +257,12 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  !
  Q_loop: do iqbz=iq_to_start,q%nbz
    !
-   if (.not.PAR_IND_Q_ibz%element_1D(q%sstar(iqbz,1))) cycle
+   iqs  =q%sstar(iqbz,2)
+   iqibz=q%sstar(iqbz,1)
    !
-   isc%qs(2:)=(/q%sstar(iqbz,1),q%sstar(iqbz,2)/)
-   iqibz=isc%qs(2)
-   iqs  =isc%qs(3)
+   if (.not.PAR_IND_Q_ibz%element_1D(iqibz)) cycle
+   !
+   isc%qs(2:)=(/iqibz,iqs/)
    !
    if (iqibz/=isc%iqref) then
      !
@@ -390,6 +389,20 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
      !
      if (i_qp==QP_n_states) i_qp_to_start=1
      !
+     i_v=QP_table(i_qp,1)
+     i_c=QP_table(i_qp,2)
+     i_k=QP_table(i_qp,3)
+     i_sp_pol=spin(QP_table(i_qp,:))
+     !
+     ! Note DS 2022/07/29 : i_kmq_Go is not used.
+     ! This is related to issue with HSEX collisions in real-time.
+     ! See comment in COLLISIONS_HXC and in XCo_Hartree_Fock
+     !i_kmq_Go=qindx_S(i_k,iqbz,2)
+     i_kmq_bz=qindx_S(i_k,iqbz,1)
+     !
+     i_kmq  =k%sstar(i_kmq_bz,1)
+     i_kmq_s=k%sstar(i_kmq_bz,2)
+     !
 !#if defined _SC  
 !     !
 !     ! In OEP only vc matrix elements so ... no cc' no vv' 
@@ -398,11 +411,11 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
 !     if (l_sc_srpa.and.(QP_table(i_qp,1)>E%nbf.or.QP_table(i_qp,2)<=E%nbf)) cycle
 !#endif
      !
-     isc%is=(/QP_table(i_qp,1),QP_table(i_qp,3),1,spin(QP_table(i_qp,:))/)
-     isc%os(2:)=(/k%sstar(qindx_S(isc%is(2),iqbz,1),:),spin(QP_table(i_qp,:))/)
-     isc%qs(1)=qindx_S(QP_table(i_qp,3),iqbz,2)
+     isc%is=(/i_v,i_k,  1,      i_sp_pol/)
+     isc%os=(/0,  i_kmq,i_kmq_s,i_sp_pol/)
+     isc%qs(1)=i_kmq_s
      !
-     iscp%is=(/QP_table(i_qp,2),QP_table(i_qp,3),1,spin(QP_table(i_qp,:))/)
+     iscp%is=(/i_c,i_k,1,i_sp_pol/)
      iscp%qs=isc%qs
      !
      dc=cZERO
@@ -411,11 +424,14 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
      !
      if (((l_sc_srpa.or.l_sc_coh.or.l_cohsex).and..not.COHSEX_use_empties).or.l_GW_terminator) then
        !
+       ! Why this is inside a iq loop if nothing depends on q ??
+       !
        iscs_save(1,: )=isc%os
        iscs_save(2,:3)=isc%qs
-       isc%os=(/QP_table(i_qp,2),QP_table(i_qp,3),1,spin(QP_table(i_qp,:))/)
+       !
+       isc%os=(/i_c,i_k,1,i_sp_pol/)
        isc%qs=(/1,1,1/)
-
+       !
        call DEV_SUB(scatter_Bamp)(isc)
        if (have_cuda) call dev_memcpy(isc%rhotw,isc%rhotw_d)
        !
@@ -477,15 +493,10 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
          ! in cases where no band loops are done (like here). In _SC instead 
          ! it is needed for a different purpose. This is why I use PAR_COM_QP_A2A%CPU_id in this case.
          !
-#if defined _SC
-         if (l_sc_run) then
-           if (PAR_COM_QP_A2A%CPU_id==0) QP_Sc(i_qp,:)=QP_Sc(i_qp,:)+dc(1)
-         else
-#endif
-           if (HEAD_QP_cpu)              QP_Sc(i_qp,:)=QP_Sc(i_qp,:)+dc(1)
-#if defined _SC
-         endif
-#endif
+         if (     l_sc_run) fill_QP_Sc=PAR_COM_QP_A2A%CPU_id==0
+         if (.not.l_sc_run) fill_QP_Sc=HEAD_QP_cpu
+         !
+         if (fill_QP_Sc) QP_Sc(i_qp,:)=QP_Sc(i_qp,:)+dc(1)
          !
          dc=cZERO
          !
@@ -500,7 +511,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
        !
        if (.not.PAR_IND_G_b%element_1D(ib)) cycle
        !
-       if (q%sstar(iqbz,2)==1) call live_timing(steps=1)
+       if (iqs==1) call live_timing(steps=1)
        !
        isc%os(1)=ib
        !
@@ -533,8 +544,8 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
          ! DALV: here the grid is center in E0
          forall (i_w=1:QP_dSc_steps) W_(i_w)=Sc_W(i_qp)%p(i_w)+cI*QP_G_damp
          !
-         E_kmq=E%E(isc%os(1),isc%os(2),isc%os(4))
-         f_kmq=E%f(isc%os(1),isc%os(2),isc%os(4))
+         E_kmq=E%E(ib,i_kmq,i_sp_pol)
+         f_kmq=E%f(ib,i_kmq,i_sp_pol)
          !
 #ifdef _CUDA
          Xng = X%ng
@@ -655,7 +666,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
          !
          ! SEX
          !
-         if (l_sc_sex.or.l_cohsex) dc(1)=-4._SP/spin_occ*pi*pre_factor*e%f(isc%os(1),isc%os(2),isc%os(4))
+         if (l_sc_sex.or.l_cohsex) dc(1)=-4._SP/spin_occ*pi*pre_factor*e%f(ib,i_kmq,i_sp_pol)
          !
          ! COH (when no empties are used the COH part is indeed calculated above)
          !
@@ -686,7 +697,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
              PPA_R=-X_mat(ig1,ig2,X_range(1))/2._SP*PPA_E*isc%gamp(ig1,ig2)
              !
              dp_dummy=dp_dummy +cmplx(4._SP/spin_occ*pi*PPA_R*eet_factor(ig1,ig2)* &
-&                         QP_ppa_EET_terminator(W_(i_w),E,isc%is,PPA_E,ig1,ig2,isc%qs(2),&
+&                         QP_ppa_EET_terminator(W_(i_w),E,isc%is,PPA_E,ig1,ig2,iqs,&
 &                                               eet_cutoff0(1),eet_cutoff1(1)),kind=DP)
              !
            enddo
@@ -714,10 +725,8 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
      YAMBO_FREE(eet_factor)
    endif
  endif
- l_X_ALLOC_elemental=.true.
-#if defined _SC
- l_X_ALLOC_elemental=l_sc_run.and.io_RESPONSE
-#endif
+ if(.not.l_sc_run) l_X_ALLOC_elemental=.true.
+ if(     l_sc_run) l_X_ALLOC_elemental=io_RESPONSE
  if(l_X_ALLOC_elemental) call X_ALLOC_elemental('X')
  !
  call timing('GW(ppa)',OPR='stop')
@@ -736,7 +745,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  ! AM, Sept 2019. The COH potential seems to break (in some case of a large amount) the
  ! energy degenerations. 
  !
- if (.not.l_sc_run.and..not.l_rt_carriers_in_use.and.l_QP_symmetrize) then
+ if (.not.l_sc_run.and.(.not.l_rt_carriers_in_use).and.l_QP_symmetrize) then
    do i_w=1,QP_dSc_steps
      if (i_w==1) call QP_states_simmetrize(E,what="COHSEX Sc",V_complex=QP_Sc(:,1),warn_me=.TRUE.)
      if (i_w> 1) call QP_states_simmetrize(E,V_complex=QP_Sc(:,i_w))

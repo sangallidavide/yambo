@@ -16,6 +16,7 @@ module BS
  !====================
  logical :: l_BSE_minimize_memory
  logical :: l_BSE_kernel_complete
+ logical :: l_BSE_kernel_full=.TRUE.
  logical :: l_BSE_restart
  logical :: BS_W_is_diagonal=.FALSE.
  logical :: BS_K_coupling=.FALSE.

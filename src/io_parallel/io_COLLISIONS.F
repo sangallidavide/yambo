@@ -35,7 +35,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  !
  character(1)      :: TMP_VAR(1)
  character(schlen) :: db_name
- integer           :: i_coll,stat,N(3),COLL_chunksize(3)
+ integer           :: i_coll,stat,COLL_chunksize(3),N(3)
  logical           :: def1,def2,io2,io3,io4,file_sync
  !
  call timing('io_COLLISIONS',OPR='start')

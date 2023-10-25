@@ -188,7 +188,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
    !
  end select
  !
- if (x1==x2) then
+ if (x1==x2.or.BS_blk(i_block)%size(2)==BS_K_dim(1)) then
    if (BS_blk(i_block)%mode=="C" .or. BS_blk(i_block)%mode=="A") x1=x1+BS_K_dim(1)
    call C_F_POINTER(C_LOC(BS_blk(i_block)%table),tmp_link,(/5,BS_blk(i_block)%size(1)/))
    call io_variable_bulk(ID, ID_table,  I2=tmp_link, IPOS=(/1,x1/) )
