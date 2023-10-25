@@ -3,7 +3,7 @@
 !
 ! Copyright (C) 2021 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM DS
 !
 subroutine K_driver_init(what,iq,Ken,Xk)
  !
@@ -15,7 +15,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  use BS_solvers,   ONLY:BSS_eels_to_eps,BSS_mode,BSS_slepc_matrix,BSS_uses_DbGd,&
 &                       l_ab_from_eels,BSS_slepc_double_grp
  use BS,           ONLY:BSE_L_kind,BSE_mode,BS_K_is_ALDA,BS_dip_size,l_BSE_minimize_memory,BS_perturbative_SOC,&
-&                       BS_perturbative_SOC,l_BS_magnons,l_BS_photolum,&
+&                       BS_perturbative_SOC,l_BS_magnons,l_BS_photolum,l_BSE_kernel,full,&
 &                       BS_cpl_K_exchange,BS_n_g_exch,BS_res_K_exchange,BS_K_coupling,BS_res_ares_n_mat,&
 &                       BS_n_eh_spaces,l_BS_ares_from_res,BS_bands,BS_K_anti_resonant
  use TDDFT,        ONLY:FXC_is_retarded,FXC_n_g_corr
@@ -65,15 +65,20 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  !-----------------------------
  ! Developer options. Without the code works in default mode
  ! With the user can switch to experimental coding
- call parser('ImposeAsym',l_flag)
- if (l_flag)        l_BS_ares_from_res=.FALSE.
+ call parser('ImposeFullBSE',l_BSE_kernel_full)
+ call parser('ImposeAsymBSE',l_flag)
+
+ ! In the resonat only case l_BSE_ares_from_res=.true.
+ ! This is needed to switch off all the lines related to the excplicit calculation of the ARES part
+ ! (see io_BS_PAR_init for example)
  !
- if (iq/=1.and.i_time_rev==0.and.i_space_inv==0 )  l_BS_ares_from_res=.FALSE.
- if (l_BS_photolum)                                l_BS_ares_from_res=.FALSE.
- if (l_BS_magnons.and.n_sp_pol==2)                 l_BS_ares_from_res=.FALSE.
- ! The next line is to switch of section of the codes due to the calculation
- ! of the ARES part without checking the BSE_mode (see io_BS_PAR_init for example)
- if (trim(BSE_mode)=="resonant")                   l_BS_ares_from_res=.TRUE.
+ ! In all other cases the code checks what to do
+ if (.not.trim(BSE_mode)=="resonant") then
+   if (l_flag)                                       l_BS_ares_from_res=.FALSE.
+   if (iq/=1.and.i_time_rev==0.and.i_space_inv==0 )  l_BS_ares_from_res=.FALSE.
+   if (l_BS_photolum)                                l_BS_ares_from_res=.FALSE.
+   if (l_BS_magnons.and.n_sp_pol==2)                 l_BS_ares_from_res=.FALSE.
+ endif
  !
  ! I need ARES and I cannot get it from RES
  ! 
@@ -196,6 +201,8 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  ! Slepc are not (yet) able to deal with a pseudo-hermitian algorithm 
  !
  call parser('ImposeSymm',l_flag)
+ ! The following could be avoided, by promoting l_slepc_special to a module logical,
+ ! and using it in K_multiply_by_V (and K_multiply_by_V_traspose)
  if (l_slepc_special.and..not.l_flag) l_BS_ares_from_res=.FALSE.
  BSS_slepc_double_grp=l_BS_ares_from_res.and.l_slepc_special
  !

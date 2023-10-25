@@ -388,11 +388,21 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      !
      ! Yambo uses the BSE matrix  with the square root of the occupations
      ! The real time collisions must be constructed with the standard form
-     ! This requires a cI factor in the coupling terms
+     ! This requires a cI factor in the coupling terms.
+     ! Moreover, since the occupation factors are contained in the density matrix,
+     ! there is a -1 factor for "Q" and "A"
+     !
+     ! The excitonic matrix contains the occupations and it is pseudo-hermitian.
+     !  R      iC       R  iC 
+     ! -(iC)*  -R*  =  iC* -R*
+     !
+     ! The collisions do not contain the occupations and the matrix is hermitian.
+     !   R   C
+     !   C*  R*
      !
      use electrons,     ONLY:spin_occ
      use pars,          ONLY:cI,cZERO
-     use BS,            ONLY:BS_blk,BS_K_dim,BS_K_io_map
+     use BS,            ONLY:BS_blk,BS_K_dim,BS_K_io_map,l_BSE_kernel_full
      use BS_solvers,    ONLY:BSS_eh_table_m1
      use IO_int,        ONLY:io_control
      use IO_m,          ONLY:RD
@@ -433,43 +443,63 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              !
              l_cI=.false.
              l_m1=.false.
-             ! Resonant block
-             if(j_BSE>=i_BSE) then; iB=i_BSE ; jB=j_BSE-i_BSE+1; l_conj=.false. ; endif
-             ! Resonant is hermitian
-             if(j_BSE< i_BSE) then; iB=j_BSE ; jB=i_BSE-j_BSE+1; l_conj=.true. ; endif
+             if (l_BSE_kernel_full) then
+               ! Resonant block
+               iB=i_BSE ; jB=j_BSE; l_conj=.false. 
+             else
+               ! Resonant block
+               if(j_BSE>=i_BSE) then; iB=i_BSE ; jB=j_BSE-i_BSE+1; l_conj=.false. ; endif
+               ! Resonant is hermitian
+               if(j_BSE< i_BSE) then; iB=j_BSE ; jB=i_BSE-j_BSE+1; l_conj=.true.  ; endif
+             endif
              !
            else if(i_BSE<=BS_K_dim(1) .and. j_BSE>BS_K_dim(1)) then
              !
              l_cI=.true.
              l_m1=.false.
              l_conj=.false.
-             ! Coupling block
              j_BSE=j_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) then ; iB=i_BSE+BS_K_dim(1) ; jB=j_BSE-i_BSE+1; endif
-             ! Coupling is symmetric
-             if(j_BSE< i_BSE) then ; iB=j_BSE+BS_K_dim(1) ; iB=i_BSE-j_BSE+1; endif
+             if (l_BSE_kernel_full) then
+               ! Coupling block
+               iB=i_BSE+BS_K_dim(1) ; jB=j_BSE
+	     else
+               ! Coupling block
+               if(j_BSE>=i_BSE) then ; iB=i_BSE+BS_K_dim(1) ; jB=j_BSE-i_BSE+1; endif
+               ! Coupling is symmetric
+               if(j_BSE< i_BSE) then ; iB=j_BSE+BS_K_dim(1) ; iB=i_BSE-j_BSE+1; endif
+             endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
              l_cI=.true.
              l_m1=.true.
              l_conj=.true.
-             ! Anti-coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) then; iB=i_BSE+BS_K_dim(1); jB=j_BSE-i_BSE+1; endif
-             ! anti-Coupling is symmetric
-             if(j_BSE< i_BSE) then; iB=j_BSE+BS_K_dim(1); jB=i_BSE-j_BSE+1; endif
+             if (l_BSE_kernel_full) then
+               ! Anti-Coupling
+               iB=j_BSE+BS_K_dim(1); jB=i_BSE
+             else
+               ! Anti-Coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
+               if(j_BSE>=i_BSE) then; iB=i_BSE+BS_K_dim(1); jB=j_BSE-i_BSE+1; endif
+               ! Anti-Coupling is symmetric
+               if(j_BSE< i_BSE) then; iB=j_BSE+BS_K_dim(1); jB=i_BSE-j_BSE+1; endif
+             endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
              !
              l_cI=.false.
              l_m1=.true.
-             ! Anti-resonant from resonant: the whole BSE matrix is Pseudo-Hermitian
              i_BSE=i_BSE-BS_K_dim(1)
              j_BSE=j_BSE-BS_K_dim(1)
-             if(j_BSE>=i_BSE) then; iB=i_BSE; jB=j_BSE-i_BSE+1; l_conj=.true.; endif
-             ! anti-resonant is hermitian
-             if(j_BSE< i_BSE) then; iB=j_BSE; jB=i_BSE-j_BSE+1; l_conj=.false.; endif
+             if (l_BSE_kernel_full) then
+               ! Anti-resonant from Resonant
+               iB=j_BSE; jB=i_BSE-i_BSE; l_conj=.true.
+             else
+               ! Anti-resonant from Resonant: the whole BSE matrix is Pseudo-Hermitian
+               if(j_BSE>=i_BSE) then; iB=i_BSE; jB=j_BSE-i_BSE+1; l_conj=.true.; endif
+               ! Anti-resonant is hermitian
+               if(j_BSE< i_BSE) then; iB=j_BSE; jB=i_BSE-j_BSE+1; l_conj=.false.; endif
+             endif
              !
            endif
            !
@@ -592,6 +622,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              endif
              !
              HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*pre_factor1+Co*pre_factor2
+	     ! DS: 2023/10/25 Merge Check
+             !HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*conjg(pre_factor1)+Co*pre_factor2
              !
              call live_timing(steps=1)
              !
@@ -646,7 +678,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      !                       /        /        \
      !                      /                   \
      !                     /     G_{np,mp}       \
-     !     (i_n,i_k,1)-->--.---------->----------.---->----(i_m,i_k,1)
+     !     (i_n,i_k,1)-->--.----------->---------.---->----(i_m,i_k,1)
      !                          (i_kmq,i_kmq_s)
      !
      logical, intent(in)  :: cc_vv_only
@@ -679,6 +711,24 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        iscp_XC%qs =(/i_kmq_G0,iqibz,iqs/)
        iscp_XC%is =(/i_m,i_k,  i_k_s,  i_sp/)
        iscp_XC%os =(/0,  i_kmq,i_kmq_s,i_sp/)
+       !
+       ! DS 2022/07/29
+       ! The G shifts "i_kmq_G0" are need to construct M_{k,p}.
+       ! The same procedure is applyed in the BSE subroutines.
+       !
+       ! However, for some reason, I get a non hermitian matrix, i.e. K_{nmk,n'm'k'} /= K^*_{n'm'k',nmk}
+       ! due to a "-1" factor in the real part of some matrix elements.
+       ! This issue was never seen in the BSE, since the hermiticity is imposed there.
+       ! However, implementing the option to compute the full BSE blocks, i.e. without imposing 
+       ! the hermiticity, the issue is there as well.
+       !
+       ! Without them the matrix M_{k,k+q}=M_{k,p+G} would be obtained
+       ! Indeed setting i_kmq_G0=1 (i.e. G=0) the results are very bad.
+       ! Both in the BSE and in the collisions, i.e. the matrix is not at all hermitian.
+       !
+       ! In the subrtouine QP_ppa_cohsex and XCo_Hartree_Fock.
+       ! There the difference M_{k,k+q} vs M_{k,p} maybe non crucial, since
+       ! the matrix is multiplied by a quantity (the occupaitons) which are invariant under G0 shift
        !
        if (iqibz/=iscp_XC%iqref) call scatter_Gamp(iscp_XC,'x')
        !
@@ -733,6 +783,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            !
            isc_XC%os(1)=i_np
            !
+	   ! DS: 2023/10/25 Merge Check
+           !if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os).or.any(isc_XC%qs/=iscp_XC%qs)) then
            if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os)) then
              call scatter_Bamp(isc_XC)
            else
@@ -744,9 +796,20 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              !$omp parallel do default(shared), private(ig1), reduction(+:pre_factor1)
              do ig1=1,N_g_vecs_X
                pre_factor1=pre_factor1+isc_XC%rhotw(ig1)*iscp_XC%gamp(ig1,1)*conjg(iscp_XC%rhotw(ig1))
+	       ! DS: 2023/10/25 Merge Check
+               !ig2=G_m_G(ig1,minus_G(i_kmq_G0))
+               !pre_factor1=pre_factor1+conjg(isc_XC%rhotw(ig2))*iscp_XC%gamp(ig2,1)*iscp_XC%rhotw(ig2)
              enddo
              !$omp end parallel do
            endif
+           !
+           ! DEBUG <
+           !ig2=G_m_G(1,minus_G(i_kmq_G0))
+           !if ( (i_n==5 .and. i_m==9 .and. i_k==2 .and.  i_np==5 .and. i_mp==10 .and. i_kmq==1)  .or. &
+           !&    (i_n==5 .and. i_m==10 .and. i_k==1 .and.  i_np==5 .and. i_mp==9 .and. i_kmq==2)  )    &
+           !& write(201,*) i_n,i_m,i_k,i_np,i_mp,i_kmq,iqbz,iqibz,i_kmq_G0, &
+           !&              conjg(isc_XC%rhotw(ig2)),iscp_XC%gamp(ig2,1),iscp_XC%rhotw(ig2)
+           ! DEBUG >
            !
            pre_factor2=cZERO
            if(index(H_potential,"COH")>0.or.index(H_potential,"SEX")>0) then 
@@ -754,6 +817,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              do ig1=1,N_g_vecs_C
                do ig2=1,N_g_vecs_C
                  pre_factor2=pre_factor2+isc_XC%rhotw(ig2)*EM1s(ig2,ig1)*conjg(iscp_XC%rhotw(ig1))
+	         ! DS: 2023/10/25 Merge Check
+                 !pre_factor2=pre_factor2+conjg(isc_XC%rhotw(ig2))*EM1s(ig2,ig1)*conjg(iscp_XC%rhotw(ig1))
                enddo
              enddo
              !$omp end parallel do

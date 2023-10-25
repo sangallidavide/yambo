@@ -29,10 +29,10 @@ integer function io_BS_PAR_init(iq,ID,mode)
  !
  character(schlen)  :: db_name,ch_tmp,dim_names(3,n_max_vars),BSK_IO_local
  character(lchlen)  :: ch(n_max_vars,max_io_vars_open-1)
- logical            :: def_var, io_var
- integer(IPL)       :: BS_lin_size
- integer            :: n_vars,i1,i2,i_rep,i_var, BSK_n_dims,n_replica
- integer            :: chunksize(3)      ! Chunking Dimensions
+ logical           :: def_var, io_var
+ integer(IPL)      :: BS_lin_size
+ integer           :: n_vars, i1,i2, i_rep,i_var, BSK_n_dims,n_replica
+ integer           :: chunksize(3)
  !
  io_BS_PAR_init=-1
  !
