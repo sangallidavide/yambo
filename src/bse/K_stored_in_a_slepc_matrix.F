@@ -41,7 +41,7 @@ subroutine K_stored_in_a_slepc_matrix(i_BS_mat,slepc_mat)
  PetscInt            :: H_pos(2),SL_K_dim(2),SL_H_dim
  PetscErrorCode      :: ierr
  !
- if (l_BS_kernel_full) call error("Slepc with matrix not coded with full BSE mode")
+ if (l_BSE_kernel_full) call error("Slepc with matrix not coded with full BSE mode")
  !
  if(     BS_K_coupling) SL_H_dim=BS_H_dim
  if(.not.BS_K_coupling) SL_H_dim=BS_K_dim(i_BS_mat)
