@@ -49,10 +49,10 @@ function TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc, BS_T_grp_ip, i_Tp, BS_T_grp_ik
  endif
  !
  ! tddft_alda_r_space should be mutiplied by X, it is mutiplied by Co in K
- ! X  = fft_size*spin_occ/DL_vol/Nq 
- ! Co =     4*pi*spin_occ/DL_vol/Nq
- ! --> X/Co = fft_size/4/pi
+ ! X  =      spin_occ/DL_vol/Nq 
+ ! Co = 4*pi*spin_occ/DL_vol/Nq
+ ! --> X/Co = 1/4/pi
  !
- H_x=H_x*real(fft_size,SP)/4._SP/pi
+ H_x=H_x/4._SP/pi
  !
 end function

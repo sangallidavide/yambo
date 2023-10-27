@@ -12,7 +12,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  !  (ic(1),ik(1),is(1)) --<--:...:--<-- (ic(2),ik(2),is(2))
  !                       :sqrt(Fxc):
  !
- use pars,           ONLY:SP,pi,cZERO
+ use pars,           ONLY:SP,DP,pi,cZERO
  use FFT_m,          ONLY:fft_size
  use wave_func,      ONLY:rho_map_size,rho_map,WF
  use interfaces,     ONLY:WF_load,WF_free
@@ -38,7 +38,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
 &               i_sp,i_T_grp_p,is(4),os(4),NK(2)
  !
- complex(SP), pointer :: rhotwr_p(:)
+ complex(DP), pointer :: rhotwr_p(:)
  complex(SP), pointer :: WF_symm1_p(:,:)
  complex(SP), pointer :: WF_symm2_p(:,:)
  !
@@ -50,7 +50,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  !
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
- rhotwr_p   => tddft_wf%rhotwr2
+ rhotwr_p   => tddft_wf%rhotwr_DP
  !
  ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  l_use_rho_map=allocated(rho_map)
@@ -109,9 +109,8 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
    call WF_apply_symm_cpu(os,WF_symm2_p)
    !
    if( n_spinor==1 ) then
-     if(     l_use_rho_map) rhotwr_p(rho_map(:))=WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
-     if(.not.l_use_rho_map) rhotwr_p(        : )=WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
-   write(*,*) "L",i_T_grp,i_T_el,rhotwr_p(1:2),WF_symm1_p(1:2,1),WF_symm2_p(1:2,1)
+     if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
+     if(.not.l_use_rho_map) rhotwr_p(        : )=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,is(4),os(4),1))
    endif
    !
@@ -123,15 +122,13 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
          do irho=1,rho_map_size
            if(     l_use_rho_map) ifft=rho_map(irho)
            if(.not.l_use_rho_map) ifft=        irho
-           rhotwr_p(ifft)=WF_symm1_p(irho,i_spinor)*conjg(WF_symm2_p(irho,j_spinor))
+           rhotwr_p(ifft)=cmplx(WF_symm1_p(irho,i_spinor)*conjg(WF_symm2_p(irho,j_spinor)),kind=DP)
          enddo
          call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,i_spinor,j_spinor,1))
          !
        enddo
      enddo
    endif
-   !
-   write(*,*) "L",i_T_grp,i_T_el,BS_T_grp(i_T_grp)%O_tddft(1:2,i_T_el,1,1,1)
    !
  enddo
  !
@@ -151,7 +148,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  !  (ic(1),ik(1),is(1)) --<--:...:--<-- (ic(2),ik(2),is(2))
  !                       :sqrt(Fxc):
  !
- use pars,           ONLY:SP,pi,cZERO
+ use pars,           ONLY:SP,DP,pi,cZERO
  use FFT_m,          ONLY:fft_size
  use wave_func,      ONLY:rho_map_size,rho_map,WF
  use xc_functionals, ONLY:F_xc_mat
@@ -180,7 +177,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
 &               i_sp,i_T_grp_p,is(4),os(4),NK(2)
  !
- complex(SP), pointer :: rhotwr_p(:)
+ complex(DP), pointer :: rhotwr_p(:)
  complex(SP), pointer :: WF_symm1_p(:,:)
  complex(SP), pointer :: WF_symm2_p(:,:)
  !
@@ -192,7 +189,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  !
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
- rhotwr_p   => tddft_wf%rhotwr2
+ rhotwr_p   => tddft_wf%rhotwr_DP
  !
  ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  l_use_rho_map=allocated(rho_map)
@@ -257,8 +254,10 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
    !
    if( n_spin==1 ) then
      !
-     if (     l_use_rho_map) rhotwr_p(rho_map(:))=F_xc_mat(rho_map(:),1,1,1,1)*WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
-     if (.not.l_use_rho_map) rhotwr_p(        : )=F_xc_mat(        : ,1,1,1,1)*WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
+     if (     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(F_xc_mat(rho_map(:),1,1,1,1)*&
+     &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
+     if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,1,1,1,1)*&
+     &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,1,1,2))
      !
    endif
@@ -275,10 +274,10 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
          is_yambo=i_sp_loop
          os_yambo=o_sp_loop
          ! To check/fix the spinorial version 
-         if (     l_use_rho_map) rhotwr_p(rho_map(:))=F_xc_mat(rho_map(:),is_yambo,os_yambo,is(4),os(4))* &
-         &                                                          WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
-         if (.not.l_use_rho_map) rhotwr_p(rho_map(:))=F_xc_mat(        : ,is_yambo,os_yambo,is(4),os(4))* &
-         &                                                          WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
+         if (     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(F_xc_mat(rho_map(:),is_yambo,os_yambo,is(4),os(4))* &
+         &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
+         if (.not.l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(F_xc_mat(        : ,is_yambo,os_yambo,is(4),os(4))* &
+         &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
          call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,i_sp_loop,o_sp_loop,2))
          !
        enddo
@@ -309,8 +308,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
      enddo
    endif
    !
-   write(*,*) "R",i_T_grp,i_T_el,BS_T_grp(i_T_grp)%O_tddft(1:2,i_T_el,1,1,2)
-   !
  enddo
  !
  nullify(WF_symm1_p)
@@ -328,18 +325,15 @@ end subroutine TDDFT_ALDA_eh_space_G_collisions_R
 subroutine perform_fft_3d(rhotw,O_x)
  !
  use BS,             ONLY:BS_n_g_fxc
- use pars,           ONLY:cZERO,cONE,DP,SP
+ use pars,           ONLY:cZERO,cONE,DP,SP,DP
  use FFT_m,          ONLY:fftw_plan,cufft_plan,fft_size,fft_dim,DEV_VAR(fft_g_table)
  !
  implicit none
  !
  integer :: ig,iGo
  !
- complex(SP), intent(in)  :: rhotw(fft_size)
+ complex(DP), intent(in)  :: rhotw(fft_size)
  complex(SP), intent(out) :: O_x(BS_n_g_fxc)
- !
- !O_x(1:10)=rhotw(1:10)
- !return
  !
  ! perform the actual FFT
  !
@@ -376,7 +370,7 @@ subroutine perform_fft_3d(rhotw,O_x)
  !
  !$omp parallel do default(shared), private(ig)
  do ig = 1, BS_n_g_fxc
-   O_x(ig)= cmplx(conjg(rhotw(fft_g_table(ig,iGo))),kind=SP)
+   O_x(ig)= cmplx(conjg(rhotw(fft_g_table)(ig,iGo)),kind=SP)
  enddo
  !
 #else

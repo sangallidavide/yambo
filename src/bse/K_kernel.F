@@ -338,7 +338,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      YAMBO_ALLOC(tddft_wf%rhotwr1,(rho_map_size*n_spinor*n_spinor))
      YAMBO_ALLOC(tddft_wf%rhotwr2,(rho_map_size*n_spinor*n_spinor))
    else if (l_tddft_gsum) then
-     YAMBO_ALLOC(tddft_wf%rhotwr2,(fft_size))
+     YAMBO_ALLOC(tddft_wf%rhotwr_DP,(fft_size))
    endif
    !
    YAMBO_ALLOC(tddft_wf%WF_symm1,(fft_size,n_spinor))
@@ -791,8 +791,12 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !
    !if (l_tddft_gsum) call TDDFT_oscillators_free(BS_nT_grps)
    !
-   YAMBO_FREE(tddft_wf%rhotwr1)
-   YAMBO_FREE(tddft_wf%rhotwr2)
+   if (l_tddft_rsum) then
+     YAMBO_FREE(tddft_wf%rhotwr1)
+     YAMBO_FREE(tddft_wf%rhotwr2)
+   else if (l_tddft_gsum) then
+     YAMBO_FREE(tddft_wf%rhotwr_DP)
+   endif
    YAMBO_FREE(tddft_wf%WF_symm1)
    YAMBO_FREE(tddft_wf%WF_symm2)
    !
