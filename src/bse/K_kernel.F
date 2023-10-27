@@ -351,7 +351,15 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    if(n_spin>1) then
      YAMBO_ALLOC(magn,(fft_size,3))
    endif
+   !
+   ! In principle here there is a factor 4 between the energy cutoff on the potential and the one of the kernel
+   ! The following line, or something similar, should be used here and before
+   !QP_nG=G_index_energy_factor(BS_n_g_fxc,0.25_SP)
+   ! However in practice the one on the kernel is never set 4 the potential, i.e. 16 times the one onf the WFs
+   !
+   QP_ng_Vxc=BS_n_g_fxc
    call XC_potential_driver(Ken,Xk,WF_kind,WF_xc_functional,2)
+   !
    YAMBO_ALLOC(F_xc_mat,(fft_size,n_spin,n_spin,n_spin,n_spin))
    call Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
    YAMBO_FREE(F_xc)
@@ -361,13 +369,6 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    endif
    !
    call TDDFT_ALDA_lower_cutoff(FXC_mode)
-   !
-   ! In principle here there is a factor 4 between the energy cutoff on the potential and the one of the kernel
-   ! The following line, or something similar, should be used here and before
-   !QP_nG=G_index_energy_factor(BS_n_g_fxc,0.25_SP)
-   ! However in practice the one on the kernel is never set 4 the potential, i.e. 16 times the one onf the WFs
-   !
-   QP_ng_Vxc=BS_n_g_fxc
    !
    call WF_free(WF,keep_states_to_load=.true.)
    !
