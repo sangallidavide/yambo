@@ -37,7 +37,7 @@ module TDDFT
    complex(SP), allocatable :: WF_symm2(:,:)
  end type tddft_wf_t
  !
- character(12)     :: ALDA_cut_scheme
+ character(12)     :: FXC_mode
    !
  interface 
    !

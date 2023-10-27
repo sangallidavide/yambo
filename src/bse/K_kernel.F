@@ -15,7 +15,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use frequency,     ONLY:w_samp
  use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor,n_sp_pol
  use FFT_m,         ONLY:fft_size
- use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G,TDDFT_ALDA_R_space
+ use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G,TDDFT_ALDA_eh_space_R_kernel
  use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,i_space_inv,sop_inv,sop_tab
  use R_lattice,     ONLY:G_m_G_maxval,qindx_X,bz_samp,g_rot,&
 &                        qindx_B,qindx_B_max,qindx_B_load,RIM_W,&
@@ -39,7 +39,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:REP,OP_WR,RD,WR_CL,OP_APP,deliver_IO_error_message,WR
  use TDDFT,         ONLY:FXC_K_diagonal,F_xc_gspace,FXC_n_g_corr,io_BS_Fxc, &
-&                        ALDA_cut_scheme,tddft_wf_t
+&                        FXC_mode,tddft_wf_t
  use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind,WF_exx_fraction
  use wave_func,     ONLY:WF,rho_map,rho_map_thresh,rho_map_size
@@ -193,15 +193,16 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  endif
  !
  if (BS_K_is_ALDA) then
- l_tddft_gsum=(index(ALDA_cut_scheme,"-G")>0 )
- l_tddft_rsum=(index(ALDA_cut_scheme,"-G")==0)
- if(index(ALDA_cut_scheme,"lower_GmGp")>0) then
-   FXC_n_g_corr=BS_n_g_fxc
-   if (BS_n_g_fxc/= eval_G_minus_G(BS_n_g_fxc,0) ) then
-     BS_n_g_fxc   = eval_G_minus_G(BS_n_g_fxc,0)
-     call msg('s','[TDDFT] ALDA Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
+   l_tddft_gsum=(index(FXC_mode,"G-")>0)
+   l_tddft_rsum=(index(FXC_mode,"R-")>0)
+   if( .not.(l_tddft_gsum.or.l_tddft_rsum) ) call error("Wrong FXC_mode:"//trim(FXC_mode))
+   if(index(FXC_mode,"cut_GmGp")>0) then
+     FXC_n_g_corr=BS_n_g_fxc
+     if (BS_n_g_fxc/= eval_G_minus_G(BS_n_g_fxc,0) ) then
+       BS_n_g_fxc   = eval_G_minus_G(BS_n_g_fxc,0)
+       call msg('s','[TDDFT] Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
+     endif
    endif
- endif
  endif
  !
  call K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
@@ -362,7 +363,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      YAMBO_FREE(magn)
    endif
    !
-   call TDDFT_ALDA_lower_cutoff(ALDA_cut_scheme)
+   call TDDFT_ALDA_lower_cutoff(FXC_mode)
    !
    call WF_free(WF,keep_states_to_load=.true.)
    !
@@ -683,7 +684,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          !
          ! ALDA
          if (iHxc==2) then
-           if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_R_space(is_k,os_k,is_p,os_p,tddft_wf,'RES')
+           if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_eh_space_R_kernel(is_k,os_k,is_p,os_p,tddft_wf,'RES')
            if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,               &
 &                                   BS_T_grp(i_Tgrp_p),i_Tp, BS_T_grp(i_Tgrp_k),i_Tk)
          endif
@@ -711,7 +712,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          !
          ! ALDA
          if (iHxc==2) then
-           if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_R_space(is_k,os_k,is_p,os_p,tddft_wf,'CPL')
+           if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_eh_space_R_kernel(is_k,os_k,is_p,os_p,tddft_wf,'CPL')
            if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,              &
 &                                 BS_T_grp(i_Tgrp_p),i_Tp, BS_T_grp(i_Tgrp_k),i_Tk)
          endif

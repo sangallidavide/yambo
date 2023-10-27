@@ -3,9 +3,9 @@
 !
 ! Copyright (C) 2015 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM DS
 !
-function TDDFT_ALDA_R_space(is,os,isp,osp,tddft_wf,mode)
+function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
  !
  ! Calculates the F_xc scattering 
  !
@@ -34,7 +34,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,tddft_wf,mode)
  !
  implicit none
  !
- complex(SP) :: TDDFT_ALDA_R_space
+ complex(SP) :: H_x
  !
  integer,          intent(in)  :: is(4),os(4),isp(4),osp(4)
  character(3),     intent(in)  :: mode
@@ -56,7 +56,7 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,tddft_wf,mode)
  if ((is(4)==os(4).or.isp(4)==osp(4)).and.((     l_BS_magnons).and.n_sp_pol==2)) call error(" TDDFT_ALDA_R_space: wrong spin index")
  if (mode/="RES" .and. mode/="CPL" ) call error(" TDDFT_ALDA_R_space: unkown mode")
  !
- TDDFT_ALDA_R_space=cZERO
+ H_x=cZERO
  !
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
@@ -134,14 +134,14 @@ function TDDFT_ALDA_R_space(is,os,isp,osp,tddft_wf,mode)
  !
  ! SUM
  !=====
- TDDFT_ALDA_R_space=V_dot_V_omp(rho_map_size*n_spinor*n_spinor,rhotwr1_p,rhotwr2_p)
+ H_x=V_dot_V_omp(rho_map_size*n_spinor*n_spinor,rhotwr1_p,rhotwr2_p)
  !
  ! tddft_alda_r_space should be mutiplied by X, it is mutiplied by Co in K
  ! X  = fft_size*spin_occ/DL_vol/Nq 
  ! Co =     4*pi*spin_occ/DL_vol/Nq
  ! --> X/Co = fft_size/4/pi
  !
- TDDFT_ALDA_R_space=TDDFT_ALDA_R_space*real(fft_size,SP)/4._SP/pi
+ H_x=H_x*real(fft_size,SP)/4._SP/pi
  !
  call timing('T_space ALDA scatt.',OPR='stop')
  !
