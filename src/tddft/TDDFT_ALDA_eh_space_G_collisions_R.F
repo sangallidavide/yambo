@@ -18,7 +18,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  use xc_functionals, ONLY:F_xc_mat
  use interfaces,     ONLY:WF_load,WF_free
  use R_lattice,      ONLY:qindx_X,bz_samp
- use BS,             ONLY:l_BS_magnons,TDDFT_oscillators_alloc,BS_T_grp,BS_bands
+ use BS,             ONLY:l_BS_magnons,BS_T_grp,BS_bands
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
@@ -30,7 +30,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  type(bz_samp),intent(in) :: Xk
  integer,      intent(in) :: iq,i_T_grp,NG(2)
  logical,      intent(in) :: l_bs_exch_wf_in_loop
- character(3), intent(in) :: mode
+ character(1), intent(in) :: mode
  type(tddft_wf_t), target, intent(inout) :: tddft_wf 
  ! 
  ! Work Space
@@ -48,8 +48,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  call timing('T_space ALDA Osc.',OPR='start')
  !
  ! Allocate
- !
- if (.not.allocated( BS_T_grp(i_T_grp)%O_tddft )) call TDDFT_oscillators_alloc(i_T_grp)
  !
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
@@ -108,10 +106,10 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
    if ( (is(4)/=os(4)) .and. ((.not.l_BS_magnons).or. n_sp_pol==1) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    !
-   if (mode=="RES") then
+   if (mode=="R".or.mode=="A".or.mode=="F") then
      call WF_apply_symm_cpu(is,WF_symm1_p) 
      call WF_apply_symm_cpu(os,WF_symm2_p)
-   else if (mode=="CPL") then
+   else if (mode=="C".or.mode=="Q") then
      call WF_apply_symm_cpu(is,WF_symm2_p)
      call WF_apply_symm_cpu(os,WF_symm1_p)
    endif
@@ -122,7 +120,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
      &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,1,1,1,1)*&
      &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-     call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,1,1,2))
+     call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,1,1))
      !
    endif
    !
@@ -142,7 +140,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
          &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
          if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,is_yambo,os_yambo,is(4),os(4))* &
          &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,i_sp_loop,o_sp_loop,2))
+         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_sp_loop,o_sp_loop))
          !
        enddo
      enddo
@@ -166,7 +164,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
              enddo
            enddo
          enddo
-         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,i_spinor,j_spinor,2))
+         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_spinor,j_spinor))
          !
        enddo
      enddo

@@ -29,7 +29,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use BS,            ONLY:BS_bands,BS_res_K_corr,BS_W,BS_W_is_diagonal,&
 &                        BS_res_K_exchange,BS_Block_size,&
 &                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
-&                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,TDDFT_oscillators_free,&
+&                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,TDDFT_oscillators_alloc,TDDFT_oscillators_free,&
 &                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,BS_correlation_oscillators_free,&
 &                        BS_exchange_oscillators_free,WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
 &                        BS_nT_grps,BS_blks_free,l_BS_ares_from_res,&
@@ -503,13 +503,9 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    ! TDDFT oscillators
    !----------------------
    if(iHxc==2 .and. l_tddft_gsum) then
+     call TDDFT_oscillators_alloc(i_Tgrp_k,i_Tgrp_p)
      call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop,tddft_wf)
-     select case (mode_now)
-     case ("R","A","F")
-       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop,tddft_wf,"RES")
-     case ("C","Q")
-       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop,tddft_wf,"CPL")
-     end select
+     call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop,tddft_wf,mode_now)
    endif
    !
    ! Correlation oscillators
@@ -759,11 +755,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      call BS_exchange_oscillators_free(i_Tgrp_k)
    endif
    !
-   !if(l_BSE_minimize_memory.and.iHxc==2.and.l_tddft_gsum) then
-   if(iHxc==2.and.l_tddft_gsum) then
-     call TDDFT_oscillators_free(i_Tgrp_p)
-     call TDDFT_oscillators_free(i_Tgrp_k)
-   endif
+   if(iHxc==2.and.l_tddft_gsum) call TDDFT_oscillators_free(i_Tgrp_k,i_Tgrp_p)
    !
    if(iHxc==3) call BS_correlation_oscillators_free(i_block)
    !
@@ -789,8 +781,6 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if(iHxc==1) call BS_exchange_oscillators_free(BS_nT_grps)
  !
  if(iHxc==2) then
-   !
-   !if (l_tddft_gsum) call TDDFT_oscillators_free(BS_nT_grps)
    !
    if (l_tddft_rsum) then
      YAMBO_FREE(tddft_wf%rhotwr1)

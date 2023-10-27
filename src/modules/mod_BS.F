@@ -192,9 +192,11 @@ module BS
    !
    ! TDDFT Oscillators
    !
-   complex(SP), allocatable :: O_tddft(:,:,:,:,:)
+   complex(SP), allocatable :: O_tddft_L(:,:,:,:)
+   complex(SP), allocatable :: O_tddft_R(:,:,:,:)
 #ifdef _CUDA
-   complex(SP), allocatable, device :: O_tddft_d(:,:,:,:,:)
+   complex(SP), allocatable, device :: O_tddft_L_d(:,:,:,:)
+   complex(SP), allocatable, device :: O_tddft_R_d(:,:,:,:)
 #endif
    !
  end type BS_T_group
@@ -330,21 +332,30 @@ module BS
      enddo
    end subroutine BS_correlation_oscillators_free
    !
-   subroutine TDDFT_oscillators_alloc(iG)
-     use electrons, ONLY:n_spin
-     integer, intent(in) :: iG
-     if (BS_T_grp(iG)%size==0) return
-     YAMBO_ALLOC(BS_T_grp(iG)%O_tddft,(BS_n_g_fxc,BS_T_grp(iG)%size,n_spin,n_spin,2))
+   subroutine TDDFT_oscillators_alloc(iGL,iGR)
+     use electrons, ONLY:n_spin,n_spinor
+     integer, intent(in) :: iGL,iGR
+     if (BS_T_grp(iGL)%size>0) then
+       YAMBO_ALLOC(BS_T_grp(iGL)%O_tddft_L,(BS_n_g_fxc,BS_T_grp(iGL)%size,n_spinor,n_spinor))
 #ifdef _CUDA
-     allocate(BS_T_grp(iG)%O_tddft_d,mold=BS_T_grp(iG)%O_tddft)
+       allocate(BS_T_grp(iGL)%O_tddft_L_d,mold=BS_T_grp(iGL)%O_tddft_L)
 #endif
+     endif
+     if (BS_T_grp(iGR)%size>0) then
+       YAMBO_ALLOC(BS_T_grp(iGR)%O_tddft_R,(BS_n_g_fxc,BS_T_grp(iGR)%size,n_spin,n_spin))
+#ifdef _CUDA
+       allocate(BS_T_grp(iGR)%O_tddft_R_d,mold=BS_T_grp(iGR)%O_tddft_R)
+#endif
+     endif
    end subroutine TDDFT_oscillators_alloc
    !
-   subroutine TDDFT_oscillators_free(iG)
-     integer, intent(in) :: iG
-     YAMBO_FREE(BS_T_grp(iG)%O_tddft)
+   subroutine TDDFT_oscillators_free(iGL,iGR)
+     integer, intent(in) :: iGL,iGR
+     YAMBO_FREE(BS_T_grp(iGL)%O_tddft_L)
+     YAMBO_FREE(BS_T_grp(iGR)%O_tddft_R)
 #ifdef _CUDA
-     if (allocated(BS_T_grp(iG)%O_tddft_d)) deallocate(BS_T_grp(iG)%O_tddft_d)
+     if (allocated(BS_T_grp(iGL)%O_tddft_L_d)) deallocate(BS_T_grp(iGL)%O_tddft_L_d)
+     if (allocated(BS_T_grp(iGR)%O_tddft_R_d)) deallocate(BS_T_grp(iGR)%O_tddft_R_d)
 #endif
    end subroutine TDDFT_oscillators_free
    !

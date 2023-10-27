@@ -44,10 +44,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  !
  call timing('T_space ALDA Osc.',OPR='start')
  !
- ! Allocate
- !
- call TDDFT_oscillators_alloc(i_T_grp)
- !
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
  rhotwr_p   => tddft_wf%rhotwr_DP
@@ -111,7 +107,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
    if( n_spinor==1 ) then
      if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      if(.not.l_use_rho_map) rhotwr_p(        : )=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-     call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,1,1,1))
+     call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,1,1))
    endif
    !
    if(n_spinor==2) then
@@ -124,7 +120,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
            if(.not.l_use_rho_map) ifft=        irho
            rhotwr_p(ifft)=cmplx(WF_symm1_p(irho,i_spinor)*conjg(WF_symm2_p(irho,j_spinor)),kind=DP)
          enddo
-         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft(:,i_T_el,i_spinor,j_spinor,1))
+         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,i_spinor,j_spinor))
          !
        enddo
      enddo
