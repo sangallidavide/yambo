@@ -345,8 +345,10 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    YAMBO_ALLOC(tddft_wf%WF_symm2,(fft_size,n_spinor))
    !
    YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
-   YAMBO_ALLOC(V_xc,(fft_size,n_spin))
-   V_xc=0._SP
+   if(l_BS_magnons .or. n_spinor==2) then
+     YAMBO_ALLOC(V_xc,(fft_size,n_spin))
+     V_xc=0._SP
+   endif
    !
    if(n_spin>1) then
      YAMBO_ALLOC(magn,(fft_size,3))
@@ -363,7 +365,9 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    YAMBO_ALLOC(F_xc_mat,(fft_size,n_spin,n_spin,n_spin,n_spin))
    call Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
    YAMBO_FREE(F_xc)
-   YAMBO_FREE(V_xc)
+   if(l_BS_magnons .or. n_spinor==2) then
+     YAMBO_FREE(V_xc)
+   endif
    if(n_spin>1) then
      YAMBO_FREE(magn)
    endif
