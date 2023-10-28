@@ -159,8 +159,8 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
                if(     l_use_rho_map) ifft=rho_map(irho)
                if(.not.l_use_rho_map) ifft=        irho
                rhotwr_p(ifft)=rhotwr_p(ifft)+                        &
-               & F_xc_mat(ifft,i_spinor_y,j_spinor_y,ip_spinor,jp_spinor)* &
-               & WF_symm1_p(irho,ip_spinor)*conjg(WF_symm2_p(irho,jp_spinor))
+               & cmplx(F_xc_mat(ifft,i_spinor_y,j_spinor_y,ip_spinor,jp_spinor)* &
+               & WF_symm1_p(irho,ip_spinor)*conjg(WF_symm2_p(irho,jp_spinor)),kind=DP)
              enddo
            enddo
          enddo
