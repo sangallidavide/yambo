@@ -121,15 +121,15 @@ subroutine Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
    F_xc_mat(:,2,1,2,1) = (Fxc_mag2+Vxc_mag*magn_inv)*(magn_versor(:,1)+cI*magn_versor(:,2))**2                      !  (mag)
    ! 
    ! DEBUG<
-   F_xc_mat(:,1,1,1,1)= F_xc(:,1,1)          ! (opt)
-   F_xc_mat(:,1,1,2,2)= F_xc(:,1,2)          ! (opt)
-   F_xc_mat(:,2,2,1,1)= F_xc(:,2,1)          ! (opt)
-   F_xc_mat(:,2,2,2,2)= F_xc(:,2,2)          ! (opt)
-   !
-   F_xc_mat(:,1,2,1,2)= cZERO                ! (mag)
-   F_xc_mat(:,1,2,2,1)= 2*Vxc_mag*magn_inv   ! (mag)
-   F_xc_mat(:,2,1,1,2)= 2*Vxc_mag*magn_inv   ! (mag)
-   F_xc_mat(:,2,1,2,1)= cZERO                ! (mag)
+   !F_xc_mat(:,1,1,1,1)= F_xc(:,1,1)          ! (opt)
+   !F_xc_mat(:,1,1,2,2)= F_xc(:,1,2)          ! (opt)
+   !F_xc_mat(:,2,2,1,1)= F_xc(:,2,1)          ! (opt)
+   !F_xc_mat(:,2,2,2,2)= F_xc(:,2,2)          ! (opt)
+   !!
+   !F_xc_mat(:,1,2,1,2)= cZERO                ! (mag)
+   !F_xc_mat(:,1,2,2,1)= 2*Vxc_mag*magn_inv   ! (mag)
+   !F_xc_mat(:,2,1,1,2)= 2*Vxc_mag*magn_inv   ! (mag)
+   !F_xc_mat(:,2,1,2,1)= cZERO                ! (mag)
    ! DEBUG>
    !
    ! TO DO !!
@@ -146,11 +146,18 @@ subroutine Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
    !
  endif
  !
+ ! DEBUG<
  !write(*,*) 2*Vxc_mag(1:10)*magn_inv(1:10)
- !
- write(*,*) real(F_xc_mat(1:10,1,2,1,2),SP)
- write(*,*) real(F_xc_mat(1:10,1,2,2,1),SP)
- write(*,*) real(F_xc_mat(1:10,2,1,1,2),SP)
- write(*,*) real(F_xc_mat(1:10,2,1,2,1),SP)
+ !!
+ !write(*,*) real(F_xc_mat(1:10,1,1,1,1),SP)
+ !write(*,*) real(F_xc_mat(1:10,1,1,2,2),SP)
+ !write(*,*) real(F_xc_mat(1:10,2,2,1,1),SP)
+ !write(*,*) real(F_xc_mat(1:10,2,2,2,2),SP)
+ !!
+ !write(*,*) real(F_xc_mat(1:10,1,2,1,2),SP)
+ !write(*,*) real(F_xc_mat(1:10,1,2,2,1),SP)
+ !write(*,*) real(F_xc_mat(1:10,2,1,1,2),SP)
+ !write(*,*) real(F_xc_mat(1:10,2,1,2,1),SP)
+ ! DEBUG>
  !
 end subroutine Build_F_xc_mat

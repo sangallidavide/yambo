@@ -148,11 +148,11 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
    !
    if(n_spinor==2) then
      !
-     rhotwr_p=cZERO
      do i_spinor=1,n_spinor
        do j_spinor=1,n_spinor
          i_spinor_y=j_spinor
          j_spinor_y=i_spinor
+         rhotwr_p=cZERO
          do ip_spinor=1,n_spinor
            do jp_spinor=1,n_spinor
              do irho=1,rho_map_size
