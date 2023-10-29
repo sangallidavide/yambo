@@ -8,7 +8,7 @@
 subroutine K_driver_init(what,iq,Ken,Xk)
  !
  use R_lattice,    ONLY:bz_samp
- use electrons,    ONLY:levels,n_sp_pol,n_spinor,get_spin_majority
+ use electrons,    ONLY:levels,n_sp_pol,n_spinor,n_spin,get_spin_majority
  use parser_m,     ONLY:parser
  use parallel_m,   ONLY:PARALLEL_default_mode
  use stderr,       ONLY:STRING_match,STRING_same
@@ -18,7 +18,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
 &                       BS_perturbative_SOC,l_BS_magnons,l_BS_photolum,&
 &                       BS_cpl_K_exchange,BS_n_g_exch,BS_res_K_exchange,BS_K_coupling,BS_res_ares_n_mat,&
 &                       BS_n_eh_spaces,l_BS_ares_from_res,BS_bands,BS_K_anti_resonant
- use TDDFT,        ONLY:FXC_is_retarded,FXC_n_g_corr
+ use TDDFT,        ONLY:FXC_is_retarded,FXC_n_g_corr,l_Fxc_from_Vxc
  use drivers,      ONLY:l_col_cut,l_rpa_IP,l_alda_fxc,l_bs_fxc
  use D_lattice,    ONLY:i_time_rev,i_space_inv,l_0D,l_1D,l_2D,l_3D
 #if defined _RT
@@ -35,7 +35,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  !
  ! Work Space
  !
- logical :: l_flag,l_slepc_special
+ logical :: l_flag,l_slepc_special,l_Fxc_Libxc
  !
  ! Defaults
  !==========
@@ -120,6 +120,10 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  if (what=="loop-init") return
  !
  BS_K_is_ALDA=l_alda_fxc
+ if (l_alda_fxc) then
+   call parser('FxcLibxc',l_Fxc_Libxc)
+   l_Fxc_from_Vxc=(n_spin==1).and..not.l_Fxc_Libxc
+ endif
  BS_dip_size=1
  !
  ! Memory saving

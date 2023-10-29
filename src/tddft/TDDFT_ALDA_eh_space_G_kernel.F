@@ -25,7 +25,7 @@ function TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc, BS_T_grp_ip, i_Tp, BS_T_grp_ik
  use FFT_m,          ONLY:fft_size
  use BS,             ONLY:BS_T_group
  use wrapper_omp,    ONLY:Vstar_dot_V_omp
- use electrons,      ONLY:n_spinor
+ use electrons,      ONLY:n_spinor,spin_occ
  !
  implicit none
  !

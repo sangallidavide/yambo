@@ -31,7 +31,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
  use D_lattice,     ONLY:nsym
  use R_lattice,     ONLY:qindx_X,bz_samp
  use BS,            ONLY:O_ng,BS_bands,BS_res_K_corr,BS_blk,&
-&                        BS_correlation_oscillators_alloc,K_CORR_collision,BS_T_grp,&
+&                        K_CORR_collision,BS_T_grp,&
 &                        BS_K_dim,l_BS_ares_from_res
  use electrons,     ONLY:n_sp_pol
  use collision_el,  ONLY:elemental_collision_free,elemental_collision_alloc

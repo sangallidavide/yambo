@@ -25,6 +25,7 @@ module TDDFT
  character(schlen):: FXC_PF_alpha
 ! logical          :: FXC_is_causal
  logical          :: FXC_is_retarded
+ logical          :: l_Fxc_from_Vxc
  !
  real(SP),    allocatable :: FXC_K_diagonal(:)
  complex(SP), allocatable :: F_xc_gspace(:,:,:)

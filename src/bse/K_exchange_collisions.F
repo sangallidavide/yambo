@@ -9,7 +9,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
  !
  use pars,           ONLY:SP,cZERO
  use D_lattice,      ONLY:nsym,i_time_rev,sop_inv,sop_inv_d
- use BS,             ONLY:BS_T_grp,K_EXCH_collision,BS_exchange_oscillators_alloc,BS_n_g_exch,&
+ use BS,             ONLY:BS_T_grp,K_EXCH_collision,BS_n_g_exch,&
 &                         BSE_L_kind,l_BS_magnons,l_BSE_minimize_memory,BS_bands
  use interfaces,     ONLY:WF_load,WF_free
  use wave_func,      ONLY:WF
@@ -39,18 +39,11 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
   complex(SP), pointer, device :: O_x_d(:,:),O_x_sym_d(:,:)
 #endif
  !
- ! Oscillators already done ?
- !
- if (allocated( BS_T_grp(i_T_grp)%O_x )) return
- !
- if (l_BS_magnons.and.n_sp_pol==2) return
- !
  call timing('T_space EXX Osc.',OPR='start')
  !
  ! Allocate
  !
  call elemental_collision_free(K_EXCH_collision)
- call BS_exchange_oscillators_alloc(i_T_grp)
  !
 #if defined(__NOTNOW) && ! defined(_CUDA)
  !$omp parallel default(shared), private( K_EXCH_collision, &

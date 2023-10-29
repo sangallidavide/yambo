@@ -28,6 +28,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  use wrapper,        ONLY:V_dot_V
  use BS,             ONLY:l_BS_magnons
  use X_m,            ONLY:l_X_magn
+ use TDDFT,          ONLY:l_Fxc_from_Vxc
  use xc_functionals, ONLY:E_xc,E_xc_val,magn,F_xc,V_xc,xc_setup_hyb,&
 &                         XC_LDA_C_KP,xc_fnctl_t,xc_setup_fnctl,xc_f03_func_end, &
 &                         xc_spin,xc_spin_map1, &
@@ -48,7 +49,6 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  !
  ! Work Space
  !
- logical  :: l_Fxc_from_Vxc
  integer  :: i1,i2,is_xc,is1,is2,ixc,ifft,ORDER_NOW
  integer(IPL) :: size_IPL
  real(SP) :: mod_magn
@@ -70,7 +70,7 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  real(DP),allocatable :: v1rho(:,:),v1sigma(:,:)
  real(DP),allocatable :: vx1(:,:),vx2(:,:)
  real(DP),allocatable :: v2rho2(:,:),v2rhosigma(:,:),v2sigma2(:,:)
- logical              :: EvaluateDGradient,l_Fxc_Libxc
+ logical              :: EvaluateDGradient
  !
  ! Functional and Functional infos
  !
@@ -79,9 +79,6 @@ subroutine XC_libxc_driver(en,Xk,FUNCTIONAL,ORDER,EXX_FRACTION,EXX_SCREENING)
  !=============================== 
  ! Convert and Initialize
  !===============================
- !
- call parser('FxcLibxc',l_Fxc_Libxc)
- l_Fxc_from_Vxc=(n_spin==1).and..not.l_Fxc_Libxc
  !
  exsr=0._DP
  FUNCTIONALTMP=0
