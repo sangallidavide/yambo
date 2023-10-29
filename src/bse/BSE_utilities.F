@@ -48,8 +48,8 @@ subroutine BS_correlation_oscillators_free(iB_ref)
  ik_now=BS_blk(iB_ref)%ik
  ip_now=BS_blk(iB_ref)%ip
  if(iB_ref==n_BS_blks) then
- ik_now=0
- ip_now=0
+   ik_now=0
+   ip_now=0
  endif
  do iB=iB_ref,1,-1
    ik_loop=BS_blk(iB)%ik
@@ -57,6 +57,7 @@ subroutine BS_correlation_oscillators_free(iB_ref)
    if ( ik_now==ik_loop .and. ip_now==ip_loop .and. .not.l_BSE_minimize_memory ) cycle
    if (.not.allocated(BS_blk(iB)%O_c)) exit
    YAMBO_FREE(BS_blk(iB)%O_c)
+   YAMBO_FREE(BS_blk(iB)%O_table)
    YAMBO_FREE(BS_blk(iB)%O_table1)
    YAMBO_FREE(BS_blk(iB)%O_table2)
    YAMBO_FREE(BS_blk(iB)%kp_table)
