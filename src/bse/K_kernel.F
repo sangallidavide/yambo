@@ -29,9 +29,9 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use BS,            ONLY:BS_bands,BS_res_K_corr,BS_W,BS_W_is_diagonal,&
 &                        BS_res_K_exchange,BS_Block_size,&
 &                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
-&                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,TDDFT_oscillators_alloc,TDDFT_oscillators_free,&
-&                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,BS_correlation_oscillators_free,&
-&                        BS_exchange_oscillators_free,WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
+&                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
+&                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
+&                        WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
 &                        BS_nT_grps,BS_blks_free,l_BS_ares_from_res,&
 &                        l_BSE_minimize_memory,l_BSE_restart,l_BSE_kernel_complete,&
 &                        BS_perturbative_SOC,BS_K_cutoff,BS_max_val,BSE_L_kind,l_BS_magnons
@@ -39,7 +39,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:REP,OP_WR,RD,WR_CL,OP_APP,deliver_IO_error_message,WR
  use TDDFT,         ONLY:FXC_K_diagonal,F_xc_gspace,FXC_n_g_corr,io_BS_Fxc, &
-&                        FXC_mode,tddft_wf_t
+&                        FXC_mode,tddft_wf_t,l_Fxc_from_Vxc
  use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind,WF_exx_fraction
  use wave_func,     ONLY:WF,rho_map,rho_map_thresh,rho_map_size
@@ -88,7 +88,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  complex(SP),   external ::K_correlation_kernel_std,K_correlation_kernel_dir,TDDFT_ALDA_eh_space_G_kernel
  complex(SP),   external ::K_exchange_kernel_resonant,K_exchange_kernel_coupling
  !
- logical    :: l_bs_exch,l_bs_corr,l_bs_exch_wf_in_loop,l_matrix_init,&
+ logical    :: l_bs_exch,l_bs_corr,l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_matrix_init,&
  &             l_load_kernel,l_write_kernel,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum
  !
  ! I/O
@@ -195,6 +195,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if (BS_K_is_ALDA) then
    l_tddft_gsum=(index(FXC_mode,"G-")>0)
    l_tddft_rsum=(index(FXC_mode,"R-")>0)
+   l_bs_tddft_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload") ) .or. &
+   &                      ((iq> 1) .and.                       trim(PARALLEL_default_mode)=="KQmemory" )
    if( .not.(l_tddft_gsum.or.l_tddft_rsum) ) call error("Wrong FXC_mode:"//trim(FXC_mode))
    if(index(FXC_mode,"cut_GmGp")>0) then
      FXC_n_g_corr=BS_n_g_fxc
@@ -346,7 +348,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    YAMBO_ALLOC(tddft_wf%WF_symm2,(fft_size,n_spinor))
    !
    YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
-   if(l_BS_magnons .or. n_spinor==2) then
+   if(l_BS_magnons .or. n_spinor==2 .or. l_Fxc_from_Vxc) then
      YAMBO_ALLOC(V_xc,(fft_size,n_spin))
      V_xc=0._SP
    endif
@@ -358,7 +360,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    YAMBO_ALLOC(F_xc_mat,(fft_size,n_spin,n_spin,n_spin,n_spin))
    call Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
    YAMBO_FREE(F_xc)
-   if(l_BS_magnons .or. n_spinor==2) then
+   if(l_BS_magnons .or. n_spinor==2 .or. l_Fxc_from_Vxc) then
      YAMBO_FREE(V_xc)
    endif
    if(n_spin>1) then
@@ -429,7 +431,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  endif
 #endif
  !
- if ( (iHxc==1 .and. l_bs_exch_wf_in_loop) .or. (iHxc==2.and.l_bs_exch_wf_in_loop.and.l_tddft_gsum)) then
+ if ( (iHxc==1 .and. l_bs_exch_wf_in_loop) .or. (iHxc==2.and.l_bs_tddft_wf_in_loop.and.l_tddft_gsum)) then
    ! DS this is used only for iq==1
    call fft_setup(NG(1),NG(2),.true.)
  else
@@ -498,16 +500,27 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    ! Exchange oscillators
    !----------------------
    if(iHxc==1) then
-     call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
-     if (i_Tgrp_k/=i_Tgrp_p) call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop)
+     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
+       call BS_exchange_oscillators_alloc(i_Tgrp_k)
+       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
+     endif
+     if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_x) ) then
+       call BS_exchange_oscillators_alloc(i_Tgrp_p)
+       call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop)
+     endif
    endif
    !
    ! TDDFT oscillators
    !----------------------
    if(iHxc==2 .and. l_tddft_gsum) then
-     call TDDFT_oscillators_alloc(i_Tgrp_k,i_Tgrp_p)
-     call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop,tddft_wf)
-     call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop,tddft_wf,mode_now)
+     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_L) ) then
+       call TDDFT_oscillators_alloc_L(i_Tgrp_k)
+       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf)
+     endif
+     if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_R) ) then
+       call TDDFT_oscillators_alloc_R(i_Tgrp_p)
+       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
+     endif
    endif
    !
    ! Correlation oscillators
@@ -757,7 +770,10 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      call BS_exchange_oscillators_free(i_Tgrp_k)
    endif
    !
-   if(iHxc==2.and.l_tddft_gsum) call TDDFT_oscillators_free(i_Tgrp_k,i_Tgrp_p)
+   if(l_BSE_minimize_memory.and.iHxc==2.and.l_tddft_gsum) then
+     call TDDFT_oscillators_free_L(i_Tgrp_k)
+     call TDDFT_oscillators_free_R(i_Tgrp_p)
+   endif
    !
    if(iHxc==3) call BS_correlation_oscillators_free(i_block)
    !
@@ -788,6 +804,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      YAMBO_FREE(tddft_wf%rhotwr1)
      YAMBO_FREE(tddft_wf%rhotwr2)
    else if (l_tddft_gsum) then
+     call TDDFT_oscillators_free_L(BS_nT_grps)
+     call TDDFT_oscillators_free_R(BS_nT_grps)
      YAMBO_FREE(tddft_wf%rhotwr_DP)
    endif
    YAMBO_FREE(tddft_wf%WF_symm1)
@@ -813,7 +831,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    YAMBO_FREE(RIM_W)
  endif
  !
- if ( (iHxc==1 .and. l_bs_exch_wf_in_loop) .or. (iHxc==2.and.l_bs_exch_wf_in_loop.and.l_tddft_gsum)) then
+ if ( (iHxc==1 .and. l_bs_exch_wf_in_loop) .or. (iHxc==2.and.l_bs_tddft_wf_in_loop.and.l_tddft_gsum)) then
    call fft_free()
  else
    call WF_free(WF,keep_states_to_load=l_write_kernel)

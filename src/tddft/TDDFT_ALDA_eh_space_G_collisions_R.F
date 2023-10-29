@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop,tddft_wf,mode)
+subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode)
  !
  ! Calculates the F_xc scattering 
  !
@@ -29,7 +29,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
  !
  type(bz_samp),intent(in) :: Xk
  integer,      intent(in) :: iq,i_T_grp,NG(2)
- logical,      intent(in) :: l_bs_exch_wf_in_loop
+ logical,      intent(in) :: l_bs_tddft_wf_in_loop
  character(1), intent(in) :: mode
  type(tddft_wf_t), target, intent(inout) :: tddft_wf 
  ! 
@@ -92,7 +92,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
 #if defined(__NOTNOW) && ! defined(_CUDA)
    !$omp critical
 #endif
-   l_load_WFs= l_bs_exch_wf_in_loop .and. (NK(1)/=min(i_k,i_p).or.NK(2)/=max(i_k,i_p))
+   l_load_WFs= l_bs_tddft_wf_in_loop .and. (NK(1)/=min(i_k,i_p).or.NK(2)/=max(i_k,i_p))
    if (l_load_WFs) then
      if (NK(2)/=-1) call WF_free(WF,keep_fft=.true.,keep_states_to_load=.true.)
      NK=(/min(i_k,i_p),max(i_k,i_p)/)
@@ -171,6 +171,8 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_l
    endif
    !
  enddo
+ !
+ if(l_bs_tddft_wf_in_loop) call WF_free(WF,keep_fft=.true.,keep_states_to_load=.true.)
  !
  nullify(WF_symm1_p)
  nullify(WF_symm2_p)
