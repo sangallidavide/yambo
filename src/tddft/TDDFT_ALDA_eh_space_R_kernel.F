@@ -42,8 +42,9 @@ function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
  ! 
  ! Work Space
  !
- logical     :: l_use_rho_map,isp_loc(4),osp_loc(4)
- integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irho,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y
+ logical     :: l_use_rho_map
+ integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irho,irhotw,&
+ &              is_yambo,os_yambo,i_spinor_y,j_spinor_y,isp_loc(4),osp_loc(4)
  !
  complex(SP), pointer :: rhotwr1_p(:)
  complex(SP), pointer :: rhotwr2_p(:)
