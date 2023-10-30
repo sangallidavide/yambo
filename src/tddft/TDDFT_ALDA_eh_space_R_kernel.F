@@ -42,7 +42,7 @@ function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
  ! 
  ! Work Space
  !
- logical     :: l_use_rho_map
+ logical     :: l_use_rho_map,isp_loc(4),osp_loc(4)
  integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irho,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y
  !
  complex(SP), pointer :: rhotwr1_p(:)
@@ -85,12 +85,16 @@ function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
  endif
  !
  if (mode=="RES") then
-   call WF_apply_symm_cpu(isp,WF_symm1_p) 
-   call WF_apply_symm_cpu(osp,WF_symm2_p)
+   isp_loc=isp
+   osp_loc=osp
  else if (mode=="CPL") then
-   call WF_apply_symm_cpu(isp,WF_symm2_p)
-   call WF_apply_symm_cpu(osp,WF_symm1_p)
+   ! Same momenta, inverted band and spin indexes
+   isp_loc=(/osp(1),isp(2),isp(3),osp(4)/)
+   osp_loc=(/isp(1),osp(2),osp(3),isp(4)/)
  endif
+ !
+ call WF_apply_symm_cpu(isp_loc,WF_symm1_p)
+ call WF_apply_symm_cpu(osp_loc,WF_symm2_p)
  !
  if( n_spin==1 ) then
    if (     l_use_rho_map) rhotwr2_p(:)=F_xc_mat(rho_map(:),1,1,1,1)*WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))

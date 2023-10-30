@@ -86,8 +86,14 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    i_sp_c=BS_T_grp(i_T_grp)%table(i_T_el,4)
    i_sp_v=BS_T_grp(i_T_grp)%table(i_T_el,5)
    !
-   is=(/i_c,i_k,i_s,i_sp_c/)
-   os=(/i_v,i_p,i_sp,i_sp_v/)
+   if (mode=="R".or.mode=="A".or.mode=="F") then
+     is=(/i_c,i_k,i_s ,i_sp_c/)
+     os=(/i_v,i_p,i_sp,i_sp_v/)
+   else if (mode=="C".or.mode=="Q") then
+     ! Same momenta, inverted band and spin indexes
+     is=(/i_v,i_k,i_s ,i_sp_v/)
+     os=(/i_c,i_p,i_sp,i_sp_c/)
+   endif
    !
 #if defined(__NOTNOW) && ! defined(_CUDA)
    !$omp critical
@@ -106,13 +112,8 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    if ( (is(4)/=os(4)) .and. ((.not.l_BS_magnons).or. n_sp_pol==1) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    !
-   if (mode=="R".or.mode=="A".or.mode=="F") then
-     call WF_apply_symm_cpu(is,WF_symm1_p) 
-     call WF_apply_symm_cpu(os,WF_symm2_p)
-   else if (mode=="C".or.mode=="Q") then
-     call WF_apply_symm_cpu(is,WF_symm2_p)
-     call WF_apply_symm_cpu(os,WF_symm1_p)
-   endif
+   call WF_apply_symm_cpu(is,WF_symm1_p)
+   call WF_apply_symm_cpu(os,WF_symm2_p)
    !
    if( n_spin==1 ) then
      !
