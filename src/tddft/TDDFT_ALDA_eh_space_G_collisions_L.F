@@ -17,7 +17,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  use wave_func,      ONLY:rho_map_size,rho_map,WF
  use interfaces,     ONLY:WF_load,WF_free
  use R_lattice,      ONLY:qindx_X,bz_samp
- use BS,             ONLY:l_BS_magnons,TDDFT_oscillators_alloc,BS_T_grp,BS_bands
+ use BS,             ONLY:l_BS_magnons,BS_T_grp,BS_bands
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
