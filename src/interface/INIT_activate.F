@@ -301,8 +301,7 @@ subroutine INIT_activate()
 #endif
    !
    call initactivate(1,'ShiftedPaths')
-   ! DS: 'IntSol' to be replaced with proper variable for shifted Paths controller
-   call X_activate('Xs',(/'QpntsR','BndsRn','NGsBlk','GrFnTp','DmRnge','CGrdSp','EhEngy','LongDr','DrudeW','IntSol'/))
+   call X_activate('Xs',(/'QpntsR','BndsRn','NGsBlk','GrFnTp','DmRnge','CGrdSp','EhEngy','LongDr','DrudeW'/))
    call initactivate(1,'XTermKind')
    call initactivate(1,'XTermEn')
  endif

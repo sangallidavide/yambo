@@ -115,8 +115,13 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    if ( (is(4)/=os(4)) .and. ((.not.l_BS_magnons).or. n_sp_pol==1) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    !
-   call WF_apply_symm_cpu(is,WF_symm1_p)
-   call WF_apply_symm_cpu(os,WF_symm2_p)
+   if (l_bs_tddft_wf_in_loop) then
+     call WF_apply_symm_cpu(is,WF_k,WF_symm1_p)
+     call WF_apply_symm_cpu(os,WF_p,WF_symm2_p)
+   else
+     call WF_apply_symm_cpu(is,WF  ,WF_symm1_p)
+     call WF_apply_symm_cpu(os,WF  ,WF_symm2_p)
+   endif
    !
    if( n_spinor==1 ) then
      if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)

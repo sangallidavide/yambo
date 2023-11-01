@@ -827,9 +827,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
      des(6) ='Damping range'
      des(7) ='[o/o] Coarse grid controller'
      des(8) ='Total Energy steps'
-     ! DS: tmp coding. I'm adding here the control for the use 
-     !     of shifted grid. In the future a new variable can be used
-     des(9) ='MPA interpolation solver ("SK" shifted K, LA" linear algebra, "PT" Pade-Thiele)'
+     des(9) ='MPA interpolation solver ("LA" linear algebra, "PT" Pade-Thiele)'
      des(10)='[o/o] Memory Energy steps'
      des(11)='Drude plasmon'
      des(12)='[cc] Electric Field'
