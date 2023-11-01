@@ -122,7 +122,7 @@ subroutine INIT_activate()
  !
  !Setup
  !
- if (l_setup) call initactivate(1,'MaxGvecs Gthresh K_grids IkSigLim IkXLim NoDiagSC')
+ if (l_setup) call initactivate(1,'MaxGvecs Gthresh K_grids IkSigLim IkXLim NoDiagSC EvalMagn')
 #if defined  _ELPH 
  if (l_setup) call initactivate(1,'BSEscatt')
 #endif
@@ -167,7 +167,7 @@ subroutine INIT_activate()
    if(l_bs_fxc) call initactivate(1,'FxcGRLc FxcSVdig FxcRetarded')
    !
    ! ALDA/LRC Tddft
-   if (l_alda_fxc) call initactivate(1,'FxcGRLc FxcLibxc FxcCutScheme UseNLCC')
+   if (l_alda_fxc) call initactivate(1,'FxcGRLc FxcLibxc FxcMode UseNLCC')
    if (l_lrc_fxc)  call initactivate(1,'LRC_alpha LRC_beta')
    if (l_pf_fxc)   call initactivate(1,'PF_alpha')
    !
@@ -205,7 +205,7 @@ subroutine INIT_activate()
    !
    ! Dipoles & Gauges
    !
-   call initactivate(1,'DipApproach DipComputed DipPDirect ShiftedPaths Gauge AnHall')
+   call initactivate(1,'DipApproach DipComputed DipPDirect ShiftedPaths Gauge')
    !
  endif
  !
@@ -218,7 +218,7 @@ subroutine INIT_activate()
    if(l_td_hf.or.l_td_sex) call initactivate(1,'BSENGBlk')
    if(l_td_sex)            call initactivate(1,'WehDiag WehCpl')
    if(l_alda_fxc) then
-     call initactivate(1,'BSENGfxc FxcLibxc FxcCutScheme')
+     call initactivate(1,'BSENGfxc FxcLibxc FxcMode')
      if( (WF_exx_fraction>0.) .or. (WF_exx_screening>0.) ) call initactivate(1,'BSENGBlk WehDiag WehCpl')
    endif
    !
@@ -226,7 +226,8 @@ subroutine INIT_activate()
    ! Special case: The BSE equation is used to build up the BSE_Fxc kernel.
    if (l_bs_fxc) then
      call initactivate(1,'FxcGRLc FxcSVdig FxcRetarded FxcMEStps')
-     call initactivate(1,'BLongDir BEnRange BDmRange BEnSteps')
+     call initactivate(1,'BLongDir QPropDir BEnRange BDmRange BEnSteps')
+     !call initactivate(1,'EFieldDir QPropDir BEnRange BDmRange BEnSteps')
    endif
    !
  endif
@@ -242,7 +243,7 @@ subroutine INIT_activate()
    call INIT_RT_ctl_switch('R')
 #endif
    !
-   call initactivate(1,'NoCondSumRule MetDamp AnHall')
+   call initactivate(1,'NoCondSumRule MetDamp')
    !
 #if defined _NL || defined _SC
    call initactivate(1,'EvPolarization FrSndOrd')
@@ -264,7 +265,8 @@ subroutine INIT_activate()
  !
  if (l_optics.and.l_bse.and.l_bss.or.(l_bse.and.l_rpa_IP)) then
    !
-   call initactivate(1,'BEnRange BDmRange BDmERef BEnSteps BLongDir')
+   call initactivate(1,'BEnRange BDmRange BDmERef BEnSteps BLongDir QPropDir')
+   !call initactivate(1,'BEnRange BDmRange BDmERef BEnSteps EFieldDir QPropDir')
    call initactivate(1,'BSEprop BSEdips')
    !
    ! Special case: the BSE_Fxc kernel has been constructed
@@ -434,7 +436,7 @@ subroutine INIT_activate()
    !
  endif
  !
- if(l_alda_fxc.and.any((/l_em1s,l_em1d,l_acfdt,l_ppa,l_mpa,l_cohsex,l_gw0/)) ) call initactivate(1,'FxcGRLc')
+ if(l_alda_fxc.and.any((/l_em1s,l_em1d,l_acfdt,l_ppa,l_mpa,l_cohsex,l_gw0/)) ) call initactivate(1,'FxcGRLc RhoMapThresh')
  if( l_lrc_fxc.and.any((/l_em1s,l_em1d,l_acfdt,l_ppa,l_mpa,l_cohsex,l_gw0/)) ) call initactivate(1,'LRC_alpha LRC_beta')
  !
  ! El-Ph: Frohlich Hamiltonian

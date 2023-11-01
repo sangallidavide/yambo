@@ -29,7 +29,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use com,           ONLY:msg
  use matrix,        ONLY:PAR_matrix
  use stderr,        ONLY:intc
- use wave_func,     ONLY:WAVEs,wf_ng,wf_ng_1st_BZ
+ use wave_func,     ONLY:WAVEs,wf_ng,wf_ng_1st_BZ,WF_shifted_grids
  use parallel_m,    ONLY:PAR_COM_X_WORLD,PAR_COM_RL_INDEX,myid,PAR_COM_X_WORLD_RL_resolved
  use parallel_int,  ONLY:PP_redux_wait
  use openmp,        ONLY:OPENMP_update,n_threads_X,master_thread,OPENMP_set_threads,n_threads_X,&
@@ -45,7 +45,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc
  use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,X_lower_triangle_matrix_in_use,&
-&                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,shifted_grids,&
+&                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
 &                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states
  use X_m,           ONLY:rhotw_save_d
  use cuda_m,        ONLY:have_cuda
@@ -109,7 +109,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  force_bare_X_G=use_X_DbGd.or.allocated(Xen%W).or.allocated(Xen%GreenF)
  !
  ! DS: tmp code, to be changed
- shifted_grids= ( Xw%mpa_solver=="SK")
+ WF_shifted_grids= ( Xw%mpa_solver=="SK")
  !
  skip_WF_load= (iq==1.and.X%ng==1)
  !
@@ -131,7 +131,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  if (.not.skip_WF_load) then
    !
-   if (shifted_grids) then
+   if (WF_shifted_grids) then
      !
      X%cg_percentual=0._SP
      wf_ng=wf_ng_1st_bz
@@ -274,7 +274,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     if ( shifted_grids ) then
+     if ( WF_shifted_grids ) then
        ik_bz=X_poles_tab(i_cg,1)
        if ( .not.skip_WF_load .and. ik_bz/=ik_last ) then
          ik_last=ik_bz
@@ -330,7 +330,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      cycle
    endif
    !
-   if ( shifted_grids ) then
+   if ( WF_shifted_grids ) then
      ik_bz=X_poles_tab(i_bg,1)
      if( .not.skip_WF_load .and. ik_bz/=ik_last ) then
        call WF_free(WF_k)
@@ -504,7 +504,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  call elemental_collision_free(Xo_scatt)
  !
  call WF_free(WF_k)
- if(shifted_grids) call WF_free(WF_kmq)
+ if(WF_shifted_grids) call WF_free(WF_kmq)
  !
 #if !defined _CUDA && defined _FALSE
 !$omp end parallel

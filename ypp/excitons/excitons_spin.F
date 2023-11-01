@@ -189,8 +189,8 @@ subroutine excitons_spin(Xk,BS_R_right,BS_E,BS_E_degs)
      !
      inner_product=cZERO
      !
-     call WF_apply_symm((/n,  eh%ik_ibz,  eh%ik_sym,  eh%spin  /),WF_eh)
-     call WF_apply_symm((/n_p,eh_p%ik_ibz,eh_p%ik_sym,eh_p%spin/),WF_eh_p)
+     call WF_apply_symm((/n,  eh%ik_ibz,  eh%ik_sym,  eh%spin  /),WF,WF_eh)
+     call WF_apply_symm((/n_p,eh_p%ik_ibz,eh_p%ik_sym,eh_p%spin/),WF,WF_eh_p)
      !
      if (n_sp_pol==2) then
        inner_product(eh%spin,eh_p%spin)=Vstar_dot_V(fft_size,WF_eh(:,1),WF_eh_p(:,1))

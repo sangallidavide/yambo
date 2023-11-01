@@ -16,7 +16,8 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use DIPOLES,        ONLY:DIPOLE_t
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,REP
- use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_damp_reference,BSS_q0,BSS_uses_DbGd
+ use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_damp_reference,BSS_q0,BSS_uses_DbGd,&
+&                         BSS_Q_dir,BSS_E_dir
  use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_res_K_corr,BS_n_g_W,BS_cpl_K_corr,&
 &                         BS_Blocks_and_Transitions_free,BSqpts,l_BS_photolum
  use TDDFT,          ONLY:FXC_per_memstps,FXC_n_mem_freqs,FXC_is_retarded
@@ -24,7 +25,8 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use parallel_m,     ONLY:PAR_IND_WF_b_and_k,PAR_K_scheme,PARALLEL_default_mode
  use parallel_int,   ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use interfaces,     ONLY:eval_G_minus_G
- use R_lattice,      ONLY:bz_samp,qindx_B,qindx_X,qindx_B_max,qindx_free
+ use vec_operate,    ONLY:v_norm
+ use R_lattice,      ONLY:bz_samp,qindx_B,qindx_X,qindx_B_max,qindx_free,q0_def_norm
  !
 #include<memory.h>
  !
@@ -56,6 +58,12 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  ! Logicals initialization
  !=========================
  call K_driver_init("init",1,Ken,Xk)
+ !
+ ! q0 renormalization and field direction
+ !
+ BSS_E_dir(:) = BSS_E_dir(:)/v_norm(BSS_E_dir)
+ BSS_Q_dir(:) = BSS_Q_dir(:)/v_norm(BSS_Q_dir)
+ BSS_q0(:) = BSS_E_dir(:)*q0_def_norm
  !
  ! Energy points
  !===============
@@ -148,6 +156,8 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
      if (.not.iq==1) then
        iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
        iG_BSE =max(BS_n_g_exch,BS_n_g_W)
+       !iGo_BSE=4*maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
+       !iG_BSE =maxval((/BS_n_g_exch,BS_n_g_W,qindx_B_max/))
      endif
      !
      Max_G_m_G=eval_G_minus_G(iG_BSE,iGo_BSE)
@@ -186,7 +196,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !
    ! Wave Functions distribution 
    !=============================
-   call PARALLEL_WF_distribute(B_and_K_index=PAR_IND_WF_b_and_k,CLEAN_UP=.FALSE.)
+   call PARALLEL_WF_distribute(B_and_K_index=PAR_IND_WF_b_and_k,CLEAN_UP=iq==BS_q(1))
    call PARALLEL_WF_index( )
    !
    ! 0. The Dipoles 
@@ -199,7 +209,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !
    ! 2. The KERNEL
    ! ================
-   if (.not.l_rpa_IP) call K(iq,Ken,Xk,q,X_static_pp,Xw,W_bss)
+   if (.not.l_rpa_IP) call K_kernel(iq,Ken,Xk,q,X_static_pp,Xw,W_bss)
    !
    ! 3. The SOLVER
    ! =================
