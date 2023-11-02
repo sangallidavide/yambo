@@ -19,14 +19,14 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_damp_reference,BSS_q0,BSS_uses_DbGd,&
 &                         BSS_Q_dir,BSS_E_dir
  use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_res_K_corr,BS_n_g_W,BS_cpl_K_corr,&
-&                         BS_Blocks_and_Transitions_free,BSqpts,l_BS_photolum
+&                         BS_Blocks_and_Transitions_free,BSqpts,O_ng,l_BS_photolum
  use TDDFT,          ONLY:FXC_per_memstps,FXC_n_mem_freqs,FXC_is_retarded
  use drivers,        ONLY:l_rpa_IP,l_bs_fxc,l_bss
  use parallel_m,     ONLY:PAR_IND_WF_b_and_k,PAR_K_scheme,PARALLEL_default_mode
  use parallel_int,   ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use interfaces,     ONLY:eval_G_minus_G
  use vec_operate,    ONLY:v_norm
- use R_lattice,      ONLY:bz_samp,qindx_B,qindx_X,qindx_B_max,qindx_free,q0_def_norm
+ use R_lattice,      ONLY:bz_samp,qindx_B,qindx_X,qindx_B_max,qindx_free,G_m_G_maxval,q0_def_norm
  !
 #include<memory.h>
  !
@@ -153,10 +153,12 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
      !
      iG_BSE =BS_n_g_W
      iGo_BSE=qindx_B_max
-     if (.not.iq==1) iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
+     ! This needs be changed in case i_gW is redefined vi G_m_G
+     !if (.not.iq==1) iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
      !
      ! This is the size of the first dimension of the G_m_G table
      Max_G_m_G=eval_G_minus_G(iG_BSE,iGo_BSE)
+     O_ng=G_m_G_maxval
      !
      if (BS_n_g_W> Max_G_m_G ) then
        call warning (' W size reduced from '//trim(intc(BS_n_g_W))//' to '&
