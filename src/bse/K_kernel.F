@@ -17,7 +17,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use FFT_m,         ONLY:fft_size
  use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G,TDDFT_ALDA_eh_space_R_kernel
  use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,i_space_inv,sop_inv,sop_tab
- use R_lattice,     ONLY:G_m_G_maxval,qindx_X,bz_samp,g_rot,&
+ use R_lattice,     ONLY:qindx_X,bz_samp,g_rot,&
 &                        qindx_B,qindx_B_max,qindx_B_load,RIM_W,&
 &                        RIM_ng,RIM_W_is_diagonal,RIM_W_ng
  use com,           ONLY:msg
@@ -27,8 +27,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use interfaces,    ONLY:el_density_and_current
  use QP_m,          ONLY:QP_ng_Vxc
  use BS,            ONLY:BS_bands,BS_res_K_corr,BS_W,BS_W_is_diagonal,&
-&                        BS_res_K_exchange,BS_Block_size,&
-&                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
+&                        BS_res_K_exchange,BS_Block_size,BS_n_g_W,&
+&                        BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
 &                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
 &                        WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
@@ -147,19 +147,14 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  call section('=',trim(section_title))
  !
- ! Oscillators Setup
- !===================
- O_ng=1
- O_ng_exch =maxval(qindx_X(iq,:,2))
- O_ng_shift=O_ng_exch
- !
  l_bs_exch=(any((/BS_res_K_exchange,BS_cpl_K_exchange/)).or.l_bs_fxc).and..not.(l_BS_magnons.and.n_sp_pol==2)
  l_bs_corr=(any((/BS_res_K_corr,BS_cpl_K_corr/)) .and. .not.l_bs_fxc)
  !
+ ! Oscillators Setup
+ !===================
+ !
  if (l_bs_exch) then
-   !
-   call msg('r','[BSE] Exchange components ',BS_n_g_exch)
-   !
+   O_ng_exch =maxval(qindx_X(iq,:,2))
    ! I load the WFs for exachange in a loop in two cases
    ! - q=0 and more than one k-point.
    !   In this case it is the default, unless I specify workload in the parallel mode
@@ -170,40 +165,12 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !   loop over ic and iv (see related comment in K_Transiontion_setup.F) 
    l_bs_exch_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and..not.trim(PARALLEL_default_mode)=="workload") .or. &
    &                     ((iq> 1) .and.                      trim(PARALLEL_default_mode)=="KQmemory")
-   !
- endif
- !
- if (l_bs_corr) then
-   !
-   ! G_m_G maxval is the maximum G obtained from the following lines (see K_driver.F)
-   !iG_BSE =BS_n_g_W
-   !iGo_BSE=qindx_B_max
-   !if (.not.iq==1) iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
-   !Max_G_m_G=eval_G_minus_G(BS_nG_W,iGo_BSE)
-   ! Remember that it is different from Max_G_m_G
-   O_ng=G_m_G_maxval
-   !
-   ! < WARNIGN: 2021/03/19
-   ! The following can be safely removed with the new implementation 
-   ! However it maybe needed for internal consistency. Otherwise the output of many BSE tests could change
-   !! The cutoff on the non-hybrid part, BS_n_g_fxc, need to be lowered
-   !call fft_check_size(1,O_ng,BS_n_g_exch,"Kx")
-   !! Hybrid functional.
-   !if (BS_K_is_ALDA) call fft_check_size(1,O_ng,BS_n_g_fxc,"fxc")
-   ! WARNING >
-   if(iq/=1) O_ng_shift=max(qindx_B_max,O_ng_shift)
-   !
-   call parser('ImposeDirAlg',l_dir_alg)
-   !if(.not.l_dir_alg) l_dir_alg=(iq/=1 .and. n_spinor==2 .and. nsym>1) 
-   l_std_alg=.not.l_dir_alg
-   !
+   call msg('r','[BSE] Exchange components ',BS_n_g_exch)
  endif
  !
  if (BS_K_is_ALDA) then
    l_tddft_gsum=(index(FXC_mode,"G-")>0)
    l_tddft_rsum=(index(FXC_mode,"R-")>0)
-   l_bs_tddft_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload") ) .or. &
-   &                      ((iq> 1) .and.                       trim(PARALLEL_default_mode)=="KQmemory" )
    if( .not.(l_tddft_gsum.or.l_tddft_rsum) ) call error("Wrong FXC_mode:"//trim(FXC_mode))
    if(index(FXC_mode,"cut_GmGp")>0) then
      FXC_n_g_corr=BS_n_g_fxc
@@ -212,6 +179,16 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        call msg('s','[TDDFT] Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
      endif
    endif
+   l_bs_tddft_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload") ) .or. &
+   &                      ((iq> 1) .and.                       trim(PARALLEL_default_mode)=="KQmemory" )
+   call msg('r','[BSE] ALDA        components ',BS_n_g_fxc)
+ endif
+ !
+ if (l_bs_corr) then
+   O_ng_shift=qindx_B_max
+   call parser('ImposeDirAlg',l_dir_alg)
+   l_std_alg=.not.l_dir_alg
+   call msg('r','[BSE] Correlation components ',BS_n_g_W)
  endif
  !
  call K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
@@ -317,14 +294,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  if (iHxc==1) NG=(/BS_n_g_exch,O_ng_exch/)
  if (iHxc==2) NG=(/BS_n_g_fxc, 1/)
- ! < WARNIGN: 2021/03/19
- ! The following has been changed to the commented line 
- ! However the commented line maybe needed for internal consistency.
- ! Otherwise the output of many BSE tests could change
- if (iHxc==3) NG=(/O_ng,O_ng_shift/)
- !if (iHxc==3) NG(2)=O_ng_shift
- ! WARNING >
- !
+ if (iHxc==3) NG=(/BS_n_g_W,O_ng_shift/)
  !
  ! ALDA
  !======
