@@ -151,25 +151,12 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
      ! W/X RL size setup looking at the max index of G-G' 
      ! =========
      !
-     iGo_BSE=qindx_B_max
      iG_BSE =BS_n_g_W
-     if (.not.iq==1) then
-       iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
-       iG_BSE =max(BS_n_g_exch,BS_n_g_W)
-       !iGo_BSE=4*maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
-       !iG_BSE =maxval((/BS_n_g_exch,BS_n_g_W,qindx_B_max/))
-     endif
+     iGo_BSE=qindx_B_max
+     if (.not.iq==1) iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
      !
+     ! This is the size of the first dimension of the G_m_G table
      Max_G_m_G=eval_G_minus_G(iG_BSE,iGo_BSE)
-     !
-     if (.not.iq==1) then
-       if (BS_n_g_exch> Max_G_m_G ) then
-         call warning (' Exch size reduced from '//trim(intc(BS_n_g_exch))//' to '&
-&                        //trim(intc(Max_G_m_G))//' due to symmetry constraints')
-         BS_n_g_exch= Max_G_m_G
-         call msg('s','[BSE-exch] Exch size forced by symmetry to be ',BS_n_g_exch)
-       endif
-     endif
      !
      if (BS_n_g_W> Max_G_m_G ) then
        call warning (' W size reduced from '//trim(intc(BS_n_g_W))//' to '&

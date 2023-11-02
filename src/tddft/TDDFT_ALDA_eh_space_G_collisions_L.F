@@ -84,19 +84,19 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    is=(/i_c,i_k,i_s,i_sp_c/)
    os=(/i_v,i_p,i_sp,i_sp_v/)
    !
-#if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp critical
-#endif
    l_load_WFs= l_bs_tddft_wf_in_loop .and. (NK(1)/=min(i_k,i_p).or.NK(2)/=max(i_k,i_p))
    if (l_load_WFs) then
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp critical
+#endif
      if (NK(2)/=-1) call WF_free(WF,keep_fft=.true.,keep_states_to_load=.true.)
      NK=(/min(i_k,i_p),max(i_k,i_p)/)
      call WF_load(WF,NG(1),NG(2),BS_bands,NK,k_extrema_only=.true.,quiet=.true.,&
      &            space='R',title="Kernel exch",keep_states_to_load=.true.)
-   endif
 #if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp end critical
+     !$omp end critical
 #endif
+   endif
    !
    if ( (is(4)/=os(4)) .and. ((.not.l_BS_magnons).or. n_sp_pol==1) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")

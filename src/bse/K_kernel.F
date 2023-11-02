@@ -175,7 +175,14 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  if (l_bs_corr) then
    !
+   ! G_m_G maxval is the maximum G obtained from the following lines (see K_driver.F)
+   !iG_BSE =BS_n_g_W
+   !iGo_BSE=qindx_B_max
+   !if (.not.iq==1) iGo_BSE=maxval((/4*qindx_B_max,qindx_X(iq,:,2)/))
+   !Max_G_m_G=eval_G_minus_G(BS_nG_W,iGo_BSE)
+   ! Remember that it is different from Max_G_m_G
    O_ng=G_m_G_maxval
+   !
    ! < WARNIGN: 2021/03/19
    ! The following can be safely removed with the new implementation 
    ! However it maybe needed for internal consistency. Otherwise the output of many BSE tests could change
