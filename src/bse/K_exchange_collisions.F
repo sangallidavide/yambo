@@ -81,19 +81,15 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
    K_EXCH_collision%os=(/i_v,i_p,i_sp,i_sp_v/)
    K_EXCH_collision%qs=(/i_g_p,iq,1/)
    !
-#if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp critical 
-#endif
    l_load_WFs= l_bs_exch_wf_in_loop .and. (NK(1)/=min(i_k,i_p).or.NK(2)/=max(i_k,i_p))
    if (l_load_WFs) then
+     !$omp critical 
      if (NK(2)/=-1) call WF_free(WF,keep_fft=.true.,keep_states_to_load=.true.)
      NK=(/min(i_k,i_p),max(i_k,i_p)/)
      call WF_load(WF,NG(1),NG(2),BS_bands,NK,k_extrema_only=.true.,quiet=.true.,&
      &            space='R',title="Kernel exch",keep_states_to_load=.true.)
+     !$omp end critical
    endif
-#if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp end critical
-#endif
    !
    if (iq==1) then
      !
