@@ -500,26 +500,26 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    ! Exchange oscillators
    !----------------------
    if(iHxc==1) then
-     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
-       call BS_exchange_oscillators_alloc(i_Tgrp_k)
-       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
-     endif
      if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_x) ) then
        call BS_exchange_oscillators_alloc(i_Tgrp_p)
        call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop)
+     endif
+     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
+       call BS_exchange_oscillators_alloc(i_Tgrp_k)
+       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
      endif
    endif
    !
    ! TDDFT oscillators
    !----------------------
    if(iHxc==2 .and. l_tddft_gsum) then
-     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_L) ) then
-       call TDDFT_oscillators_alloc_L(i_Tgrp_k)
-       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf)
+     if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_L) ) then
+       call TDDFT_oscillators_alloc_L(i_Tgrp_p)
+       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_p,NG,l_bs_tddft_wf_in_loop,tddft_wf)
      endif
-     if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_R) ) then
-       call TDDFT_oscillators_alloc_R(i_Tgrp_p)
-       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
+     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_R) ) then
+       call TDDFT_oscillators_alloc_R(i_Tgrp_k)
+       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
      endif
    endif
    !
@@ -771,8 +771,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    endif
    !
    if(l_BSE_minimize_memory.and.iHxc==2.and.l_tddft_gsum) then
-     call TDDFT_oscillators_free_L(i_Tgrp_k)
-     call TDDFT_oscillators_free_R(i_Tgrp_p)
+     call TDDFT_oscillators_free_L(i_Tgrp_p)
+     call TDDFT_oscillators_free_R(i_Tgrp_k)
    endif
    !
    if(iHxc==3) call BS_correlation_oscillators_free(i_block)
