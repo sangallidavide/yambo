@@ -78,7 +78,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  integer ::     i_k_bz_last,i_p_bz_last,i_pmq_bz_last,i_kmq_bz_last, & 
 &               iq_W_bz_last,ig_W_last,iq_W_bz_mq_last,ig_W_mq_last,ig_W_final 
  !
- integer    :: i_block,O_ng_shift,O_ng_exch,iHxc,NG(2),NK(2),&
+ integer    :: i_block,O_ng_shift,O_ng_exch,O_ng_tddft,iHxc,NG(2),NK(2),&
 &              ig_kmq,ig_pmq,ig_W_mq,iq_W_bz_mq,iq_W_mq,iq_W_s_mq,&
 &              bands_to_load(2),is_k(4),os_k(4),is_p(4),os_p(4)
  complex(SP):: Co,H_x,H_c,BS_mat_tmp
@@ -169,6 +169,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  endif
  !
  if (BS_K_is_ALDA) then
+   O_ng_tddft =maxval(qindx_X(iq,:,2))
    l_tddft_gsum=(index(FXC_mode,"G-")>0)
    l_tddft_rsum=(index(FXC_mode,"R-")>0)
    if( .not.(l_tddft_gsum.or.l_tddft_rsum) ) call error("Wrong FXC_mode:"//trim(FXC_mode))
@@ -186,8 +187,15 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  if (l_bs_corr) then
    O_ng_shift=qindx_B_max
-   call parser('ImposeDirAlg',l_dir_alg)
-   l_std_alg=.not.l_dir_alg
+   if (iq/=1 .and. n_spinor==2 .and. nsym>1) then
+     ! Default is direct algorithm, unless imposed from input
+     call parser('ImposeStdAlg',l_std_alg)
+     l_dir_alg=.not.l_std_alg
+   else
+     ! Default is standard algorithm, unless imposed from input
+     call parser('ImposeDirAlg',l_dir_alg)
+     l_std_alg=.not.l_dir_alg
+   endif
    call msg('r','[BSE] Correlation components ',BS_n_g_W)
  endif
  !
@@ -293,8 +301,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if (l_bs_fxc) section_title='-BSK->Fxc-'//trim(intc(iHxc))
  !
  if (iHxc==1) NG=(/BS_n_g_exch,O_ng_exch/)
- if (iHxc==2) NG=(/BS_n_g_fxc, 1/)
- if (iHxc==3) NG=(/BS_n_g_W,O_ng_shift/)
+ if (iHxc==2) NG=(/BS_n_g_fxc ,O_ng_tddft/)
+ if (iHxc==3) NG=(/BS_n_g_W   ,O_ng_shift/)
  !
  ! ALDA
  !======
