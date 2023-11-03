@@ -28,7 +28,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use QP_m,          ONLY:QP_ng_Vxc
  use BS,            ONLY:BS_bands,BS_res_K_corr,BS_W,BS_W_is_diagonal,&
 &                        BS_res_K_exchange,BS_Block_size,BS_n_g_W,&
-&                        BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
+&                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
 &                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
 &                        WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
@@ -89,7 +89,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  complex(SP),   external ::K_exchange_kernel_resonant,K_exchange_kernel_coupling
  !
  logical    :: l_bs_exch,l_bs_corr,l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_matrix_init,&
- &             l_load_kernel,l_write_kernel,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum
+ &             l_load_kernel,l_write_kernel,l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum
  !
  ! I/O
  !
@@ -196,7 +196,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      call parser('ImposeDirAlg',l_dir_alg)
      l_std_alg=.not.l_dir_alg
    endif
-   call msg('r','[BSE] Correlation components ',BS_n_g_W)
+   call parser('SkipPhases',l_skip_phases)
+   call msg('r','[BSE] Correlation components ',(/BS_n_g_W,O_ng/))
  endif
  !
  if (BS_K_is_ALDA) call msg('r','[BSE] ALDA     components ',BS_n_g_fxc)
@@ -304,7 +305,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  if (iHxc==1) NG=(/BS_n_g_exch,O_ng_exch/)
  if (iHxc==2) NG=(/BS_n_g_fxc ,O_ng_tddft/)
- if (iHxc==3) NG=(/BS_n_g_W   ,O_ng_shift/)
+ if (iHxc==3) NG=(/O_ng       ,O_ng_shift/)
  !
  ! ALDA
  !======
@@ -434,7 +435,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !
    ! Wave Functions Phases
    !=======================
-   if (iHxc==3.and.l_std_alg) call K_WF_phases(Xk)
+   if (iHxc==3.and.l_std_alg) then
+     call K_WF_phases(Xk)
+     if (l_skip_phases) then
+       WF_phase=-99._SP
+       call msg('r','[BSE] WF phases ignored as imposed in input')
+     endif
+   endif
    !
  endif
  !
