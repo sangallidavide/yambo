@@ -36,7 +36,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  logical     :: l_use_rho_map,l_load_WFs
  integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irho,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
-&               i_sp,i_T_grp_p,is(4),os(4),NK(2)
+&               i_sp,i_T_grp_p,is(4),os(4),qs(3),NK(2)
  !
  complex(DP), pointer :: rhotwr_p(:)
  complex(SP), pointer :: WF_symm1_p(:,:)
@@ -83,6 +83,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    !
    is=(/i_c,i_k,i_s,i_sp_c/)
    os=(/i_v,i_p,i_sp,i_sp_v/)
+   qs=(/i_g_p,iq,1/)
    !
    l_load_WFs= l_bs_tddft_wf_in_loop .and. (NK(1)/=min(i_k,i_p).or.NK(2)/=max(i_k,i_p))
    if (l_load_WFs) then
@@ -107,7 +108,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    if( n_spinor==1 ) then
      if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      if(.not.l_use_rho_map) rhotwr_p(        : )=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-     call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,1,1))
+     call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,1,1))
    endif
    !
    if(n_spinor==2) then
@@ -120,7 +121,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
            if(.not.l_use_rho_map) ifft=        irho
            rhotwr_p(ifft)=cmplx(WF_symm1_p(irho,i_spinor)*conjg(WF_symm2_p(irho,j_spinor)),kind=DP)
          enddo
-         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,i_spinor,j_spinor))
+         call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,i_spinor,j_spinor))
          !
        enddo
      enddo
@@ -142,16 +143,18 @@ end subroutine TDDFT_ALDA_eh_space_G_collisions_L
 #include<dev_defs.h>                                                    
 !
 !
-subroutine perform_fft_3d(rhotw,O_x)
+subroutine perform_fft_3d(qs,rhotw,O_x)
  !
  use BS,             ONLY:BS_n_g_fxc
  use pars,           ONLY:cZERO,cONE,DP,SP,DP
+ use R_lattice,      ONLY:DEV_VAR(g_rot)
  use FFT_m,          ONLY:fftw_plan,cufft_plan,fft_size,fft_dim,DEV_VAR(fft_g_table)
  !
  implicit none
  !
  integer :: ig,iGo
  !
+ integer,     intent(in)  :: qs(3)
  complex(DP), intent(in)  :: rhotw(fft_size)
  complex(SP), intent(out) :: O_x(BS_n_g_fxc)
  !
@@ -182,7 +185,7 @@ subroutine perform_fft_3d(rhotw,O_x)
  !
 #endif
  !
- iGo=1
+ iGo=qs(1)
  !
 #if defined _FFTQE && !defined _USE_3D_FFT && !defined _CUDA_LOC
  !
