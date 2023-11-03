@@ -36,18 +36,18 @@ function TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc, BS_T_grp_ip, i_Tp, BS_T_grp_ik
  !
  integer     :: i_sp_xc,o_sp_xc,i_sp_c,i_sp_v
  !
- i_sp_c=BS_T_grp_ik%table(i_Tk,4)
- i_sp_v=BS_T_grp_ik%table(i_Tk,5)
+ i_sp_c=BS_T_grp_ip%table(i_Tp,4)
+ i_sp_v=BS_T_grp_ip%table(i_Tp,5)
  !
  if (n_spinor==1) then
-   H_x=Vstar_dot_V_omp(BS_n_g_fxc,BS_T_grp_ik%O_tddft_L(:,i_Tk,  1   ,  1   ),&
-   &                              BS_T_grp_ip%O_tddft_R(:,i_Tp,i_sp_c,i_sp_v) )
+   H_x=Vstar_dot_V_omp(BS_n_g_fxc,BS_T_grp_ip%O_tddft_L(:,i_Tp,  1   ,  1   ),&
+   &                              BS_T_grp_ik%O_tddft_R(:,i_Tk,i_sp_c,i_sp_v) )
  else if (n_spinor==2) then
    H_x=cZERO
    do i_sp_xc=1,n_spinor
      do o_sp_xc=1,n_spinor
-       H_x=H_x+Vstar_dot_V_omp(BS_n_g_fxc,BS_T_grp_ik%O_tddft_L(:,i_Tk,i_sp_xc,o_sp_xc),&
-       &                                  BS_T_grp_ip%O_tddft_R(:,i_Tp,i_sp_xc,o_sp_xc) )
+       H_x=H_x+Vstar_dot_V_omp(BS_n_g_fxc,BS_T_grp_ip%O_tddft_L(:,i_Tp,i_sp_xc,o_sp_xc),&
+       &                                  BS_T_grp_ik%O_tddft_R(:,i_Tk,i_sp_xc,o_sp_xc) )
      enddo
    enddo
  endif

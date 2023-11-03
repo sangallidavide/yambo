@@ -106,8 +106,8 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    call WF_apply_symm_cpu(os,WF_symm2_p)
    !
    if( n_spinor==1 ) then
-     if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-     if(.not.l_use_rho_map) rhotwr_p(        : )=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
+     if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1),kind=DP)
+     if(.not.l_use_rho_map) rhotwr_p(        : )=cmplx(conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1),kind=DP)
      call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,1,1))
    endif
    !
@@ -119,7 +119,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
          do irho=1,rho_map_size
            if(     l_use_rho_map) ifft=rho_map(irho)
            if(.not.l_use_rho_map) ifft=        irho
-           rhotwr_p(ifft)=cmplx(WF_symm1_p(irho,i_spinor)*conjg(WF_symm2_p(irho,j_spinor)),kind=DP)
+           rhotwr_p(ifft)=cmplx(conjg(WF_symm1_p(irho,i_spinor))*WF_symm2_p(irho,j_spinor),kind=DP)
          enddo
          call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_L(:,i_T_el,i_spinor,j_spinor))
          !
