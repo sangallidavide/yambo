@@ -774,7 +774,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      call TDDFT_oscillators_free_R(i_Tgrp_p)
    endif
    !
-   if(iHxc==3) call BS_correlation_oscillators_free(i_block)
+   if(iHxc==3) call BS_correlation_oscillators_free(i_block,l_std_alg)
    !
 100 if(l_write_kernel) then
 #if defined _PAR_IO
