@@ -17,7 +17,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use FFT_m,         ONLY:fft_size
  use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G,TDDFT_ALDA_eh_space_R_kernel
  use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,i_space_inv,sop_inv,sop_tab
- use R_lattice,     ONLY:G_m_G_maxval,qindx_X,bz_samp,g_rot,&
+ use R_lattice,     ONLY:qindx_X,bz_samp,g_rot,&
 &                        qindx_B,qindx_B_max,qindx_B_load,RIM_W,&
 &                        RIM_ng,RIM_W_is_diagonal,RIM_W_ng
  use com,           ONLY:msg
@@ -27,7 +27,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  use interfaces,    ONLY:el_density_and_current
  use QP_m,          ONLY:QP_ng_Vxc
  use BS,            ONLY:BS_bands,BS_res_K_corr,BS_W,BS_W_is_diagonal,&
-&                        BS_res_K_exchange,BS_Block_size,&
+&                        BS_res_K_exchange,BS_Block_size,BS_n_g_W,&
 &                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
 &                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
@@ -71,25 +71,26 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  integer ::     i_k_s,i_k_s_m1,i_p_s,i_k_bz,i_p_bz,i_k,i_p,i_kp_s,& 
 &               i_kmq_s,i_kmq_s_m1,i_pmq_s,i_kmq_bz,i_pmq_bz,i_kmq,i_pmq,i_kp_mq_s,& 
-&               i_Tk,i_Tp,i_Tgrp_k,i_Tgrp_p,I_Tgrp_k_st,I_Tgrp_p_st,H_pos(2),& 
+&               i_Tk,i_Tp,i_Tgrp_k,i_Tgrp_p,I_Tgrp_k_st,I_Tgrp_p_st,H_shift(2),H_pos(2),& 
 &               i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,iq_W_bz,iq_W_s,ig_W,& 
 &               i_kmq_t,i_pmq_t,i_k_bz_mem,i_kmq_bz_mem,qindx_tmp(2) 
  ! OMP LAST DEF
  integer ::     i_k_bz_last,i_p_bz_last,i_pmq_bz_last,i_kmq_bz_last, & 
 &               iq_W_bz_last,ig_W_last,iq_W_bz_mq_last,ig_W_mq_last,ig_W_final 
  !
- integer    :: i_block,O_ng_shift,O_ng_exch,iHxc,NG(2),NK(2),&
+ integer    :: i_block,O_ng_shift,O_ng_exch,O_ng_tddft,iHxc,NG(2),NK(2),&
 &              ig_kmq,ig_pmq,ig_W_mq,iq_W_bz_mq,iq_W_mq,iq_W_s_mq,&
 &              bands_to_load(2),is_k(4),os_k(4),is_p(4),os_p(4)
  complex(SP):: Co,H_x,H_c,BS_mat_tmp
  complex(SP):: sqrt_f_itk,sqrt_f_itp
  real(SP), allocatable :: BS_max_val_CPU(:),rho(:)
  !
- complex(SP),   external ::K_correlation_kernel_std,K_correlation_kernel_dir,TDDFT_ALDA_eh_space_G_kernel
+ complex(SP),   external ::K_correlation_kernel_std,K_correlation_kernel_dir
+ complex(SP),   external ::TDDFT_ALDA_eh_space_G_kernel
  complex(SP),   external ::K_exchange_kernel_resonant,K_exchange_kernel_coupling
  !
  logical    :: l_bs_exch,l_bs_corr,l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_matrix_init,&
- &             l_load_kernel,l_write_kernel,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum
+ &             l_load_kernel,l_write_kernel,l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum
  !
  ! I/O
  !
@@ -147,19 +148,14 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  call section('=',trim(section_title))
  !
- ! Oscillators Setup
- !===================
- O_ng=1
- O_ng_exch =maxval(qindx_X(iq,:,2))
- O_ng_shift=O_ng_exch
- !
  l_bs_exch=(any((/BS_res_K_exchange,BS_cpl_K_exchange/)).or.l_bs_fxc).and..not.(l_BS_magnons.and.n_sp_pol==2)
  l_bs_corr=(any((/BS_res_K_corr,BS_cpl_K_corr/)) .and. .not.l_bs_fxc)
  !
+ ! Oscillators Setup
+ !===================
+ !
  if (l_bs_exch) then
-   !
-   call msg('r','[BSE] Exchange components ',BS_n_g_exch)
-   !
+   O_ng_exch =maxval(qindx_X(iq,:,2))
    ! I load the WFs for exachange in a loop in two cases
    ! - q=0 and more than one k-point.
    !   In this case it is the default, unless I specify workload in the parallel mode
@@ -170,33 +166,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !   loop over ic and iv (see related comment in K_Transiontion_setup.F) 
    l_bs_exch_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and..not.trim(PARALLEL_default_mode)=="workload") .or. &
    &                     ((iq> 1) .and.                      trim(PARALLEL_default_mode)=="KQmemory")
-   !
- endif
- !
- if (l_bs_corr) then
-   !
-   O_ng=G_m_G_maxval
-   ! < WARNIGN: 2021/03/19
-   ! The following can be safely removed with the new implementation 
-   ! However it maybe needed for internal consistency. Otherwise the output of many BSE tests could change
-   !! The cutoff on the non-hybrid part, BS_n_g_fxc, need to be lowered
-   !call fft_check_size(1,O_ng,BS_n_g_exch,"Kx")
-   !! Hybrid functional.
-   !if (BS_K_is_ALDA) call fft_check_size(1,O_ng,BS_n_g_fxc,"fxc")
-   ! WARNING >
-   if(iq/=1) O_ng_shift=max(qindx_B_max,O_ng_shift)
-   !
-   call parser('ImposeDirAlg',l_dir_alg)
-   if(.not.l_dir_alg) l_dir_alg=(iq/=1 .and. n_spinor==2 .and. nsym>1) 
-   l_std_alg=.not.l_dir_alg
-   !
+   call msg('r','[BSE] Exchange components ',BS_n_g_exch)
  endif
  !
  if (BS_K_is_ALDA) then
+   O_ng_tddft =maxval(qindx_X(iq,:,2))
    l_tddft_gsum=(index(FXC_mode,"G-")>0)
    l_tddft_rsum=(index(FXC_mode,"R-")>0)
-   l_bs_tddft_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload") ) .or. &
-   &                      ((iq> 1) .and.                       trim(PARALLEL_default_mode)=="KQmemory" )
    if( .not.(l_tddft_gsum.or.l_tddft_rsum) ) call error("Wrong FXC_mode:"//trim(FXC_mode))
    if(index(FXC_mode,"cut_GmGp")>0) then
      FXC_n_g_corr=BS_n_g_fxc
@@ -205,6 +181,24 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        call msg('s','[TDDFT] Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
      endif
    endif
+   l_bs_tddft_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload") ) .or. &
+   &                      ((iq> 1) .and.                       trim(PARALLEL_default_mode)=="KQmemory" )
+   call msg('r','[BSE] ALDA        components ',BS_n_g_fxc)
+ endif
+ !
+ if (l_bs_corr) then
+   O_ng_shift=qindx_B_max
+   if (iq/=1 .and. n_spinor==2 .and. nsym>1) then
+     ! Default is direct algorithm, unless imposed from input
+     call parser('ImposeStdAlg',l_std_alg)
+     l_dir_alg=.not.l_std_alg
+   else
+     ! Default is standard algorithm, unless imposed from input
+     call parser('ImposeDirAlg',l_dir_alg)
+     l_std_alg=.not.l_dir_alg
+   endif
+   call parser('SkipPhases',l_skip_phases)
+   call msg('r','[BSE] Correlation components ',(/BS_n_g_W,O_ng/))
  endif
  !
  call K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
@@ -309,15 +303,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if (l_bs_fxc) section_title='-BSK->Fxc-'//trim(intc(iHxc))
  !
  if (iHxc==1) NG=(/BS_n_g_exch,O_ng_exch/)
- if (iHxc==2) NG=(/BS_n_g_fxc, 1/)
- ! < WARNIGN: 2021/03/19
- ! The following has been changed to the commented line 
- ! However the commented line maybe needed for internal consistency.
- ! Otherwise the output of many BSE tests could change
- if (iHxc==3) NG=(/O_ng,O_ng_shift/)
- !if (iHxc==3) NG(2)=O_ng_shift
- ! WARNING >
- !
+ if (iHxc==2) NG=(/BS_n_g_fxc ,O_ng_tddft/)
+ if (iHxc==3) NG=(/O_ng       ,O_ng_shift/)
  !
  ! ALDA
  !======
@@ -441,7 +428,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !
    ! Wave Functions Phases
    !=======================
-   if (iHxc==3.and.l_std_alg) call K_WF_phases(Xk)
+   if (iHxc==3.and.l_std_alg) then
+     call K_WF_phases(Xk)
+     if (l_skip_phases) then
+       WF_phase=-99._SP
+       call msg('r','[BSE] WF phases ignored as imposed in input')
+     endif
+   endif
    !
  endif
  !
@@ -463,6 +456,10 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !
    mode_now=BS_blk(i_block)%mode
    if (.not.l_BS_ares_from_res) mode_now="F"
+   !
+   H_shift=0
+   if(BS_blk(i_block)%mode=="C") H_shift(2)=BS_K_dim(1)
+   if(BS_blk(i_block)%mode=="A") H_shift(:)=BS_K_dim(1)
    !
    if (iHxc==1) l_write_kernel=.not.(BS_K_is_ALDA.or.l_bs_corr)
    if (iHxc==2) l_write_kernel=.not. l_bs_corr
@@ -515,7 +512,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    if(iHxc==2 .and. l_tddft_gsum) then
      if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_L) ) then
        call TDDFT_oscillators_alloc_L(i_Tgrp_k)
-       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf)
+       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
      endif
      if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_R) ) then
        call TDDFT_oscillators_alloc_R(i_Tgrp_p)
@@ -565,7 +562,9 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        &              (BS_T_grp(I_Tgrp_k)%i_res_ares-1)*BS_K_dim(1) 
        H_pos(2) = sum(BS_T_grp(I_Tgrp_p_st:I_Tgrp_p-1)%size)+i_Tp+& 
        &              (BS_T_grp(I_Tgrp_p)%i_res_ares-1)*BS_K_dim(1)
-       if (H_pos(1)>H_pos(2)) cycle 
+       !
+       if (H_pos(1)+H_shift(1)>H_pos(2)+H_shift(2)) cycle
+       if (l_BS_ares_from_res.and.H_pos(1)>H_pos(2)) cycle
        !
        i_k_bz  = BS_T_grp(i_Tgrp_k)%table(i_Tk,1) 
        i_p_bz  = BS_T_grp(i_Tgrp_p)%table(i_Tp,1) 
@@ -696,7 +695,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          ! ALDA
          if (iHxc==2) then
            if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_eh_space_R_kernel(is_k,os_k,is_p,os_p,tddft_wf,'RES')
-           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,               &
+           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,&
 &                                   BS_T_grp(i_Tgrp_p),i_Tp, BS_T_grp(i_Tgrp_k),i_Tk)
          endif
          !
@@ -724,7 +723,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          ! ALDA
          if (iHxc==2) then
            if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_eh_space_R_kernel(is_k,os_k,is_p,os_p,tddft_wf,'CPL')
-           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,              &
+           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,&
 &                                 BS_T_grp(i_Tgrp_p),i_Tp, BS_T_grp(i_Tgrp_k),i_Tk)
          endif
          !
@@ -766,8 +765,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &     BS_max_val_CPU(myid+1)=maxval( (/BS_max_val_CPU(myid+1),abs(BS_blk(i_block)%mat(:,:))/) )
    !
    if(l_BSE_minimize_memory.and.iHxc==1) then
-     call BS_exchange_oscillators_free(i_Tgrp_p)
      call BS_exchange_oscillators_free(i_Tgrp_k)
+     call BS_exchange_oscillators_free(i_Tgrp_p)
    endif
    !
    if(l_BSE_minimize_memory.and.iHxc==2.and.l_tddft_gsum) then

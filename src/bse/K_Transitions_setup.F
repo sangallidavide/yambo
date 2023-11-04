@@ -151,8 +151,7 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
              i_sp_v=i_sp_c
              !
              if (l_BS_magnons.and.n_sp_pol==2) then
-               if(i_res_ares==1.and.i_sp_c==1) cycle
-               if(i_res_ares==2.and.i_sp_c==2) cycle
+               if(i_sp_c==1) cycle
                i_sp_v=mod(i_sp_c,n_sp_pol)+1
              endif
              !
@@ -165,14 +164,12 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
                !
                ib1=iv 
                ib2=ic 
-               isp1=i_sp_v 
-               isp2=i_sp_c
                if (i_res_ares==2) then
                  ib1=ic 
                  ib2=iv 
-                 isp1=i_sp_c 
-                 isp2=i_sp_v
                endif
+               isp1=i_sp_v
+               isp2=i_sp_c
                !
                if (.not.K_Transition_check(Ken,Dip,iq,ik,ikp,ib1,ib2,isp2,i_res_ares,&
 &                                          E_eh,E_eh_SOC_corr,f_eh,f_eh_RES,f_eh_PL)) cycle

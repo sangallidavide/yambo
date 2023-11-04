@@ -9,17 +9,9 @@ function TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc, BS_T_grp_ip, i_Tp, BS_T_grp_ik
  !
  ! Calculates the F_xc scattering 
  !
- ! mode 1 
- !
  !  (ic(1),ik(1),is(1)) --<--:...:--<-- (ic(2),ik(2),is(2))
  !                              :Fxc:
  !  (iv(1),ik(3),is(3)) -->--:...:-->-- (iv(2),ik(4),is(4))
- !
- ! mode 2
- !
- !  (ic(1),ik(1),is(1)) --<--:...:--<-- (iv(2),ik(2),is(2))
- !                              :Fxc:
- !  (iv(1),ik(3),is(3)) -->--:...:-->-- (ic(2),ik(4),is(4))
  !
  use pars,           ONLY:SP,pi,cZERO
  use FFT_m,          ONLY:fft_size
@@ -46,8 +38,8 @@ function TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc, BS_T_grp_ip, i_Tp, BS_T_grp_ik
    H_x=cZERO
    do i_sp_xc=1,n_spinor
      do o_sp_xc=1,n_spinor
-       H_x=H_x+Vstar_dot_V_omp(BS_n_g_fxc,BS_T_grp_ik%O_tddft_L(:,i_Tk,i_sp_xc,o_sp_xc),&
-       &                                  BS_T_grp_ip%O_tddft_R(:,i_Tp,i_sp_xc,o_sp_xc) )
+       H_x=H_x+Vstar_dot_V_omp(BS_n_g_fxc,BS_T_grp_ik%O_tddft_R(:,i_Tk,i_sp_xc,o_sp_xc),&
+       &                                  BS_T_grp_ip%O_tddft_L(:,i_Tp,i_sp_xc,o_sp_xc) )
      enddo
    enddo
  endif
@@ -59,4 +51,4 @@ function TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc, BS_T_grp_ip, i_Tp, BS_T_grp_ik
  !
  H_x=H_x/4._SP/pi
  !
-end function
+end function TDDFT_ALDA_eh_space_G_kernel

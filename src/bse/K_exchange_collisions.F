@@ -89,25 +89,31 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
    l_load_WFs_k= l_bs_exch_wf_in_loop .and. i_k_ref/=i_k
    l_load_WFs_p= l_bs_exch_wf_in_loop .and. i_p_ref/=i_p
    !
-#if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp critical 
-#endif
    if (l_load_WFs_k) then
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp critical 
+#endif
      if (i_k_ref/=-1) call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
      i_k_ref=i_k
      call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
      &            space='R',title="Kernel exch (k)",keep_states_to_load=.true.)
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp end critical
+#endif
    endif
    !
    if (l_load_WFs_p) then
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp critical 
+#endif
      if (i_p_ref/=-1) call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
      i_p_ref=i_p
      call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
      &            space='R',title="Kernel exch (p)",keep_states_to_load=.true.)
-   endif
 #if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp end critical
+     !$omp end critical
 #endif
+   endif
    !
    if (iq==1) then
      !

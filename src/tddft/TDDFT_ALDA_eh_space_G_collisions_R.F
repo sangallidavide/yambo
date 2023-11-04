@@ -17,7 +17,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  use wave_func,      ONLY:rho_map_size,rho_map,WF,WAVEs
  use xc_functionals, ONLY:F_xc_mat
  use interfaces,     ONLY:WF_load,WF_free
- use R_lattice,      ONLY:qindx_X,bz_samp
+ use R_lattice,      ONLY:qindx_X,bz_samp,minus_G
  use BS,             ONLY:l_BS_magnons,BS_T_grp,BS_bands
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
  use timing_m,       ONLY:timing
@@ -43,7 +43,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irho,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y,&
 &               i_sp_loop,o_sp_loop
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
-&               i_k_ref,i_p_ref,i_sp,i_T_grp_p,is(4),os(4)
+&               i_k_ref,i_p_ref,i_sp,i_T_grp_p,is(4),os(4),qs(3)
  !
  complex(DP), pointer :: rhotwr_p(:)
  complex(SP), pointer :: WF_symm1_p(:,:)
@@ -91,37 +91,45 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    i_sp_c=BS_T_grp(i_T_grp)%table(i_T_el,4)
    i_sp_v=BS_T_grp(i_T_grp)%table(i_T_el,5)
    !
-   if (mode=="R".or.mode=="A".or.mode=="F") then
+   if (mode=="R".or.mode=="Q".or.mode=="F") then
      is=(/i_c,i_k,i_s ,i_sp_c/)
      os=(/i_v,i_p,i_sp,i_sp_v/)
-   else if (mode=="C".or.mode=="Q") then
-     ! Same momenta, inverted band and spin indexes
-     is=(/i_v,i_k,i_s ,i_sp_v/)
-     os=(/i_c,i_p,i_sp,i_sp_c/)
+     qs=(/i_g_p,iq,1/)
+   else if (mode=="A".or.mode=="C") then
+     ! Same momenta and spin indexes, inverted bands
+     is=(/i_v,i_k,i_s ,i_sp_c/)
+     os=(/i_c,i_p,i_sp,i_sp_v/)
+     qs=(/i_g_p,iq,1/)
    endif
    !
    l_load_WFs_k= l_bs_tddft_wf_in_loop .and. i_k_ref/=i_k
    l_load_WFs_p= l_bs_tddft_wf_in_loop .and. i_p_ref/=i_p
    !
-#if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp critical 
-#endif
    if (l_load_WFs_k) then
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp critical
+#endif
      if (i_k_ref/=-1) call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
      i_k_ref=i_k
      call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
      &            space='R',title="Kernel tddft (k)",keep_states_to_load=.true.)
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp end critical
+#endif
    endif
    !
    if (l_load_WFs_p) then
+#if defined(__NOTNOW) && ! defined(_CUDA)
+     !$omp critical
+#endif
      if (i_p_ref/=-1) call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
      i_p_ref=i_p
      call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
      &            space='R',title="Kernel tddft (p)",keep_states_to_load=.true.)
-   endif
 #if defined(__NOTNOW) && ! defined(_CUDA)
-   !$omp end critical
+     !$omp end critical
 #endif
+   endif
    !
    if ( (is(4)/=os(4)) .and. ((.not.l_BS_magnons).or. n_sp_pol==1) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
@@ -140,7 +148,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
      &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,1,1,1,1)*&
      &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-     call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,1,1))
+     call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,1,1))
      !
    endif
    !
@@ -160,7 +168,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
          &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
          if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,is_yambo,os_yambo,is(4),os(4))* &
          &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
-         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_sp_loop,o_sp_loop))
+         call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_sp_loop,o_sp_loop))
          !
        enddo
      enddo
@@ -184,7 +192,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
              enddo
            enddo
          enddo
-         call perform_fft_3d(rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_spinor,j_spinor))
+         call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_spinor,j_spinor))
          !
        enddo
      enddo
