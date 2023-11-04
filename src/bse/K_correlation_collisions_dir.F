@@ -397,6 +397,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
      implicit none
      integer, intent(in) :: iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki,i_s_ko
      !
+     if( O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol) ) return
      BS_blk(iB)%N_oscillators=BS_blk(iB)%N_oscillators+1 
      BS_blk(iB)%O_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
      O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=.true.
