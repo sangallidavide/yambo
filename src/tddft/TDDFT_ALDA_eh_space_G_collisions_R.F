@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode)
+subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf)
  !
  ! Calculates the F_xc scattering 
  !
@@ -30,7 +30,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  type(bz_samp),intent(in) :: Xk
  integer,      intent(in) :: iq,i_T_grp,NG(2)
  logical,      intent(in) :: l_bs_tddft_wf_in_loop
- character(1), intent(in) :: mode
  type(tddft_wf_t), target, intent(inout) :: tddft_wf 
  ! 
  ! Work Space
