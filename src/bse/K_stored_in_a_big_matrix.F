@@ -21,10 +21,10 @@ subroutine K_stored_in_a_big_matrix(i_BS_mat,iq,what)
  !   coupling block is a square     coupling block maybe rectangular     coupling block is a square       coupling block maybe rectangular
  !
  !       (r r r c c c)                    (r r r c c)                        (r r r c c c)                    (r r r c c)
- !       (- r r - c c)                    (- r r - c)                        (r r r c c c)                    (r r r c c)
- !       (- - r - - c)                    (- - r - -)                        (r r r c c c)                    (r r r c c)
- !       (- - - - - -)                    (q q q a a)                        (- - - - - -)                    (q q q a a)
- !       (- - - - - -)                    (- q q - a)                        (- - - - - -)                    (q q q a a)
+ !       (- r r - c c)                    (- r r c c)                        (r r r c c c)                    (r r r c c)
+ !       (- - r - - c)                    (- - r c c)                        (r r r c c c)                    (r r r c c)
+ !       (- - - - - -)                    (- - - a a)                        (- - - - - -)                    (q q q a a)
+ !       (- - - - - -)                    (- - - - a)                        (- - - - - -)                    (q q q a a)
  !       (- - - - - -)                                                       (- - - - - -)
  !
  use pars,           ONLY:SP,cI,cZERO,cONE

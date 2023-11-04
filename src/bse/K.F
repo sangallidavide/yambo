@@ -445,19 +445,19 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
        !
        if (BS_blk(i_block)%done(i_Tk,i_Tp)=="t".and.l_BSE_restart) cycle
        !
-       ! H_pos defines the position inside the full R/C/Q/A block,
-       ! but not inside the full BSE matrix
+       ! H_pos defines the position inside the full bse matrix when
+       ! l_BS_ares_from_res=.false.  Otherwise it defines the position
+       ! inside the R/C blocks
        !
        H_pos(1) = sum(BS_T_grp(I_Tgrp_k_st:I_Tgrp_k-1)%size)+i_Tk+& 
        &              (BS_T_grp(I_Tgrp_k)%i_res_ares-1)*BS_K_dim(1) 
        H_pos(2) = sum(BS_T_grp(I_Tgrp_p_st:I_Tgrp_p-1)%size)+i_Tp+& 
        &              (BS_T_grp(I_Tgrp_p)%i_res_ares-1)*BS_K_dim(1)
        !
-       ! When l_BS_ares_from_res=.false., also the upper part of the
-       ! anti-coupling and anti-resonant blocks are also computed
+       ! When l_BS_ares_from_res=.false., the full coupling block, and
+       ! the upper part of the anti-resonant blocks are also computed
        !
-       ! When l_BSE_kernel_full also the lower parts of all blocks are
-       ! computed
+       ! When l_BSE_kernel_full the full blocks are computed
        !
        if (H_pos(1)>H_pos(2) .and. .not. l_BSE_kernel_full) cycle
        !
