@@ -59,12 +59,7 @@ subroutine BS_correlation_oscillators_free(iB_ref,l_std_alg)
    &   .not.(l_BSE_minimize_memory.or.l_std_alg)) cycle
    if (.not.allocated(BS_blk(iB)%O_c)) exit
    YAMBO_FREE(BS_blk(iB)%O_c)
-   if ( allocated(BS_blk(iB)%O_table) ) then
-     YAMBO_FREE(BS_blk(iB)%O_table)
-   else
-     YAMBO_FREE(BS_blk(iB)%O_table1)
-     YAMBO_FREE(BS_blk(iB)%O_table2)
-   endif
+   YAMBO_FREE(BS_blk(iB)%O_table)
    YAMBO_FREE(BS_blk(iB)%kp_table)
 #ifdef _CUDA
    if (allocated(BS_blk(iB)%O_c_d)) deallocate(BS_blk(iB)%O_c_d)
