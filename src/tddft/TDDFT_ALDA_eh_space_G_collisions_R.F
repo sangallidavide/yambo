@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf)
+subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode)
  !
  ! Calculates the F_xc scattering 
  !
@@ -30,6 +30,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  type(bz_samp),intent(in) :: Xk
  integer,      intent(in) :: iq,i_T_grp,NG(2)
  logical,      intent(in) :: l_bs_tddft_wf_in_loop
+ character(1), intent(in) :: mode
  type(tddft_wf_t), target, intent(inout) :: tddft_wf 
  ! 
  ! Work Space
@@ -85,9 +86,16 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    i_sp_c=BS_T_grp(i_T_grp)%table(i_T_el,4)
    i_sp_v=BS_T_grp(i_T_grp)%table(i_T_el,5)
    !
-   is=(/i_c,i_k,i_s ,i_sp_c/)
-   os=(/i_v,i_p,i_sp,i_sp_v/)
-   qs=(/i_g_p,iq,1/)
+   if (mode=="R".or.mode=="Q".or.mode=="F") then
+     is=(/i_c,i_k,i_s ,i_sp_c/)
+     os=(/i_v,i_p,i_sp,i_sp_v/)
+     qs=(/i_g_p,iq,1/)
+   else if (mode=="A".or.mode=="C") then
+     ! Same momenta and spin indexes, inverted bands
+     is=(/i_v,i_k,i_s ,i_sp_c/)
+     os=(/i_c,i_p,i_sp,i_sp_v/)
+     qs=(/i_g_p,iq,1/)
+   endif
    !
    l_load_WFs= l_bs_tddft_wf_in_loop .and. (NK(1)/=min(i_k,i_p).or.NK(2)/=max(i_k,i_p))
    if (l_load_WFs) then
@@ -112,9 +120,9 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    if( n_spin==1 ) then
      !
      if (     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(F_xc_mat(rho_map(:),1,1,1,1)*&
-     &                                             conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1),kind=DP)
+     &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,1,1,1,1)*&
-     &                                             conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1),kind=DP)
+     &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
      call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,1,1))
      !
    endif
@@ -132,9 +140,9 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
          os_yambo=i_sp_loop
          ! To check/fix the spinorial version 
          if (     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(F_xc_mat(rho_map(:),is_yambo,os_yambo,is(4),os(4))* &
-         &                                             conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1),kind=DP)
+         &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
          if (.not.l_use_rho_map) rhotwr_p(        : )=cmplx(F_xc_mat(        : ,is_yambo,os_yambo,is(4),os(4))* &
-         &                                             conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1),kind=DP)
+         &                                             WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)
          call perform_fft_3d(qs,rhotwr_p,BS_T_grp(i_T_grp)%O_tddft_R(:,i_T_el,i_sp_loop,o_sp_loop))
          !
        enddo
@@ -155,7 +163,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
                if(.not.l_use_rho_map) ifft=        irho
                rhotwr_p(ifft)=rhotwr_p(ifft)+                        &
                & cmplx(F_xc_mat(ifft,i_spinor_y,j_spinor_y,ip_spinor,jp_spinor)* &
-               & conjg(WF_symm1_p(irho,ip_spinor))*WF_symm2_p(irho,jp_spinor),kind=DP)
+               & WF_symm1_p(irho,ip_spinor)*conjg(WF_symm2_p(irho,jp_spinor)),kind=DP)
              enddo
            enddo
          enddo
