@@ -501,26 +501,26 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    ! Exchange oscillators
    !----------------------
    if(iHxc==1) then
-     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
-       call BS_exchange_oscillators_alloc(i_Tgrp_k)
-       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
-     endif
      if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_x) ) then
        call BS_exchange_oscillators_alloc(i_Tgrp_p)
        call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop)
+     endif
+     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
+       call BS_exchange_oscillators_alloc(i_Tgrp_k)
+       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
      endif
    endif
    !
    ! TDDFT oscillators
    !----------------------
    if(iHxc==2 .and. l_tddft_gsum) then
-     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_L) ) then
-       call TDDFT_oscillators_alloc_L(i_Tgrp_k)
-       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
+     if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_L) ) then
+       call TDDFT_oscillators_alloc_L(i_Tgrp_p)
+       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_p,NG,l_bs_tddft_wf_in_loop,tddft_wf)
      endif
-     if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_R) ) then
-       call TDDFT_oscillators_alloc_R(i_Tgrp_p)
-       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
+     if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_R) ) then
+       call TDDFT_oscillators_alloc_R(i_Tgrp_k)
+       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
      endif
    endif
    !
@@ -566,8 +566,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        &              (BS_T_grp(I_Tgrp_k)%i_res_ares-1)*BS_K_dim(1) 
        H_pos(2) = sum(BS_T_grp(I_Tgrp_p_st:I_Tgrp_p-1)%size)+i_Tp+& 
        &              (BS_T_grp(I_Tgrp_p)%i_res_ares-1)*BS_K_dim(1)
-       !
-       if (H_pos(1)>H_pos(2)) cycle
+       if (H_pos(1)>H_pos(2)) cycle 
        !
        i_k_bz  = BS_T_grp(i_Tgrp_k)%table(i_Tk,1) 
        i_p_bz  = BS_T_grp(i_Tgrp_p)%table(i_Tp,1) 
@@ -698,7 +697,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          ! ALDA
          if (iHxc==2) then
            if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_eh_space_R_kernel(is_k,os_k,is_p,os_p,tddft_wf,'RES')
-           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,&
+           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,               &
 &                                   BS_T_grp(i_Tgrp_p),i_Tp, BS_T_grp(i_Tgrp_k),i_Tk)
          endif
          !
@@ -726,7 +725,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          ! ALDA
          if (iHxc==2) then
            if(l_tddft_rsum)     H_x=H_x+TDDFT_ALDA_eh_space_R_kernel(is_k,os_k,is_p,os_p,tddft_wf,'CPL')
-           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,&
+           if(l_tddft_gsum)     H_x=H_x+TDDFT_ALDA_eh_space_G_kernel(BS_n_g_fxc,              &
 &                                 BS_T_grp(i_Tgrp_p),i_Tp, BS_T_grp(i_Tgrp_k),i_Tk)
          endif
          !
@@ -768,13 +767,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &     BS_max_val_CPU(myid+1)=maxval( (/BS_max_val_CPU(myid+1),abs(BS_blk(i_block)%mat(:,:))/) )
    !
    if(l_BSE_minimize_memory.and.iHxc==1) then
-     call BS_exchange_oscillators_free(i_Tgrp_k)
      call BS_exchange_oscillators_free(i_Tgrp_p)
+     call BS_exchange_oscillators_free(i_Tgrp_k)
    endif
    !
    if(l_BSE_minimize_memory.and.iHxc==2.and.l_tddft_gsum) then
-     call TDDFT_oscillators_free_L(i_Tgrp_k)
-     call TDDFT_oscillators_free_R(i_Tgrp_p)
+     call TDDFT_oscillators_free_L(i_Tgrp_p)
+     call TDDFT_oscillators_free_R(i_Tgrp_k)
    endif
    !
    if(iHxc==3) call BS_correlation_oscillators_free(i_block,l_std_alg)
