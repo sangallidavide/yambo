@@ -410,10 +410,10 @@ subroutine QP_real_axis(X,Xen,Xk,en,k,q,qp,Xw,Dip,GW_iter)
        !
        if (l_life.and.i_or==0) cycle
        !
-       call scatter_Bamp(scattering_main,WF,WF)
+       call scatter_Bamp(scattering_main,WF,WF,.false.)
        scattering_prime%rhotw=scattering_main%rhotw
        !
-       if (any(scattering_main%is/=scattering_prime%is)) call scatter_Bamp(scattering_prime,WF,WF)
+       if (any(scattering_main%is/=scattering_prime%is)) call scatter_Bamp(scattering_prime,WF,WF,.false.)
        !
        if (l_life) then
          !

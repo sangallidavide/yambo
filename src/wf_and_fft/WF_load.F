@@ -22,7 +22,7 @@
 !! @param[out]      WF                  Wave-function object
 !
 subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,&
-&                  space,title,impose_free_and_alloc,force_WFo,keep_states_to_load,quiet)
+&                  space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,quiet)
  !
  ! Load and (eventually) FFTs the wavefunctions
  !
@@ -32,7 +32,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  use stderr,        ONLY:intc
  use electrons,     ONLY:nel,n_spinor,n_sp_pol
  use R_lattice,     ONLY:nkibz,k_pt,b
- use interfaces,    ONLY:WF_free
+ use interfaces,    ONLY:WF_free,WF_symm_kpoint_r,WF_symm_kpoint_g
  use FFT_m,         ONLY:fft_dim_loaded,fft_dim,fft_norm,fft_g_table,fft_size,&
 &                        fftw_plan,cufft_plan,fft_g_table_d
  use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,WF_buffer,rho_map,&
@@ -60,6 +60,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  character(*),optional :: space
  character(*),optional :: title
  logical,     optional :: impose_free_and_alloc
+ logical,     optional :: keep_fft
  logical,     optional :: force_WFo
  logical,     optional :: keep_states_to_load
  logical,     optional, intent(in) :: quiet
@@ -73,7 +74,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
 &                   npwk,N
  real(SP)         ::mndp,mxdp,xk(3)
  complex(SP)      ::c
- logical          ::loaded_bounds_ok,free_and_alloc,buffer_is_ok,clean_up_states,&
+ logical          ::loaded_bounds_ok,free_and_alloc,compute_fft,buffer_is_ok,clean_up_states,&
                     force_WFo_,QUIET_wf,SIZE_msg
  complex(SP), allocatable :: wf_disk(:,:,:)
  complex(DP), allocatable :: wf_DP(:)
@@ -109,6 +110,9 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
  sp_pol_to_load_=(/1,n_sp_pol/)
  if(present(sp_pol_to_load)) sp_pol_to_load_=sp_pol_to_load
+ !
+ compute_fft=.true.
+ if (present(keep_fft)) compute_fft=.not.keep_fft
  !
  ! Imposed Freeing and Allocating of WF's...
  !
@@ -191,7 +195,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
  ! First WF_free then fft_setup.
  !
- call WF_free(WF)
+ if(compute_fft) call WF_free(WF)
  !
  ! Save dimensions
  !
@@ -219,8 +223,10 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  ! In that case the fft_size must be defined for all cpu's of the density COMM otherwise
  ! the PP_redux in el_density hungs up forever
  !
- if (WF%space=='R') call fft_setup(iG_max,iGo_max,.false.)
- if (WF%space=="R") fft_dim_loaded=fft_dim
+ if (WF%space=="R") then
+   if (compute_fft) call fft_setup(iG_max,iGo_max,.false.)
+   fft_dim_loaded=fft_dim
+ endif
  !
  if (.not.WF%to_load) return
  !
@@ -477,8 +483,8 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
    if (WF%k(1)/=WF%k(2)) call error(" Loading of rotated WFs allowed only in single k-point mode")
    if (isymm>1) then
      call msg('rns', '[WF] Rotating the WFs')
-     if (WF%space=='R') call WF_symm_kpoint_r(WF%b,WF%k(1),isymm,WF,WF)
-     if (WF%space=='G') call WF_symm_kpoint_g(WF%b,WF%k(1),isymm,WF,WF)
+     if (WF%space=='R') call WF_symm_kpoint_r(WF%b,WF%k(1),isymm,WF)
+     if (WF%space=='G') call WF_symm_kpoint_g(WF%b,WF%k(1),isymm,WF)
    endif
  endif
  !

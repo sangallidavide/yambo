@@ -43,6 +43,8 @@ module wave_func
  !
  ! Using two shifted sets of WFs
  !
+ logical                :: WF_in_loop
+ logical                :: WF_load_bz
  logical                :: WF_shifted_grids
  !
  ! Bands block size

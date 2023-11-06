@@ -89,8 +89,9 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  complex(SP),   external ::TDDFT_ALDA_eh_space_G_kernel
  complex(SP),   external ::K_exchange_kernel_resonant,K_exchange_kernel_coupling
  !
- logical    :: l_bs_exch,l_bs_corr,l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_matrix_init,&
- &             l_load_kernel,l_write_kernel,l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum
+ logical    :: l_bs_exch,l_bs_corr,l_matrix_init,l_load_kernel,l_write_kernel,&
+ &             l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum,   &
+ &             l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_bs_corr_wf_in_loop
  !
  ! I/O
  !
@@ -156,16 +157,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  if (l_bs_exch) then
    O_ng_exch =maxval(qindx_X(iq,:,2))
-   ! I load the WFs for exachange in a loop in two cases
-   ! - q=0 and more than one k-point.
-   !   In this case it is the default, unless I specify workload in the parallel mode
-   ! - q/=0
-   !   In this case it is activated only if I specify KQmemory in the parallel mode
-   !   The code would work fine also in this case, however it would require continuous loading and unloading of WFs.
-   !   To avoid this one would need to move the loop over i_star in K_Transitions_setup outside the
-   !   loop over ic and iv (see related comment in K_Transiontion_setup.F) 
-   l_bs_exch_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and..not.trim(PARALLEL_default_mode)=="workload") .or. &
-   &                     ((iq> 1) .and.                      trim(PARALLEL_default_mode)=="KQmemory")
+   l_bs_exch_wf_in_loop= (Xk%nbz>=1).and..not.trim(PARALLEL_default_mode)=="workload"
    call msg('r','[BSE] Exchange components ',BS_n_g_exch)
  endif
  !
@@ -181,8 +173,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        call msg('s','[TDDFT] Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
      endif
    endif
-   l_bs_tddft_wf_in_loop= ((iq==1) .and. (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload") ) .or. &
-   &                      ((iq> 1) .and.                       trim(PARALLEL_default_mode)=="KQmemory" )
+   l_bs_tddft_wf_in_loop= (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload")
    call msg('r','[BSE] ALDA        components ',BS_n_g_fxc)
  endif
  !
@@ -198,6 +189,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      l_std_alg=.not.l_dir_alg
    endif
    call parser('SkipPhases',l_skip_phases)
+   l_bs_corr_wf_in_loop= (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload")
    call msg('r','[BSE] Correlation components ',(/BS_n_g_W,O_ng/))
  endif
  !
@@ -418,11 +410,14 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  endif
 #endif
  !
- if ( (iHxc==1 .and. l_bs_exch_wf_in_loop) .or. (iHxc==2.and.l_bs_tddft_wf_in_loop.and.l_tddft_gsum)) then
-   ! DS this is used only for iq==1
-   call fft_setup(NG(1),NG(2),.true.)
+ if ( (iHxc==1 .and. l_bs_exch_wf_in_loop)                   .or. &
+    & (iHxc==2 .and. l_bs_tddft_wf_in_loop.and.l_tddft_gsum) .or. &
+    & (iHxc==3 .and. l_bs_corr_wf_in_loop .and.l_dir_alg   ) ) then
+   call fft_setup(NG(1),NG(2),.false.)
  else
    !
+   ! Wave Functions global alloc
+   !=======================
    call WF_load(WF,NG(1),NG(2),BS_bands,(/1,Xk%nibz/),space='R',&
    &            title=trim(section_title),keep_states_to_load=.true.)
    !
@@ -520,7 +515,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !----------------------
    if(iHxc==3) then
      if (l_std_alg) call K_correlation_collisions_std(iq,i_block,qindx_ID_frag,Xk,q)
-     if (l_dir_alg) call K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
+     if (l_dir_alg) call K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_corr_wf_in_loop)
    endif
    !
    ! Transition Loops
@@ -825,7 +820,9 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    YAMBO_FREE(RIM_W)
  endif
  !
- if ( (iHxc==1 .and. l_bs_exch_wf_in_loop) .or. (iHxc==2.and.l_bs_tddft_wf_in_loop.and.l_tddft_gsum)) then
+ if ( (iHxc==1 .and. l_bs_exch_wf_in_loop)                   .or. &
+    & (iHxc==2 .and. l_bs_tddft_wf_in_loop.and.l_tddft_gsum) .or. &
+    & (iHxc==3 .and. l_bs_corr_wf_in_loop .and.l_dir_alg   ) ) then
    call fft_free()
  else
    call WF_free(WF,keep_states_to_load=l_write_kernel)

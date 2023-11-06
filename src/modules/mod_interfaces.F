@@ -173,7 +173,7 @@ module interfaces
    end function
    !
   subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,&
-&                    space,title,impose_free_and_alloc,force_WFo,keep_states_to_load,quiet)
+&                    space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,quiet)
      use wave_func,       ONLY:WAVEs
      integer               :: iG_in,iGo_max_in,bands_to_load(2),kpts_to_load(2)
      type(WAVEs)           :: WF
@@ -181,6 +181,7 @@ module interfaces
      character(*),optional :: space
      character(*),optional :: title
      logical     ,optional :: impose_free_and_alloc
+     logical,     optional :: keep_fft
      logical     ,optional :: force_WFo
      logical     ,optional :: keep_states_to_load
      logical,     optional, intent(in) :: quiet
@@ -290,6 +291,18 @@ module interfaces
      character(3),     intent(in)  :: mode
      type(tddft_wf_t), target, intent(inout) :: tddft_wf
    end function TDDFT_ALDA_eh_space_R_kernel
+   !
+   subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF)
+     use wave_func,     ONLY:WAVEs
+     integer,       intent(in)  :: ik,isymm,b_to_load(2)
+     type (WAVEs), target, intent(inout) :: WF
+   end subroutine WF_symm_kpoint_r
+   !
+   subroutine WF_symm_kpoint_g(b_to_load,ik,isymm,WF)
+     use wave_func,     ONLY:WAVEs
+     integer,       intent(in)  :: ik,isymm,b_to_load(2)
+     type (WAVEs), target, intent(inout) :: WF
+   end subroutine WF_symm_kpoint_g
    !
  end interface
  !

@@ -21,16 +21,17 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
+subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_corr_wf_in_loop)
  !
  ! This routine evaluates the correlation collisions:
  !
- !  <n k1_bz |exp iG.r|m k2_bz> = <n k1_ibz s1 |exp iG.r|m k2_ibz s2>  =
+ !  <n k1_bz |exp iG.r|m k2_bz> = <n k1_ibz s1 |exp iG.r|m k2_ibz s2>
  !
  use pars,          ONLY:SP
  use D_lattice,     ONLY:nsym
  use R_lattice,     ONLY:qindx_X,bz_samp
- use wave_func,     ONLY:WF
+ use interfaces,    ONLY:WF_load,WF_free
+ use wave_func,     ONLY:WAVEs,WF
  use BS,            ONLY:O_ng,BS_bands,BS_res_K_corr,BS_blk,&
 &                        K_CORR_collision,BS_T_grp,&
 &                        BS_K_dim,l_BS_ares_from_res
@@ -42,8 +43,13 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
 #include<dev_defs.h>
 #include<memory.h>
  !
- integer,       intent(in)  :: iq,i_block,qindx_ID_frag
+ integer,       intent(in)  :: iq,i_block,qindx_ID_frag,NG(2)
  type(bz_samp), intent(in)  :: Xk,q
+ logical,       intent(in)  :: l_bs_corr_wf_in_loop
+ !
+ ! New implementation. WFs are passed explicitly
+ !
+ type (WAVEs), target :: WF_k,WF_kmq,WF_p,WF_pmq
  !
  ! Work Space
  !
@@ -53,7 +59,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
 &               i_kmq_bz,i_pmq_bz,i_kmq,i_pmq,i_pmq_s,i_kp_mq_s,i_p_s,i_kmq_s,i_k_s,& 
 &               i_Tk,i_Tp,i_Tgrp_k,i_Tgrp_p,I_Tgrp_k_st,I_Tgrp_p_st,H_pos(2),& 
 &               i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,& 
-&               i_kmq_t,i_pmq_t 
+&               i_kmq_t,i_pmq_t,i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref 
  ! OMP LAST DEF
  integer ::     i_k_bz_last,i_p_bz_last,iq_W_bz_last,ig_W_last
  !
@@ -192,6 +198,38 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
    enddo
    !
  end select
+   !
+ if( l_bs_corr_wf_in_loop ) then
+   !
+   i_k_bz=BS_T_grp(i_Tgrp_k)%table(1,1)
+   i_k   =Xk%sstar(i_k_bz,1)
+   i_k_ref=i_k
+   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
+   &            space='R',title="Kernel corr (k)",keep_fft=.true.,&
+   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+   !
+   i_kmq_bz=qindx_X(iq,i_k_bz,1)
+   i_kmq   =Xk%sstar(i_p_bz,1)
+   i_kmq_ref=i_kmq
+   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),quiet=.true.,&
+   &            space='R',title="Kernel corr (kmq)",keep_fft=.true.,&
+   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+   !
+   i_p_bz=BS_T_grp(i_Tgrp_p)%table(1,1)
+   i_p   =Xk%sstar(i_p_bz,1)
+   i_p_ref=i_p
+   call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
+   &            space='R',title="Kernel corr (p)",keep_fft=.true.,&
+   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+   !
+   i_pmq_bz=qindx_X(iq,i_k_bz,1)
+   i_pmq   =Xk%sstar(i_p_bz,1)
+   i_pmq_ref=i_pmq
+   call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),quiet=.true.,&
+   &            space='R',title="Kernel corr (pmq)",keep_fft=.true.,&
+   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+   !
+ endif
  !
  call BS_correlation_oscillators_alloc(i_block)
  !
@@ -200,7 +238,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
  !$omp &          i_kp_s,i_s_star,H_pos,&
  !$omp &          i_kmq,i_pmq,i_kp_mq_s,i_pmq_s,i_s_mq_star,i_p_s,i_kmq_s,i_k_s,&
  !$omp &          i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,&
- !$omp &          i_kmq_t,i_pmq_t, &
+ !$omp &          i_kmq_t,i_pmq_t,i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref, &
  !$omp &          i_p_bz_last,i_k_bz_last,iq_W_bz_last,ig_W_last, &
  !$omp &          K_CORR_collision, i_s_collision)
 #endif
@@ -236,15 +274,71 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
        !
        if(i_k_sp_pol_c/=i_p_sp_pol_c) cycle
        !
-       ! v->v', i.e. k-q -> p-q=k-q_W-q transitions
-       !
-       call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,i_p_sp_pol_v,&
-       &                                   i_v_k,i_v_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
-       !
-       ! c->c', i.e. k -> p=k-q_w transitions
-       !
-       call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_c,&
-       &                        i_c_k,i_c_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
+       if( l_bs_corr_wf_in_loop ) then
+         !
+         if (i_k_ref/=i_k) then
+           i_k_ref=i_k
+           !$omp critical 
+           call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
+           &            space='R',title="Kernel corr (k)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         if (i_p_ref/=i_p) then
+           i_p_ref=i_p
+           !$omp critical 
+           call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
+           &            space='R',title="Kernel corr (p)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         if (i_kmq_ref/=i_kmq) then
+           i_kmq_ref=i_kmq
+           !$omp critical 
+           call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),quiet=.true.,&
+           &            space='R',title="Kernel corr (kmq)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         if (i_pmq_ref/=i_pmq) then
+           i_pmq_ref=i_pmq
+           !$omp critical 
+           call WF_free(WF_pmq,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),quiet=.true.,&
+           &            space='R',title="Kernel corr (pmq)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         ! v->v', i.e. k-q -> p-q=k-q_W-q transitions
+         !
+         call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,i_p_sp_pol_v,&
+         &                    WF_kmq,WF_pmq,i_v_k,i_v_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
+         !
+         ! c->c', i.e. k -> p=k-q_w transitions
+         !
+         call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_c,&
+         &                     WF_k,WF_p,i_c_k,i_c_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
+         !
+       else
+         !
+         ! v->v', i.e. k-q -> p-q=k-q_W-q transitions
+         !
+         call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,i_p_sp_pol_v,&
+         &                    WF,WF,i_v_k,i_v_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
+         !
+         ! c->c', i.e. k -> p=k-q_w transitions
+         !
+         call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_c,&
+         &                     WF,WF,i_c_k,i_c_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
+         !
+       endif
        !
      enddo
    enddo
@@ -276,15 +370,71 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
        !
        if(i_k_sp_pol_c/=i_p_sp_pol_v) cycle
        !
-       ! v->c', i.e. k-q -> p-q=k-q_W-q transitions
-       !
-       call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,&
-       &                        i_p_sp_pol_c,i_v_k,i_c_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
-       !
-       ! c->v', i.e. k -> p=k-q_W transitions
-       !
-       call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_v,&
-       &                        i_c_k,i_v_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
+       if( l_bs_corr_wf_in_loop ) then
+         !
+         if (i_k_ref/=i_k) then
+           i_k_ref=i_k
+           !$omp critical 
+           call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
+           &            space='R',title="Kernel corr (k)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         if (i_p_ref/=i_p) then
+           i_p_ref=i_p
+           !$omp critical 
+           call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
+           &            space='R',title="Kernel corr (p)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         if (i_kmq_ref/=i_kmq) then
+           i_kmq_ref=i_kmq
+           !$omp critical 
+           call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),quiet=.true.,&
+           &            space='R',title="Kernel corr (kmq)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         if (i_pmq_ref/=i_pmq) then
+           i_pmq_ref=i_pmq
+           !$omp critical 
+           call WF_free(WF_pmq,keep_fft=.true.,keep_states_to_load=.true.)
+           call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),quiet=.true.,&
+           &            space='R',title="Kernel corr (pmq)",keep_fft=.true.,&
+           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           !$omp end critical
+         endif
+         !
+         ! v->c', i.e. k-q -> p-q=k-q_W-q transitions
+         !
+         call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,i_p_sp_pol_c,&
+         &                    WF_kmq,WF_pmq,i_v_k,i_c_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
+         !
+         ! c->v', i.e. k -> p=k-q_W transitions
+         !
+         call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_v,&
+         &                    WF_k,WF_p,i_c_k,i_v_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
+         !
+       else
+         !
+         ! v->c', i.e. k-q -> p-q=k-q_W-q transitions
+         !
+         call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,i_p_sp_pol_c,&
+         &                    WF,WF,i_v_k,i_c_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
+         !
+         ! c->v', i.e. k -> p=k-q_W transitions
+         !
+         call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_v,&
+         &                    WF,WF,i_c_k,i_v_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
+         !
+       endif
        !
      enddo
    enddo
@@ -296,9 +446,17 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
  end select
  !
  call elemental_collision_free(K_CORR_collision)
+ !
 #if !defined _CUDA
  !$omp end parallel
 #endif
+ !
+ if( l_bs_corr_wf_in_loop ) then
+   call WF_free(WF_k,  keep_fft=.true.,keep_states_to_load=.true.)
+   call WF_free(WF_p,  keep_fft=.true.,keep_states_to_load=.true.)
+   call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
+   call WF_free(WF_pmq,keep_fft=.true.,keep_states_to_load=.true.)
+ endif
  !
  call timing('T_space CORR Osc.',OPR='stop')
  !
@@ -404,12 +562,14 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
      !
    end subroutine
    !
-   subroutine EVAL_collision(iB,iki,iko,ikit,ikot,i_sp_pol_i,i_sp_pol_o,ibi,ibo,iq_W_in,i_s_ki,i_s_ko,isc)
+   subroutine EVAL_collision(iB,iki,iko,ikit,ikot,i_sp_pol_i,i_sp_pol_o,&
+                              WF_ki,WF_ko,ibi,ibo,iq_W_in,i_s_ki,i_s_ko,isc)
      use collision_el,  ONLY:elemental_collision
      use deviceXlib_m,  ONLY:dev_memcpy
      implicit none
      integer,intent(in) :: iB,iki,iko,ikit,ikot,ibi,ibo,i_sp_pol_i,i_sp_pol_o,iq_W_in,i_s_ki,i_s_ko
      type(elemental_collision),intent(inout) :: isc
+     type (WAVEs), target,intent(in)   :: WF_ki,WF_ko
      integer :: iB_oscillator
      if (.not.O_todo_table(i_s_ki,i_s_ko,ikit,ikot,ibi,ibo,i_sp_pol_i)) return
      isc%is=(/ibi,iki,i_s_ki,i_sp_pol_i/)
@@ -418,7 +578,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
      !
      iB_oscillator = BS_blk(iB)%O_table(i_s_ki,i_s_ko,ikit,ikot,ibi,ibo,i_sp_pol_i)
      !
-     call DEV_SUB(scatter_Bamp)(isc,WF,WF)
+     call DEV_SUB(scatter_Bamp)(isc,WF_ki,WF_ko,.false.)
      call dev_memcpy( DEV_VAR(BS_blk(iB)%O_c)(:,iB_oscillator), DEV_VAR(isc%rhotw) )
      !
      O_todo_table(i_s_ki,i_s_ko,ikit,ikot,ibi,ibo,i_sp_pol_i) = .false.

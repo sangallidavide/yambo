@@ -10,7 +10,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  ! INCLUDED in: WF_apply_symm_incl.F 
  !
  use pars,          ONLY:SP
- use wave_func,     ONLY:WAVEs,rho_map_size,rho_map,WF_shifted_grids
+ use wave_func,     ONLY:WAVEs,rho_map_size,rho_map
  use FFT_m,         ONLY:DEV_VAR(fft_rot_r),fft_size
  use stderr,        ONLY:intc
  use parallel_m,    ONLY:myid
@@ -24,7 +24,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  !
  integer,     intent(in)  :: isc(4)
  type (WAVEs), target, intent(in)  :: WF
- complex(SP), intent(out) DEV_ATTR :: WF_symm(rho_map_size,n_spinor)
+ WF_RSPACE(SP), intent(out) DEV_ATTR :: WF_symm(rho_map_size,n_spinor)
  !
  WF_RSPACE(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
  integer  :: i_wf
@@ -41,7 +41,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  WF_p => DEV_VAR(WF%r)
  isymm = isc(3)
  !
- if(isymm==idt_index .or. WF_shifted_grids) then
+ if(isymm==idt_index) then
    !
    call dev_memcpy(WF_symm,cmplx(DEV_VAR(WF%r)(:,:,i_wf),kind=SP))
    return
@@ -59,7 +59,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
 #endif
    do ifft = 1, fft_size
      ifftp=DEV_VAR(fft_rot_r)(ifft,isymm)
-     WF_symm(ifft,1)=cmplx(WF_p(ifftp,1,i_wf),kind=SP)
+     WF_symm(ifft,1)=WF_p(ifftp,1,i_wf)
    enddo
    !
  endif
@@ -83,6 +83,8 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF,WF_symm)
  !
  ! take care of time reversal if needed
  !
+#if !defined _GAMMA_ONLY
  if(isc(3)>nsym/(i_time_rev+1)) call dev_conjg(WF_symm)
+#endif
  !
 end subroutine DEV_SUB_ALT(WF_apply_symm)

@@ -419,11 +419,11 @@ subroutine QP_mpa(X,Xk,E,k,q,qp,Xw,GW_iter)
        !
        isc%os(1)=ib
        !
-       call DEV_SUB(scatter_Bamp)(isc,WF,WF)
+       call DEV_SUB(scatter_Bamp)(isc,WF,WF,.false.)
        iscp%os=isc%os
        !
        if (any(isc%is/=iscp%is))  then
-         call scatter_Bamp(iscp,WF,WF)
+         call scatter_Bamp(iscp,WF,WF,.false.)
        else
          call dev_memcpy(iscp_rhotw_p, isc_rhotw_p)
        endif

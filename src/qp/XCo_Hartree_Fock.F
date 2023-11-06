@@ -221,12 +221,12 @@ subroutine XCo_Hartree_Fock(E,k,Xk,q,mode)
        isc%os(1)=jb
        iscp%os=isc%os
        !
-       call DEV_SUB(scatter_Bamp)(isc,WF,WF)
+       call DEV_SUB(scatter_Bamp)(isc,WF,WF,.false.)
        !
        ! Normal case, the density matrix is diagonal
        !
        if (isc%is(1)/=iscp%is(1)) then
-         call DEV_SUB(scatter_Bamp)(iscp,WF,WF)
+         call DEV_SUB(scatter_Bamp)(iscp,WF,WF,.false.)
        else
          ! iscp%rhotw = isc%rhotw
          call dev_memcpy(DEV_VAR(iscp%rhotw),DEV_VAR(isc%rhotw))

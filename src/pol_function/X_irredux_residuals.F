@@ -7,7 +7,8 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
+subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,ngshift, &
+&                  ik_last,ikp_last,WF_k,WF_kmq,WF_in_loop,skip_WF_load)
  !
  ! This subroutine must be kept thread-safe, since it is used
  ! inside an external omp loop.
@@ -23,9 +24,10 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
  use collision_el,  ONLY:elemental_collision
  use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,sop_inv
  use R_lattice,     ONLY:qindx_X,bz_samp,q0_def_norm
- use vec_operate,   ONLY:v_norm
+ use interfaces,    ONLY:WF_load,WF_free
+ use vec_operate,   ONLY:v_norm,sort
  use collision_el,  ONLY:elemental_collision
- use wave_func,     ONLY:WAVEs
+ use wave_func,     ONLY:WAVEs,WF_load_bz
  use deviceXlib_m
  !
 #include<dev_defs.h>
@@ -40,7 +42,9 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
  type(X_t),    intent(in) :: X
  type(DIPOLE_t),intent(in):: Dip
  type (WAVEs), target, intent(in) :: WF_k,WF_kmq
- integer,      intent(in) :: i_cg,iq
+ integer,      intent(in) :: i_cg,iq,ngshift
+ integer,      intent(inout) :: ik_last,ikp_last
+ logical,      intent(in) :: WF_in_loop,skip_WF_load
  complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
  !
  ! Work sapce
@@ -56,9 +60,9 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
  complex(SP)        :: ctmp,Z_
  real(SP)           :: Z_eh_occ
  logical            :: l_X_term_vv
- integer            :: ngrho
- integer            :: ig1,ig2,ik,is,ikp,ikbz,ikpbz,i_spin,&
-&                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,ROWS(2)
+ integer            :: ngrho,p_sorted(bare_grid_N(i_cg)),p_index(bare_grid_N(i_cg))
+ integer            :: ig1,ig2,ik,ik_new,is,is_wf,ikp,ikp_new,ikbz,ikpbz,i_spin,i_pole,&
+&                      isp,isp_wf,iv,ic,isave(4),s_poles,n_poles,i_bg,ig_start,ROWS(2)
  !
  ! DIPOLES
  !
@@ -67,23 +71,26 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
  field_dir=Dip%q0/v_norm(Dip%q0)*q0_def_norm
  !
  isave     = 0
- n_poles   = sum(bare_grid_N(1:i_cg-1))
+ s_poles   = sum(bare_grid_N(1:i_cg-1))
+ n_poles   =     bare_grid_N(i_cg)
  Xo_res    = cZERO
  Z_        = cONE
  !
  ngrho     = Xo_scatt%ngrho
  !
+ call sort(X_poles_tab(s_poles+1:s_poles+n_poles,1),p_sorted,indx=p_index)
+ !
  loop_bare_grid: do i_bg = 1,bare_grid_N(i_cg)
    !
-   n_poles=n_poles+1
+   i_pole=s_poles+p_index(i_bg)
    !
    ! Scattering geometry
    !---------------------
    !
-   ikbz   = X_poles_tab(n_poles,1)
-   iv     = X_poles_tab(n_poles,2)
-   ic     = X_poles_tab(n_poles,3)
-   i_spin = X_poles_tab(n_poles,4)
+   ikbz   = X_poles_tab(i_pole,1)
+   iv     = X_poles_tab(i_pole,2)
+   ic     = X_poles_tab(i_pole,3)
+   i_spin = X_poles_tab(i_pole,4)
    !
    ikpbz  = qindx_X(iq,ikbz,1)
    !
@@ -92,6 +99,36 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
    !
    ikp= Xk%sstar(ikpbz,1)
    isp= Xk%sstar(ikpbz,2)
+   !
+   if ( WF_in_loop .and. .not. skip_WF_load ) then
+     !
+     if(     WF_load_bz) then
+       ik_new=ikbz
+       ikp_new=ikpbz
+       is_wf=is
+       isp_wf=isp
+     else
+       ik_new =ik
+       ikp_new=ikp
+       is_wf=1
+       isp_wf=1
+     endif
+     !
+     if( ik_new/=ik_last ) then
+       ik_last=ik_new
+       call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
+       call WF_load(WF_k  ,ngrho,ngshift,X%ib,(/ik,ik/),isymm=is_wf,title='-X',keep_fft=.true.,&
+       &                            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+     endif
+     !
+     if( ikp_new/=ikp_last .and. iq>1) then
+       ikp_last=ikp_new
+       call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
+       call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikp,ikp/),isymm=isp_wf,title='-X',keep_fft=.true.,&
+       &                                impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+     endif
+     !
+   endif
    !
    l_X_term_vv = (l_X_terminator.and.ic>=X%ib(1).and.ic<=Xen%nbm(i_spin))
    !
@@ -129,7 +166,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
      if (.not. X%ng==1) then
        if ( any((/isave(1)/=iv,isave(2)/=ic,isave(3)/=ik,isave(4)/=i_spin/)) ) then
          !
-         call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq)
+         call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_k,WF_load_bz)
          !
          ! rhotw_save=Xo_scatt%rhotw
          call dev_memcpy(DEV_VAR(rhotw_save),DEV_VAR(Xo_scatt%rhotw))
@@ -138,18 +175,22 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
          !
        endif
        !
-       sop_inv_l=sop_inv(is)
-       !
-       !DEV_CUF kernel do(1) <<<*,*>>>
-       !DEV_OMP parallel do default(shared), private(ig1,ig2)
-       !
-       do ig1=2,X_ng
-         ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-         Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
-       enddo
-       !
-       if (is>nsym/(i_time_rev+1)) then
-         call dev_conjg( DEV_VAR(Xo_scatt%rhotw) )
+       if (.not.WF_load_bz) then
+	 !
+         sop_inv_l=sop_inv(is)
+         !
+         !DEV_CUF kernel do(1) <<<*,*>>>
+         !DEV_OMP parallel do default(shared), private(ig1,ig2)
+         !
+         do ig1=2,X_ng
+           ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
+           Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
+         enddo
+         !
+         if (is>nsym/(i_time_rev+1)) then
+           call dev_conjg( DEV_VAR(Xo_scatt%rhotw) )
+         endif
+	 !
        endif
        !
      endif
@@ -180,7 +221,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
      Xo_scatt%os=(/iv,ikp,isp,i_spin/)
      Xo_scatt%qs=(/qindx_X(iq,ikbz,2),iq,1/)
      !
-     call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq)
+     call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq,WF_load_bz)
      !
    endif
    !
@@ -220,24 +261,28 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,WF_k,WF_kmq)
      if (X%ng==1) then
        DEV_VAR(Xo_scatt%rhotw)(1)=cONE 
      else
-       call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_kmq)
+       call DEV_SUB(scatter_Bamp)(Xo_scatt,WF_k,WF_k,WF_load_bz)
      endif
      !
      ! symm
      ! rhotw_save=Xo_scatt%rhotw
      call dev_memcpy(DEV_VAR(rhotw_save),DEV_VAR(Xo_scatt%rhotw))
      !
-     sop_inv_l=sop_inv(is)
-     !
-     !DEV_CUF kernel do(1) <<<*,*>>>
-     !DEV_OMP parallel do default(shared), private(ig1,ig2)
-     do ig1=1,X_ng
-       ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-       Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
-     enddo
-     !
-     if (is>nsym/(i_time_rev+1)) then
-       call dev_conjg(DEV_VAR(Xo_scatt%rhotw))
+     if (.not.WF_load_bz) then
+       !
+       sop_inv_l=sop_inv(is)
+       !
+       !DEV_CUF kernel do(1) <<<*,*>>>
+       !DEV_OMP parallel do default(shared), private(ig1,ig2)
+       do ig1=1,X_ng
+         ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
+         Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
+       enddo
+       !
+       if (is>nsym/(i_time_rev+1)) then
+         call dev_conjg(DEV_VAR(Xo_scatt%rhotw))
+       endif
+       !
      endif
      !
 #ifdef _CUDA

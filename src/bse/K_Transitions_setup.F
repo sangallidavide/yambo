@@ -131,6 +131,13 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
        ! BS_T_grp and BS_nT_at_k are defined according to kpts while they
        ! should be defined according to both i_sp_pol and kpts
        !
+             do i_star=1,Xk%nstar(ik)
+               !
+               ikbz=Xk%k_table(ik,Xk%star(ik,i_star))
+               !
+               ikpbz=qindx_X(iq,ikbz,1)
+               ikp  =Xk%sstar(ikpbz,1)
+               !
        ! Moreover I cannot move iv,ic loops insiede i_sp_pol and i_star loops
        ! Otherwise runs with parallelization over eh fail
        ! Having i_star inside the loops is likely what makes the distribution
@@ -155,13 +162,6 @@ subroutine K_Transitions_setup(mode,iq,Ken,Xk,Dip)
                i_sp_v=mod(i_sp_c,n_sp_pol)+1
              endif
              !
-             do i_star=1,Xk%nstar(ik)
-               !
-               ikbz=Xk%k_table(ik,Xk%star(ik,i_star))
-               !
-               ikpbz=qindx_X(iq,ikbz,1)
-               ikp  =Xk%sstar(ikpbz,1)
-               !
                ib1=iv 
                ib2=ic 
                if (i_res_ares==2) then

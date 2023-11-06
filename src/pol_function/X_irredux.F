@@ -29,7 +29,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use com,           ONLY:msg
  use matrix,        ONLY:PAR_matrix
  use stderr,        ONLY:intc
- use wave_func,     ONLY:WAVEs,wf_ng,wf_ng_1st_BZ,WF_shifted_grids
+ use wave_func,     ONLY:WF,WAVEs,wf_ng,wf_ng_1st_BZ,WF_shifted_grids,WF_in_loop,WF_load_bz
  use parallel_m,    ONLY:PAR_COM_X_WORLD,PAR_COM_RL_INDEX,myid,PAR_COM_X_WORLD_RL_resolved,&
 &                        PARALLEL_default_mode
  use parallel_int,  ONLY:PP_redux_wait
@@ -70,14 +70,15 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! New implementation. WFs are passed explicitly
  !
- type (WAVEs), save, target :: WF_k,WF_kmq
+ type (WAVEs), target :: WF_k,WF_kmq
+ type (WAVEs), pointer:: WF1,WF2
  !
  ! Work Space
  !
  character(schlen)        :: live_t_string
- integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
+ integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,ngshift, &
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
-&                            is,ik_last,ik,ik_bz,ikmq,ikmq_bz
+&                            is,ik_last,ikmq_last,ik,ik_bz,ikmq,ikmq_bz
  logical                  :: force_bare_X_G,Drude_pole,skip_WF_load
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
@@ -104,12 +105,17 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  X_cols2=X_par%cols(2)
  PAR_COM_RL_INDEX_n_CPU=PAR_COM_RL_INDEX%n_CPU
  !
- !
  ! Logicals to use bare or Double Grid GF (no poles accumulation)
  !=======================================================
  force_bare_X_G=use_X_DbGd.or.allocated(Xen%W).or.allocated(Xen%GreenF)
+ WF_in_loop= ( index(PARALLEL_default_mode,"memory")>0 )
+ WF_load_bz= WF_in_loop .and. (force_bare_X_G.or.X%cg_percentual==0._SP)
  !
- WF_shifted_grids= ( index(PARALLEL_default_mode,"memory")>0 )
+ if (WF_shifted_grids) then
+   force_bare_X_G=.true.
+   WF_load_bz=.true.
+   WF_in_loop=.true.
+ endif
  !
  skip_WF_load= (iq==1.and.X%ng==1)
  !
@@ -129,24 +135,39 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  ngrho=X%ng
  if (l_X_terminator) ngrho=maxval(G_m_G)
  !
+ ngshift=maxval(qindx_X(:,:,2))
+ !
  if (.not.skip_WF_load) then
    !
-   if (WF_shifted_grids) then
+   if (WF_in_loop) then
      !
-     X%cg_percentual=0._SP
      wf_ng=wf_ng_1st_bz
      !
+     ikmq_bz =qindx_X(iq,1,1)
+     !
+     ikmq=Xk%sstar(ikmq_bz,1)
+     if (     WF_load_bz) is  =Xk%sstar(ikmq_bz,2)
+     if (.not.WF_load_bz) is  =Xk%sstar(ikmq_bz,2)
+     !
+     call WF_load(WF_k,  ngrho,ngshift,X%ib,(/1,1/),title='-X')
+     call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),isymm=is,title='-X')
+     !call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),title='-X',keep_fft=.true.,&
+     !&                       impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+     !
+     !
      ik_last=1
+     if(     WF_load_bz) ikmq_last=ikmq_bz
+     if(.not.WF_load_bz) ikmq_last=ikmq
      !
-     ikmq_bz =qindx_X(iq,ik_last,1)
-     ikmq    =Xk%sstar(ikmq_bz,1)
-     !
-     call WF_load(WF_k,  ngrho,maxval(qindx_X(:,:,2)),X%ib,(/1,1/),title='-X')
-     call WF_load(WF_kmq,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ikmq,ikmq/),title='-X')
+     WF1 => WF_k
+     WF2 => WF_kmq
      !
    else
      !
-     call WF_load(WF_k,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/1,Xk%nibz/),title='-X')
+     call WF_load(WF,ngrho,ngshift,X%ib,(/1,Xk%nibz/),title='-X')
+     !
+     WF1 => WF
+     WF2 => WF
      !
    endif
    !
@@ -245,7 +266,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
 #if !defined _CUDA && defined _FALSE
  !$omp parallel num_threads(n_out_threads) default(shared), &
  !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,ig_col,&
- !$omp &        ig1,ig_row_transp,iw,mutexid,ik,ik_bz,ikmq,ikmq_bz,ik_last,&
+ !$omp &        ig1,ig_row_transp,iw,mutexid,ik,ik_bz,ikmq,ikmq_bz,ikmq_last,ik_last,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
  !
@@ -274,26 +295,8 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     if ( WF_shifted_grids ) then
-       ik_bz=X_poles_tab(i_cg,1)
-       if ( .not.skip_WF_load .and. ik_bz/=ik_last ) then
-         ik_last=ik_bz
-         ikmq_bz =qindx_X(iq,ik_bz,1)
-         call WF_free(WF_k)
-         call WF_free(WF_kmq)
-         ik   = Xk%sstar(ik_bz,1)
-         is   = Xk%sstar(ik_bz,2)
-         call WF_load(WF_k  ,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ik,  ik  /),isymm=is,title='-X')
-         ikmq = Xk%sstar(ikmq_bz,1)
-         is   = Xk%sstar(ikmq_bz,2)
-         call WF_load(WF_kmq,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ikmq,ikmq/),isymm=is,title='-X')
-       endif
-       !
-       call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq)
-     else
-       call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_k)
-     endif
-     !
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,ngshift, &
+     &                        ik_last,ikmq_last,WF1,WF2,WF_in_loop,skip_WF_load)
      !
      ctmp = DEV_VAR(Xo_res)(1,1)
      !
@@ -330,27 +333,10 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      cycle
    endif
    !
-   if ( WF_shifted_grids ) then
-     ik_bz=X_poles_tab(i_bg,1)
-     if( .not.skip_WF_load .and. ik_bz/=ik_last ) then
-       call WF_free(WF_k)
-       call WF_free(WF_kmq)
-       ik   = Xk%sstar(ik_bz,1)
-       is   = 1!Xk%sstar(ik_bz,2)
-       call WF_load(WF_k  ,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ik,  ik  /),isymm=is,title='-X',keep_states_to_load=.TRUE.)       
-       ikmq_bz =qindx_X(iq,ik_bz,1)
-       ikmq = Xk%sstar(ikmq_bz,1)
-       is   = 1!Xk%sstar(ikmq_bz,2)
-       call WF_load(WF_kmq,ngrho,maxval(qindx_X(:,:,2)),X%ib,(/ikmq,ikmq/),isymm=is,title='-X',keep_states_to_load=.TRUE.)
-       ik_last=ik_bz
-     endif
-     !
-     ! 1) First compute the residuals
-     !================================
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_kmq)
-   else
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,WF_k,WF_k)
-   endif
+   ! 1) First compute the residuals
+   !================================
+   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,DEV_VAR(Xo_res),Xo_scatt,ngshift, &
+   &                        ik_last,ikmq_last,WF1,WF2,WF_in_loop,skip_WF_load)
    !
    ! 2) Then the frequency dependent term
    !=======================================
@@ -503,8 +489,12 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  YAMBO_FREE(rhotw_save_d)
  call elemental_collision_free(Xo_scatt)
  !
- call WF_free(WF_k)
- if(WF_shifted_grids) call WF_free(WF_kmq)
+ if(WF_in_loop) then
+   call WF_free(WF_k)
+   call WF_free(WF_kmq)
+ else
+   call WF_free(WF)
+ endif
  !
 #if !defined _CUDA && defined _FALSE
 !$omp end parallel

@@ -51,14 +51,28 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  !
  call timing('T_space ALDA Osc.',OPR='start')
  !
- ! Allocate
- !
+ ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
  rhotwr_p   => tddft_wf%rhotwr_DP
  !
- ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  l_use_rho_map=allocated(rho_map)
+ !
+ if( l_bs_tddft_wf_in_loop ) then
+   !
+   i_k_bz=BS_T_grp(i_T_grp)%table(1,1)
+   i_k   =Xk%sstar(i_k_bz,1)
+   i_k_ref=i_k
+   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
+   &            space='R',title="Kernel tddft (k)",keep_states_to_load=.true.)
+   !
+   i_p_bz=qindx_X(iq,i_k_bz,1)
+   i_p   =Xk%sstar(i_p_bz,1)
+   i_p_ref=i_p
+   call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
+   &            space='R',title="Kernel tddft (p)",keep_states_to_load=.true.)
+   !
+ endif
  !
 #if defined(__NOTNOW) && ! defined(_CUDA)
  !$omp parallel default(shared), private( K_EXCH_collision, &
@@ -106,11 +120,11 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    l_load_WFs_p= l_bs_tddft_wf_in_loop .and. i_p_ref/=i_p
    !
    if (l_load_WFs_k) then
+     i_k_ref=i_k
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical
 #endif
-     if (i_k_ref/=-1) call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-     i_k_ref=i_k
+     call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
      call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
      &            space='R',title="Kernel tddft (k)",keep_states_to_load=.true.)
 #if defined(__NOTNOW) && ! defined(_CUDA)
@@ -119,11 +133,11 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    endif
    !
    if (l_load_WFs_p) then
+     i_p_ref=i_p
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical
 #endif
-     if (i_p_ref/=-1) call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
-     i_p_ref=i_p
+     call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
      call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
      &            space='R',title="Kernel tddft (p)",keep_states_to_load=.true.)
 #if defined(__NOTNOW) && ! defined(_CUDA)

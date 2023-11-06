@@ -3,9 +3,9 @@
 !
 ! Copyright (C) 2006 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AMDSAF
+! Authors (see AUTHORS file for details): AM DS AF
 !
-subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok)
+subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
  !
  ! rhotw(G)=<ib ik_is i_sp| e^[I(RsG-G0).r] | ob ok_os o_sp>   
  !
@@ -31,13 +31,14 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok)
  !
  implicit none
  !
- type(elemental_collision), target::isc
+ type(elemental_collision), target, intent(inout) :: isc
  !
  type (WAVEs), target, intent(in) :: WF_ik,WF_ok
+ logical, intent(in)              :: WF_load_bz
  !
  integer :: qs,iGo
  integer :: ig,ir,isc_ngrho,ib,ibp
- complex(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
+ WF_RSPACE(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
  complex(SP), pointer DEV_ATTR :: rhotw_p(:)
  complex(DP), pointer DEV_ATTR :: rho_tw_rs_p(:)
  logical :: have_cuda_loc
@@ -45,8 +46,6 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok)
  ! define pointers to enable CUF kernels
  ! when compiling using CUDA-Fortran
  !
- WF_symm_i_p => DEV_VAR(isc%WF_symm_i)
- WF_symm_o_p => DEV_VAR(isc%WF_symm_o)
  rho_tw_rs_p => DEV_VAR(isc%rho_tw_rs)
  rhotw_p     => DEV_VAR(isc%rhotw)
  !
@@ -55,11 +54,23 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok)
  have_cuda_loc=.true.
 #endif
  !
- ! |ib ik_is i_sp>
- call WF_apply_symm(isc%is,WF_ik,WF_symm_i_p)
- !
- ! | ob ok_os o_sp>   
- call WF_apply_symm(isc%os,WF_ok,WF_symm_o_p)
+ if (WF_load_bz) then
+   !
+   WF_symm_i_p => DEV_VAR(WF_ik%r)
+   WF_symm_o_p => DEV_VAR(WF_ok%r)
+   !
+ else
+   !
+   WF_symm_i_p => DEV_VAR(isc%WF_symm_i)
+   WF_symm_o_p => DEV_VAR(isc%WF_symm_o)
+   !
+   ! |ib ik_is i_sp>
+   call WF_apply_symm(isc%is,WF_ik,WF_symm_i_p)
+   !
+   ! | ob ok_os o_sp>   
+   call WF_apply_symm(isc%os,WF_ok,WF_symm_o_p)
+   !
+ endif
  !
  ! \tilde{\rho} in Real Space
  !
@@ -70,13 +81,13 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok)
  !$omp parallel default(shared), private(ir)
  !$omp do
  do ir = 1, fft_size
-   isc%rho_tw_rs(ir) = cmplx(isc%WF_symm_i(ir,1)*conjg(isc%WF_symm_o(ir,1)),kind=DP)
+   isc%rho_tw_rs(ir) = cmplx(WF_symm_i(ir,1)*conjg(WF_symm_o(ir,1)),kind=DP)
  enddo
  !
  if (n_spinor==2) then
    !$omp do
    do ir = 1, fft_size
-     isc%rho_tw_rs(ir) = isc%rho_tw_rs(ir)+cmplx(isc%WF_symm_i(ir,2)*conjg(isc%WF_symm_o(ir,2)),kind=DP)
+     isc%rho_tw_rs(ir) = isc%rho_tw_rs(ir)+cmplx(WF_symm_i(ir,2)*conjg(WF_symm_o(ir,2)),kind=DP)
    enddo
  endif
  !$omp end parallel

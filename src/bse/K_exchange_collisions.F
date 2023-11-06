@@ -16,7 +16,6 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
  use R_lattice,      ONLY:g_rot,g_rot_d,qindx_X,bz_samp
  use stderr,         ONLY:STRING_match
  use electrons,      ONLY:n_sp_pol
- use wave_func,      ONLY:WF
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
  use collision_el,   ONLY:elemental_collision_free,elemental_collision_alloc
@@ -45,6 +44,22 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
  !
  call timing('T_space EXX Osc.',OPR='start')
  !
+ if( l_bs_exch_wf_in_loop ) then
+   !
+   i_k_bz=BS_T_grp(i_T_grp)%table(1,1)
+   i_k   =Xk%sstar(i_k_bz,1)
+   i_k_ref=i_k
+   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
+   &            space='R',title="Kernel exch (k)",keep_states_to_load=.true.)
+   !
+   i_p_bz=qindx_X(iq,i_k_bz,1)
+   i_p   =Xk%sstar(i_p_bz,1)
+   i_p_ref=i_p
+   call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
+   &            space='R',title="Kernel exch (p)",keep_states_to_load=.true.)
+   !
+ endif
+ !
  ! Allocate
  !
  call elemental_collision_free(K_EXCH_collision)
@@ -63,8 +78,6 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
 #if defined(__NOTNOW) && ! defined(_CUDA)
  !$omp do schedule(dynamic)
 #endif
- i_k_ref=-1
- i_p_ref=-1
  T_loop: do i_T_el=1,BS_T_grp(i_T_grp)%size
    !
    i_k_bz=BS_T_grp(i_T_grp)%table(i_T_el,1)
@@ -90,11 +103,11 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
    l_load_WFs_p= l_bs_exch_wf_in_loop .and. i_p_ref/=i_p
    !
    if (l_load_WFs_k) then
+     i_k_ref=i_k
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     if (i_k_ref/=-1) call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-     i_k_ref=i_k
+     call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
      call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
      &            space='R',title="Kernel exch (k)",keep_states_to_load=.true.)
 #if defined(__NOTNOW) && ! defined(_CUDA)
@@ -103,11 +116,11 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
    endif
    !
    if (l_load_WFs_p) then
+     i_p_ref=i_p
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     if (i_p_ref/=-1) call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
-     i_p_ref=i_p
+     call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
      call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
      &            space='R',title="Kernel exch (p)",keep_states_to_load=.true.)
 #if defined(__NOTNOW) && ! defined(_CUDA)
@@ -144,8 +157,8 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
      !
      if  (i_s==1.or.i_T_grp_last_with_identity_sym<0) then
        !
-       if (     l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF_k,WF_p)
-       if (.not.l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF  ,WF  )
+       if (     l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF_k,WF_p,.false.)
+       if (.not.l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF  ,WF  ,.false.)
        !
 #ifdef _CUDA
        call dev_memcpy(BS_T_grp(i_T_grp)%O_x_d(:,i_T_el),K_EXCH_collision%rhotw_d,range1=(/2,BS_n_g_exch/) )
@@ -183,8 +196,8 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
      !
    else
      !
-     if (     l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF_k,WF_p)
-     if (.not.l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF  ,WF  )
+     if (     l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF_k,WF_p,.false.)
+     if (.not.l_bs_exch_wf_in_loop) call DEV_SUB(scatter_Bamp)(K_EXCH_collision,WF  ,WF  ,.false.)
      !
      BS_T_grp(i_T_grp)%DEV_VAR(O_x)(1,i_T_el)=cZERO
      !
