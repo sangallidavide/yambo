@@ -5,6 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): AF
 !
+#include <yambo_wfs.h>
+!
 !====================
 ! scatter_Bamp (cpu)
 !====================

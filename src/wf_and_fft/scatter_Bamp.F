@@ -37,7 +37,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
  logical, intent(in)              :: WF_load_bz
  !
  integer :: qs,iGo
- integer :: ig,ir,isc_ngrho,ib,ibp
+ integer :: ig,ir,isc_ngrho,ib,ibp,i_wf,o_wf
  WF_RSPACE(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
  complex(SP), pointer DEV_ATTR :: rhotw_p(:)
  complex(DP), pointer DEV_ATTR :: rho_tw_rs_p(:)
@@ -56,8 +56,11 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
  !
  if (WF_load_bz) then
    !
-   WF_symm_i_p => DEV_VAR(WF_ik%r)
-   WF_symm_o_p => DEV_VAR(WF_ok%r)
+   i_wf=WF_ik%index(isc%is(1),isc%is(2),isc%is(4))
+   o_wf=WF_ok%index(isc%os(1),isc%os(2),isc%os(4))
+   !
+   WF_symm_i_p => DEV_VAR(WF_ik%r)(:,:,i_wf)
+   WF_symm_o_p => DEV_VAR(WF_ok%r)(:,:,o_wf)
    !
  else
    !

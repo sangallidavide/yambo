@@ -107,15 +107,9 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  ! Logicals to use bare or Double Grid GF (no poles accumulation)
  !=======================================================
- force_bare_X_G=use_X_DbGd.or.allocated(Xen%W).or.allocated(Xen%GreenF)
- WF_in_loop= ( index(PARALLEL_default_mode,"memory")>0 )
- WF_load_bz= WF_in_loop .and. (force_bare_X_G.or.X%cg_percentual==0._SP)
- !
- if (WF_shifted_grids) then
-   force_bare_X_G=.true.
-   WF_load_bz=.true.
-   WF_in_loop=.true.
- endif
+ force_bare_X_G=WF_shifted_grids.or.use_X_DbGd.or.allocated(Xen%W).or.allocated(Xen%GreenF)
+ WF_in_loop= WF_shifted_grids.or. ( index(PARALLEL_default_mode,"memory")>0 )
+ WF_load_bz= (WF_in_loop .and. (force_bare_X_G.or.X%cg_percentual==0._SP))
  !
  skip_WF_load= (iq==1.and.X%ng==1)
  !
@@ -149,8 +143,8 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      if (     WF_load_bz) is  =Xk%sstar(ikmq_bz,2)
      if (.not.WF_load_bz) is  =Xk%sstar(ikmq_bz,2)
      !
-     call WF_load(WF_k,  ngrho,ngshift,X%ib,(/1,1/),title='-X')
-     call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),isymm=is,title='-X')
+     call WF_load(WF_k,  ngrho,ngshift,X%ib,(/1,1/),title='-X',keep_states_to_load=.true.)
+     call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),isymm=is,title='-X',keep_states_to_load=.true.)
      !call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),title='-X',keep_fft=.true.,&
      !&                       impose_free_and_alloc=.true.,keep_states_to_load=.true.)
      !

@@ -114,6 +114,9 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  compute_fft=.true.
  if (present(keep_fft)) compute_fft=.not.keep_fft
  !
+ clean_up_states=.true.
+ if (present(keep_states_to_load)) clean_up_states=.not.keep_states_to_load
+ !
  ! Imposed Freeing and Allocating of WF's...
  !
  free_and_alloc=.FALSE.
@@ -214,7 +217,9 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
      YAMBO_FREE(WF%state)
      YAMBO_ALLOC(WF%state,(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2)))
      WF%state(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2))=.FALSE.
-     YAMBO_FREE(states_to_load)
+     if (clean_up_states) then
+       YAMBO_FREE(states_to_load)
+     endif
    endif
  endif
  !

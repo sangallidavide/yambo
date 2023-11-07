@@ -21,7 +21,8 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_corr_wf_in_loop)
+subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
+& WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,l_bs_corr_wf_in_loop)
  !
  ! This routine evaluates the correlation collisions:
  !
@@ -30,7 +31,6 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
  use pars,          ONLY:SP
  use D_lattice,     ONLY:nsym
  use R_lattice,     ONLY:qindx_X,bz_samp
- use interfaces,    ONLY:WF_load,WF_free
  use wave_func,     ONLY:WAVEs,WF
  use BS,            ONLY:O_ng,BS_bands,BS_res_K_corr,BS_blk,&
 &                        K_CORR_collision,BS_T_grp,&
@@ -45,11 +45,12 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
  !
  integer,       intent(in)  :: iq,i_block,qindx_ID_frag,NG(2)
  type(bz_samp), intent(in)  :: Xk,q
- logical,       intent(in)  :: l_bs_corr_wf_in_loop
  !
  ! New implementation. WFs are passed explicitly
  !
- type (WAVEs), target :: WF_k,WF_kmq,WF_p,WF_pmq
+ integer,              intent(inout) :: i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref
+ type (WAVEs), target, intent(inout) :: WF_k,WF_kmq,WF_p,WF_pmq
+ logical,              intent(in)    :: l_bs_corr_wf_in_loop
  !
  ! Work Space
  !
@@ -59,7 +60,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
 &               i_kmq_bz,i_pmq_bz,i_kmq,i_pmq,i_pmq_s,i_kp_mq_s,i_p_s,i_kmq_s,i_k_s,& 
 &               i_Tk,i_Tp,i_Tgrp_k,i_Tgrp_p,I_Tgrp_k_st,I_Tgrp_p_st,H_pos(2),& 
 &               i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,& 
-&               i_kmq_t,i_pmq_t,i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref 
+&               i_kmq_t,i_pmq_t
  ! OMP LAST DEF
  integer ::     i_k_bz_last,i_p_bz_last,iq_W_bz_last,ig_W_last
  !
@@ -201,34 +202,6 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
    !
  if( l_bs_corr_wf_in_loop ) then
    !
-   i_k_bz=BS_T_grp(i_Tgrp_k)%table(1,1)
-   i_k   =Xk%sstar(i_k_bz,1)
-   i_k_ref=i_k
-   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-   &            space='R',title="Kernel corr (k)",keep_fft=.true.,&
-   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
-   !
-   i_kmq_bz=qindx_X(iq,i_k_bz,1)
-   i_kmq   =Xk%sstar(i_p_bz,1)
-   i_kmq_ref=i_kmq
-   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),quiet=.true.,&
-   &            space='R',title="Kernel corr (kmq)",keep_fft=.true.,&
-   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
-   !
-   i_p_bz=BS_T_grp(i_Tgrp_p)%table(1,1)
-   i_p   =Xk%sstar(i_p_bz,1)
-   i_p_ref=i_p
-   call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-   &            space='R',title="Kernel corr (p)",keep_fft=.true.,&
-   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
-   !
-   i_pmq_bz=qindx_X(iq,i_k_bz,1)
-   i_pmq   =Xk%sstar(i_p_bz,1)
-   i_pmq_ref=i_pmq
-   call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),quiet=.true.,&
-   &            space='R',title="Kernel corr (pmq)",keep_fft=.true.,&
-   &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
-   !
  endif
  !
  call BS_correlation_oscillators_alloc(i_block)
@@ -279,40 +252,28 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
          if (i_k_ref/=i_k) then
            i_k_ref=i_k
            !$omp critical 
-           call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-           &            space='R',title="Kernel corr (k)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
            !$omp critical 
-           call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-           &            space='R',title="Kernel corr (p)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
            !$omp critical 
-           call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),quiet=.true.,&
-           &            space='R',title="Kernel corr (kmq)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
            !$omp critical 
-           call WF_free(WF_pmq,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),quiet=.true.,&
-           &            space='R',title="Kernel corr (pmq)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
@@ -375,40 +336,28 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
          if (i_k_ref/=i_k) then
            i_k_ref=i_k
            !$omp critical 
-           call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-           &            space='R',title="Kernel corr (k)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
            !$omp critical 
-           call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-           &            space='R',title="Kernel corr (p)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
            !$omp critical 
-           call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),quiet=.true.,&
-           &            space='R',title="Kernel corr (kmq)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
            !$omp critical 
-           call WF_free(WF_pmq,keep_fft=.true.,keep_states_to_load=.true.)
-           call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),quiet=.true.,&
-           &            space='R',title="Kernel corr (pmq)",keep_fft=.true.,&
-           &            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1)
            !$omp end critical
          endif
          !
@@ -450,13 +399,6 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_co
 #if !defined _CUDA
  !$omp end parallel
 #endif
- !
- if( l_bs_corr_wf_in_loop ) then
-   call WF_free(WF_k,  keep_fft=.true.,keep_states_to_load=.true.)
-   call WF_free(WF_p,  keep_fft=.true.,keep_states_to_load=.true.)
-   call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
-   call WF_free(WF_pmq,keep_fft=.true.,keep_states_to_load=.true.)
- endif
  !
  call timing('T_space CORR Osc.',OPR='stop')
  !

@@ -42,7 +42,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &                        FXC_mode,tddft_wf_t,l_Fxc_from_Vxc
  use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind,WF_exx_fraction
- use wave_func,     ONLY:WF,rho_map,rho_map_thresh,rho_map_size
+ use wave_func,     ONLY:WAVEs,WF,rho_map,rho_map_thresh,rho_map_size
  use openmp,        ONLY:OPENMP_update,master_thread
  use timing_m,      ONLY:timing
  use parallel_m,    ONLY:myid,ncpu,PAR_K_scheme,PARALLEL_default_mode,master_cpu
@@ -90,8 +90,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  complex(SP),   external ::K_exchange_kernel_resonant,K_exchange_kernel_coupling
  !
  logical    :: l_bs_exch,l_bs_corr,l_matrix_init,l_load_kernel,l_write_kernel,&
- &             l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum,   &
- &             l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_bs_corr_wf_in_loop
+ &             l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum 
+ !
+ ! New implementation. WFs are passed explicitly
+ !
+ integer              :: i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref
+ type (WAVEs), target :: WF_k,WF_kmq,WF_p,WF_pmq
+ logical              :: l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_bs_corr_wf_in_loop
  !
  ! I/O
  !
@@ -413,7 +418,33 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if ( (iHxc==1 .and. l_bs_exch_wf_in_loop)                   .or. &
     & (iHxc==2 .and. l_bs_tddft_wf_in_loop.and.l_tddft_gsum) .or. &
     & (iHxc==3 .and. l_bs_corr_wf_in_loop .and.l_dir_alg   ) ) then
-   call fft_setup(NG(1),NG(2),.false.)
+   !
+   i_k_bz=BS_T_grp(1)%table(1,1)
+   i_k   =Xk%sstar(i_k_bz,1)
+   i_k_ref=i_k
+   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),&
+   &            space='R',title=trim(section_title)//" (k)",keep_states_to_load=.true.)
+   !
+   i_kmq_bz=qindx_X(iq,i_k_bz,1)
+   i_kmq   =Xk%sstar(i_kmq_bz,1)
+   i_kmq_ref=i_kmq
+   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),&
+   &            space='R',title=trim(section_title)//" (kmq)",keep_states_to_load=.true.)
+   !
+   if (iHxc==3) then
+     i_p_bz=BS_T_grp(1)%table(1,1)
+     i_p   =Xk%sstar(i_p_bz,1)
+     i_p_ref=i_p
+     call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),&
+     &            space='R',title=trim(section_title)//" (kmq)",keep_states_to_load=.true.)
+     !
+     i_pmq_bz=qindx_X(iq,i_k_bz,1)
+     i_pmq   =Xk%sstar(i_p_bz,1)
+     i_pmq_ref=i_pmq
+     call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),&
+     &            space='R',title=trim(section_title)//" (pmq)",keep_states_to_load=.true.)
+   endif
+   !
  else
    !
    ! Wave Functions global alloc
@@ -490,11 +521,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    if(iHxc==1) then
      if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
        call BS_exchange_oscillators_alloc(i_Tgrp_k)
-       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,l_bs_exch_wf_in_loop)
+       call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,WF_k,WF_kmq,&
+       &                  i_k_ref,i_kmq_ref,l_bs_exch_wf_in_loop)
      endif
      if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_x) ) then
        call BS_exchange_oscillators_alloc(i_Tgrp_p)
-       call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,l_bs_exch_wf_in_loop)
+       call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,WF_k,WF_kmq,&
+       &                  i_k_ref,i_kmq_ref,l_bs_exch_wf_in_loop)
      endif
    endif
    !
@@ -503,11 +536,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    if(iHxc==2 .and. l_tddft_gsum) then
      if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_tddft_L) ) then
        call TDDFT_oscillators_alloc_L(i_Tgrp_k)
-       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
+       call TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_Tgrp_k,NG,tddft_wf,&
+       &      mode_now,WF_k,WF_kmq,i_k_ref,i_kmq_ref,l_bs_tddft_wf_in_loop)
      endif
      if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_tddft_R) ) then
        call TDDFT_oscillators_alloc_R(i_Tgrp_p)
-       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode_now)
+       call TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_Tgrp_p,NG,tddft_wf,&
+       &      mode_now,WF_k,WF_kmq,i_k_ref,i_kmq_ref,l_bs_tddft_wf_in_loop)
      endif
    endif
    !
@@ -515,7 +550,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !----------------------
    if(iHxc==3) then
      if (l_std_alg) call K_correlation_collisions_std(iq,i_block,qindx_ID_frag,Xk,q)
-     if (l_dir_alg) call K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,l_bs_corr_wf_in_loop)
+     if (l_dir_alg) call K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
+     & WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,l_bs_corr_wf_in_loop)
    endif
    !
    ! Transition Loops
@@ -823,7 +859,12 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if ( (iHxc==1 .and. l_bs_exch_wf_in_loop)                   .or. &
     & (iHxc==2 .and. l_bs_tddft_wf_in_loop.and.l_tddft_gsum) .or. &
     & (iHxc==3 .and. l_bs_corr_wf_in_loop .and.l_dir_alg   ) ) then
-   call fft_free()
+   call WF_free(WF_k,keep_states_to_load=l_write_kernel)
+   call WF_free(WF_p,keep_states_to_load=l_write_kernel)
+   if (iHxc==3) then
+     call WF_free(WF_kmq,keep_states_to_load=l_write_kernel)
+     call WF_free(WF_pmq,keep_states_to_load=l_write_kernel)
+   endif
  else
    call WF_free(WF,keep_states_to_load=l_write_kernel)
  endif

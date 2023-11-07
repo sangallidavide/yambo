@@ -5,7 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode)
+subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
+                              WF_k,WF_p,i_k_ref,i_p_ref,l_bs_tddft_wf_in_loop)
  !
  ! Calculates the F_xc scattering 
  !
@@ -16,7 +17,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  use FFT_m,          ONLY:fft_size
  use wave_func,      ONLY:rho_map_size,rho_map,WF,WAVEs
  use xc_functionals, ONLY:F_xc_mat
- use interfaces,     ONLY:WF_load,WF_free
  use R_lattice,      ONLY:qindx_X,bz_samp,minus_G
  use BS,             ONLY:l_BS_magnons,BS_T_grp,BS_bands
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
@@ -29,13 +29,14 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  !
  type(bz_samp),intent(in) :: Xk
  integer,      intent(in) :: iq,i_T_grp,NG(2)
- logical,      intent(in) :: l_bs_tddft_wf_in_loop
  character(1), intent(in) :: mode
  type(tddft_wf_t), target, intent(inout) :: tddft_wf 
  !
  ! New implementation. WFs are passed explicitly
  !
- type (WAVEs), save, target :: WF_k,WF_p
+ integer,              intent(inout) :: i_k_ref,i_p_ref
+ type (WAVEs), target, intent(inout) :: WF_k,WF_p
+ logical,              intent(in)    :: l_bs_tddft_wf_in_loop
  ! 
  ! Work Space
  !
@@ -43,7 +44,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  integer     :: i_spinor,j_spinor,ip_spinor,jp_spinor,ifft,irho,irhotw,is_yambo,os_yambo,i_spinor_y,j_spinor_y,&
 &               i_sp_loop,o_sp_loop
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
-&               i_k_ref,i_p_ref,i_sp,i_T_grp_p,is(4),os(4),qs(3)
+&               i_sp,i_T_grp_p,is(4),os(4),qs(3)
  !
  complex(DP), pointer :: rhotwr_p(:)
  complex(SP), pointer :: WF_symm1_p(:,:)
@@ -57,22 +58,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  rhotwr_p   => tddft_wf%rhotwr_DP
  !
  l_use_rho_map=allocated(rho_map)
- !
- if( l_bs_tddft_wf_in_loop ) then
-   !
-   i_k_bz=BS_T_grp(i_T_grp)%table(1,1)
-   i_k   =Xk%sstar(i_k_bz,1)
-   i_k_ref=i_k
-   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-   &            space='R',title="Kernel tddft (k)",keep_states_to_load=.true.)
-   !
-   i_p_bz=qindx_X(iq,i_k_bz,1)
-   i_p   =Xk%sstar(i_p_bz,1)
-   i_p_ref=i_p
-   call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-   &            space='R',title="Kernel tddft (p)",keep_states_to_load=.true.)
-   !
- endif
  !
 #if defined(__NOTNOW) && ! defined(_CUDA)
  !$omp parallel default(shared), private( K_EXCH_collision, &
@@ -126,9 +111,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical
 #endif
-     call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-     call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-     &            space='R',title="Kernel tddft (k)",keep_states_to_load=.true.)
+     call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif
@@ -139,9 +122,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical
 #endif
-     call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
-     call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-     &            space='R',title="Kernel tddft (p)",keep_states_to_load=.true.)
+     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif
@@ -215,11 +196,6 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    endif
    !
  enddo
- !
- if(l_bs_tddft_wf_in_loop) then
-   call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-   call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
- endif
  !
  nullify(WF_symm1_p)
  nullify(WF_symm2_p)

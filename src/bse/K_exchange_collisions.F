@@ -5,13 +5,12 @@
 !
 ! Authors (see AUTHORS file for details): AM
 !
-subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
+subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs_exch_wf_in_loop)
  !
  use pars,           ONLY:SP,cZERO
  use D_lattice,      ONLY:nsym,i_time_rev,sop_inv,sop_inv_d
  use BS,             ONLY:BS_T_grp,K_EXCH_collision,BS_n_g_exch,&
 &                         BSE_L_kind,l_BS_magnons,l_BSE_minimize_memory,BS_bands
- use interfaces,     ONLY:WF_load,WF_free
  use wave_func,      ONLY:WAVEs,WF
  use R_lattice,      ONLY:g_rot,g_rot_d,qindx_X,bz_samp
  use stderr,         ONLY:STRING_match
@@ -27,38 +26,23 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
  !
  type(bz_samp),intent(in) :: Xk
  integer,      intent(in) :: iq,i_T_grp,NG(2)
- logical,      intent(in) :: l_bs_exch_wf_in_loop
  !
  ! New implementation. WFs are passed explicitly
  !
- type (WAVEs), save, target :: WF_k,WF_p
+ integer,              intent(inout) :: i_k_ref,i_p_ref
+ type (WAVEs), target, intent(inout) :: WF_k,WF_p
+ logical,              intent(in)    :: l_bs_exch_wf_in_loop
  !
  ! Work Space
  !
  logical :: l_load_WFs_k,l_load_WFs_p
  integer :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
-&           i_k_ref,i_p_ref,i_sp,i_T_el_last_with_identity_sym,i_T_grp_last_with_identity_sym,i_T_grp_p
+&           i_sp,i_T_el_last_with_identity_sym,i_T_grp_last_with_identity_sym,i_T_grp_p
 #ifdef _CUDA
   complex(SP), pointer, device :: O_x_d(:,:),O_x_sym_d(:,:)
 #endif
  !
  call timing('T_space EXX Osc.',OPR='start')
- !
- if( l_bs_exch_wf_in_loop ) then
-   !
-   i_k_bz=BS_T_grp(i_T_grp)%table(1,1)
-   i_k   =Xk%sstar(i_k_bz,1)
-   i_k_ref=i_k
-   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-   &            space='R',title="Kernel exch (k)",keep_states_to_load=.true.)
-   !
-   i_p_bz=qindx_X(iq,i_k_bz,1)
-   i_p   =Xk%sstar(i_p_bz,1)
-   i_p_ref=i_p
-   call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-   &            space='R',title="Kernel exch (p)",keep_states_to_load=.true.)
-   !
- endif
  !
  ! Allocate
  !
@@ -107,9 +91,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-     call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),quiet=.true.,&
-     &            space='R',title="Kernel exch (k)",keep_states_to_load=.true.)
+     call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif
@@ -120,9 +102,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
-     call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),quiet=.true.,&
-     &            space='R',title="Kernel exch (p)",keep_states_to_load=.true.)
+     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif
@@ -221,11 +201,6 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
 #if defined(__NOTNOW) && ! defined(_CUDA)
  !$omp end parallel
 #endif
- !
- if(l_bs_exch_wf_in_loop) then
-   call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-   call WF_free(WF_p,keep_fft=.true.,keep_states_to_load=.true.)
- endif
  !
  call timing('T_space EXX Osc.',OPR='stop')
  !

@@ -19,12 +19,11 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,ngshift, &
  use wrapper,       ONLY:V_plus_alpha_V
  use DIPOLES,       ONLY:DIPOLE_t,DIP_rotated
  use X_m,           ONLY:X_t,X_poles_tab,l_X_terminator,X_cols,X_rows,drude_n_states
- use electrons,     ONLY:levels,spin_occ
+ use electrons,     ONLY:levels,spin_occ,n_sp_pol
  use frequency,     ONLY:bare_grid_N,coarse_grid_Pt
  use collision_el,  ONLY:elemental_collision
  use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,sop_inv
  use R_lattice,     ONLY:qindx_X,bz_samp,q0_def_norm
- use interfaces,    ONLY:WF_load,WF_free
  use vec_operate,   ONLY:v_norm,sort
  use collision_el,  ONLY:elemental_collision
  use wave_func,     ONLY:WAVEs,WF_load_bz
@@ -41,7 +40,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,ngshift, &
  type(bz_samp),intent(in) :: Xk
  type(X_t),    intent(in) :: X
  type(DIPOLE_t),intent(in):: Dip
- type (WAVEs), target, intent(in) :: WF_k,WF_kmq
+ type (WAVEs), target, intent(inout) :: WF_k,WF_kmq
  integer,      intent(in) :: i_cg,iq,ngshift
  integer,      intent(inout) :: ik_last,ikp_last
  logical,      intent(in) :: WF_in_loop,skip_WF_load
@@ -116,16 +115,12 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,ngshift, &
      !
      if( ik_new/=ik_last ) then
        ik_last=ik_new
-       call WF_free(WF_k,keep_fft=.true.,keep_states_to_load=.true.)
-       call WF_load(WF_k  ,ngrho,ngshift,X%ib,(/ik,ik/),isymm=is_wf,title='-X',keep_fft=.true.,&
-       &                            impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+       call WF_load_fast(WF_k  ,ngrho,ngshift,X%ib,ik ,(/1,n_sp_pol/),is_wf )
      endif
      !
      if( ikp_new/=ikp_last .and. iq>1) then
        ikp_last=ikp_new
-       call WF_free(WF_kmq,keep_fft=.true.,keep_states_to_load=.true.)
-       call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikp,ikp/),isymm=isp_wf,title='-X',keep_fft=.true.,&
-       &                                impose_free_and_alloc=.true.,keep_states_to_load=.true.)
+       call WF_load_fast(WF_kmq,ngrho,ngshift,X%ib,ikp,(/1,n_sp_pol/),isp_wf)
      endif
      !
    endif
