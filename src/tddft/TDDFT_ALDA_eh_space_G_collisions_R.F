@@ -105,15 +105,17 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    i_sp_c=BS_T_grp(i_T_grp)%table(i_T_el,4)
    i_sp_v=BS_T_grp(i_T_grp)%table(i_T_el,5)
    !
+   is=(/i_c,i_k,i_s ,i_sp_c/)
+   os=(/i_v,i_p,i_sp,i_sp_v/)
+   qs=(/minus_G(i_g_p),iq,1/)
+   !
    if (mode=="R".or.mode=="Q".or.mode=="F") then
-     is=(/i_c,i_k,i_s ,i_sp_c/)
-     os=(/i_v,i_p,i_sp,i_sp_v/)
-     qs=(/i_g_p,iq,1/)
+     is(1)=i_c
+     os(1)=i_v
    else if (mode=="A".or.mode=="C") then
      ! Same momenta and spin indexes, inverted bands
-     is=(/i_v,i_k,i_s ,i_sp_c/)
-     os=(/i_c,i_p,i_sp,i_sp_v/)
-     qs=(/i_g_p,iq,1/)
+     is(1)=i_v
+     os(1)=i_c
    endif
    !
    l_load_WFs_k= l_bs_tddft_wf_in_loop .and. i_k_ref/=i_k
