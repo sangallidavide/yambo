@@ -87,6 +87,10 @@ subroutine K_Transitions_setup(iq,Ken,Xk,Dip,V_bands,C_bands)
      !
      i_T_group_start=i_T_group_now+1
      !
+     ! Here I cannot invert the ik and the i_sp loop since 
+     ! BS_T_grp and BS_nT_at_k are defined according to kpts while they
+     ! should be defined according to both i_sp_pol and kpts
+     !
      do ik=1,Xk%nibz
        !
        if (BSS_uses_DbGd .and. (index(BSS_mode,'h')/=0)) then
@@ -94,33 +98,29 @@ subroutine K_Transitions_setup(iq,Ken,Xk,Dip,V_bands,C_bands)
 &                                Xk%k_table(ik,Xk%star(ik,:Xk%nstar(ik)))))
        end if
        !
-       ! Here I cannot invert the ik and the i_sp loop since 
-       ! BS_T_grp and BS_nT_at_k are defined according to kpts while they
-       ! should be defined according to both i_sp_pol and kpts
+       ! Moreover I cannot move iv,ic loops insiede i_sp_pol and i_star loops
+       ! Otherwise runs with parallelization over eh fail
+       ! Having i_star inside the loops is likely what makes the distribution
+       ! of the algorithm with the qindx_B distributed in memory very slow
+       ! since i_k_bz and i_p_bz change at each iteration of the loop
        !
-       do i_star=1,Xk%nstar(ik)
-         !
-         ikbz=Xk%k_table(ik,Xk%star(ik,i_star))
-         !
-         ikpbz=qindx_X(iq,ikbz,1)
-         ikp  =Xk%sstar(ikpbz,1)
-         !
-         ! Moreover I cannot move iv,ic loops insiede i_sp_pol and i_star loops
-         ! Otherwise runs with parallelization over eh fail
-         ! Having i_star inside the loops is likely what makes the distribution
-         ! of the algorithm with the qindx_B distributed in memory very slow
-         ! since i_k_bz and i_p_bz change at each iteration of the loop
-         !
-         do iv=V_bands(1),V_bands(2)
-           do ic=C_bands(1),C_bands(2)
+       do iv=V_bands(1),V_bands(2)
+         do ic=C_bands(1),C_bands(2)
+           !
+           do i_sp_c=1,n_sp_pol
+             i_sp_v=i_sp_c
              !
-             do i_sp_c=1,n_sp_pol
-               i_sp_v=i_sp_c
+             if (l_BS_magnons.and.n_sp_pol==2) then
+               if(i_sp_c==i_spin_majority) cycle
+               i_sp_v=mod(i_sp_c,n_sp_pol)+1
+             endif
+             !
+             do i_star=1,Xk%nstar(ik)
                !
-               if (l_BS_magnons.and.n_sp_pol==2) then
-                 if(i_sp_c==i_spin_majority) cycle
-                 i_sp_v=mod(i_sp_c,n_sp_pol)+1
-               endif
+               ikbz=Xk%k_table(ik,Xk%star(ik,i_star))
+               !
+               ikpbz=qindx_X(iq,ikbz,1)
+               ikp  =Xk%sstar(ikpbz,1)
                !
                if (i_res_ares==1) then; ib1=iv; ib2=ic; endif
                if (i_res_ares==2) then; ib1=ic; ib2=iv; endif
