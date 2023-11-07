@@ -39,7 +39,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  ! Work Space
  !
  type(X_t)         :: X_tddft,X_oscillators
- integer           :: iq,Max_G_m_G,iG_BSE,iGo_BSE
+ integer           :: iq,Max_G_m_G,iG_BSE,iGo_BSE,VB(2),CB(2)
  type(w_samp)      :: W_bss 
  !
  ! I/O
@@ -172,13 +172,13 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    call DIPOLE_dimensions(Ken,Dip,BS_bands,BSS_q0)
    !
    ! ... EH space (no parallelization)
-   call K_Transitions_setup("K",iq,Ken,Xk,Dip)
+   call K_Transitions_dimensions(iq,Ken,Xk,Dip,VB,CB)
    !
    !... Parallel distribution
    call PARALLEL_global_Response_T_transitions(Xk)
    !
    ! ... EH space (with parallelization) and Transition groups build-up
-   call K_Transitions_setup("T",iq,Ken,Xk,Dip)
+   call K_Transitions_setup(iq,Ken,Xk,Dip,VB,CB)
    !
    !... Blocks build-up
    if (.not.l_rpa_IP) call K_blocks()
