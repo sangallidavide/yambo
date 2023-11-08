@@ -25,7 +25,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  integer,     intent(in)  :: isc(4)
  complex(SP), intent(out) DEV_ATTR :: WF_symm(rho_map_size,n_spinor)
  !
- WF_RSPACE(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
+ WF_RSPACE(SP), pointer     DEV_ATTR :: WF_p(:,:)
  integer  :: i_wf
  integer  :: ifft,ifftp,isymm
  !
@@ -37,12 +37,12 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
 &                         ' ID'//trim(intc(myid)))
 #endif
  !
- WF_p => DEV_VAR(WF%r)
+ WF_p => DEV_VAR(WF%r)(:,:,i_wf)
  isymm = isc(3)
  !
  if(isc(3)==idt_index) then
    !
-   call dev_memcpy(WF_symm,cmplx(DEV_VAR(WF%r)(:,:,i_wf),kind=SP))
+   call dev_memcpy(WF_symm,cmplx(WF_p,kind=SP))
    return
    !
  endif
@@ -58,7 +58,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
 #endif
    do ifft = 1, fft_size
      ifftp=DEV_VAR(fft_rot_r)(ifft,isymm)
-     WF_symm(ifft,1)=cmplx(WF_p(ifftp,1,i_wf),kind=SP)
+     WF_symm(ifft,1)=cmplx(WF_p(ifftp,1),kind=SP)
    enddo
    !
  endif
@@ -72,10 +72,10 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
 #endif
    do ifft = 1, fft_size
      ifftp=DEV_VAR(fft_rot_r)(ifft,isymm)
-     WF_symm(ifft,1)=DEV_VAR(spin_sop)(1,1,isymm)*WF_p(ifftp,1,i_wf)+ &
-                     DEV_VAR(spin_sop)(1,2,isymm)*WF_p(ifftp,2,i_wf)
-     WF_symm(ifft,2)=DEV_VAR(spin_sop)(2,1,isymm)*WF_p(ifftp,1,i_wf)+ &
-                     DEV_VAR(spin_sop)(2,2,isymm)*WF_p(ifftp,2,i_wf)
+     WF_symm(ifft,1)=DEV_VAR(spin_sop)(1,1,isymm)*cmplx(WF_p(ifftp,1),kind=SP)+ &
+                     DEV_VAR(spin_sop)(1,2,isymm)*cmplx(WF_p(ifftp,2),kind=SP)
+     WF_symm(ifft,2)=DEV_VAR(spin_sop)(2,1,isymm)*cmplx(WF_p(ifftp,1),kind=SP)+ &
+                     DEV_VAR(spin_sop)(2,2,isymm)*cmplx(WF_p(ifftp,2),kind=SP)
    enddo
    !
  endif
