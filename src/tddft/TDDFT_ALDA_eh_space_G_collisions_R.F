@@ -57,6 +57,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  !
  WF_symm1_p=cZERO
  WF_symm2_p=cZERO
+ rhotwr_p=  cZERO
  !
  ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  l_use_rho_map=allocated(rho_map)
