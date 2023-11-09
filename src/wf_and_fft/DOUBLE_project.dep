@@ -12,12 +12,13 @@
  WF_derivative.o
  WF_free.o
  WF_load.o
+ WF_load_fast.o
  WF_rotate.o
  WF_shift_kpoint.o
  WF_spatial_inversion.o
  WF_symm.o
- WF_symm_kpoint.o
- WF_symm_kpoint_incl.o
+ WF_symm_kpoint_g.o
+ WF_symm_kpoint_r.o
  eval_GradOperator.o
  eval_R_minus_R.o
  fft_1d.o

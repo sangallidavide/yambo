@@ -5,6 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
+#include<dev_defs.h>
+!
 subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
                               WF_k,WF_p,i_k_ref,i_p_ref,l_bs_tddft_wf_in_loop)
  !
@@ -22,7 +24,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
- !use interfaces,     ONLY:WF_apply_symm
+ use interfaces,     ONLY:WF_apply_symm
  use TDDFT,          ONLY:tddft_wf_t
  !
  implicit none
@@ -46,9 +48,9 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
 &               i_sp,i_T_grp_p,is(4),os(4),qs(3)
  !
- complex(DP), pointer :: rhotwr_p(:)
- complex(SP), pointer :: WF_symm1_p(:,:)
- complex(SP), pointer :: WF_symm2_p(:,:)
+ complex(DP), pointer DEV_ATTR :: rhotwr_p(:)
+ complex(SP), pointer DEV_ATTR :: WF_symm1_p(:,:)
+ complex(SP), pointer DEV_ATTR :: WF_symm2_p(:,:)
  !
  call timing('T_space ALDA Osc.',OPR='start')
  !
@@ -56,6 +58,10 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
  rhotwr_p   => tddft_wf%rhotwr_DP
+ !
+ WF_symm1_p=cZERO
+ WF_symm2_p=cZERO
+ rhotwr_p=  cZERO
  !
  l_use_rho_map=allocated(rho_map)
  !
@@ -132,11 +138,11 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    !
    if (l_bs_tddft_wf_in_loop) then
-     call WF_apply_symm_cpu(is,WF_k,WF_symm1_p)
-     call WF_apply_symm_cpu(os,WF_p,WF_symm2_p)
+     call WF_apply_symm(is,WF_k,WF_symm1_p)
+     call WF_apply_symm(os,WF_p,WF_symm2_p)
    else
-     call WF_apply_symm_cpu(is,WF  ,WF_symm1_p)
-     call WF_apply_symm_cpu(os,WF  ,WF_symm2_p)
+     call WF_apply_symm(is,WF  ,WF_symm1_p)
+     call WF_apply_symm(os,WF  ,WF_symm2_p)
    endif
    !
    if( n_spin==1 ) then

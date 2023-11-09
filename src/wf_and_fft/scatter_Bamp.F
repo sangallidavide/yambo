@@ -37,8 +37,8 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
  logical, intent(in)              :: WF_load_bz
  !
  integer :: qs,iGo
- integer :: ig,ir,isc_ngrho,ib,ibp,i_wf,o_wf
- WF_RSPACE(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
+ integer :: ig,ir,isc_ngrho,ib,ibp,i_wf,o_wf,is(4),os(4)
+ complex(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
  complex(SP), pointer DEV_ATTR :: rhotw_p(:)
  complex(DP), pointer DEV_ATTR :: rho_tw_rs_p(:)
  logical :: have_cuda_loc
@@ -46,34 +46,29 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
  ! define pointers to enable CUF kernels
  ! when compiling using CUDA-Fortran
  !
+ WF_symm_i_p => DEV_VAR(isc%WF_symm_i)
+ WF_symm_o_p => DEV_VAR(isc%WF_symm_o)
  rho_tw_rs_p => DEV_VAR(isc%rho_tw_rs)
  rhotw_p     => DEV_VAR(isc%rhotw)
+ !
+ is=isc%is
+ os=isc%os
+ !
+ if (WF_load_bz) then
+   is(3)=1
+   os(3)=1
+ endif
  !
  have_cuda_loc=.false.
 #ifdef _CUDA_LOC
  have_cuda_loc=.true.
 #endif
  !
- if (WF_load_bz) then
-   !
-   i_wf=WF_ik%index(isc%is(1),isc%is(2),isc%is(4))
-   o_wf=WF_ok%index(isc%os(1),isc%os(2),isc%os(4))
-   !
-   WF_symm_i_p => DEV_VAR(WF_ik%r)(:,:,i_wf)
-   WF_symm_o_p => DEV_VAR(WF_ok%r)(:,:,o_wf)
-   !
- else
-   !
-   WF_symm_i_p => DEV_VAR(isc%WF_symm_i)
-   WF_symm_o_p => DEV_VAR(isc%WF_symm_o)
-   !
-   ! |ib ik_is i_sp>
-   call WF_apply_symm(isc%is,WF_ik,WF_symm_i_p)
-   !
-   ! | ob ok_os o_sp>   
-   call WF_apply_symm(isc%os,WF_ok,WF_symm_o_p)
-   !
- endif
+ ! |ib ik_is i_sp>
+ call WF_apply_symm(is,WF_ik,WF_symm_i_p)
+ !
+ ! | ob ok_os o_sp>   
+ call WF_apply_symm(os,WF_ok,WF_symm_o_p)
  !
  ! \tilde{\rho} in Real Space
  !
