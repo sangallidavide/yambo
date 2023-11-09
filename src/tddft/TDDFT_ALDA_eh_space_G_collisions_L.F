@@ -5,6 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
+#include<dev_defs.h>
+!
 subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_loop,tddft_wf,mode)
  !
  ! Calculates the F_xc scattering 
@@ -21,7 +23,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  use electrons,      ONLY:n_spinor,n_sp_pol,n_spin
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
- !use interfaces,     ONLY:WF_apply_symm
+ use interfaces,     ONLY:WF_apply_symm
  use TDDFT,          ONLY:tddft_wf_t
  !
  implicit none
@@ -39,15 +41,19 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
  integer     :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
 &               i_sp,i_T_grp_p,is(4),os(4),qs(3),NK(2)
  !
- complex(DP), pointer :: rhotwr_p(:)
- complex(SP), pointer :: WF_symm1_p(:,:)
- complex(SP), pointer :: WF_symm2_p(:,:)
+ complex(DP), pointer DEV_ATTR :: rhotwr_p(:)
+ complex(SP), pointer DEV_ATTR :: WF_symm1_p(:,:)
+ complex(SP), pointer DEV_ATTR :: WF_symm2_p(:,:)
  !
  call timing('T_space ALDA Osc.',OPR='start')
  !
  WF_symm1_p => tddft_wf%WF_symm1
  WF_symm2_p => tddft_wf%WF_symm2
  rhotwr_p   => tddft_wf%rhotwr_DP
+ !
+ WF_symm1_p=cZERO
+ WF_symm2_p=cZERO
+ rhotwr_p=  cZERO
  !
  ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  l_use_rho_map=allocated(rho_map)
@@ -112,8 +118,8 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_L(iq,Xk,i_T_grp,NG,l_bs_tddft_wf_in_
    if ( (is(4)/=os(4)) .and. ((.not.l_BS_magnons).or. n_sp_pol==1) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    if ( (is(4)==os(4)) .and. ((     l_BS_magnons).and.n_sp_pol==2) ) call error(" TDDFT_ALDA_R_space: wrong spin index")
    !
-   call WF_apply_symm_cpu(is,WF_symm1_p)
-   call WF_apply_symm_cpu(os,WF_symm2_p)
+   call WF_apply_symm(is,WF_symm1_p)
+   call WF_apply_symm(os,WF_symm2_p)
    !
    if( n_spinor==1 ) then
      if(     l_use_rho_map) rhotwr_p(rho_map(:))=cmplx(WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1)),kind=DP)

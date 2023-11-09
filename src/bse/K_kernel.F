@@ -331,8 +331,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      YAMBO_ALLOC(tddft_wf%rhotwr_DP,(fft_size))
    endif
    !
-   YAMBO_ALLOC(tddft_wf%WF_symm1,(fft_size,n_spinor))
-   YAMBO_ALLOC(tddft_wf%WF_symm2,(fft_size,n_spinor))
+   YAMBO_ALLOC(tddft_wf%WF_symm1,(rho_map_size,n_spinor))
+   YAMBO_ALLOC(tddft_wf%WF_symm2,(rho_map_size,n_spinor))
    !
    YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
    if(l_BS_magnons .or. n_spinor==2 .or. l_Fxc_from_Vxc) then

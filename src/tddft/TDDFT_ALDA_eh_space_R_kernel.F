@@ -67,8 +67,6 @@ function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
  ! Use pointers both for CUDA and to avoid continuous allocation and de-allocation
  l_use_rho_map=allocated(rho_map)
  !
- !
- !
  call WF_apply_symm_cpu(is,WF_symm1_p)
  call WF_apply_symm_cpu(os,WF_symm2_p)
  !
