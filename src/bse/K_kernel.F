@@ -523,6 +523,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      if (l_dir_alg) call K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
    endif
    !
+   call timing('X T_space Kernel sum',OPR='start')
+   !
    ! Transition Loops
    !------------------
    !
@@ -755,6 +757,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !$omp end do
    !$omp end parallel
 #endif
+   !
+   call timing('X T_space Kernel sum',OPR='stop')
    !
    if(BS_K_cutoff>0._SP.and.l_write_kernel) &
 &     BS_max_val_CPU(myid+1)=maxval( (/BS_max_val_CPU(myid+1),abs(BS_blk(i_block)%mat(:,:))/) )
