@@ -34,7 +34,7 @@ subroutine excitons_bands(k,Xk,en,Xen,q)
  ! Work space
  !
  integer :: iq,i_c,i_l,ID_INTERP_EXC,i_E
- real(SP), allocatable    :: BS_all_E(:,:),BSE_interp_E(:,:),values(:)
+ real(SP), allocatable    :: BSE_interp_E(:,:),values(:)
  type(bz_samp)            :: GRID_q
  character(schlen)        :: file_name
  character(schlen), allocatable :: headings(:)
@@ -52,7 +52,6 @@ subroutine excitons_bands(k,Xk,en,Xen,q)
  !
  ! Allocate arrays for all eigenvalues/eigenvectors
  ! 
- YAMBO_ALLOC(BS_all_E,(EXCITONS_n_user_states,q%nibz))
  YAMBO_ALLOC(values,(EXCITONS_n_user_states+4))
  allocate(headings(EXCITONS_n_user_states+4))
  !

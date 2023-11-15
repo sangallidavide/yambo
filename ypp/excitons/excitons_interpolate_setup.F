@@ -14,7 +14,9 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,ID_INTERP_EXC,report)
  use R_lattice,     ONLY:bz_samp
  use electrons,     ONLY:levels
  use interpolate,   ONLY:INTERPOLATION_BZ,INTERP_obj,INTERPOLATION_coefficients
- use YPPm,          ONLY:BS_E,EXCITONS_user_indexes,EXCITONS_n_user_states,coo_out,K_transform
+ use YPPm,          ONLY:BS_E,EXCITONS_user_indexes,EXCITONS_n_user_states,coo_out,K_transform,&
+ &                       l_magnons,BS_R_left,BS_R_right,BS_R_left_magn,BS_R_right_magn
+ use BS_solvers,    ONLY:BSS_n_eig
  use com,           ONLY:msg
  use stderr,        ONLY:intc
  !
@@ -27,33 +29,46 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,ID_INTERP_EXC,report)
  !
  ! Work space
  !
- integer :: iq,i_c,i_l,io_err
- real(SP), allocatable    :: BS_all_E(:,:)
+ integer :: iq,i_c,i_l,io_err,EXC_n_states_ref,BSS_n_eig_ref,n_eig
+ real(SP):: BS_all_E(EXCITONS_n_user_states,q%nibz)
  real(SP), allocatable    :: values(:)
- real(SP) :: tmp_q(3)
+ real(SP) :: Res(BSS_n_eig),BS_E_degs(BSS_n_eig),tmp_q(3)
  character(schlen), allocatable :: headings(:)
  !
- ! Allocate arrays for all eigenvalues/eigenvectors
+ EXC_n_states_ref=EXCITONS_n_user_states
+ BSS_n_eig_ref=BSS_n_eig
  ! 
- YAMBO_ALLOC(BS_all_E,(EXCITONS_n_user_states,q%nibz))
+ do i_c=1,EXC_n_states_ref
+   i_l=EXCITONS_user_indexes(i_c)
+   BS_all_E(i_c,1)=BS_E(i_l)
+ enddo
  !
  call section('*','Excitons Interpolation')
- !
  call excitons_read(k,Xk,en,Xen,1,"clean",io_err)
  !
  ! Read all eigenvalues and eigenvectors
  !
- do iq=1,q%nibz
+ n_eig=BSS_n_eig
+ do iq=2,q%nibz
    call msg('s','Reading excitons at @ Q-index #',iq)
    call excitons_read(k,Xk,en,Xen,iq,"check",io_err)
    call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",io_err)
-   do i_c=1,EXCITONS_n_user_states
+   write(*,*) BSS_n_eig,n_eig
+   n_eig=min(n_eig,BSS_n_eig)
+   if (     l_magnons)  Res(:n_eig)=real(BS_R_left_magn(1,:n_eig)*BS_R_right_magn(1,:n_eig),SP)
+   if (.not.l_magnons)  Res(:n_eig)=real(BS_R_left(:n_eig)*BS_R_right(:n_eig),SP)
+   write(*,*) "Residuals filled"
+   call excitons_get_user_states(BS_E_degs(:n_eig),Res(:n_eig),n_eig,.true.)
+   do i_c=1,EXC_n_states_ref
      i_l=EXCITONS_user_indexes(i_c)
      BS_all_E(i_c,iq)=BS_E(i_l)
    enddo
    call excitons_read(k,Xk,en,Xen,iq,"clean",io_err)
    !
  enddo
+ !
+ EXCITONS_n_user_states=EXC_n_states_ref
+ BSS_n_eig=BSS_n_eig_ref
  !
  if(report.eqv..true.) then
    !

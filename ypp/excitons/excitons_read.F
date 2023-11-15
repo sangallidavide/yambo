@@ -153,6 +153,8 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    !
    YAMBO_FREE_P(BS_R_left)
    YAMBO_FREE_P(BS_R_right)
+   YAMBO_FREE_P(BS_R_left_magn)
+   YAMBO_FREE_P(BS_R_right_magn)
    YAMBO_FREE(BS_E)
    YAMBO_FREE(BSS_eh_table)
    YAMBO_FREE(BS_mat)
