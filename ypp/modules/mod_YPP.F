@@ -153,6 +153,7 @@ module YPPm
  ! Exc/SP Properties
  !
  logical      ::l_excitons
+ logical      ::l_magnons
  logical      ::l_electrons
  logical      ::l_sort
  logical      ::l_amplitude
@@ -168,6 +169,7 @@ module YPPm
  real(SP)     ::deg_energy   
  real(SP)     ::EXCITON_E_treshold
  real(SP)     ::EXCITON_Res_treshold
+ real(SP)     ::MAGNON_Res_threshold
  real(SP)     ::EXCITON_weight_treshold   
  real(SP)     ::WF_multiplier   
  character(schlen)    :: AVE_exc
@@ -264,12 +266,20 @@ module YPPm
  !
  ! BSE data
  !
- complex(SP), pointer     ::BS_R_left(:)
- complex(SP), pointer     ::BS_R_right(:)
+ complex(SP),pointer     :: BS_R_left(:)         => null()
+ complex(SP),pointer     :: BS_R_right(:)        => null()
+ !
+ real(SP),   pointer     :: BS_R_PL(:,:)         => null()
+ !
+ complex(SP),pointer     :: BS_R_left_kerr(:)    => null()
+ complex(SP),pointer     :: BS_R_right_kerr(:)   => null()
+ complex(SP),pointer     :: BS_R_right_dich(:,:) => null()
+ !
+ complex(SP),pointer     :: BS_R_left_magn(:,:)  => null()
+ complex(SP),pointer     :: BS_R_right_magn(:,:) => null()
+ !
  complex(SP), allocatable ::BS_E(:)
  real(SP),    pointer     ::BS_E_SOC_corr(:,:) => null()
- real(SP),    pointer     ::BS_R_PL(:,:)       => null()
- complex(SP), pointer     ::BS_R_kerr(:)       => null()
  type(X_t)                ::Xbsk 
  !
  ! NL

@@ -16,7 +16,7 @@ subroutine YPP_SET_defaults()
 &                         WF_ref,what_to_write,SP,HA2EV,E_field,Nel_fac,DOS_bands,AVE_exc,l_interp,  &
 &                         BSiq,l_PROJECT_atom,PDOS_atoms,PDOS_kinds,PDOS_wfcs,PDOS_l,PDOS_j,PDOS_m,&
 &                         EXCITON_Res_treshold,EXCITON_E_treshold,l_PROJECT_line,l_PROJECT_plane,K_grid,&
-&                         DIPs_C_bands,DIPs_V_bands,DIPs_E_range
+&                         MAGNON_Res_threshold,DIPs_C_bands,DIPs_V_bands,DIPs_E_range
  use YPP_symm,       ONLY:wf_ng_cut
  use units,          ONLY:FS2AUT
  use interpolate,    ONLY:INTERP_shell_factor,interpls,max_interpls
@@ -154,6 +154,7 @@ subroutine YPP_SET_defaults()
  state_ctl = '0 - 0'
  deg_energy =0.01_SP/HA2EV
  EXCITON_Res_treshold =0.0_SP
+ MAGNON_Res_threshold =0.0_SP
  EXCITON_E_treshold =0.0_SP
  EXCITON_weight_treshold =0.05_SP
  WF_multiplier=1._SP

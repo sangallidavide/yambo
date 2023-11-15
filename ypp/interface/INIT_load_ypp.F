@@ -20,7 +20,7 @@ subroutine INIT_ypp_load(defs)
 &                        BZ_FineGd_nkpts_to_use,BZ_random_nkpts,CIRCUIT_E_DB_path,coo_in,coo_out,current_dir,&
 &                        deg_energy,BANDS_steps,DOS_bands,DOS_broadening,PROJECT_path,QP_DB_to_expand,&
 &                        DOS_E_range,DOS_E_steps,EXCITON_E_treshold,EXCITON_Res_treshold,EXCITON_weight_treshold,&
-&                        INTERP_grid,mag_dir,N_path_pts,ncell,p_dir,p_format,PDOS_atoms,&
+&                        INTERP_grid,mag_dir,N_path_pts,ncell,p_dir,MAGNON_Res_threshold,p_format,PDOS_atoms,&
 &                        PDOS_j,PDOS_wfcs,PDOS_kinds,PDOS_l,PDOS_m,perturbative_SOC_path,PtsPath,r_hole,seed_name,&
 &                        SOC_bands_buffer,SOC_bands_to_map,SOC_split,state_ctl,AVE_exc,BSiq_via_command_line,&
 &                        WF_multiplier,WF_ref,what_to_write,BSiq,PROJECT_mode,PROJECT_N_perp,PROJECT_steps,PROJECT_threshold,&
@@ -244,6 +244,8 @@ subroutine INIT_ypp_load(defs)
  !
  call it(defs,'Res_treshold', 'Select states above this optical strength treshold (max normalized to 1.)',&
 &              EXCITON_Res_treshold,verb_level=V_general)
+ call it(defs,'MRes_threshold', 'Select states above this X+- strength treshold (max normalized to 1.)',&
+&              MAGNON_Res_threshold,verb_level=V_general)
  call it(defs,'En_treshold', 'Select states below this energy treshold',&
 &              EXCITON_E_treshold,verb_level=V_general,unit=E_unit)
  call it(defs,'Weight_treshold', 'Print transitions above this weight treshold (max normalized to 1.)',&
