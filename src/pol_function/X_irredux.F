@@ -466,8 +466,6 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  ! CLEAN
  !=======
  !
- if(.not.skip_WF_load) call WF_free(WF)
- !
  YAMBO_FREE(Xo_res)
  YAMBO_FREE(Xo_res_d)
  YAMBO_FREE(rhotw_save_d)
@@ -476,6 +474,8 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
 #if !defined _CUDA
 !$omp end parallel
 #endif
+ !
+ if(.not.skip_WF_load) call WF_free(WF)
  !
  if (iq==1.and.io_DIP) then
    call DIP_alloc('DIP_iR')
