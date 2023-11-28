@@ -108,8 +108,6 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
    BS_field_direction(:,2)=BSS_P_dir  ! induced polarization
    BS_field_direction(:,3)=BSS_Q_dir  ! field propagation direction
    !
-   if (trim(global_gauge)=='length'  ) BS_field_direction=BS_field_direction*q0_def_norm
-   !
  endif
  !
  call live_timing('BSE dipoles',PAR_BS_nT_col_grps)

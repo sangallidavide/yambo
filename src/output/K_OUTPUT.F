@@ -11,7 +11,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
  use drivers,        ONLY:l_col_cut
  use frequency,      ONLY:w_samp
  use BS_solvers,     ONLY:BSS_desc,BSS_uses_GreenF,BSS_Vnl_included,BSS_n_freqs,K_diago_in_BS_mat,A_drude,B_Hall,&
-&                         diam_term_exact,para_term_w0,l_resp_can_be_extended,l_abs_prop_chi_bse,&
+&                         diam_term_exact,para_term_w0,l_abs_prop_chi_bse,&
 &                         l_eels_from_inversion,Co_factor
  use BS,             ONLY:BSE_mode,BS_K_is_ALDA,BS_dip_size,BS_H_dim,BS_K_coupling,&
 &                         l_BS_anomalous_Hall
@@ -36,12 +36,12 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
  ! Work Space
  !
  character(2)      :: ordering
- integer           :: id,it,i_rsp,n_resp,index_sort(5)
+ integer           :: id,it,i_rsp,n_resp,iw_ref,index_sort(5)
  character(10)     :: solver
  character(schlen) :: out_string
  complex(SP)       :: hall(3,2),tmp_var(BSS_n_freqs,3),spectra(BSS_n_freqs,3),&
- &                    fac,diam_term_used(2),spectra_ij(BSS_n_freqs,3)
- real(SP)          :: data_sort(N_BS_E_sorted+1),nel_diam(2)
+ &                    fac,diam_term_used(3),spectra_ij(BSS_n_freqs,3)
+ real(SP)          :: data_sort(N_BS_E_sorted+1),nel_diam(3)
  logical           :: l_last_col,l_inv,l_hay,l_sle
  !
  if (STRING_match(WHAT,"open")) then
@@ -73,14 +73,15 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
  if(.not.l_last_col) n_resp=2
  if(     l_last_col) n_resp=3
  !
+ if (     trim(BSE_mode)=='resonant' ) ordering='r'
+ if (.not.trim(BSE_mode)=='resonant' ) ordering='R'
+ !
  if (STRING_match(WHAT,"append"))    call X_OUTPUT_driver("append "//OBS)
  if (STRING_match(WHAT,"override"))  call X_OUTPUT_driver("override "//OBS)
  !
  if (STRING_match(WHAT,"open").or.STRING_match(WHAT,"override")) then
    call X_OUTPUT_messages(iq,Q_plus_G=Q_plus_G_pt,ig=i_G_shift)
    !
-   if (     trim(BSE_mode)=='resonant' ) ordering='r'
-   if (.not.trim(BSE_mode)=='resonant' ) ordering='R'
    call X_OUTPUT_messages(iq,GF=BSS_uses_GreenF,Vnl=BSS_Vnl_included,ordering=ordering)
    !
    call X_OUTPUT_driver("DESC "//OBS,DESC=DIP_desc)
@@ -104,7 +105,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
    do i_rsp=1,n_resp
      spectra(:,i_rsp)=Resp_ii(:,i_rsp+1)
      spectra(:,i_rsp)=Resp_ii(:,i_rsp+1)
-     if (X_do_obs("off")) then
+     if (X_do_obs("off").or.X_do_obs("beta")) then
        spectra_ij(:,i_rsp)=Resp_ij(:,i_rsp+1)
        spectra_ij(:,i_rsp)=Resp_ij(:,i_rsp+1)
      endif
@@ -119,14 +120,14 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
      if (.not.skip_cond_sum_rule) diam_term_used=para_term_w0
      spectra(:,1)=spectra(:,1)-diam_term_used(2)
      spectra(:,2)=spectra(:,2)-diam_term_used(1)
-     spectra(:,3)=spectra(:,3)-diam_term_used(2)
+     spectra(:,3)=spectra(:,3)-diam_term_used(3)
    endif
    !
    do i_rsp=1,n_resp
      if(trim(global_gauge)=='length'  ) spectra(:,i_rsp)= spectra(:,i_rsp)/bare_qpg(iq,i_G_shift)**2
      if(trim(global_gauge)=='velocity') spectra(:,i_rsp)= spectra(:,i_rsp)/ W%p(:)**2
      !
-     if (X_do_obs("off")) then
+     if (X_do_obs("off").or.X_do_obs("beta")) then
        if(trim(global_gauge)=='length'  ) spectra_ij(:,i_rsp)=spectra_ij(:,i_rsp)/bare_qpg(iq,i_G_shift)**2
        if(trim(global_gauge)=='velocity') spectra_ij(:,i_rsp)=spectra_ij(:,i_rsp)/ W%p(:)**2
      endif
@@ -142,29 +143,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
    !
    call get_from_Lbar_or_Lfull_inverted(Epsilon_ii(:,2:4),spectra)
    !
-   tmp_var=cZERO
-   ! ... Drude term (if l_drude is computed previously by X_drude call in K_IP.F)
-   if (l_drude) then
-     tmp_var(:,1)=-X_drude_term(:)*4._SP*pi/bare_qpg(iq,i_G_shift)**2
-     tmp_var(:,2)=tmp_var(:,1)
-     if(l_last_col) tmp_var(:,3)=tmp_var(:,1)
-   endif
-   !
-   ! ... Drude term via sum rule breaking
-   if (skip_cond_sum_rule) then
-     tmp_var(:,1)=A_drude(2)/W%p(:)**2
-     tmp_var(:,2)=A_drude(1)/W%p(:)**2
-     if(l_last_col) then
-       if(l_hay) tmp_var(:,3)=tmp_var(:,1)
-       if(l_inv) tmp_var(:,3)=tmp_var(:,2)
-     endif
-   endif
-   !
-   if (l_drude.or.skip_cond_sum_rule) then
-     Epsilon_ii(:,2)=Epsilon_ii(:,2)+tmp_var(:,1)
-     Epsilon_ii(:,3)=Epsilon_ii(:,3)+tmp_var(:,2)
-     if(l_last_col) Epsilon_ii(:,4)=Epsilon_ii(:,4)+tmp_var(:,3)
-   endif
+   call add_drude_term(Epsilon_ii(:,2:4))
    !
    nel_diam(:)=real(A_drude(:))/real(nkbz,SP)*spin_occ/Co_factor
    !
@@ -173,6 +152,8 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
    call msg("o eps",com_compose_msg(pre="# ",body="Ao"),nel_diam(1),INDENT=0,after_msg="[nel]")
    if (.not.STRING_match(WHAT,"IP")) &
    &call msg("o eps",com_compose_msg(pre="# ",body="A"),nel_diam(2),INDENT=0,after_msg="[nel]")
+   if (l_last_col) &
+   &call msg("o eps",com_compose_msg(pre="# ",body="A'"),nel_diam(3),INDENT=0,after_msg="[nel]")
    !
    ! ... Epsilon_ii
    call ELEMENTAL_dump("eps",Epsilon_ii(:,2:4)+1._SP)
@@ -243,6 +224,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
  ! EELS 
  !------
  if (X_do_obs("eel")) then
+   call FREQUENCIES_set_reference_point(W%p,W%n_freqs,iw_ref)
    call get_eel_from_spectra(tmp_var,spectra)
    call ELEMENTAL_dump("eel",tmp_var)
  endif
@@ -394,27 +376,71 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
      complex(SP), intent(in)  :: spec_i(BSS_n_freqs,3)
      complex(SP), intent(out) :: spec_o(BSS_n_freqs,3)
      !
+     complex(SP)  :: tmp_spec(BSS_n_freqs),drude(BSS_n_freqs,3)
+     !
+     drude=cZERO
+     call add_drude_term(drude)
+     !
      spec_o(:,1:n_resp)=spec_i(:,1:n_resp)
      !
      ! IP part
-     !if (l_resp_can_be_extended) then
-     call EPS_extend(W%p,BSS_n_freqs,.FALSE.,ordering,spec_o(:,2),spec_o(:,2))
-     spec_o(:,2)= -1._SP/(spec_o(:,2)+1._SP)
+     spec_o(:,2)= spec_o(:,2)+drude(:,2)
+     call EPS_extend(W%p,BSS_n_freqs,iw_ref,.true.,ordering,spec_o(:,2),tmp_spec)
+     spec_o(:,2)= -1._SP/(tmp_spec+1._SP)
+     !WARNING, If I replace the above two lines with the following two
+     !I get spec_o=0 after the first line. This seems a compiler bug.
+     !EPS_extend(W%p,BSS_n_freqs,iw_ref,.true.,ordering,spec_o(:,2),spec_o(:,2))
+     !spec_o(:,2)= -1._SP/(spec_o(:,2)+1._SP)
      if(l_last_col .and. l_inv) then
-       call EPS_extend(W%p,BSS_n_freqs,.FALSE.,ordering,spec_o(:,3),spec_o(:,3))
-       spec_o(:,3)= -1._SP/(spec_o(:,3)+1._SP)
+       spec_o(:,3)= spec_o(:,3)+drude(:,3)
+       call EPS_extend(W%p,BSS_n_freqs,iw_ref,.false.,ordering,(spec_o(:,3)),tmp_spec)
+       spec_o(:,3)= -1._SP/(tmp_spec+1._SP)
      endif
      !
      ! BSE part
      if (l_eels_from_inversion .and. .not. l_sle ) then
-       call EPS_extend(W%p,BSS_n_freqs,.FALSE.,ordering,spec_o(:,1),spec_o(:,1))
-       spec_o(:,1)= -1._SP/(spec_o(:,1)+1._SP)
+       if (.not.l_abs_prop_chi_bse) spec_o(:,1)=-spec_o(:,1)/(spec_o(:,1)-1._SP)
+       spec_o(:,1)= spec_o(:,1)+drude(:,1)
+       call EPS_extend(W%p,BSS_n_freqs,iw_ref,.false.,ordering,spec_o(:,1),tmp_spec)
+       spec_o(:,1)= -1._SP/(tmp_spec+1._SP)
        if(l_last_col.and.l_hay) then
-         call EPS_extend(W%p,BSS_n_freqs,.FALSE.,ordering,spec_o(:,3),spec_o(:,3))
-         spec_o(:,3)= -1._SP/(spec_o(:,3)+1._SP)
+         if (.not.l_abs_prop_chi_bse) spec_o(:,3)=-spec_o(:,3)/(spec_o(:,3)-1._SP)
+         spec_o(:,3)= spec_o(:,3)+drude(:,3)
+         call EPS_extend(W%p,BSS_n_freqs,iw_ref,.false.,ordering,spec_o(:,3),tmp_spec)
+         spec_o(:,3)= -1._SP/(tmp_spec+1._SP)
        endif
      endif
      !
    end subroutine get_eel_from_spectra
+   !
+   !
+   subroutine add_drude_term(spec_io)
+     !
+     complex(SP), intent(inout)  :: spec_io(BSS_n_freqs,3)
+     !
+     complex(SP)  :: tmp_dru(BSS_n_freqs,3)
+     !
+     tmp_dru=cZERO
+     ! ... Drude term (if l_drude is computed previously by X_drude call in K_IP.F)
+     if (l_drude) then
+       tmp_dru(:,1)=-X_drude_term(:)*4._SP*pi/bare_qpg(iq,i_G_shift)**2
+       tmp_dru(:,2)=tmp_dru(:,1)
+       if(l_last_col) tmp_dru(:,3)=tmp_dru(:,1)
+     endif
+     !
+     ! ... Drude term via sum rule breaking
+     if (skip_cond_sum_rule) then
+       tmp_dru(:,1)=A_drude(2)/W%p(:)**2
+       tmp_dru(:,2)=A_drude(1)/W%p(:)**2
+       tmp_dru(:,3)=A_drude(3)/W%p(:)**2
+     endif
+     !
+     if (l_drude.or.skip_cond_sum_rule) then
+       spec_io(:,1)=spec_io(:,1)+tmp_dru(:,1)
+       spec_io(:,2)=spec_io(:,2)+tmp_dru(:,2)
+       if(l_last_col) spec_io(:,3)=spec_io(:,3)+tmp_dru(:,3)
+     endif
+     !
+   end subroutine add_drude_term
    !
 end subroutine
