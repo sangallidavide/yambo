@@ -3,7 +3,7 @@
 !
 ! Copyright (C) 2006 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM (AF 
+! Authors (see AUTHORS file for details): AM AF
 !
 subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  !
@@ -100,7 +100,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  KERNEL%blc=cZERO
  !
  if(call_kind=="screening")  buffer_nfreq=max(PAR_n_freqs,1)
- if(call_kind=="optics")     buffer_nfreq=1
+ if(call_kind=="response" )  buffer_nfreq=1
  !
  call MATRIX_init( "SLK", BUFFER , X%ng, buffer_nfreq )
  !TMP_SIZE=(/BUFFER%BLCrows(2)-BUFFER%BLCrows(1)+1,BUFFER%BLCcols(2)-BUFFER%BLCcols(1)+1,buffer_nfreq*2/)
@@ -115,7 +115,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
    call dev_memset(BUFFER%blc_d,cZERO)
  endif
  !
- if(call_kind=="optics") then
+ if(call_kind=="response") then
    buffer_nfreq=max(PAR_n_freqs,1)
    YAMBO_ALLOC(BUFFER_SAVE,(buffer_nfreq))
    BUFFER_SAVE=cZERO
@@ -130,7 +130,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  !
  do iw_par=1,maxval(PAR_n_freqs_global)
    !
-   if(call_kind=="optics")    iw_par_buffer=1
+   if(call_kind=="response" ) iw_par_buffer=1
    if(call_kind=="screening") iw_par_buffer=iw_par
    !
    BUFFER%I   = iw_par_buffer
@@ -280,7 +280,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
    !
    if (PAR_n_freqs>0) call live_timing(steps=1)
    !
-   if(call_kind=="optics") BUFFER_SAVE(iw_par)=BUFFER%blc(i_G_shift,i_G_shift,BUFFER%I)
+   if(call_kind=="response") BUFFER_SAVE(iw_par)=BUFFER%blc(i_G_shift,i_G_shift,BUFFER%I)
    !
  enddo
  !
@@ -297,14 +297,14 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  !
  if(call_kind=="screening") call X_redux_X_par_micro()
  !
- if(call_kind=="optics")    call X_redux_X_par_macro()
+ if(call_kind=="response")  call X_redux_X_par_macro()
  !
  ! Clean-up of FREQ structure
  !==========
  call MATRIX_reset(BUFFER)
  YAMBO_FREE(PAR_FREQS_index)
  call PP_indexes_reset(PAR_IND_freqs)
- if(call_kind=="optics") then
+ if(call_kind=="response") then
    YAMBO_FREE(BUFFER_SAVE)
  endif
  !
