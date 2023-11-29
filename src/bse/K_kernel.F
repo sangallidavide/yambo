@@ -554,6 +554,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      & WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,l_bs_corr_wf_in_loop)
    endif
    !
+   call timing('X T_space Kernel sum',OPR='start')
+   !
    ! Transition Loops
    !------------------
    !
@@ -682,8 +684,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
          iq_W_mq   =q%sstar( iq_W_bz_mq,1) 
          iq_W_s_mq =q%sstar( iq_W_bz_mq,2) 
          !
-         !if (iq==1) ig_W_final=      ig_W_mq
-         !if (iq> 1) ig_W_final=G_m_G(ig_W_mq,g_rot(G_m_G(ig_kmq,ig_pmq),iq_W_s_mq))
+         ig_W_final=       ig_W_mq
+         !ig_W_final=G_m_G(ig_W_mq,g_rot(G_m_G(ig_kmq,ig_pmq),iq_W_s_mq))
          !
        endif 
        ! 
@@ -730,7 +732,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
            if (l_std_alg)       H_c=K_correlation_kernel_std(i_block,i_p,i_pmq, &
 &                                   i_k_s,i_kp_s,i_c_k,i_c_p,i_kmq_s,i_kp_mq_s,i_v_k,i_v_p,     &
 &                                   i_kmq_t,i_pmq_t,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,  &
-&                                   iq_W,iq_W_s,ig_W,i_k_s_m1,iq_W_s_mq,ig_W_mq,i_kmq_s_m1)
+&                                   iq_W,iq_W_s,ig_W,i_k_s_m1,iq_W_s_mq,ig_W_final,i_kmq_s_m1)
            if (l_dir_alg)       H_c=K_correlation_kernel_dir(i_block,i_p,i_pmq, &
 &                                   i_k_s,i_p_s, i_c_k,i_c_p,i_kmq_s,i_pmq_s  ,i_v_k,i_v_p,     &
 &                                   i_kmq_t,i_pmq_t,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,  &
@@ -758,7 +760,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
            if (l_std_alg)       H_c=K_correlation_kernel_std(i_block,i_p,i_pmq, &
 &                                 i_k_s,i_kp_s,i_c_k,i_v_p,i_kmq_s,i_kp_mq_s,i_v_k,i_c_p,    &
 &                                 i_kmq_t,i_pmq_t,i_k_sp_pol_c,i_p_sp_pol_v,i_k_sp_pol_v,i_p_sp_pol_c,  &
-&                                 iq_W,iq_W_s,ig_W,i_k_s_m1,iq_W_s_mq,ig_W_mq,i_kmq_s_m1)
+&                                 iq_W,iq_W_s,ig_W,i_k_s_m1,iq_W_s_mq,ig_W_final,i_kmq_s_m1)
            if (l_dir_alg)       H_c=K_correlation_kernel_dir(i_block,i_p,i_pmq, &
 &                                 i_k_s,i_p_s ,i_c_k,i_v_p,i_kmq_s,i_pmq_s  ,i_v_k,i_c_p,    &
 &                                 i_kmq_t,i_pmq_t,i_k_sp_pol_c,i_p_sp_pol_v,i_k_sp_pol_v,i_p_sp_pol_c,  &
@@ -786,6 +788,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    !$omp end do
    !$omp end parallel
 #endif
+   !
+   call timing('X T_space Kernel sum',OPR='stop')
    !
    if(BS_K_cutoff>0._SP.and.l_write_kernel) &
 &     BS_max_val_CPU(myid+1)=maxval( (/BS_max_val_CPU(myid+1),abs(BS_blk(i_block)%mat(:,:))/) )
