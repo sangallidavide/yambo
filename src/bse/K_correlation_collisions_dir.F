@@ -1,26 +1,10 @@
 !
-!        Copyright (C) 2000-2022 the YAMBO team
-!              http://www.yambo-code.org
+! License-Identifier: GPL
 !
-! Authors (see AUTHORS file for details): AM, DS, HM
+! Copyright (C) 2022 The Yambo Team
+!
+! Authors (see AUTHORS file for details): AM, DS
 ! 
-! This file is distributed under the terms of the GNU 
-! General Public License. You can redistribute it and/or 
-! modify it under the terms of the GNU General Public 
-! License as published by the Free Software Foundation; 
-! either version 2, or (at your option) any later version.
-!
-! This program is distributed in the hope that it Will 
-! be useful, but WITHOUT ANY WARRANTY; without even the 
-! implied warranty of MERCHANTABILITY or FITNESS FOR A 
-! PARTICULAR PURPOSE.  See the GNU General Public License 
-! for more details.
-!
-! You should have received a copy of the GNU General Public 
-! License along with this program; if not, write to the Free 
-! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
-! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
-!
 subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
  !
  ! This routine evaluates the correlation collisions:
@@ -277,19 +261,15 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
        !
        if(i_k_sp_pol_c/=i_p_sp_pol_v) cycle
        !
-       ! DS: Is coupling inmplemented or to do ??
-       !
        ! v->c', i.e. k-q -> p-q=k-q_W-q transitions
        !
-       !i_s_collision=collision_star(i_pmq,i_kp_mq_s,i_c_p,i_p_sp_pol_c,i_s_mq_star,i_kp_mq_s)
-       !call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,&
-       !&                        i_p_sp_pol_c,i_v_k,i_c_p,iq_W,i_s_collision,K_CORR_collision)
+       call EVAL_collision(i_block,i_kmq,i_pmq,i_kmq_t,i_pmq_t,i_k_sp_pol_v,&
+       &                        i_p_sp_pol_c,i_v_k,i_c_p,iq_W,i_kmq_s,i_pmq_s,K_CORR_collision)
        !
        ! c->v', i.e. k -> p=k-q_W transitions
        !
-       !i_s_collision=collision_star(i_p,i_kp_s,i_v_p,i_p_sp_pol_v,i_s_star,i_kp_s)
-       !call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_v,&
-       !&                        i_c_k,i_v_p,iq_W,i_s_collision,K_CORR_collision)
+       call EVAL_collision(i_block,i_k,i_p,1,1,i_k_sp_pol_c,i_p_sp_pol_v,&
+       &                        i_c_k,i_v_p,iq_W,i_k_s,i_p_s,K_CORR_collision)
        !
      enddo
    enddo
@@ -401,19 +381,14 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
    subroutine EVAL_table(iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki,i_s_ko)
      implicit none
      integer, intent(in) :: iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki,i_s_ko
-     integer :: iB_ref, iB_p
-     iB_ref=-1
-     if ( iB_ref==-1 ) then
-       iB_ref=iB
-       BS_blk(iB)%N_oscillators=BS_blk(iB)%N_oscillators+1 
-       BS_blk(iB)%O_table1(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
-       BS_blk(iB)%O_table2(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=iB
-       O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=.true.
-     endif
-     BS_blk(iB)%O_table1(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)= &
-&      BS_blk(iB_ref)%O_table1(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)
-     BS_blk(iB)%O_table2(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)= &
-&      BS_blk(iB_ref)%O_table2(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)
+     !
+     if( O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol) ) return
+     !
+     BS_blk(iB)%N_oscillators=BS_blk(iB)%N_oscillators+1 
+     BS_blk(iB)%O_table1(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
+     BS_blk(iB)%O_table2(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=iB
+     O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=.true.
+     !
    end subroutine
    !
    subroutine EVAL_collision(iB,iki,iko,ikit,ikot,i_sp_pol_i,i_sp_pol_o,ibi,ibo,iq_W_in,i_s_ki,i_s_ko,isc)
