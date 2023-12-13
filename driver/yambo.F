@@ -213,7 +213,7 @@ integer function yambo(np,pid,lnstr,iinf,iind,iod,icd,ijs,instr,inf,ind,od,com_d
  !
  driver_now=(l_optics.and.l_bse).or.l_bss
  !
- if (driver_now) call K_driver(Xen,Ken,Xk,q,X(i_X_kind),Xw(i_X_kind),Dip)
+ if (driver_now) call K_driver(Xen,Ken,k,Xk,q,X(i_X_kind),Xw(i_X_kind),Dip)
  if (driver_now) call mem_manager_report
  !
  ! ACFDT

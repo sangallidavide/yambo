@@ -118,7 +118,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  !
  call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/1,2,3,4,6/),MODE=VERIFY,ID=io_db)
  !
- io_err=io_QINDX(Xk,q,io_db)
+ io_err=io_QINDX(k,Xk,q,io_db)
  if (io_err==0) then
    call k_expand(q)
    d3q_factor=RL_vol/real(q%nbz)
@@ -495,7 +495,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  !
  if(master_cpu) then
    call io_control(ACTION=OP_WR_CL,COM=REP,SEC=(/1,2,3,4,6/),ID=io_db)
-   io_err=io_QINDX(Xk,q,io_db)
+   io_err=io_QINDX(k,Xk,q,io_db)
  endif
  !
  ! Before writing section 5 (qindx_B) I need to wait that the master is done
@@ -511,7 +511,7 @@ subroutine bz_samp_indexes(en,k,Xk,q)
  if (do_qindx_B) then
    call io_control(ACTION=OP_APP_CL,COM=REP,SEC=(/5/),ID=io_db,&
 &                  COMM=PAR_K_scheme%COM_ibz_index,DO_it=PAR_K_scheme%COM_ibz_A2A%CPU_id==0)
-   io_err=io_QINDX(Xk,q,io_db)
+   io_err=io_QINDX(k,Xk,q,io_db)
  endif
  !
  !CLEAN
