@@ -60,7 +60,7 @@ integer function io_kpts(k,Xk,q,io_db)
  !
  if (any((/io_sec(io_db,:)==2/))) then
    !
-   call def_variable_bulk(io_db,"Xk_sstar",11,shape(Xk%sstar),IP_YIO)
+   call def_variable_bulk(io_db,"Xk_sstar",1,shape(Xk%sstar),IP_YIO)
    call  io_variable_bulk(io_db,1,I2=Xk%sstar)
    !
  endif
