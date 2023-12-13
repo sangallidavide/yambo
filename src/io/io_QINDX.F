@@ -14,7 +14,7 @@
 ! io_sec=5   qindx_B          
 ! io_Sec=6   qindx_C
 !
-integer function io_QINDX(k,Xk,q,io_db)
+integer function io_QINDX(Xk,q,io_db)
  !
  use pars,           ONLY:SP,IP,LP,IP_YIO,LP_YIO,CR_YIO
  use R_lattice,      ONLY:nqibz,nqbz,qindx_X,qindx_B,qindx_S,qindx_C,&
@@ -23,7 +23,7 @@ integer function io_QINDX(k,Xk,q,io_db)
 &                         sigma_scattering,X_scattering,k_GRIDS_string,k_GRIDS_vector, &
 &                         qindx_S_max_Go
  use IO_m,           ONLY:io_sec,frag_QINDX,io_status,read_is_on,IO_OUTDATED_DB, &
-&                         write_is_on,io_extension,variable_exist
+&                         write_is_on,io_extension
  use IO_int,         ONLY:io_connect,io_disconnect,&
 &                         io_variable_elemental,def_variable_elemental,io_header,&
 &                         ver_is_gt_or_eq,io_fragment,def_variable_bulk,io_variable_bulk
@@ -32,7 +32,7 @@ integer function io_QINDX(k,Xk,q,io_db)
  !
 #include<memory.h>
  !
- type(bz_samp)::k,q,Xk
+ type(bz_samp)::q,Xk
  integer      ::io_db,i3,i2,i2_dn,i2_up,i2_mem,i2_step,IO_size
  !
  ! Work Space
@@ -50,14 +50,6 @@ integer function io_QINDX(k,Xk,q,io_db)
    !
    if (.not.ver_is_gt_or_eq(io_db,revision=22000)) io_QINDX=IO_OUTDATED_DB
    if (io_QINDX/=0) goto 1
-   !
-   if (write_is_on(io_db).or.variable_exist(io_db,"k_nibz")) then
-     call def_variable_elemental(io_db,"k_nibz",1,IP_YIO,0)
-     call io_variable_elemental(io_db,I0=k%nibz)
-     !
-     call def_variable_elemental(io_db,"k_nbz",1,IP_YIO,0)
-     call io_variable_elemental(io_db,I0=k%nbz)
-   endif
    !
    call def_variable_elemental(io_db,"nXkbz",1,IP_YIO,0)
    call io_variable_elemental(io_db,VAR="Polarization last K ( bz)",I0=nXkbz)

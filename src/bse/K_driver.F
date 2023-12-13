@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM IMA
 !
-subroutine K_driver(Xen,Ken,kk,Xk,q,X_static_pp,Xw,Dip)
+subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  !
  use pars,           ONLY:IP
  use com,            ONLY:msg
@@ -29,7 +29,7 @@ subroutine K_driver(Xen,Ken,kk,Xk,q,X_static_pp,Xw,Dip)
 #include<memory.h>
  !
  type(levels)  ::Xen,Ken
- type(bz_samp) ::kk,Xk,q
+ type(bz_samp) ::Xk,q
  type(X_t)     ::X_static_pp
  type(DIPOLE_t)::Dip
  type(w_samp)  ::Xw
@@ -102,7 +102,7 @@ subroutine K_driver(Xen,Ken,kk,Xk,q,X_static_pp,Xw,Dip)
    !
    ! here qindx_B is allocated
    call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/5/),ID=ID)
-   io_err=io_QINDX(kk,Xk,q,ID)
+   io_err=io_QINDX(Xk,q,ID)
    !
    YAMBO_ALLOC(qindx_B_max_CPU,(PAR_K_scheme%COM_ibz_INDEX%n_CPU))
    qindx_B_max_CPU=0

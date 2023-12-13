@@ -64,7 +64,7 @@ subroutine ELPH_databases(k,E,q)
      !
      ! here qindx_B is allocated
      call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/5/),ID=ID)
-     io_err(1)=io_QINDX(k,k,q,ID)
+     io_err(1)=io_QINDX(k,q,ID)
      if (io_err(1)/=0) then
        call msg('s',"Missing k/q scattering database")
        call error("Please run a setup with the BSEscatt flag activated")
@@ -78,7 +78,7 @@ subroutine ELPH_databases(k,E,q)
    else
      ! otherwise qindx_S is allocated
      call io_control(ACTION=OP_RD_CL,COM=REP,SEC=(/4/),ID=ID)
-     io_err(1)=io_QINDX(k,k,q,ID)
+     io_err(1)=io_QINDX(k,q,ID)
      if (io_err(1)/=0) then
        call msg('s',"Missing k/q scattering database")
        call error("Please (re)run the setup")
