@@ -76,6 +76,12 @@ module wave_func
  integer,    allocatable DEV_ATTR :: wf_igk_d(:,:)
  logical                :: wf_norm_test
  !
+ ! Wave function phases
+ !
+ complex(SP), allocatable :: WF_phases(:,:,:,:,:)
+ integer,     allocatable :: WF_phases_k_map(:)
+ integer,     allocatable :: WF_phases_s_map(:)
+ !
  interface
    !
    integer function io_WF_old(ID,wf_old)

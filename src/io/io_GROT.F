@@ -8,11 +8,13 @@
 integer function io_GROT(io_db)
  !
  use D_lattice,      ONLY:nsym,inv_index
- use R_lattice,      ONLY:n_g_shells,ng_closed,ng_in_shell,E_of_shell,g_rot,minus_G
+ use R_lattice,      ONLY:n_g_shells,ng_closed,ng_in_shell,E_of_shell,&
+&                         g_rot,minus_G,G_mod_indx
 #ifdef _CUDA
  use R_lattice,      ONLY:minus_G_d
 #endif
- use IO_m,           ONLY:io_status,io_sec,read_is_on
+ use IO_m,           ONLY:io_status,io_sec,read_is_on,variable_exist,&
+&                         write_is_on
  use IO_int,         ONLY:io_connect,io_disconnect,io_elemental,&
 &                         io_bulk,io_header,ver_is_gt_or_eq
  use timing_m,       ONLY:timing
@@ -49,6 +51,7 @@ integer function io_GROT(io_db)
    YAMBO_ALLOC(g_rot,(ng_closed,nsym_db))
    YAMBO_ALLOC(E_of_shell,(n_g_shells))
    YAMBO_ALLOC(minus_G,(ng_closed))
+   YAMBO_ALLOC(G_mod_indx,(ng_closed))
  endif
  !
  call io_bulk(io_db,VAR="ng_in_shell",VAR_SZ=(/n_g_shells/))
@@ -70,6 +73,11 @@ integer function io_GROT(io_db)
    allocate(minus_G_d,source=minus_G)
  endif
 #endif
+ !
+ if (write_is_on(io_db).or.variable_exist(io_db,"Sort_indx")) then
+   call io_bulk(io_db,VAR="Sort_indx",VAR_SZ=(/ng_closed/))
+   call io_bulk(io_db,I1=G_mod_indx(:ng_closed))
+ endif
  !
  call initactivate(1,'Gmode')
  !

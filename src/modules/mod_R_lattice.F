@@ -68,6 +68,7 @@ module R_lattice
    integer,  allocatable :: sstar(:,:)    ! ik_bz     --> ik,is_used   is_used sends ik in ikbz
    integer,  allocatable :: s_table(:,:)  ! ik,is     --> is_used      revers of sstar(2)
    integer,  allocatable :: k_table(:,:)  ! ik,is     --> ik_bz        revers of sstar(1)
+   integer,  allocatable :: g_table(:,:)  ! ik,is     --> ig_index
    real(SP), allocatable :: pt(:,:)      
    real(SP), allocatable :: ptbz(:,:)    
    real(SP), allocatable :: weights(:)   
@@ -127,6 +128,7 @@ module R_lattice
  integer ,allocatable :: g_rot(:,:)
  integer ,allocatable :: G_m_G(:,:)
  integer ,allocatable :: minus_G(:)
+ integer ,allocatable :: G_mod_indx(:)
  real(SP),allocatable :: g_vec(:,:)
  real(SP),allocatable :: E_of_shell(:)  ! Energy associated at each shell
  ! GPUs

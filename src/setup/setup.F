@@ -278,6 +278,11 @@ subroutine setup(en,Xen,Ken,k,Xk)
  wf_ng_1st_BZ=wf_ng
  call PARSER_close_G(wf_ng_1st_BZ,'tRL')
  !
+ if (wf_ng_1st_BZ/=wf_ng) then
+   call warning( 'Increasing wf_ng from '//trim(intc(wf_ng))//' to '//trim(intc(wf_ng_1st_BZ)) )
+   wf_ng=wf_ng_1st_bz
+ endif
+ !
  call section('=','K-grid lattice')
  !=================================
  !
@@ -432,5 +437,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
  endif
  !
 #endif
+ !
+ call WF_phase_matrices(Xen,Xk,(/1,4/))
  !
 end subroutine

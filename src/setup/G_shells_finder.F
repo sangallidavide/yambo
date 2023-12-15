@@ -16,7 +16,7 @@ subroutine G_shells_finder()
  use LIVE_t,       ONLY:live_timing
  use D_lattice,    ONLY:nsym,inv_index
  use R_lattice,    ONLY:n_g_shells,ng_in_shell,ng_closed,&
-&                       g_vec,g_rot,E_of_shell,rl_sop,minus_G
+&                       g_vec,g_rot,E_of_shell,rl_sop,minus_G,G_mod_indx
 #ifdef _CUDA
  use R_lattice,    ONLY:g_rot_d,minus_G_d
 #endif
@@ -32,7 +32,7 @@ subroutine G_shells_finder()
  ! Work Space
  !
  integer :: i_1,i_2,ig_1,ig_2,i_s,i_m,n_g_shells_no_holes
- integer :: G_mod_indx(ng_closed),ng_in_shell_TMP(ng_closed),first_G_in_shell(ng_closed)
+ integer :: ng_in_shell_TMP(ng_closed),first_G_in_shell(ng_closed)
  real(SP):: G_mod(ng_closed),g_rotated(3),E_of_shell_TMP(ng_closed)
  type(PP_indexes) :: px
  !
@@ -84,6 +84,7 @@ subroutine G_shells_finder()
  ! Re-ordering by increasing module
  !==================================
  !
+ YAMBO_ALLOC(G_mod_indx,(ng_closed))
  do ig_1=1,ng_closed
    G_mod(ig_1)=iku_v_norm(g_vec(ig_1,:))
  enddo
