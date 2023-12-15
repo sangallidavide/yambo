@@ -80,7 +80,7 @@ module wave_func
  !
  complex(SP), allocatable :: WF_phases(:,:,:,:,:)
  integer,     allocatable :: WF_phases_k_map(:)
- integer,     allocatable :: WF_phases_s_map(:)
+ integer,     allocatable :: WF_phases_s_map(:,:)
  !
  interface
    !

@@ -64,7 +64,7 @@ integer function io_WF_phases(nb,ID)
    VAR_ID=3
    VAR_name='WF_phases_s_map'
    call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_s_map),IP_YIO)
-   call  io_variable_bulk(ID,VAR_ID,I1=WF_phases_s_map)
+   call  io_variable_bulk(ID,VAR_ID,I2=WF_phases_s_map)
    !
  endif
  !
