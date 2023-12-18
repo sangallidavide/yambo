@@ -7,7 +7,7 @@
 !
 module D_lattice
  !
- use pars,        ONLY:SP,lchlen,cONE,cZERO,cI,schlen
+ use pars,        ONLY:DP,SP,lchlen,cONE,cZERO,cI,schlen
  use cuda_m,      ONLY:have_cuda
  !
 #include<dev_defs.h>
@@ -32,6 +32,7 @@ module D_lattice
  ! SYMs
  !
  integer :: nsym
+ integer :: nrot
  integer :: i_time_rev  ! =1 yes TR , =0 no TR
  integer :: i_space_inv ! =1 yes SI,  =0 no SI
  integer :: inv_index   ! Index of the symmetry corresponding to -I (independently 
@@ -89,6 +90,22 @@ module D_lattice
  ! Periodic Table
  !
  character(len=2)      :: PT_elements(0:103)
+ !
+ ! Group theory
+ !
+ integer               :: group_code
+ character(len=11)     :: group_name
+ !
+ integer :: nclass                     ! The number of classes
+ integer,allocatable :: nelem(:)       ! The elements of each class
+ integer,allocatable :: elem(:,:)      ! Which elements in the smat list for each class
+ integer,allocatable :: which_irr(:)   ! See the subroutine description
+ !
+ integer :: nclass_ref                 ! The number of classes
+ character(len=15) :: name_rap(12)     ! name of the representations
+ character(len=5)  :: name_class(12)   ! name of the classes
+ character(len=3)  :: ir_ram(12)       ! Representation labels
+ complex(DP)       :: char_mat(12,12)  ! Output: character matrix
  !
  contains
    !

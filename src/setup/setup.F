@@ -7,18 +7,20 @@
 !
 subroutine setup(en,Xen,Ken,k,Xk)
  !
- use pars,           ONLY:SP,pi,schlen
+ use pars,           ONLY:DP,SP,pi,schlen
  use units,          ONLY:Da2AU
  use drivers,        ONLY:l_setup
  use C_driver,       ONLY:code_bin
  use parser_m,       ONLY:parser
  use wave_func,      ONLY:wf_ng,wf_ncx,wf_igk
- use electrons,      ONLY:levels,n_met_bands,n_full_bands,E_duplicate,E_reset
+ use electrons,      ONLY:levels,n_met_bands,n_full_bands,n_spinor,E_duplicate,E_reset
  use D_lattice,      ONLY:a,alat,nsym,i_time_rev,DL_vol,Tel,dl_sop,atom_mass,atom_pos,atoms_map,&
 &                         atoms_spatial_inversion,i_space_inv,input_Tel_is_negative,&
 &                         inv_index,atoms_string,load_PT_elements,n_atoms_species,Z_species,&
 &                         n_atomic_species,PT_elements,non_periodic_directions,lattice,&
-&                         symmetry_group_table,mag_syms,idt_index,symmetry_equiv_atoms
+&                         symmetry_group_table,mag_syms,idt_index,symmetry_equiv_atoms,&
+&                         group_code,group_name,nrot,nclass,nelem,elem,which_irr,&
+&                         nclass_ref,char_mat,name_rap,name_class,ir_ram
  use R_lattice,      ONLY:RL_vol,b,n_g_shells,ng_in_shell,Xk_grid_new_mapping,FineGd_desc,&
 &                         rl_sop,bz_samp,g_vec,E_of_shell,ng_closed,bz_samp_duplicate_Fg,MAX_kpts_to_report
  use com,            ONLY:msg,fat_log
@@ -57,7 +59,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
  ! Work Space
  !
  real(SP)          :: Tel_SAVE,tmp_V(3)
- integer           :: i1,i2,i3,ik,is,ia,i_err,nbf_SAVE(2),nbm_SAVE(2),ID,n_to_print
+ integer           :: i1,i2,i3,ik,is,ia,iclass,i_err,nbf_SAVE(2),nbm_SAVE(2),ID,n_to_print
  type(levels)      :: Xen_COPY
  character(schlen) :: dumb_ch
  integer, external :: k_lattice,io_Double_Grid
@@ -234,6 +236,45 @@ subroutine setup(en,Xen,Ken,k,Xk)
    if (is<=nsym/(1+i_time_rev)) dumb_ch=' [S '//trim(dumb_ch)
    if (is> nsym/(1+i_time_rev)) dumb_ch=' [S*'//trim(dumb_ch)
    call msg('r',trim(dumb_ch),reshape(dl_sop(:,:,is),(/9/)))  
+ enddo
+ !
+ ! Symmetries and point groups
+ !
+ nrot=nsym/(1+max(i_time_rev,i_space_inv))
+ call find_group(nrot,real(dl_sop(:,:,:nrot),DP),group_name,group_code)
+ call msg('nr','Point group is        ',group_name)
+ !
+ allocate(nelem(12*n_spinor))
+ allocate(elem(8+4*(n_spinor-1),12*n_spinor))
+ allocate(which_irr(12*n_spinor))
+ if (n_spinor==1) then
+   call divide_class(group_code,nrot,real(dl_sop(:,:,:nrot),DP),nclass,nelem,elem,which_irr)
+ else
+   ! TO DO
+   !allocate(has_e())
+   !call divide_class_so(group_code,nrot,dl_sop(:,:,:nrot),nclass,nelem,elem,which_irr)
+ endif
+ call msg('nr','Number of classes     ',nclass)
+ call msg('r' ,'Elements per class    ',nelem(:nclass))
+ !
+ ! DS: to check if nclass and nclass_ref can be different in any case
+ call set_irr_rap( group_code, nclass_ref, char_mat, name_rap, name_class, ir_ram )
+ !
+ call msg('r' ,'Name of classes       ',name_class(:nclass))
+ do iclass=1,nclass
+   call msg('r','Symmetries in class '//name_class(iclass),elem(:nelem(iclass),iclass))
+ enddo
+ !
+ call msg('nr' ,'Number of rapresentations',nclass_ref)
+ do iclass=1,nclass_ref
+   dumb_ch=trim(intc(iclass))//'] '
+   i1=9
+   do while (i1<nclass_ref)
+     if(iclass<=i1) dumb_ch=' '//trim(dumb_ch)
+     i1=i1*10+9
+   enddo
+   dumb_ch=trim(intc(iclass))//'] '
+   call msg('r','[R'//trim(dumb_ch),name_rap(iclass))
  enddo
  !
  call section('=','Reciprocal space')
