@@ -10,11 +10,11 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  use drivers,        ONLY:l_exc_rad_life
  use units,          ONLY:FS2AUT
  use YPPm,           ONLY:l_plot,l_SOC_map,l_map_kpts,l_mag,l_k_grid,l_high_sym_pts,BSiq,&
-&                         l_free_hole,l_fix_syms,l_excitons,l_dipoles,l_exc_wf,DIPs_kind,&
+&                         l_free_hole,l_fix_syms,l_excitons,l_dipoles,l_exc_wf,l_exc_symm,DIPs_kind,&
 &                         l_amplitude,l_bands,l_bz_grids,l_current,BANDS_bands,BSiq_via_command_line,&
 &                         l_density,l_dos,l_electrons,l_q_grid,l_QP_DBs_create_and_modify,&
-&                         l_QP_DBs_manipulate,l_random_grid,l_shifted_grid,l_sort,l_sp_wf,l_spin,&
-&                         l_wannier,l_wavefunction,n_FineGd_DBs,n_u_interp_pts,n_u_k_pts,n_u_q_pts,&
+&                         l_QP_DBs_manipulate,l_random_grid,l_shifted_grid,l_sort,l_sp_symm,l_sp_wf,l_spin,&
+&                         l_wannier,l_wavefunction,l_group_symm,n_FineGd_DBs,n_u_interp_pts,n_u_k_pts,n_u_q_pts,&
 &                         U_k_pts,U_interp_pts,U_q_pts,U_q_shifts,FineGd_DB1_paths,l_angular_momentum,l_position,&
 &                         l_QP_DB_expand,l_average_eh,l_interp,l_regular_grid,DIPs
  use pars,           ONLY:pi,schlen
@@ -260,6 +260,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
      endif
      if ( trim(rstr_piece(i1)) == 'excitons') then
        l_wavefunction   =STRING_match(rstr_piece(i1+1),'w')
+       l_group_symm     =STRING_match(rstr_piece(i1+1),'g')
        l_sort           =STRING_match(rstr_piece(i1+1),'s').and..not.STRING_match(rstr_piece(i1+1),'sp')
        l_amplitude      =STRING_match(rstr_piece(i1+1),'a')
        l_exc_rad_life   =STRING_match(rstr_piece(i1+1),'l')
@@ -268,7 +269,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
        l_mag   =STRING_match(rstr_piece(i1+1),'m').and.n_spin>1
        !
 #if defined _YPP_ELPH
-       l_gkkp           =STRING_match(rstr_piece(i1+1),'g')
+       !l_gkkp           =STRING_match(rstr_piece(i1+1),'g')
        l_eliashberg     =STRING_match(rstr_piece(i1+1),'e')
        l_ph_ass_dos     =STRING_match(rstr_piece(i1+1),'p')
 #endif
@@ -294,6 +295,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
        l_density        =STRING_match(rstr_piece(i1+1),'d')
        l_dos            =STRING_match(rstr_piece(i1+1),'s')
        l_wavefunction   =STRING_match(rstr_piece(i1+1),'w')
+       l_group_symm     =STRING_match(rstr_piece(i1+1),'g')
        l_bands          =STRING_match(rstr_piece(i1+1),'b')
        l_mag            =STRING_match(rstr_piece(i1+1),'m').and.n_spin>1
        !
@@ -377,6 +379,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  if (l_spin)           call initactivate(1,'spin')
  if (l_mag)            call initactivate(1,'magnetization')
  if (l_wavefunction)   call initactivate(1,'wavefunction')
+ if (l_group_symm)     call initactivate(1,'group_symm')
  if (l_interp)         call initactivate(1,'interpolate')
  !
 #if defined _YPP_ELPH
@@ -495,8 +498,10 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  l_amplitude=runlevel_is_on('amplitude')
  l_exc_rad_life   =runlevel_is_on('ExcRadLife')
  l_exc_wf   =runlevel_is_on('wavefunction').and.runlevel_is_on('excitons')
+ l_exc_symm =runlevel_is_on('group_symm').and.runlevel_is_on('excitons')
  l_interp    =runlevel_is_on('interpolate').and.runlevel_is_on('excitons')
  l_sp_wf    =runlevel_is_on('wavefunction').and.runlevel_is_on('electrons')
+ l_sp_symm  =runlevel_is_on('group_symm').and.runlevel_is_on('electrons')
  l_density  =runlevel_is_on('density').and.runlevel_is_on('electrons')
  l_current  =runlevel_is_on('current').and.runlevel_is_on('electrons')
  l_mag      =runlevel_is_on('magnetization')
@@ -693,6 +698,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  endif
  !
  if (l_spin.and..not.l_excitons) call initactivate(1,"FFTGvecs")
+ if (l_sp_symm)                  call initactivate(1,"FFTGvecs")
  !
  if (l_excitons) then
    call initactivate(1,"States En_treshold Res_treshold BSQindex")

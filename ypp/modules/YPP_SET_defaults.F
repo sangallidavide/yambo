@@ -8,7 +8,7 @@
 subroutine YPP_SET_defaults()
  !
  use YPPm,           ONLY:DOS_broadening,DOS_E_range,r_hole,deg_energy ,EXCITON_weight_treshold,&
-                          WF_multiplier,SOC_split,BANDS_bands,BANDS_steps,&
+                          WF_multiplier,SOC_split,BANDS_bands,BANDS_steps,l_sp_symm,l_exc_symm, &
 &                         coo_in,coo_out,DOS_E_steps,INTERP_grid ,l_amplitude,l_bands,l_current,l_density  ,&
 &                         l_dos,l_exc_wf   ,l_mag,l_norm_to_one,l_sort,l_sp_wf,l_spin,l_wannier,mag_dir    ,&
 &                         N_path_pts,ncell ,output_fname,p_dir,p_format   ,perturbative_SOC_path,&
@@ -126,11 +126,13 @@ subroutine YPP_SET_defaults()
  mag_dir    ='X'
  p_format   ='g'
  l_exc_wf   =.false.
+ l_exc_symm =.false.
  l_density  =.false.
  l_current  =.false.
  V_value    ='RE'
  l_mag=.false.
  l_sp_wf=.false.
+ l_sp_symm  =.false.
 #if defined _YPP_SC
  l_mean_potential=.false.
 #endif

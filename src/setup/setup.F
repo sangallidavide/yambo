@@ -14,7 +14,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
  use parser_m,       ONLY:parser
  use wave_func,      ONLY:wf_ng,wf_ncx,wf_igk
  use electrons,      ONLY:levels,n_met_bands,n_full_bands,E_duplicate,E_reset
- use D_lattice,      ONLY:a,alat,DL_vol,Tel,dl_sop,atom_mass,atom_pos,atoms_map,&
+ use D_lattice,      ONLY:a,alat,DL_vol,Tel,atom_mass,atom_pos,atoms_map,&
 &                         input_Tel_is_negative,&
 &                         inv_index,atoms_string,load_PT_elements,n_atoms_species,Z_species,&
 &                         n_atomic_species,PT_elements,non_periodic_directions,lattice
@@ -56,7 +56,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
  ! Work Space
  !
  real(SP)          :: Tel_SAVE,tmp_V(3)
- integer           :: i1,i2,ik,is,ia,iclass,i_err,nbf_SAVE(2),nbm_SAVE(2),ID,n_to_print
+ integer           :: i1,i2,ik,is,ia,i_err,nbf_SAVE(2),nbm_SAVE(2),ID,n_to_print
  type(levels)      :: Xen_COPY
  integer, external :: k_lattice,io_Double_Grid
  !

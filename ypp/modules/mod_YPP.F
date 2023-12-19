@@ -111,13 +111,16 @@ module YPPm
  !
  logical      ::l_plot
  logical      ::l_wavefunction
+ logical      ::l_group_symm
  logical      ::l_density
  logical      ::l_bands
  logical      ::l_mag
  logical      ::l_interp
  logical      ::l_current
  logical      ::l_sp_wf
+ logical      ::l_sp_symm
  logical      ::l_exc_wf
+ logical      ::l_exc_symm
  logical      ::l_norm_to_one
  logical      ::l_add_EQ_occ,l_separate_eh,l_skip_occ
  logical      ::use_gnuplot

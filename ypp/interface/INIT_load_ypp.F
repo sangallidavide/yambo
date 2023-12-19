@@ -83,6 +83,7 @@ subroutine INIT_ypp_load(defs)
  call it('r',defs,'current',     '[R] Current')
  call it('r',defs,'bnds',        '[R] Bands')
  call it('r',defs,'wavefunction','[R] Wavefunction')
+ call it('r',defs,'group_symm',  '[R] Symmetry analisis based on group theory')
  call it('r',defs,'interpolate', '[R] Interpolate')
 #if defined _YPP_ELPH
  call it('r',defs,'eliashberg', '[R] Eliashberg')

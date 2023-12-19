@@ -92,6 +92,7 @@ void options_ypp(struct options_struct options[],int *i_opt)
  options[*i_opt].int_var=1;
  *i_opt=*i_opt+1;
  options[*i_opt].short_desc="Mean Potential";
+ options[*i_opt].long_desc[0]="<string>=(h)artree,(f)ock,(coh),(sex),(cohsex),(exx),(exxc),(srpa),(d)ef,(ip)";
  options[*i_opt].long_opt= "potential";
  options[*i_opt].short_opt='v';
  options[*i_opt].bin="ypp_sc";
@@ -99,13 +100,12 @@ void options_ypp(struct options_struct options[],int *i_opt)
  options[*i_opt].section="Plots";
  *i_opt=*i_opt+1;
  options[*i_opt].short_desc="Electronic properties";
- options[*i_opt].long_desc[0]="<string>=(h)artree,(f)ock,(coh),(sex),(cohsex),(exx),(exxc),(srpa),(d)ef,(ip)";
 #if defined _ELPH  
- options[*i_opt].long_desc[0]="<string>=(w)ave,(d)ensity,(m)ag,do(s),(b)ands,(c)urrent,(e)lias";
+ options[*i_opt].long_desc[0]="<string>=(w)ave,(d)ensity,(m)ag,do(s),(b)ands,(c)urrent,(g)roup_symm,(e)lias";
 #elif defined _YPP_MAGNETIC 
- options[*i_opt].long_desc[0]="<string>=(w)ave,(d)ensity,(m)ag,do(s),(b)ands,(c)urrent,angu(l)ar,(p)osition";
+ options[*i_opt].long_desc[0]="<string>=(w)ave,(d)ensity,(m)ag,do(s),(b)ands,(c)urrent,(g)roup_symm,angu(l)ar,(p)osition";
 #else
- options[*i_opt].long_desc[0]="<string>=(w)ave,(d)ensity,(m)ag,do(s),(b)ands,(c)urrent";
+ options[*i_opt].long_desc[0]="<string>=(w)ave,(d)ensity,(m)ag,do(s),(b)ands,(c)urrent,(g)roup_symm";
 #endif
  options[*i_opt].long_opt="electron";
  options[*i_opt].short_opt='s';
@@ -122,7 +122,7 @@ void options_ypp(struct options_struct options[],int *i_opt)
  options[*i_opt].long_desc[0]="<string>=(s)ort,(sp)in,(a)mplitude,(w)ave,(i)nterpolate,";
  options[*i_opt].long_desc[1]="         (e)lias,(g)kkp,(p)h-assisted dos";
 #else
- options[*i_opt].long_desc[0]="<string>=(s)ort,(l)ifetimes,(sp)in,(a)mplitude,(w)ave,(i)nterpolate";
+ options[*i_opt].long_desc[0]="<string>=(s)ort,(l)ifetimes,(sp)in,(g)roup_symm,(a)mplitude,(w)ave,(i)nterpolate";
 #endif
  options[*i_opt].yambo_string="excitons";
  options[*i_opt].section="Plots";

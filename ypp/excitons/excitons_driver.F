@@ -15,7 +15,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use drivers,       ONLY:l_exc_rad_life
  use electrons,     ONLY:levels,spin
  use YPP_interfaces,ONLY:excitons_sort_and_report
- use YPPm,          ONLY:l_sort,l_exc_wf,l_spin,l_amplitude,EXCITONS_user_indexes,BSiq, &
+ use YPPm,          ONLY:l_sort,l_exc_wf,l_spin,l_exc_symm,l_amplitude,EXCITONS_user_indexes,BSiq, &
 &                        BS_R_right,BS_E,BS_E_SOC_corr,l_interp,l_dipoles
  use BS_solvers,    ONLY:BSS_n_eig
 #if defined _YPP_ELPH
@@ -37,7 +37,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !... I/0
  integer              :: iq,io_err
  !
- l_flag=l_sort .or. l_exc_wf .or.l_amplitude .or. l_spin .or. l_exc_rad_life .or. l_interp .or. l_dipoles
+ l_flag=l_sort .or. l_exc_wf .or.l_amplitude .or. l_spin .or. l_exc_symm .or. l_exc_rad_life .or. l_interp .or. l_dipoles
 #if defined _YPP_ELPH
  l_flag=l_flag .or. l_eliashberg .or. l_gkkp .or. l_ph_ass_dos
 #endif
@@ -101,6 +101,10 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
 #endif
  !
  if(.not.l_sort)   call excitons_read(k,Xk,en,Xen,BSiq,"eigenvectors",.true.,io_err)
+ ! 
+ ! Exciton's symmetries
+ !=====================
+ if (l_exc_symm)  call excitons_symmetries(Xk,BS_R_right,BS_E,BS_E_degs)
  ! 
  ! Exciton's spin
  !=====================
