@@ -7,7 +7,7 @@
 !
 subroutine build_symmetries()
  !
- use pars,           ONLY:DP,schlen
+ use pars,           ONLY:SP,DP,schlen
  use electrons,      ONLY:n_spinor
  use stderr,         ONLY:intc
  use com,            ONLY:msg
@@ -20,8 +20,9 @@ subroutine build_symmetries()
  !
 #include <memory.h>
  !
- integer           :: i1,i2,i3,is,iclass
+ integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
  character(schlen) :: dumb_ch
+ character(5)      :: vec_ch(12)
  !
  ! Spin symmetries & xc spin for libxc
  !
@@ -88,7 +89,6 @@ subroutine build_symmetries()
  !
  nrot=nsym/(1+max(i_time_rev,i_space_inv))
  call find_group(nrot,real(dl_sop(:,:,:nrot),DP),group_name,group_code)
- call msg('nr','Point group is        ',group_name)
  !
  allocate(nelem(12*n_spinor))
  allocate(elem(8+4*(n_spinor-1),12*n_spinor))
@@ -100,27 +100,44 @@ subroutine build_symmetries()
    !allocate(has_e())
    !call divide_class_so(group_code,nrot,dl_sop(:,:,:nrot),nclass,nelem,elem,which_irr)
  endif
- call msg('nr','Number of classes     ',nclass)
- call msg('r' ,'Symmetries per class  ',nelem(:nclass))
  !
  ! DS: to check if nclass and nclass_ref can be different in any case
  call set_irr_rap( group_code, nclass_ref, char_mat, name_rap, name_class, ir_ram )
  !
- call msg('r' ,'Name of classes       ',name_class(:nclass))
+ call msg('nr','Point group is        ',group_name)
+ call msg('nr','Number of classes        ',nclass)
+ call msg('r' ,'Symmetries per class     ',nelem(:nclass))
+ call msg('r' ,'Name of classes          ',name_class(:nclass))
+ !
+ len_class=-1
  do iclass=1,nclass
+   len_class(iclass)=len_trim(name_class(iclass))
    call msg('r','Symmetries in class '//name_class(iclass),elem(:nelem(iclass),iclass))
  enddo
+ max_len=maxval(len_class)
  !
  call msg('nr' ,'Number of rapresentations',nclass_ref)
+ call msg('r' ,'Character table')
+ !
+ vec_ch=""
  do iclass=1,nclass_ref
-   dumb_ch=trim(intc(iclass))//'] '
-   i1=9
-   do while (i1<nclass_ref)
-     if(iclass<=i1) dumb_ch=' '//trim(dumb_ch)
-     i1=i1*10+9
+   vec_ch(iclass)=trim(name_class(iclass))
+   do ich=len_class(iclass),max_len-1
+     vec_ch(iclass)=" "//vec_ch(iclass)
    enddo
-   dumb_ch=trim(intc(iclass))//'] '
-   call msg('r','[R'//trim(dumb_ch),name_rap(iclass))
+ enddo
+ !
+ call msg('r' ,'Symm./classes  ',vec_ch(:nclass)) !,USE_TABS=.true.)
+ !
+ do iclass=1,nclass_ref
+   do jclass=1,nclass_ref
+     vec_ch(jclass)=trim(intc(nint(real(char_mat(iclass,jclass),SP))))
+     do ich=len_trim(vec_ch(jclass)),max_len-1
+       vec_ch(jclass)=" "//vec_ch(jclass)
+     enddo
+   enddo
+   call msg('r',name_rap(iclass),vec_ch(:nclass)) !,USE_TABS=.true.)
+   !write(*,*) name_rap(iclass),char_mat(iclass,:nclass)
  enddo
  !
 end subroutine build_symmetries

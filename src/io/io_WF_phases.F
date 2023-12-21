@@ -5,22 +5,25 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-integer function io_WF_phases(nb,ID)
+integer function io_WF_phases(nb,ikbz,i_sp_pol,ID)
  !
+ use R_lattice,     ONLY:nXkbz
+ use D_lattice,     ONLY:nsym
+ use electrons,     ONLY:n_sp_pol
  use pars,          ONLY:schlen,SP,SP_YIO,IP_YIO
  use IO_m,          ONLY:io_sec,io_extension
  use IO_int,        ONLY:io_connect,io_disconnect,def_variable_bulk,&
 &                        io_variable_bulk,io_header,def_variable_elemental,io_variable_elemental
- use wave_func,     ONLY:WF_phases,WF_phases_k_map,WF_phases_s_map
+ use wave_func,     ONLY:WF_phases,WF_phases_b_map,WF_phases_s_map
  use timing_m,      ONLY:timing
  !
  implicit none
  !
- integer        :: nb(2),ID
+ integer        :: nb(2),ikbz,i_sp_pol,ID
  !
  ! Work Space
  !
- integer :: VAR_ID
+ integer :: VAR_ID,VAR_SIZE(7),VAR_POS(7)
  character(schlen)    :: VAR_name
  !
  call timing('io_WF_phases',OPR='start')
@@ -39,9 +42,12 @@ integer function io_WF_phases(nb,ID)
    call io_variable_elemental(ID,VAR="Number of bands",I1=nb,CHECK=.true.,OP=(/"==","=="/))
    !call io_variable_elemental(ID,VAR="Number of bands",I1=nb,CHECK=.true.,OP=(/">=","<="/))
    !
+   VAR_ID=1
+   VAR_name='WF_phases'
+   VAR_SIZE=(/2,3,3,nb(2)-nb(1)+1,nsym,nXkbz,n_sp_pol/)
+   call def_variable_bulk(ID,trim(VAR_name),VAR_ID,VAR_SIZE,SP_YIO)
+   !
  endif
- !
- if(io_WF_phases/=0) goto 1
  !
  if (any((/io_sec(ID,:)==2/))) then
    !
@@ -49,22 +55,26 @@ integer function io_WF_phases(nb,ID)
    !
    VAR_ID=1
    VAR_name='WF_phases'
-   call def_variable_bulk(ID,trim(VAR_name),VAR_ID,(/2,shape(WF_phases)/),SP_YIO)
-   call  io_variable_bulk(ID,VAR_ID,C5=WF_phases)
+   VAR_POS=(/1,1,1,1,1,ikbz,i_sp_pol/)
+   call io_variable_bulk(ID,VAR_ID,C6=WF_phases,IPOS=VAR_POS)
+   !
+ endif
+ !
+ if (any((/io_sec(ID,:)==2/))) then
    !
    ! WF_phases_k_map
    !
    VAR_ID=2
-   VAR_name='WF_phases_k_map'
-   call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_k_map),IP_YIO)
-   call  io_variable_bulk(ID,VAR_ID,I1=WF_phases_k_map)
-   !
-   ! WF_phases_k_map
-   !
-   VAR_ID=3
    VAR_name='WF_phases_s_map'
    call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_s_map),IP_YIO)
    call  io_variable_bulk(ID,VAR_ID,I2=WF_phases_s_map)
+   !
+   ! WF_phases_b_map
+   !
+   VAR_ID=3
+   VAR_name='WF_phases_b_map'
+   call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_b_map),IP_YIO)
+   call  io_variable_bulk(ID,VAR_ID,I4=WF_phases_b_map)
    !
  endif
  !
