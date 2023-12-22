@@ -173,6 +173,8 @@ subroutine setup(en,Xen,Ken,k,Xk)
  !
  call detect_point_group(nrot,real(dl_sop(:,:,:nrot),DP),.true.)
  !
+ call print_point_group('r')
+ !
  call section('=','Reciprocal space')
  !====================================
  !

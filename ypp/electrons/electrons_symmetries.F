@@ -7,10 +7,11 @@
 !
 subroutine electrons_symmetries(Xk,Xen)
  !
- use pars,           ONLY:DP,SP,cZERO
+ use pars,           ONLY:DP,SP,cZERO,schlen
  use units,          ONLY:HA2EV
  use electrons,      ONLY:levels,n_sp_pol
  use R_lattice,      ONLY:bz_samp
+ use stderr,         ONLY:intc
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
 &                         i_space_inv,i_time_rev,nsym,nrot,dl_sop,  &
 &                         sop_tab,name_rap
@@ -18,6 +19,7 @@ subroutine electrons_symmetries(Xk,Xen)
  use wave_func,      ONLY:WF_phases,WF_phases_s_map
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:VERIFY,DUMP,REP,OP_RD,RD,RD_CL
+ use com,            ONLY:msg,of_open_close
  !
 #include<memory.h>
  !
@@ -33,6 +35,8 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  integer              :: io_err,ID
  integer, external    :: io_WF_phases
+ !
+ character(schlen)    :: filename,titles(3),tmp_ch
  !
  blim=(/1,Xen%nb/)
  !blim=(/1,5/)
@@ -67,17 +71,29 @@ subroutine electrons_symmetries(Xk,Xen)
        isk =Xk%star(ik,istark)
        ikbz=Xk%k_table(ik,isk)
        !
+       filename="syms_k"//trim(intc(ikbz))//"_sp"//trim(intc(i_sp_pol))
+       !
+       call of_open_close(filename,'ot')
+       !call msg("o "//trim(filename),"# Symmetries at k ",Xk%ptbz(ikbz,:))
+       call msg("o "//trim(filename),"#"," Symmetries at ikbz "//trim(intc(ikbz)),INDENT=0)
+       call msg("o "//trim(filename),"#")
+       !
        nrotk=Xk%grp_nsym(ikbz)
        if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
        call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
+       !
+       call print_point_group("o "//trim(filename))
        !
        YAMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
        !
        call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
        io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
        !
-       write(*,*) ikbz," checking irreps ",name_rap(:nclass)
-       write(*,*) "   E[eV]    ","        irrep        ","   ib     ","    ik    ","   i_sp_pol   "
+       titles=(/" E[eV]  "," symm.  ","   ib   "/)
+       call msg("o "//trim(filename),"#")
+       call msg("o "//trim(filename),'#',titles,INDENT=0,USE_TABS=.true.)
+       call msg("o "//trim(filename),"#")
+       !
        do i_grp=1,n_deg_grp
          !
          trace=cZERO
@@ -92,17 +108,17 @@ subroutine electrons_symmetries(Xk,Xen)
 	   enddo
 	   trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
          enddo
-         !write(*,*) "checking ",ikbz,i_grp,n_of_el(i_grp)
-         !write(*,*) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,real(trace(:nclass),SP)
          do irap=1,nclass
            if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
-           !write(*,*) "char mat= ",real(char_mat(irap,which_irr(:nclass)),SP)
-           !write(*,*) i_grp," corresponds to ",irap
-           write(*,*) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,trim(name_rap(irap)),first_el(i_grp),ik,i_sp_pol
+           write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
+           & Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,trim(name_rap(irap)),first_el(i_grp)
+           call msg("o "//trim(filename),'',tmp_ch,INDENT=-2)
          enddo
        enddo
        !
        YAMBO_FREE(WF_phases)
+       !
+       call of_open_close(filename)
        !
      enddo
    enddo 

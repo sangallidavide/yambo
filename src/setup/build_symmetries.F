@@ -90,30 +90,20 @@ subroutine build_symmetries()
 end subroutine build_symmetries
 !
 !
-subroutine detect_point_group(nrot,dl_sop,print_report)
+subroutine detect_point_group(nrot,dl_sop)
  !
- use pars,           ONLY:SP,DP
+ use pars,           ONLY:DP
  use electrons,      ONLY:n_spinor
- use stderr,         ONLY:intc
- use com,            ONLY:msg
- use D_lattice,      ONLY:nsym,i_time_rev,&
-&                         group_code,group_name,nclass,nelem,elem,which_irr,&
+ use D_lattice,      ONLY:group_code,group_name,nclass,nelem,elem,which_irr,&
 &                         nclass_ref,char_mat,name_rap,name_class,ir_ram
  !
  implicit none
  !
  integer,  intent(in)  :: nrot
  real(DP), intent(in)  :: dl_sop(3,3,nrot)
- logical,  intent(in)  :: print_report
  !
- integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
- character(5)      :: vec_ch(12)
- character(15)     :: tmp_ch
- !
- if (n_spinor==2) then
-   call msg("r","Double point group detection not coded")
-   return
- endif
+ ! Double point group detection not coded
+ if (n_spinor==2) return
  !
  ! Symmetries and point groups
  !
@@ -124,22 +114,46 @@ subroutine detect_point_group(nrot,dl_sop,print_report)
  ! DS: to check if nclass and nclass_ref can be different in any case
  call set_irr_rap( group_code, nclass_ref, char_mat, name_rap, name_class, ir_ram )
  !
- if (.not.print_report) return
+end subroutine detect_point_group
+!
+!
+subroutine print_point_group(fname)
  !
- call msg('nr','Point group is        ',group_name)
- call msg('nr','Number of classes        ',nclass)
- call msg('r' ,'Symmetries per class     ',nelem(:nclass))
- call msg('r' ,'Name of classes          ',name_class(:nclass))
+ use com,            ONLY:msg
+ use pars,           ONLY:SP,schlen
+ use electrons,      ONLY:n_spinor
+ use stderr,         ONLY:intc
+ use D_lattice,      ONLY:group_code,group_name,nclass,nelem,elem,which_irr,&
+&                         nclass_ref,char_mat,name_rap,name_class,ir_ram
+ !
+ implicit none
+ !
+ character(*), intent(in) :: fname
+ !
+ logical           :: l_hashtag
+ integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
+ character(5)      :: vec_ch(12)
+ character(schlen) :: tmp_ch
+ !
+ l_hashtag=fname(1:1)=="o"
+ !
+ call msg(fname ,'')
+ call msg(fname,'Point group is        ',group_name)
+ call msg(fname,'')
+ call msg(fname,'Number of classes        ',nclass)
+ call msg(fname,'Symmetries per class     ',nelem(:nclass))
+ call msg(fname,'Name of classes          ',name_class(:nclass))
  !
  len_class=-1
  do iclass=1,nclass
    len_class(iclass)=len_trim(name_class(iclass))
-   call msg('r','Symmetries in class '//name_class(iclass),elem(:nelem(iclass),iclass))
+   call msg(fname,'Symmetries in class '//name_class(iclass),elem(:nelem(iclass),iclass))
  enddo
  max_len=max(maxval(len_class),5)
  !
- call msg('nr' ,'Number of rapresentations',nclass_ref)
- call msg('r' ,'Character table')
+ call msg(fname,'')
+ call msg(fname,'Number of rapresentations',nclass_ref)
+ call msg(fname,'Character table')
  !
  vec_ch=""
  do iclass=1,nclass_ref
@@ -149,7 +163,7 @@ subroutine detect_point_group(nrot,dl_sop,print_report)
    enddo
  enddo
  !
- call msg('r' ,'Symm./classes  ',vec_ch(:nclass))
+ call msg(fname,'Symm./classes  ',vec_ch(:nclass))
  !
  do iclass=1,nclass_ref
    do jclass=1,nclass_ref
@@ -158,7 +172,9 @@ subroutine detect_point_group(nrot,dl_sop,print_report)
        vec_ch(jclass)=" "//vec_ch(jclass)
      enddo
    enddo
-   call msg('r',name_rap(iclass),vec_ch(:nclass))
+   call msg(fname,name_rap(iclass),vec_ch(:nclass))
  enddo
  !
-end subroutine detect_point_group
+ call msg(fname,'')
+ !
+end subroutine print_point_group
