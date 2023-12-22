@@ -108,6 +108,7 @@ subroutine detect_point_group(nrot,dl_sop,print_report)
  !
  integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
  character(5)      :: vec_ch(12)
+ character(15)     :: tmp_ch
  !
  if (n_spinor==2) then
    call msg("r","Double point group detection not coded")
@@ -135,7 +136,7 @@ subroutine detect_point_group(nrot,dl_sop,print_report)
    len_class(iclass)=len_trim(name_class(iclass))
    call msg('r','Symmetries in class '//name_class(iclass),elem(:nelem(iclass),iclass))
  enddo
- max_len=maxval(len_class)
+ max_len=max(maxval(len_class),5)
  !
  call msg('nr' ,'Number of rapresentations',nclass_ref)
  call msg('r' ,'Character table')
@@ -143,22 +144,21 @@ subroutine detect_point_group(nrot,dl_sop,print_report)
  vec_ch=""
  do iclass=1,nclass_ref
    vec_ch(iclass)=trim(name_class(iclass))
-   do ich=len_class(iclass),max_len-1
-     vec_ch(iclass)=" "//vec_ch(iclass)
+   do ich=len_trim(vec_ch(iclass)),max_len-1
+     vec_ch(iclass)=" "//trim(vec_ch(iclass))
    enddo
  enddo
  !
- call msg('r' ,'Symm./classes  ',vec_ch(:nclass)) !,USE_TABS=.true.)
+ call msg('r' ,'Symm./classes  ',vec_ch(:nclass))
  !
  do iclass=1,nclass_ref
    do jclass=1,nclass_ref
-     vec_ch(jclass)=trim(intc(nint(real(char_mat(iclass,jclass),SP))))
+     write (vec_ch(jclass),'(F5.2)') real(char_mat(iclass,jclass),SP)
      do ich=len_trim(vec_ch(jclass)),max_len-1
        vec_ch(jclass)=" "//vec_ch(jclass)
      enddo
    enddo
-   call msg('r',name_rap(iclass),vec_ch(:nclass)) !,USE_TABS=.true.)
-   !write(*,*) name_rap(iclass),char_mat(iclass,:nclass)
+   call msg('r',name_rap(iclass),vec_ch(:nclass))
  enddo
  !
 end subroutine detect_point_group

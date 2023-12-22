@@ -12,7 +12,8 @@ subroutine electrons_symmetries(Xk,Xen)
  use electrons,      ONLY:levels,n_sp_pol
  use R_lattice,      ONLY:bz_samp
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
-&                         i_space_inv,i_time_rev,nsym,nrot,dl_sop,sop_tab
+&                         i_space_inv,i_time_rev,nsym,nrot,dl_sop,  &
+&                         sop_tab,name_rap
  use vec_operate,    ONLY:degeneration_finder
  use wave_func,      ONLY:WF_phases,WF_phases_s_map
  use IO_int,         ONLY:io_control
@@ -75,6 +76,8 @@ subroutine electrons_symmetries(Xk,Xen)
        call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
        io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
        !
+       write(*,*) ikbz," checking irreps ",name_rap(:nclass)
+       write(*,*) "   E[eV]    ","        irrep        ","   ib     ","    ik    ","   i_sp_pol   "
        do i_grp=1,n_deg_grp
          !
          trace=cZERO
@@ -87,15 +90,15 @@ subroutine electrons_symmetries(Xk,Xen)
                trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,s_count,1,1)
              enddo
 	   enddo
-	   !
+	   trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
          enddo
          !write(*,*) "checking ",ikbz,i_grp,n_of_el(i_grp)
          !write(*,*) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,real(trace(:nclass),SP)
-         !write(*,*) "checking iraps "
          do irap=1,nclass
            if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
-           write(*,*) "trace= ",real(char_mat(irap,which_irr(:nclass)),SP)
-           write(*,*) i_grp," corresponds to ",irap
+           !write(*,*) "char mat= ",real(char_mat(irap,which_irr(:nclass)),SP)
+           !write(*,*) i_grp," corresponds to ",irap
+           write(*,*) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,trim(name_rap(irap)),first_el(i_grp),ik,i_sp_pol
          enddo
        enddo
        !
