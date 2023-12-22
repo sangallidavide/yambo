@@ -40,13 +40,9 @@ subroutine electrons_symmetries(Xk,Xen)
  allocate(first_el(nb))
  allocate( n_of_el(nb))
  !
-write(*,*) "bz table"
  call k_build_up_BZ_tables(Xk)
-write(*,*) "expand"
  call k_ibz2bz(Xk,'iku',.true.)
-write(*,*) "small group"
  call k_small_group(Xk)
-write(*,*) "done"
  !
  call WF_phase_matrices(Xen,Xk,blim)
  !
@@ -59,31 +55,20 @@ write(*,*) "done"
  do i_sp_pol=1,n_sp_pol
    !
    do ik=1,Xk%nibz
-     write(*,*) "ik= ",ik
      !
      call degeneration_finder(Xen%E(blim(1):blim(2),ik,i_sp_pol),nb,&
      &                           first_el,n_of_el,n_deg_grp,0.0001/HA2EV,Include_single_values=.true.)
      !
-     !nrotk=Xk%grp_nsym(ik)
-     !if ( any( Xk%grp_table(:nrotk,ik)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
-     !write(*,*) "nrotk=",nrotk,Xk%grp_nsym(ik)," grp table= ",Xk%grp_table(:nrotk*2,ik)
-     !call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ik)),DP),.true.)
-     !
-     !write(*,*) Xk%grp_table_m1(:,ik)
-     !
      do istark=1,Xk%nstar(ik)
-       !
-       write(*,*) "istar= ",istark
        !
        !if ( .not.PAR_IND_WF_k%element_1D(ik) ) cycle
        !
        isk =Xk%star(ik,istark)
        ikbz=Xk%k_table(ik,isk)
-     !
-     nrotk=Xk%grp_nsym(ikbz)
-     if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
-     write(*,*) "nrotk=",nrotk,Xk%grp_nsym(ikbz)," grp table= ",Xk%grp_table(:nrotk*2,ikbz)
-     call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
+       !
+       nrotk=Xk%grp_nsym(ikbz)
+       if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
+       call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
        !
        YAMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
        !
@@ -96,15 +81,11 @@ write(*,*) "done"
          do iclass=1,nclass
            do ielem=1,nelem(iclass)
              isp=Xk%grp_table(elem(ielem,iclass),ikbz)
-	     write(*,*) "syms= ",iclass,ielem,elem(ielem,iclass),isp,sop_tab(isp,isk)
              ipbz=Xk%k_table(ik,sop_tab(isp,isk))
-	     write(*,*) "kpts= ",ikbz,ipbz
-             if (ipbz/=ikbz) write(*,*) "something is wrong"
              s_count=WF_phases_s_map(ikbz,sop_tab(isp,isk))
              do ibk=1,n_of_el(i_grp)
                trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,s_count,1,1)
              enddo
-             !exit
 	   enddo
 	   !
          enddo

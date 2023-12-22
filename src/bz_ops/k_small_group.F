@@ -42,17 +42,16 @@ subroutine k_small_group(k)
    do istark=1,k%nstar(ik)
      isk =k%star(ik,istark)
      ikbz=k%k_table(ik,isk)
-   do is=1,nsym
-     kref=k%ptbz(ikbz,:)
-     call c2a(v_in=kref,mode='ki2a')
-     krot=matmul(rl_sop(:,:,is),k%ptbz(ikbz,:))
-     !call k2bz(v_in=krot)
-     call c2a(v_in=krot,mode='ki2a')
-     if (.not.rlu_v_is_zero(krot-kref,zero_=k_rlu_zero)) cycle
-     k%grp_nsym(ikbz)=k%grp_nsym(ikbz)+1
-     k%grp_table(k%grp_nsym(ikbz),ikbz)=is
-     k%grp_table_m1(is,ikbz)=k%grp_nsym(ikbz)
-   enddo
+     do is=1,nsym
+       kref=k%ptbz(ikbz,:)
+       call c2a(v_in=kref,mode='ki2a')
+       krot=matmul(rl_sop(:,:,is),k%ptbz(ikbz,:))
+       call c2a(v_in=krot,mode='ki2a')
+       if (.not.rlu_v_is_zero(krot-kref,zero_=k_rlu_zero)) cycle
+       k%grp_nsym(ikbz)=k%grp_nsym(ikbz)+1
+       k%grp_table(k%grp_nsym(ikbz),ikbz)=is
+       k%grp_table_m1(is,ikbz)=k%grp_nsym(ikbz)
+     enddo
    enddo
  enddo
  !
