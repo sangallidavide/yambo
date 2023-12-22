@@ -31,8 +31,8 @@ module D_lattice
  !
  ! SYMs
  !
- integer :: nsym
- integer :: nrot
+ integer :: nsym        ! total symmetries
+ integer :: nrot        ! spatial symmetries
  integer :: i_time_rev  ! =1 yes TR , =0 no TR
  integer :: i_space_inv ! =1 yes SI,  =0 no SI
  integer :: inv_index   ! Index of the symmetry corresponding to -I (independently 
@@ -97,9 +97,9 @@ module D_lattice
  character(len=11)     :: group_name
  !
  integer :: nclass                     ! The number of classes
- integer,allocatable :: nelem(:)       ! The elements of each class
- integer,allocatable :: elem(:,:)      ! Which elements in the smat list for each class
- integer,allocatable :: which_irr(:)   ! See the subroutine description
+ integer :: nelem(12)      ! The elements of each class
+ integer :: elem(8,12)     ! Which elements in the smat list for each class
+ integer :: which_irr(12)  ! See the subroutine description
  !
  integer :: nclass_ref                 ! The number of classes
  character(len=15) :: name_rap(12)     ! name of the representations

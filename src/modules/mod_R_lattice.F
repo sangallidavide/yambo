@@ -69,6 +69,9 @@ module R_lattice
    integer,  allocatable :: s_table(:,:)  ! ik,is     --> is_used      revers of sstar(2)
    integer,  allocatable :: k_table(:,:)  ! ik,is     --> ik_bz        revers of sstar(1)
    integer,  allocatable :: g_table(:,:)  ! ik,is     --> ig_index
+   integer,  allocatable :: grp_table(:,:)! ik,is_grp --> is      table of syms from small group to full list
+   integer,  allocatable :: grp_table_m1(:,:)! ik,is  --> is_grp  table of syms from full list to small group
+   integer,  allocatable :: grp_nsym(:)   ! ik        --> is number of syms in the small group
    real(SP), allocatable :: pt(:,:)      
    real(SP), allocatable :: ptbz(:,:)    
    real(SP), allocatable :: weights(:)   

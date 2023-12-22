@@ -7,15 +7,12 @@
 !
 subroutine build_symmetries()
  !
- use pars,           ONLY:SP,DP,schlen
- use electrons,      ONLY:n_spinor
+ use pars,           ONLY:schlen
  use stderr,         ONLY:intc
  use com,            ONLY:msg
- use D_lattice,      ONLY:alat,nsym,i_time_rev,dl_sop,&
+ use D_lattice,      ONLY:alat,nsym,nrot,i_time_rev,dl_sop,&
 &                         atoms_spatial_inversion,i_space_inv,inv_index,&
-&                         symmetry_group_table,mag_syms,idt_index,symmetry_equiv_atoms,&
-&                         group_code,group_name,nrot,nclass,nelem,elem,which_irr,&
-&                         nclass_ref,char_mat,name_rap,name_class,ir_ram
+&                         symmetry_group_table,mag_syms,idt_index,symmetry_equiv_atoms
  use R_lattice,      ONLY:rl_sop
  !
 #include <memory.h>
@@ -67,6 +64,8 @@ subroutine build_symmetries()
  !
  ! Symmetries Multiplication Table
  !
+ !  R_i*R_j=R_stab(i,j)
+ !
  call symmetry_group_table('r')
  call symmetry_equiv_atoms()
  !
@@ -85,24 +84,46 @@ subroutine build_symmetries()
    call msg('r',trim(dumb_ch),reshape(dl_sop(:,:,is),(/9/)))  
  enddo
  !
+ !nrot=nsym/(1+max(i_time_rev,i_space_inv))
+ nrot=nsym/(1+i_time_rev)
+ !
+end subroutine build_symmetries
+!
+!
+subroutine detect_point_group(nrot,dl_sop,print_report)
+ !
+ use pars,           ONLY:SP,DP
+ use electrons,      ONLY:n_spinor
+ use stderr,         ONLY:intc
+ use com,            ONLY:msg
+ use D_lattice,      ONLY:nsym,i_time_rev,&
+&                         group_code,group_name,nclass,nelem,elem,which_irr,&
+&                         nclass_ref,char_mat,name_rap,name_class,ir_ram
+ !
+ implicit none
+ !
+ integer,  intent(in)  :: nrot
+ real(DP), intent(in)  :: dl_sop(3,3,nrot)
+ logical,  intent(in)  :: print_report
+ !
+ integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
+ character(5)      :: vec_ch(12)
+ !
+ if (n_spinor==2) then
+   call msg("r","Double point group detection not coded")
+   return
+ endif
+ !
  ! Symmetries and point groups
  !
- nrot=nsym/(1+max(i_time_rev,i_space_inv))
- call find_group(nrot,real(dl_sop(:,:,:nrot),DP),group_name,group_code)
+ call find_group(nrot,dl_sop,group_name,group_code)
  !
- allocate(nelem(12*n_spinor))
- allocate(elem(8+4*(n_spinor-1),12*n_spinor))
- allocate(which_irr(12*n_spinor))
- if (n_spinor==1) then
-   call divide_class(group_code,nrot,real(dl_sop(:,:,:nrot),DP),nclass,nelem,elem,which_irr)
- else
-   ! TO DO
-   !allocate(has_e())
-   !call divide_class_so(group_code,nrot,dl_sop(:,:,:nrot),nclass,nelem,elem,which_irr)
- endif
+ call divide_class(group_code,nrot,dl_sop,nclass,nelem,elem,which_irr)
  !
  ! DS: to check if nclass and nclass_ref can be different in any case
  call set_irr_rap( group_code, nclass_ref, char_mat, name_rap, name_class, ir_ram )
+ !
+ if (.not.print_report) return
  !
  call msg('nr','Point group is        ',group_name)
  call msg('nr','Number of classes        ',nclass)
@@ -140,4 +161,4 @@ subroutine build_symmetries()
    !write(*,*) name_rap(iclass),char_mat(iclass,:nclass)
  enddo
  !
-end subroutine build_symmetries
+end subroutine detect_point_group

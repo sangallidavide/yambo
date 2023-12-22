@@ -7,7 +7,7 @@
 !
 subroutine setup(en,Xen,Ken,k,Xk)
  !
- use pars,           ONLY:SP,pi
+ use pars,           ONLY:DP,SP,pi
  use units,          ONLY:Da2AU
  use drivers,        ONLY:l_setup
  use C_driver,       ONLY:code_bin
@@ -15,7 +15,7 @@ subroutine setup(en,Xen,Ken,k,Xk)
  use wave_func,      ONLY:wf_ng,wf_ncx,wf_igk
  use electrons,      ONLY:levels,n_met_bands,n_full_bands,E_duplicate,E_reset
  use D_lattice,      ONLY:a,alat,DL_vol,Tel,atom_mass,atom_pos,atoms_map,&
-&                         input_Tel_is_negative,&
+&                         input_Tel_is_negative,dl_sop,nrot,&
 &                         inv_index,atoms_string,load_PT_elements,n_atoms_species,Z_species,&
 &                         n_atomic_species,PT_elements,non_periodic_directions,lattice
  use R_lattice,      ONLY:RL_vol,b,n_g_shells,ng_in_shell,Xk_grid_new_mapping,FineGd_desc,&
@@ -166,12 +166,12 @@ subroutine setup(en,Xen,Ken,k,Xk)
  !
  ! Symmetries and moltiplication table:
  !
- !  R_i*R_j=R_stab(i,j)
- !
  call section('=','Symmetries') 
  !=============================
  !
  call build_symmetries()
+ !
+ call detect_point_group(nrot,real(dl_sop(:,:,:nrot),DP),.true.)
  !
  call section('=','Reciprocal space')
  !====================================

@@ -7,11 +7,12 @@
 !
 subroutine electrons_symmetries(Xk,Xen)
  !
- use pars,           ONLY:SP,cZERO
+ use pars,           ONLY:DP,SP,cZERO
  use units,          ONLY:HA2EV
  use electrons,      ONLY:levels,n_sp_pol
  use R_lattice,      ONLY:bz_samp
- use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,nsym
+ use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
+&                         i_space_inv,i_time_rev,nsym,nrot,dl_sop,sop_tab
  use vec_operate,    ONLY:degeneration_finder
  use wave_func,      ONLY:WF_phases,WF_phases_s_map
  use IO_int,         ONLY:io_control
@@ -25,8 +26,8 @@ subroutine electrons_symmetries(Xk,Xen)
  integer     :: blim(2)
  complex(SP) :: trace(12)
  !
- integer     :: iclass,irap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,blim_n(2), &
- &              ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb
+ integer     :: iclass,irap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,blim_n(2), &
+ &              ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk
  integer, allocatable :: first_el(:),n_of_el(:)
  !
  integer              :: io_err,ID
@@ -39,6 +40,14 @@ subroutine electrons_symmetries(Xk,Xen)
  allocate(first_el(nb))
  allocate( n_of_el(nb))
  !
+write(*,*) "bz table"
+ call k_build_up_BZ_tables(Xk)
+write(*,*) "expand"
+ call k_ibz2bz(Xk,'iku',.true.)
+write(*,*) "small group"
+ call k_small_group(Xk)
+write(*,*) "done"
+ !
  call WF_phase_matrices(Xen,Xk,blim)
  !
  YAMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
@@ -48,49 +57,70 @@ subroutine electrons_symmetries(Xk,Xen)
  io_err=io_WF_phases(blim,0,0,ID)
  !
  do i_sp_pol=1,n_sp_pol
-   do ikbz=1,Xk%nbz
-     !
-     !if ( .not.PAR_IND_WF_k%element_1D(ik) ) cycle
-     !
-     ik = Xk%sstar(ikbz,1)
-     isk= Xk%sstar(ikbz,2)
+   !
+   do ik=1,Xk%nibz
+     write(*,*) "ik= ",ik
      !
      call degeneration_finder(Xen%E(blim(1):blim(2),ik,i_sp_pol),nb,&
      &                           first_el,n_of_el,n_deg_grp,0.0001/HA2EV,Include_single_values=.true.)
      !
-     YAMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
+     !nrotk=Xk%grp_nsym(ik)
+     !if ( any( Xk%grp_table(:nrotk,ik)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
+     !write(*,*) "nrotk=",nrotk,Xk%grp_nsym(ik)," grp table= ",Xk%grp_table(:nrotk*2,ik)
+     !call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ik)),DP),.true.)
      !
-     call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
-     io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
+     !write(*,*) Xk%grp_table_m1(:,ik)
      !
-     do i_grp=1,n_deg_grp
+     do istark=1,Xk%nstar(ik)
        !
-       trace=cZERO
-       do iclass=1,nclass
-	 do ielem=1,nelem(iclass)
-           isp=elem(ielem,iclass)
-           ipbz=Xk%k_table(ik,isp)
-           if (ipbz/=ikbz) cycle
-           s_count=WF_phases_s_map(ikbz,isp)
-           do ibk=1,n_of_el(i_grp)
-             trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,s_count,1,1)
-           enddo
-	   exit
-	 enddo
-	 !
+       write(*,*) "istar= ",istark
+       !
+       !if ( .not.PAR_IND_WF_k%element_1D(ik) ) cycle
+       !
+       isk =Xk%star(ik,istark)
+       ikbz=Xk%k_table(ik,isk)
+     !
+     nrotk=Xk%grp_nsym(ikbz)
+     if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
+     write(*,*) "nrotk=",nrotk,Xk%grp_nsym(ikbz)," grp table= ",Xk%grp_table(:nrotk*2,ikbz)
+     call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
+       !
+       YAMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
+       !
+       call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
+       io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
+       !
+       do i_grp=1,n_deg_grp
+         !
+         trace=cZERO
+         do iclass=1,nclass
+           do ielem=1,nelem(iclass)
+             isp=Xk%grp_table(elem(ielem,iclass),ikbz)
+	     write(*,*) "syms= ",iclass,ielem,elem(ielem,iclass),isp,sop_tab(isp,isk)
+             ipbz=Xk%k_table(ik,sop_tab(isp,isk))
+	     write(*,*) "kpts= ",ikbz,ipbz
+             if (ipbz/=ikbz) write(*,*) "something is wrong"
+             s_count=WF_phases_s_map(ikbz,sop_tab(isp,isk))
+             do ibk=1,n_of_el(i_grp)
+               trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,s_count,1,1)
+             enddo
+             !exit
+	   enddo
+	   !
+         enddo
+         !write(*,*) "checking ",ikbz,i_grp,n_of_el(i_grp)
+         !write(*,*) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,real(trace(:nclass),SP)
+         !write(*,*) "checking iraps "
+         do irap=1,nclass
+           if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
+           write(*,*) "trace= ",real(char_mat(irap,which_irr(:nclass)),SP)
+           write(*,*) i_grp," corresponds to ",irap
+         enddo
        enddo
-       !write(*,*) "checking ",ikbz,i_grp,n_of_el(i_grp)
-       !write(*,*) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,real(trace(:nclass),SP)
-       !write(*,*) "checking iraps "
-       do irap=1,nclass
-         if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
-          write(*,*) "trace= ",real(char_mat(irap,which_irr(:nclass)),SP)
-          write(*,*) iclass," corresponds to ",irap
-       enddo
+       !
+       YAMBO_FREE(WF_phases)
+       !
      enddo
-     !
-     YAMBO_FREE(WF_phases)
-     !
    enddo 
  enddo
  !
