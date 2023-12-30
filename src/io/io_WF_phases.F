@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-integer function io_WF_phases(nb,ikbz,i_sp_pol,ID)
+integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
  !
  use R_lattice,     ONLY:nXkbz
  use D_lattice,     ONLY:nsym
@@ -14,12 +14,13 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID)
  use IO_m,          ONLY:io_sec,io_extension
  use IO_int,        ONLY:io_connect,io_disconnect,def_variable_bulk,&
 &                        io_variable_bulk,io_header,def_variable_elemental,io_variable_elemental
- use wave_func,     ONLY:WF_phases,WF_phases_b_map,WF_phases_s_map
+ use wave_func,     ONLY:WF_phases_b_map,WF_phases_s_map
  use timing_m,      ONLY:timing
  !
  implicit none
  !
- integer        :: nb(2),ikbz,i_sp_pol,ID
+ integer                :: nb(2),ikbz,i_sp_pol,ID
+ complex(SP), optional  :: WF_phases(3,3,nb(2)-nb(1)+1,nsym,1,1)
  !
  ! Work Space
  !
@@ -32,6 +33,8 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID)
  !
  io_WF_phases=io_connect(desc=trim(io_extension(ID)),type=2,ID=ID)
  if (io_WF_phases/=0) goto 1
+ !
+ if (io_sec(ID,1)==0) goto 1
  !
  if (any((/io_sec(ID,:)==1/))) then
    !

@@ -78,7 +78,6 @@ module wave_func
  !
  ! Wave function phases
  !
- complex(SP), allocatable :: WF_phases(:,:,:,:,:,:)
  integer,     allocatable :: WF_phases_b_map(:,:,:,:)
  integer,     allocatable :: WF_phases_s_map(:,:)
  !
@@ -96,6 +95,13 @@ module wave_func
      complex(SP), optional :: wf(:,:,:)
      complex(SP), optional DEV_ATTR :: wf_d(:,:,:)
    end function
+   !
+   integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
+     use pars,        ONLY: SP
+     use D_lattice,   ONLY: nsym
+     integer               :: nb(2),ikbz,i_sp_pol,ID
+     complex(SP), optional :: WF_phases(3,3,nb(2)-nb(1)+1,nsym,1,1)
+   end function io_WF_phases
    !
    function WF_symm(ifft,isc)
      use pars,        ONLY: SP

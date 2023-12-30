@@ -13,10 +13,10 @@ subroutine electrons_symmetries(Xk,Xen)
  use R_lattice,      ONLY:bz_samp
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
-&                         i_space_inv,i_time_rev,nsym,nrot,dl_sop,  &
+&                         i_time_rev,nsym,nrot,dl_sop,  &
 &                         sop_tab,name_rap
  use vec_operate,    ONLY:degeneration_finder
- use wave_func,      ONLY:WF_phases,WF_phases_s_map
+ use wave_func,      ONLY:io_WF_phases,WF_phases_s_map,WF_phases_b_map
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:VERIFY,DUMP,REP,OP_RD,RD,RD_CL
  use com,            ONLY:msg,of_open_close
@@ -28,13 +28,13 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  integer     :: blim(2)
  complex(SP) :: trace(12)
+ complex(SP), allocatable :: WF_phases(:,:,:,:,:,:)
  !
  integer     :: iclass,irap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,blim_n(2), &
  &              ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk
  integer, allocatable :: first_el(:),n_of_el(:)
  !
  integer              :: io_err,ID
- integer, external    :: io_WF_phases
  !
  character(schlen)    :: filename,titles(3),tmp_ch
  !
@@ -52,7 +52,7 @@ subroutine electrons_symmetries(Xk,Xen)
  call WF_phase_matrices(Xen,Xk,blim)
  !
  YAMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
- !AMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nbz,nsym,2))
+ YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nbz,nsym,2))
  !
  call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,3/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,0,0,ID)
@@ -84,10 +84,11 @@ subroutine electrons_symmetries(Xk,Xen)
        !
        call print_point_group("o "//trim(filename))
        !
-       YAMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
+       !AMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
+       YAMBO_ALLOC(WF_phases,(3,3,nb,nsym,1,1))
        !
        call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
-       io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
+       io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID,WF_phases)
        !
        titles=(/" E[eV]  "," symm.  ","   ib   "/)
        call msg("o "//trim(filename),"#")

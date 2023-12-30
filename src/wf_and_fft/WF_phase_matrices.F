@@ -21,7 +21,8 @@ subroutine WF_phase_matrices(En,Xk,blim)
  use R_lattice,         ONLY:bz_samp,G_m_G,minus_G,g_vec,rl_sop,g_rot
  use D_lattice,         ONLY:nsym,sop_tab
  use electrons,         ONLY:levels
- use wave_func,         ONLY:WAVEs,WF_phases,WF_phases_b_map,WF_phases_s_map
+ use wave_func,         ONLY:WAVEs,io_WF_phases,&
+ &                           WF_phases_b_map,WF_phases_s_map
  use wave_func,         ONLY:wf_ng_overlaps,wf_ng_1st_BZ,WF_copy
  use electrons,         ONLY:n_spinor,n_sp_pol
  use wrapper,           ONLY:Vstar_dot_V
@@ -48,11 +49,11 @@ subroutine WF_phase_matrices(En,Xk,blim)
  integer           :: ikbz,ipbz,isk,isp,istark,ibk,ibp,ibk_phase,ibp_phase,i_sp_pol,ik,ip,&
  &                    ifrag,s_count,i_wf_k,i_wf_p,iGp,ng_tmp,nb
  complex(SP)       :: det,charac(blim(2)-blim(1)+1,nsym)
+ complex(SP), allocatable :: WF_phases(:,:,:,:,:,:)
  !
  type(WAVEs) :: WF_k,WF_p,WF_p_tmp
  !
  integer              :: io_err,ID
- integer, external    :: io_WF_phases
  !
  if (nsym==1) return
  !
@@ -62,8 +63,8 @@ subroutine WF_phase_matrices(En,Xk,blim)
  if (io_err==0) return
  !
  call timing("WF_phases",OPR="start")
- !
- call k_build_up_BZ_tables(Xk)
+ !!
+ !call k_build_up_BZ_tables(Xk)
  !
  iGp=15
  ng_tmp=eval_G_minus_G(wf_ng_1st_BZ,iGp)
@@ -102,7 +103,8 @@ subroutine WF_phase_matrices(En,Xk,blim)
        isk =Xk%star(ik,istark)
        ikbz=Xk%k_table(ik,isk)
        !
-       YAMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
+       !AMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
+       YAMBO_ALLOC(WF_phases,(3,3,nb,nsym,1,1))
        WF_phases=cZERO
        !
        ifrag=ifrag+1
@@ -198,7 +200,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
        call live_timing(steps=1)
        !
        call io_control(ACTION=WR,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
-       io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
+       io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID,WF_phases)
        !
        YAMBO_FREE(WF_phases)
        !

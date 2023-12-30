@@ -124,7 +124,7 @@ subroutine EXCPH_gkkp_eval_pal(iq_s,iq_bz,il,k,q,ID_gkkp)
          !
          if (l_elec_only) exit
          !
-         i_Hp=BSS_eh_table_m1(ip_bz,ivp,ic)
+         i_Hp=BSS_eh_table_m1(ip_bz,ivp,ic,1,1)
          if (i_Hp==0) cycle
          !
          ! [NB] Here we apply the conj and SWAP band indices in the matrix elements
@@ -163,7 +163,7 @@ subroutine EXCPH_gkkp_eval_pal(iq_s,iq_bz,il,k,q,ID_gkkp)
          !
          if (l_hole_only) exit
          !
-         i_Hp=BSS_eh_table_m1(ip_bz,iv,icp)
+         i_Hp=BSS_eh_table_m1(ip_bz,iv,icp,1,1)
          if (i_Hp==0) cycle
          ! [NB] Here we apply the conj and SWAP band indices in the matrix elements
          !      Notes: (icp,ic) => Code: (ic,icp)

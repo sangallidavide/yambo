@@ -1,0 +1,115 @@
+!
+! License-Identifier: GPL
+!
+! Copyright (C) 2015 The Yambo Team
+!
+! Authors (see AUTHORS file for details): DS
+!
+subroutine EXC_WF_symm_qpoint(Xk,first_state,nstates,iq,isq,igq,ID,S_index,EXC_WFs)
+ !
+ use pars,          ONLY:SP,cZERO,cONE
+ use electrons,     ONLY:n_sp_pol
+ use D_lattice,     ONLY:idt_index,i_time_rev,nsym,sop_inv,sop_tab
+ use R_lattice,     ONLY:bz_samp,qindx_X
+ use BS_solvers,    ONLY:BS_mat,BSS_n_eig,BSS_eh_table_m1
+ use BS,            ONLY:BS_bands,BS_H_dim
+ use wave_func,     ONLY:io_WF_phases,WF_phases_b_map,WF_phases_s_map
+ use IO_int,        ONLY:io_control
+ use IO_m,          ONLY:DUMP,REP,RD
+ !
+ implicit none
+ !
+ type(bz_samp), intent(in)   :: Xk
+ integer,       intent(in)   :: first_state,nstates
+ integer,       intent(in)   :: iq,isq,igq
+ integer,       intent(inout):: ID
+ complex(SP),   intent(out)  :: EXC_WFs(BS_H_dim,3)
+ integer,       intent(in)   :: S_index(BSS_n_eig)
+ !
+ ! Work space
+ !
+ integer :: iexc,il,ik,istark,isk,ikbz,ipbz,ipmqbz,ipmqg0,iv1,ic1,iv2,ic2,&
+ &          i_v1_bnd,i_v1_grp,i_c1_bnd,i_c1_grp,i_v2_bnd,i_v2_grp,i_c2_bnd,i_c2_grp,&
+ &          i_sp_pol,neh1,neh2,io_err
+ complex(SP) :: phase_vv,phase_cc
+ complex(SP) :: WF_phases_cc(3,3,BS_bands(2)-BS_bands(1)+1,nsym,1,1),&
+ &              WF_phases_vv(3,3,BS_bands(2)-BS_bands(1)+1,nsym,1,1)
+ !
+ if(isq==idt_index) return
+ !
+ ! First get A(l,R*q)= Ry * A(l,q)
+ !
+ do iexc=1,nstates
+   il=S_index(iexc+first_state-1)
+   !
+   do i_sp_pol=1,n_sp_pol
+     !
+     do ik=1,Xk%nibz
+       !
+       do istark=1,Xk%nstar(ik)
+         !
+         isk =Xk%star(ik,istark)
+         ikbz=Xk%k_table(ik,isk)
+         !
+         ! (R)^-1 k_BZ = (R)^-1 (Rk) k_IBZ
+         ipbz=Xk%k_table(ik,sop_tab(sop_inv(isq),isk))
+         !
+         call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
+         io_err=io_WF_phases(BS_bands,ipbz,i_sp_pol,ID,WF_phases_cc)
+         !
+         ! (R)^-1 k_BZ - q_IBZ
+         ipmqbz=qindx_X(iq,ipbz,1)
+         ipmqg0=qindx_X(iq,ipbz,2)
+         !
+         call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
+         io_err=io_WF_phases(BS_bands,ipmqbz,i_sp_pol,ID,WF_phases_vv)
+         !
+         do iv1 = BS_bands(1),BS_bands(2) 
+           !
+           i_v1_bnd=WF_phases_b_map(iv1,ipmqbz,isq,1)
+           i_v1_grp=WF_phases_b_map(iv1,ipmqbz,isq,2)
+           !
+           do ic1 = BS_bands(1),BS_bands(2)
+             !
+             i_c1_bnd=WF_phases_b_map(ic1,ipbz,isq,1)
+             i_c1_grp=WF_phases_b_map(ic1,ipbz,isq,2)
+             !
+             neh1=BSS_eh_table_m1(ikbz,iv1,ic1,i_sp_pol,1)
+             !
+             do iv2 = BS_bands(1),BS_bands(2) 
+               !
+               i_v2_bnd=WF_phases_b_map(iv2,ipmqbz,isq,1)
+               i_v2_grp=WF_phases_b_map(iv2,ipmqbz,isq,2)
+               !
+               phase_vv=cONE
+               if (i_v1_grp==i_v2_grp) phase_vv=WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1)
+               !
+               do ic2 = BS_bands(1),BS_bands(2) 
+                 !
+                 i_c2_bnd=WF_phases_b_map(ic2,ipbz,isq,1)
+                 i_c2_grp=WF_phases_b_map(ic2,ipbz,isq,2)
+                 !
+                 phase_cc=cONE
+                 if (i_c1_grp==i_c2_grp) phase_cc=WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
+                 !
+                 neh2=BSS_eh_table_m1(ikbz,iv2,ic2,i_sp_pol,1)
+                 !
+                 EXC_WFs(neh1,iexc)=BS_mat(neh2,il)*phase_vv*phase_cc
+                 !
+                 enddo
+             enddo
+             !
+           enddo
+         enddo
+         !
+       enddo
+     enddo
+   enddo
+   !
+ enddo
+ !
+ !! take care of time reversal if needed
+ !!
+ !if(isymm>nsym/(1+i_time_rev)) call dev_conjg(WF_p)
+ !
+end subroutine EXC_WF_symm_qpoint
