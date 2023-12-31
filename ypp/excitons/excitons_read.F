@@ -108,7 +108,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,verbose,io_err)
  endif
  !
  if(l_eigenvec) then
-   ! 
+   !
    if(.not.BSS_write_eig_2_db) then
      call error(' Diagonalization database does not contain excitonic eigenstates.'//&
 &               ' Re-run yambo using the WRbsWF flag in the input file.')

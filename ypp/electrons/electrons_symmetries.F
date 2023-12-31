@@ -102,9 +102,9 @@ subroutine electrons_symmetries(Xk,Xen)
            do ielem=1,nelem(iclass)
              isp=Xk%grp_table(elem(ielem,iclass),ikbz)
              ipbz=Xk%k_table(ik,sop_tab(isp,isk))
-             s_count=WF_phases_s_map(ikbz,sop_tab(isp,isk))
+             !s_count=WF_phases_s_map(ikbz,sop_tab(isp,isk))
              do ibk=1,n_of_el(i_grp)
-               trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,s_count,1,1)
+               trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1,1)
              enddo
 	   enddo
 	   trace(iclass)=trace(iclass)/real(nelem(iclass),SP)

@@ -219,6 +219,7 @@ module BS
    !--------------
    complex(SP), allocatable      :: mat(:,:)
    character, allocatable        :: done(:,:)
+   integer, allocatable          :: table(:,:)
    !
    ! Oscillators...
    !

@@ -46,12 +46,13 @@ subroutine WF_phase_matrices(En,Xk,blim)
  !
  integer           :: first_el(blim(2)-blim(1)+1),n_of_el(blim(2)-blim(1)+1),&
  &                    blim_n(2),n_deg_grp,i_grp
- integer           :: ikbz,ipbz,isk,isp,istark,ibk,ibp,ibk_phase,ibp_phase,i_sp_pol,ik,ip,&
- &                    ifrag,s_count,i_wf_k,i_wf_p,iGp,ng_tmp,nb
+ integer           :: ikbz,iRkbz,isk,isloop,isk_c,isk_y,iGk_y,iGk_c,istark,&
+ &                    iby,ibc,iby_phase,ibc_phase,i_sp_pol,ik,&
+ &                    ifrag,s_count,i_wf_y,i_wf_c,iGp,ng_tmp,nb
  complex(SP)       :: det,charac(blim(2)-blim(1)+1,nsym)
  complex(SP), allocatable :: WF_phases(:,:,:,:,:,:)
  !
- type(WAVEs) :: WF_k,WF_p,WF_p_tmp
+ type(WAVEs) :: WF_k,WF_Rk_c,WF_Rk_y
  !
  integer              :: io_err,ID
  !
@@ -75,13 +76,13 @@ subroutine WF_phase_matrices(En,Xk,blim)
  call PARALLEL_WF_distribute(CLEAN_UP=.TRUE.)
  call PARALLEL_WF_index( )
  !
- YAMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
+ !AMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
  YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nbz,nsym,2))
  !
  call io_control(ACTION=OP_WR,COM=REP,SEC=(/1/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,0,0,ID)
  !
- WF_phases_s_map=0
+ !WF_phases_s_map=0
  WF_phases_b_map=0
  !
  !call live_timing("WF_phases:",PAR_IND_WF_k%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
@@ -112,51 +113,46 @@ subroutine WF_phase_matrices(En,Xk,blim)
        call WF_load(WF_k,0,1,blim,(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
        & space='G',title='-WF_phases',quiet=ifrag>1,keep_states_to_load=.true.)
        !
-       ip=ik
+       !s_count=0
+       !!
+       !charac=0._SP
        !
-       call WF_load(WF_p,0,1,blim,(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
-       & space='G',title='-WF_phases',quiet=.true.,   keep_states_to_load=.true.)
-       !
-       call WF_symm_kpoint_g(blim,ik,i_sp_pol,isk,1,WF_k)
-       !
-       s_count=0
-       !
-       charac=0._SP
-       !
-       do isp=1,nsym
+       do isloop=1,nsym
          !
-         ipbz=Xk%k_table(ip,isp)
-         iGp =Xk%g_table(ip,isp)
+	 ! symmetry composed
+	 isk_c=sop_tab(isloop,isk)
+	 ! symmetry used by yambo
+	 isk_y=Xk%s_table(ik,isk_c)
+	 !
+	 iRkbz =Xk%k_table(ik,isk_c)
+	 !
+         iGk_c =minus_G(Xk%g_table(ik,isk_c))
+         iGk_y =minus_G(Xk%g_table(ik,isk_y))
          !
-         iGp=minus_G(iGp)
+         call WF_copy(WF_k,WF_Rk_c)
          !
-         if (ipbz/=ikbz) cycle
+         call WF_copy(WF_k,WF_Rk_y)
          !
-         s_count=s_count+1
-         !
-         WF_phases_s_map(ikbz,isp)=s_count
-         !
-         call WF_copy(WF_p,WF_p_tmp)
-         !
-         call WF_symm_kpoint_g(blim,ip,i_sp_pol,isp,iGp,WF_p_tmp)
+         call WF_symm_kpoint_g(blim,ik,i_sp_pol,isk_c,iGk_c,WF_Rk_c)
+         call WF_symm_kpoint_g(blim,ik,i_sp_pol,isk_y,iGk_y,WF_Rk_y)
          !
          do i_grp=1,n_deg_grp
            blim_n=(/1,n_of_el(i_grp)/)
            blim_n=blim_n+first_el(i_grp)-1+blim(1)-1
            !
-           do ibk_phase=1,n_of_el(i_grp)
-             ibk=ibk_phase+first_el(i_grp)-1+blim(1)-1
-             WF_phases_b_map(ibk,ikbz,isp,:)=(/ibk_phase,i_grp/)
-             i_wf_k=WF_k%index(ibk,ik,i_sp_pol)
-             do ibp_phase=1,n_of_el(i_grp)
-               ibp=ibp_phase+first_el(i_grp)-1+blim(1)-1
-               i_wf_p=WF_p%index(ibp,ip,i_sp_pol)
+           do iby_phase=1,n_of_el(i_grp)
+             iby=iby_phase+first_el(i_grp)-1+blim(1)-1
+             WF_phases_b_map(iby,ikbz,isloop,:)=(/iby_phase,i_grp/)
+             i_wf_y=WF_k%index(iby,ik,i_sp_pol)
+             do ibc_phase=1,n_of_el(i_grp)
+               ibc=ibc_phase+first_el(i_grp)-1+blim(1)-1
+               i_wf_c=WF_k%index(ibc,ik,i_sp_pol)
                !
-               WF_phases(ibk_phase,ibp_phase,i_grp,s_count,1,1)= &
-               & Vstar_dot_V(wf_ng_1st_BZ*n_spinor,WF_k%c(:,:,i_wf_k),WF_p_tmp%c(:,:,i_wf_p))
+               WF_phases(iby_phase,ibc_phase,i_grp,isloop,1,1)= &
+               & Vstar_dot_V(wf_ng_1st_BZ*n_spinor,WF_Rk_y%c(:,:,i_wf_y),WF_Rk_c%c(:,:,i_wf_c))
                !
              enddo
-             charac(i_grp,s_count)=charac(i_grp,s_count)+WF_phases(ibk_phase,ibk_phase,i_grp,s_count,1,1)
+             charac(i_grp,isloop)=charac(i_grp,isloop)+WF_phases(iby_phase,iby_phase,i_grp,isloop,1,1)
            enddo
            !
          enddo
@@ -172,7 +168,8 @@ subroutine WF_phase_matrices(En,Xk,blim)
          !  enddo ! ibp
          !enddo ! ibk
          !
-         call WF_free(WF_p_tmp)
+         call WF_free(WF_Rk_c)
+         call WF_free(WF_Rk_y)
          !
          ! DEBUG <
          !call SERIAL_inversion(nb,WF_phases(:,:,s_count,k_count,i_sp_pol),det,.true.)
@@ -181,8 +178,6 @@ subroutine WF_phase_matrices(En,Xk,blim)
          ! DEBUG >
          !
        enddo ! isp
-       !
-       call WF_free(WF_p)
        !
        call WF_free(WF_k)
        !
@@ -214,7 +209,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
  call io_control(ACTION=WR_CL,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
  !
- YAMBO_FREE(WF_phases_s_map)
+ !AMBO_FREE(WF_phases_s_map)
  YAMBO_FREE(WF_phases_b_map)
  !
  call timing("WF_phases",OPR="stop")

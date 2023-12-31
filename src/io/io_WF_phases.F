@@ -67,14 +67,14 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
    !
    ! WF_phases_k_map
    !
-   VAR_ID=2
-   VAR_name='WF_phases_s_map'
-   call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_s_map),IP_YIO)
-   call  io_variable_bulk(ID,VAR_ID,I2=WF_phases_s_map)
+   !VAR_ID=2
+   !VAR_name='WF_phases_s_map'
+   !call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_s_map),IP_YIO)
+   !call  io_variable_bulk(ID,VAR_ID,I2=WF_phases_s_map)
    !
    ! WF_phases_b_map
    !
-   VAR_ID=3
+   VAR_ID=2
    VAR_name='WF_phases_b_map'
    call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_b_map),IP_YIO)
    call  io_variable_bulk(ID,VAR_ID,I4=WF_phases_b_map)

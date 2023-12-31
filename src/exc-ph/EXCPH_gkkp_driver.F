@@ -165,7 +165,7 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  !
  ! BSS_eh_table_m1
  !
- call build_inverse_eh_table()
+ call build_inverse_eh_table(k%nbz)
  !
  ! Save the Lin in information
  ! 
@@ -351,24 +351,6 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      !
    end subroutine build_k_plus_q_table
    !
-   subroutine build_inverse_eh_table()
-     !
-     integer :: iv,ic,i_H,ik_bz
-     !     
-     call live_timing('BSE inverse eh-table',BS_H_dim)
-     do i_H=1,BS_H_dim
-       !
-       ik_bz = BSS_eh_table(i_H,1)
-       iv    = BSS_eh_table(i_H,2)
-       ic    = BSS_eh_table(i_H,3)
-       !
-       BSS_eh_table_m1(ik_bz,iv,ic,1,1)=i_H
-       call live_timing(steps=1)
-       !
-     enddo
-     call live_timing( )
-     !
-   end subroutine build_inverse_eh_table
    !
    subroutine compare_qindxC_table()
      !
