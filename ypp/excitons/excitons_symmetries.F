@@ -35,7 +35,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !integer  :: i_c,i_l,first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_of_exc_max
  real(SP) :: BS_E_real(BSS_n_eig)
  integer  :: S_index(BSS_n_eig)
- integer  :: first_exc(BSS_n_eig),n_of_exc(BSS_n_eig),n_deg_grp,n_of_exc_max
+ integer  :: first_exc(BSS_n_eig),n_of_exc(BSS_n_eig),n_exc_to_analyze,n_deg_grp,n_of_exc_max
  integer  :: iqbz_in,iqbz,isq,isq_small_grp,isqy,iGq,nrotq,irap,iclass,ielem,il,i_grp,&
  &           io_err,ID
  !
@@ -59,8 +59,6 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,3/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(BS_bands,0,0,ID)
- !
- write(*,*) "read header ",io_err,ID
  !
  call build_inverse_eh_table(Xk%nbz)
  !
@@ -120,7 +118,9 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  trace=cZERO
  !
- call live_timing("Exciton symmetries:",sum(nelem(:))*n_deg_grp)
+ n_exc_to_analyze=min(10,n_deg_grp)
+ !
+ call live_timing("Exciton symmetries:",sum(nelem(:))*n_exc_to_analyze)
  !
  do iclass=1,nclass
    do ielem=1,nelem(iclass)
@@ -134,7 +134,9 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      iqbz=qpt%k_table(iq,isq)                    ! the rotated q-point
      iGq =qpt%k_table(iq,isq)                    ! the G shift
      !
-     do i_grp=1,n_deg_grp
+     do i_grp=1,n_exc_to_analyze
+       !
+       !write(*,*) i_grp," rotating ",n_of_exc(i_grp)," excitons"
        !
        ! Get A(l,R*q)= Ry * A(l,q)
        !
@@ -153,7 +155,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
          & Vstar_dot_V(BS_H_dim,EXC_WF_rot1(:,il),EXC_WF_rot2(:,il))
        enddo
        trace(iclass,i_grp)=trace(iclass,i_grp)/real(nelem(iclass),SP)
-       write(*,*) trace(iclass,i_grp)
+       !write(*,*) "trace= ",trace(iclass,i_grp)
        !
        call live_timing(steps=1)
        !
@@ -168,8 +170,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  ! Finally I compute the exciton symmetry
  !
- do i_grp=1,n_deg_grp
-   write(*,*) i_grp,trace(:nclass,i_grp)
+ do i_grp=1,n_exc_to_analyze
+   write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,trace(:nclass,i_grp)
    do irap=1,nclass
      if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
      write(tmp_ch,"(F10.4,12x,a,12x,i4)") &

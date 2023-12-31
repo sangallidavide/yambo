@@ -35,12 +35,18 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  complex(SP) :: WF_phases_cc(3,3,BS_bands(2)-BS_bands(1)+1,nsym,1,1),&
  &              WF_phases_vv(3,3,BS_bands(2)-BS_bands(1)+1,nsym,1,1)
  !
- if(isq==idt_index) return
+ if(isq==idt_index) then
+   do iexc=1,nstates
+     il=S_index(iexc+first_state-1)
+     EXC_WFs(:,iexc)=BS_mat(:,il)
+   enddo
+   return
+ endif
  !
  iqbz=qpt%k_table(iq,isq)
  !
- V_bands=(/BS_bands(1),maxval(Ken%nbm)/)
- C_bands=(/minval(Ken%nbf)+1,BS_bands(2)/)
+ !V_bands=(/BS_bands(1),maxval(Ken%nbm)/)
+ !C_bands=(/minval(Ken%nbf)+1,BS_bands(2)/)
  !
  EXC_WFs=cZERO
  !
@@ -85,35 +91,37 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
            !
            i_v1_bnd=WF_phases_b_map(iv1,ipmqbz,isq,1)
            i_v1_grp=WF_phases_b_map(iv1,ipmqbz,isq,2)
-	   !
-           do ic1 = BS_bands(1),BS_bands(2)
+           !
+           do iv2 = BS_bands(1),BS_bands(2) 
              !
-             i_c1_bnd=WF_phases_b_map(ic1,ipbz,isq,1)
-             i_c1_grp=WF_phases_b_map(ic1,ipbz,isq,2)
-             !
-             neh1=BSS_eh_table_m1(ikbz,iv1,ic1,i_sp_pol,1)
+             i_v2_bnd=WF_phases_b_map(iv2,ipmqbz,isq,1)
+             i_v2_grp=WF_phases_b_map(iv2,ipmqbz,isq,2)
 	     !
-	     if (neh1==0) cycle
-             !
-             do iv2 = BS_bands(1),BS_bands(2) 
+             if (i_v1_grp/=i_v2_grp) cycle
+	     !
+             do ic1 = BS_bands(1),BS_bands(2)
                !
-               i_v2_bnd=WF_phases_b_map(iv2,ipmqbz,isq,1)
-               i_v2_grp=WF_phases_b_map(iv2,ipmqbz,isq,2)
+               i_c1_bnd=WF_phases_b_map(ic1,ipbz,isq,1)
+               i_c1_grp=WF_phases_b_map(ic1,ipbz,isq,2)
+               !
+               neh1=BSS_eh_table_m1(ikbz,iv1,ic1,i_sp_pol,1)
+	       !
+	       if (neh1==0) cycle
                !
                do ic2 = BS_bands(1),BS_bands(2) 
                  !
                  i_c2_bnd=WF_phases_b_map(ic2,ipbz,isq,1)
                  i_c2_grp=WF_phases_b_map(ic2,ipbz,isq,2)
+	         !
+                 if (i_c1_grp/=i_c2_grp) cycle
                  !
                  neh2=BSS_eh_table_m1(ipbz,iv2,ic2,i_sp_pol,1)
 	         !
 	         if (neh2==0) cycle
                  !
-                 phase_vv=cONE
-                 if (i_v1_grp==i_v2_grp) phase_vv=WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1)
+                 phase_vv=WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1)
                  !
-                 phase_cc=cONE
-                 if (i_c1_grp==i_c2_grp) phase_cc=WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
+                 phase_cc=WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
 		 !
@@ -126,6 +134,9 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
        enddo
      enddo
    enddo
+   !
+   !write(*,*) il,"Al= ",BS_mat(1:10,il)
+   !write(*,*) iexc,"Arot= ",EXC_WFs(1:10,iexc)
    !
  enddo
  !
