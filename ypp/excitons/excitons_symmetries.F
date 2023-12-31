@@ -36,7 +36,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  real(SP) :: BS_E_real(BSS_n_eig)
  integer  :: S_index(BSS_n_eig)
  integer  :: first_exc(BSS_n_eig),n_of_exc(BSS_n_eig),n_exc_to_analyze,n_deg_grp,n_of_exc_max
- integer  :: iqbz_in,iqbz,isq,isq_small_grp,isqy,iGq,nrotq,irap,iclass,ielem,il,i_grp,&
+ integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,irap,iclass,ielem,il,i_grp,&
  &           io_err,ID
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
@@ -78,7 +78,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  ! The q point for which I want to compute the irrep.
  !isq =q%star(iq,1)
- iqbz_in=qpt%k_table(iq,1)
+ iqbz=qpt%k_table(iq,1)
  !iGq =qpt%g_table(iq,isq)
  !
  !do i_c=1,EXCITONS_n_user_states
@@ -105,9 +105,9 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  call msg("o "//trim(filename),"#"," Symmetries at iq "//trim(intc(iq)),INDENT=0)
  call msg("o "//trim(filename),"#")
  !
- nrotq=qpt%grp_nsym(iqbz_in)
- if ( any( qpt%grp_table(:nrotq,iqbz_in)>nrot ) ) nrotq=nrotq/(1+i_time_rev)
- call detect_point_group(nrotq,real(dl_sop(:,:,qpt%grp_table(:nrotq,iqbz_in)),DP),.true.)
+ nrotq=qpt%grp_nsym(iqbz)
+ if ( any( qpt%grp_table(:nrotq,iqbz)>nrot ) ) nrotq=nrotq/(1+i_time_rev)
+ call detect_point_group(nrotq,real(dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)),DP),.true.)
  !
  call print_point_group("o "//trim(filename))
  !
@@ -128,11 +128,13 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      isq_small_grp=elem(ielem,iclass)
      !
      ! The rotated q-point
-     isq =qpt%grp_table(isq_small_grp,iqbz_in)   ! the symmetry of the loop
-     isqy=qpt%s_table(iq,isq)                    ! the symmetry used by yambo
+     isqc=qpt%grp_table(isq_small_grp,iqbz)       ! the symmetry of the loop
+     isqy=qpt%s_table(iq,isqc)                    ! the symmetry used by yambo
      !
-     iqbz=qpt%k_table(iq,isq)                    ! the rotated q-point
-     iGq =qpt%k_table(iq,isq)                    ! the G shift
+     iRqbz=qpt%k_table(iq,isqc)                   ! the rotated q-point
+     !
+     iGqc=qpt%k_table(iq,isqc)                    ! the G shift
+     iGqy=qpt%k_table(iq,isqy)                    ! the G shift
      !
      do i_grp=1,n_exc_to_analyze
        !
@@ -141,12 +143,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        ! Get A(l,R*q)= Ry * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqy,iGq,ID,S_index,EXC_WF_rot1(:,:n_of_exc(i_grp)))
+       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1(:,:n_of_exc(i_grp)))
        !
        ! Get R * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isq,iGq,ID,S_index,EXC_WF_rot2(:,:n_of_exc(i_grp)))
+       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2(:,:n_of_exc(i_grp)))
        !
        ! Compute the trace of the Irrep
        !
@@ -154,13 +156,13 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
          trace(iclass,i_grp) = trace(iclass,i_grp) +  &
          & Vstar_dot_V(BS_H_dim,EXC_WF_rot1(:,il),EXC_WF_rot2(:,il))
        enddo
-       trace(iclass,i_grp)=trace(iclass,i_grp)/real(nelem(iclass),SP)
        !write(*,*) "trace= ",trace(iclass,i_grp)
        !
        call live_timing(steps=1)
        !
      enddo
    enddo
+   trace(iclass,:)=trace(iclass,:)/real(nelem(iclass),SP)
  enddo
  !
  call live_timing()
@@ -171,7 +173,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  ! Finally I compute the exciton symmetry
  !
  do i_grp=1,n_exc_to_analyze
-   write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,trace(:nclass,i_grp)
+   write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,real(trace(:nclass,i_grp))
    do irap=1,nclass
      if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
      write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
@@ -180,6 +182,10 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      exit
    enddo
    !if(irap==nclass+1) write(*,*) "Exc symm not found for ",i_grp
+ enddo
+ !
+ do irap=1,nclass
+   write(*,*) 0.0_SP,nelem(irap),real(char_mat(irap,which_irr(:nclass)),SP)
  enddo
  !
  call of_open_close(filename)

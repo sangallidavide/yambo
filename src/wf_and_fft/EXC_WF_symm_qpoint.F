@@ -119,9 +119,10 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
 	         !
 	         if (neh2==0) cycle
                  !
-                 phase_vv=WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1)
+                 phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1))
+                 !phase_vv=      WF_phases_vv(i_v2_bnd,i_v1_bnd,i_v1_grp,isq,1,1)
                  !
-                 phase_cc=WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
+                 phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
 		 !
