@@ -12,8 +12,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  use R_lattice,      ONLY:bz_samp,coll_scattering
  use electrons,      ONLY:levels
  use BS_solvers,     ONLY:BS_mat,BSS_n_eig
- use BS,             ONLY:BS_bands,BS_H_dim
- use wave_func,      ONLY:io_WF_phases,WF_phases_s_map,WF_phases_b_map
+ use BS,             ONLY:BS_bands,BS_H_dim,BS_K_dim
+ use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:which_irr,char_mat,nclass,elem,nelem,&
  &                        name_rap,i_time_rev,nsym,nrot,dl_sop
@@ -37,7 +37,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  integer  :: S_index(BSS_n_eig)
  integer  :: first_exc(BSS_n_eig),n_of_exc(BSS_n_eig),n_exc_to_analyze,n_deg_grp,n_of_exc_max
  integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,irap,iclass,ielem,il,i_grp,&
- &           io_err,ID
+ &           io_err,ID,n_elem_used
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
  complex(SP) :: trace(12,BSS_n_eig)
@@ -54,7 +54,6 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  call WF_phase_matrices(Xen,Xk,BS_bands)
  !
- YAMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
  YAMBO_ALLOC(WF_phases_b_map,(BS_bands(1):BS_bands(2),Xk%nbz,nsym,2))
  !
  call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,3/),MODE=DUMP,ID=ID)
@@ -123,7 +122,11 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  call live_timing("Exciton symmetries:",sum(nelem(:))*n_exc_to_analyze)
  !
  do iclass=1,nclass
-   do ielem=1,nelem(iclass)
+   ! The following loop is useful for debugging only
+   ! Any element of the class should be ok 
+   !n_elem_used=nelem(iclass)
+   n_elem_used=1
+   do ielem=1,n_elem_used
      !
      isq_small_grp=elem(ielem,iclass)
      !
@@ -143,12 +146,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        ! Get A(l,R*q)= Ry * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1(:,:n_of_exc(i_grp)))
+       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1) !(:,:n_of_exc(i_grp)))
        !
        ! Get R * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2(:,:n_of_exc(i_grp)))
+       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2) !(:,:n_of_exc(i_grp)))
        !
        ! Compute the trace of the Irrep
        !
@@ -162,7 +165,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        !
      enddo
    enddo
-   trace(iclass,:)=trace(iclass,:)/real(nelem(iclass),SP)
+   trace(iclass,:)=trace(iclass,:)/real(n_elem_used,SP)
  enddo
  !
  call live_timing()
@@ -177,7 +180,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    !write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,n_of_exc(i_grp),real(trace(:nclass,i_grp))
    ! DEBUG >
    do irap=1,nclass
-     if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
+     if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<0.01_SP) ) cycle
      write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
      & BS_E_real(first_exc(i_grp))*HA2EV,trim(name_rap(irap)),first_exc(i_grp)
      call msg("o "//trim(filename),'',tmp_ch,INDENT=-2)
@@ -187,6 +190,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  enddo
  !
  ! DEBUG <
+ !write(*,*) ""
  !do irap=1,nclass
  !  write(*,*) 0.0_SP,nelem(irap),real(char_mat(irap,which_irr(:nclass)),SP)
  !enddo

@@ -14,7 +14,7 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
  use IO_m,          ONLY:io_sec,io_extension
  use IO_int,        ONLY:io_connect,io_disconnect,def_variable_bulk,&
 &                        io_variable_bulk,io_header,def_variable_elemental,io_variable_elemental
- use wave_func,     ONLY:WF_phases_b_map,WF_phases_s_map
+ use wave_func,     ONLY:WF_phases_b_map
  use timing_m,      ONLY:timing
  !
  implicit none
@@ -63,14 +63,7 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
    !
  endif
  !
- if (any((/io_sec(ID,:)==2/))) then
-   !
-   ! WF_phases_k_map
-   !
-   !VAR_ID=2
-   !VAR_name='WF_phases_s_map'
-   !call def_variable_bulk(ID,trim(VAR_name),VAR_ID,shape(WF_phases_s_map),IP_YIO)
-   !call  io_variable_bulk(ID,VAR_ID,I2=WF_phases_s_map)
+ if (any((/io_sec(ID,:)==3/))) then
    !
    ! WF_phases_b_map
    !

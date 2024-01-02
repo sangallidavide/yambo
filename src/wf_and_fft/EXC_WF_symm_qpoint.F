@@ -13,7 +13,7 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  use R_lattice,     ONLY:bz_samp,qindx_X,qindx_C
  use BS_solvers,    ONLY:BS_mat,BSS_n_eig,BSS_eh_table_m1
  use BS,            ONLY:BS_bands,BS_H_dim
- use wave_func,     ONLY:io_WF_phases,WF_phases_b_map,WF_phases_s_map
+ use wave_func,     ONLY:io_WF_phases,WF_phases_b_map
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:DUMP,REP,RD
  !
@@ -66,27 +66,27 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
          !
          ! p_BZ = (R)^-1 k_BZ = (R)^-1 (Rk) k_IBZ
          ipbz=Xk%k_table(ik,sop_tab(sop_inv(isq),isk))
-	 !
-	 ! For the phases I need:
+         !
+         ! For the phases I need:
          ! - R p_BZ = k_BZ
-	 ! - the symmetry used to reach k_BZ, e.g. isk
-	 !ik_ref=ikbz
-	 !is_ref=isk
-	 !
+         ! - the symmetry used to reach k_BZ, e.g. isk
+         !ik_ref=ikbz
+         !is_ref=isk
+         !
          call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
          io_err=io_WF_phases(BS_bands,ipbz,i_sp_pol,ID,WF_phases_cc)
          !
          ! (R)^-1 k_BZ - q_IBZ = p_BZ - q_IBZ
          ipmqbz=qindx_X(iq,ipbz,1)
          ipmqg0=qindx_X(iq,ipbz,2)
-	 !
-	 ! For the phases I need R pmq_BZ = k_BZ - R q_IBZ = k_BZ - q_BZ
+         !
+         ! For the phases I need R pmq_BZ = k_BZ - R q_IBZ = k_BZ - q_BZ
          !ikmqbz=qindx_C(ikbz,iqbz,1)
          !ikmqg0=qindx_C(ikbz,iqbz,2)
-	 !
+         !
          call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
          io_err=io_WF_phases(BS_bands,ipmqbz,i_sp_pol,ID,WF_phases_vv)
-	 !
+         !
          do iv1 = BS_bands(1),BS_bands(2) 
            !
            i_v1_bnd=WF_phases_b_map(iv1,ipmqbz,isq,1)
@@ -96,28 +96,28 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
              !
              i_v2_bnd=WF_phases_b_map(iv2,ipmqbz,isq,1)
              i_v2_grp=WF_phases_b_map(iv2,ipmqbz,isq,2)
-	     !
+             !
              if (i_v1_grp/=i_v2_grp) cycle
-	     !
+             !
              do ic1 = BS_bands(1),BS_bands(2)
                !
                i_c1_bnd=WF_phases_b_map(ic1,ipbz,isq,1)
                i_c1_grp=WF_phases_b_map(ic1,ipbz,isq,2)
                !
                neh1=BSS_eh_table_m1(ikbz,iv1,ic1,i_sp_pol,1)
-	       !
-	       if (neh1==0) cycle
+               !
+               if (neh1==0) cycle
                !
                do ic2 = BS_bands(1),BS_bands(2) 
                  !
                  i_c2_bnd=WF_phases_b_map(ic2,ipbz,isq,1)
                  i_c2_grp=WF_phases_b_map(ic2,ipbz,isq,2)
-	         !
+                 !
                  if (i_c1_grp/=i_c2_grp) cycle
                  !
                  neh2=BSS_eh_table_m1(ipbz,iv2,ic2,i_sp_pol,1)
-	         !
-	         if (neh2==0) cycle
+                 !
+                 if (neh2==0) cycle
                  !
                  phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1))
                  !phase_vv=      WF_phases_vv(i_v2_bnd,i_v1_bnd,i_v1_grp,isq,1,1)
@@ -125,7 +125,7 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
                  phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
-		 !
+                 !
                enddo
              enddo
              !

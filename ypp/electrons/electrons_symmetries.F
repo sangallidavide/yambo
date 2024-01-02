@@ -16,7 +16,7 @@ subroutine electrons_symmetries(Xk,Xen)
 &                         i_time_rev,nsym,nrot,dl_sop,  &
 &                         sop_tab,name_rap
  use vec_operate,    ONLY:degeneration_finder
- use wave_func,      ONLY:io_WF_phases,WF_phases_s_map,WF_phases_b_map
+ use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:VERIFY,DUMP,REP,OP_RD,RD,RD_CL
  use com,            ONLY:msg,of_open_close
@@ -51,7 +51,6 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  call WF_phase_matrices(Xen,Xk,blim)
  !
- YAMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
  YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nbz,nsym,2))
  !
  call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,3/),MODE=DUMP,ID=ID)
@@ -99,15 +98,16 @@ subroutine electrons_symmetries(Xk,Xen)
          !
          trace=cZERO
          do iclass=1,nclass
-           do ielem=1,nelem(iclass)
+           ! For debugging, an averages over the elements
+           ! can be performed
+           do ielem=1,1 !nelem(iclass)
              isp=Xk%grp_table(elem(ielem,iclass),ikbz)
              ipbz=Xk%k_table(ik,sop_tab(isp,isk))
-             !s_count=WF_phases_s_map(ikbz,sop_tab(isp,isk))
              do ibk=1,n_of_el(i_grp)
                trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1,1)
              enddo
 	   enddo
-	   trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
+	   !trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
          enddo
          do irap=1,nclass
            if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle

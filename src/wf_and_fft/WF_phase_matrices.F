@@ -21,8 +21,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
  use R_lattice,         ONLY:bz_samp,G_m_G,minus_G,g_vec,rl_sop,g_rot
  use D_lattice,         ONLY:nsym,sop_tab
  use electrons,         ONLY:levels
- use wave_func,         ONLY:WAVEs,io_WF_phases,&
- &                           WF_phases_b_map,WF_phases_s_map
+ use wave_func,         ONLY:WAVEs,io_WF_phases,WF_phases_b_map
  use wave_func,         ONLY:wf_ng_overlaps,wf_ng_1st_BZ,WF_copy
  use electrons,         ONLY:n_spinor,n_sp_pol
  use wrapper,           ONLY:Vstar_dot_V
@@ -76,13 +75,11 @@ subroutine WF_phase_matrices(En,Xk,blim)
  call PARALLEL_WF_distribute(CLEAN_UP=.TRUE.)
  call PARALLEL_WF_index( )
  !
- !AMBO_ALLOC(WF_phases_s_map,(Xk%nbz,nsym))
  YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nbz,nsym,2))
  !
  call io_control(ACTION=OP_WR,COM=REP,SEC=(/1/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,0,0,ID)
  !
- !WF_phases_s_map=0
  WF_phases_b_map=0
  !
  !call live_timing("WF_phases:",PAR_IND_WF_k%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
@@ -209,7 +206,6 @@ subroutine WF_phase_matrices(En,Xk,blim)
  call io_control(ACTION=WR_CL,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID)
  !
- !AMBO_FREE(WF_phases_s_map)
  YAMBO_FREE(WF_phases_b_map)
  !
  call timing("WF_phases",OPR="stop")
