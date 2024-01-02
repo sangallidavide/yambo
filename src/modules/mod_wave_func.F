@@ -97,9 +97,10 @@ module wave_func
    !
    integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
      use pars,        ONLY: SP
+     use electrons,   ONLY: n_max_deg
      use D_lattice,   ONLY: nsym
      integer               :: nb(2),ikbz,i_sp_pol,ID
-     complex(SP), optional :: WF_phases(3,3,nb(2)-nb(1)+1,nsym,1,1)
+     complex(SP), optional :: WF_phases(n_max_deg,n_max_deg,nb(2)-nb(1)+1,nsym,1,1)
    end function io_WF_phases
    !
    function WF_symm(ifft,isc)

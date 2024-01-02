@@ -9,13 +9,14 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  use pars,           ONLY:SP,DP,cZERO,schlen
  use units,          ONLY:HA2EV
- use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,EXCITONS_user_indexes
+ use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,&
+ &                        EXCITONS_user_indexes,EXC_symm_thresh
  use R_lattice,      ONLY:bz_samp,coll_scattering
  use electrons,      ONLY:levels
  use BS_solvers,     ONLY:BS_mat,BSS_n_eig
  use BS,             ONLY:BS_bands,BS_H_dim,BS_K_dim
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
- use stderr,         ONLY:intc
+ use stderr,         ONLY:intc,real2ch
  use D_lattice,      ONLY:which_irr,char_mat,nclass,elem,nelem,&
  &                        name_rap,i_time_rev,nsym,nrot,dl_sop
  use vec_operate,    ONLY:sort,degeneration_finder
@@ -32,7 +33,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  type(levels)        :: Xen
  complex(SP)         :: BS_E(BSS_n_eig)
  !
- real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real,thresh
+ real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real
  logical  :: l_mixed_states,l_partial_space
  integer  :: S_index(EXCITONS_n_user_states)
  integer  :: first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_deg_grp,n_of_exc_max
@@ -168,8 +169,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  ! Finally I compute the exciton symmetry
  !
- thresh=0.01_SP
  loc_fmt="(F10.4,12x,F4.2,12x,a,12x,i4)"
+ !
  do i_grp=1,n_deg_grp
    !
    il=first_exc(i_grp)
@@ -183,14 +184,15 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    l_partial_space=.false.
    do iclass=1,nclass
      tmp_real=abs(trace(iclass,i_grp))
-     l_partial_space = tmp_real-real(nint(tmp_real),SP) > thresh
+     tmp_real=abs(tmp_real-real(nint(tmp_real),SP))
+     l_partial_space = tmp_real > EXC_symm_thresh
      if(l_partial_space) exit
    enddo
-   if (l_partial_space) tmp_ch="partial space"
+   if (l_partial_space) tmp_ch="partial space "//trim(real2ch(tmp_real))
    !
    if ( .not. (l_mixed_states.or.l_partial_space) ) then
      do irap=1,nclass
-       if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=thresh) ) cycle
+       if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=EXC_symm_thresh) ) cycle
        tmp_ch=trim(name_rap(irap))
        exit
      enddo

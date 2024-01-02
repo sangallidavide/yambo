@@ -915,7 +915,7 @@ use pars,       ONLY:DP
 IMPLICIT NONE
 !
 REAL(DP) :: A(3,3), B(3,3)
-REAL(DP), PARAMETER :: eps=1.d-7
+REAL(DP), PARAMETER :: eps=1.d-5
 LOGICAL :: compare_mat
 
  compare_mat=(ABS(MAXVAL(A-B))<eps).AND.(ABS(MINVAL(A-B))<eps)

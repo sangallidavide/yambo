@@ -9,7 +9,7 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  use pars,           ONLY:DP,SP,cZERO,schlen
  use units,          ONLY:HA2EV
- use electrons,      ONLY:levels,n_sp_pol
+ use electrons,      ONLY:levels,n_sp_pol,n_max_deg
  use R_lattice,      ONLY:bz_samp
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
@@ -84,7 +84,7 @@ subroutine electrons_symmetries(Xk,Xen)
        call print_point_group("o "//trim(filename))
        !
        !AMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
-       YAMBO_ALLOC(WF_phases,(3,3,nb,nsym,1,1))
+       YAMBO_ALLOC(WF_phases,(n_max_deg,n_max_deg,nb,nsym,1,1))
        !
        call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
        io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID,WF_phases)

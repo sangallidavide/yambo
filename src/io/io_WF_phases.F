@@ -9,7 +9,7 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
  !
  use R_lattice,     ONLY:nXkbz
  use D_lattice,     ONLY:nsym
- use electrons,     ONLY:n_sp_pol
+ use electrons,     ONLY:n_sp_pol,n_max_deg
  use pars,          ONLY:schlen,SP,SP_YIO,IP_YIO
  use IO_m,          ONLY:io_sec,io_extension
  use IO_int,        ONLY:io_connect,io_disconnect,def_variable_bulk,&
@@ -20,7 +20,7 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
  implicit none
  !
  integer                :: nb(2),ikbz,i_sp_pol,ID
- complex(SP), optional  :: WF_phases(3,3,nb(2)-nb(1)+1,nsym,1,1)
+ complex(SP), optional  :: WF_phases(n_max_deg,n_max_deg,nb(2)-nb(1)+1,nsym,1,1)
  !
  ! Work Space
  !
@@ -47,7 +47,7 @@ integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
    !
    VAR_ID=1
    VAR_name='WF_phases'
-   VAR_SIZE=(/2,3,3,nb(2)-nb(1)+1,nsym,nXkbz,n_sp_pol/)
+   VAR_SIZE=(/2,n_max_deg,n_max_deg,nb(2)-nb(1)+1,nsym,nXkbz,n_sp_pol/)
    call def_variable_bulk(ID,trim(VAR_name),VAR_ID,VAR_SIZE,SP_YIO)
    !
  endif

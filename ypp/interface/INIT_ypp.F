@@ -709,7 +709,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
    if (l_exc_wf.and.(l_free_hole.or.l_average_eh)) call initactivate(1,"WFMult") 
    if (l_exc_wf.and.l_average_eh) call initactivate(1,"EHdensity")
    if (l_spin) call initactivate(1,"Degen_Step")
-   if (l_exc_symm) call initactivate(1,"Degen_Step")
+   if (l_exc_symm) call initactivate(1,"Degen_Step Symm_thresh")
 #if defined _YPP_ELPH
    if (l_eliashberg)  call initactivate(1,"Degen_Step") 
 #endif

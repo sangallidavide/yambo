@@ -20,7 +20,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
  use LIVE_t,            ONLY:live_timing
  use R_lattice,         ONLY:bz_samp,G_m_G,minus_G,g_vec,rl_sop,g_rot
  use D_lattice,         ONLY:nsym,sop_tab
- use electrons,         ONLY:levels
+ use electrons,         ONLY:levels,n_max_deg
  use wave_func,         ONLY:WAVEs,io_WF_phases,WF_phases_b_map
  use wave_func,         ONLY:wf_ng_overlaps,wf_ng_1st_BZ,WF_copy
  use electrons,         ONLY:n_spinor,n_sp_pol
@@ -44,7 +44,8 @@ subroutine WF_phase_matrices(En,Xk,blim)
  ! Work Space
  !
  integer           :: first_el(blim(2)-blim(1)+1),n_of_el(blim(2)-blim(1)+1),&
- &                    blim_n(2),n_deg_grp,i_grp
+ &                    blim_n(2),n_deg_grp,i_grp,g0_idx(3,2)
+ real(SP)          :: g0_length(3)
  integer           :: ikbz,iRkbz,isk,isloop,isk_c,isk_y,iGk_y,iGk_c,istark,&
  &                    iby,ibc,iby_phase,ibc_phase,i_sp_pol,ik,&
  &                    ifrag,s_count,i_wf_y,i_wf_c,iGp,ng_tmp,nb
@@ -63,10 +64,10 @@ subroutine WF_phase_matrices(En,Xk,blim)
  if (io_err==0) return
  !
  call timing("WF_phases",OPR="start")
- !!
- !call k_build_up_BZ_tables(Xk)
  !
- iGp=15
+ !call k_find_smallest_g0(g0_idx,g0_length)
+ !iGp=max(maxval(g0_idx(:,1)),maxval(g0_idx(:,2)))
+ iGp=2*maxval(Xk%g_table)
  ng_tmp=eval_G_minus_G(wf_ng_1st_BZ,iGp)
  !
  nb=blim(2)-blim(1)+1
@@ -102,7 +103,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
        ikbz=Xk%k_table(ik,isk)
        !
        !AMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
-       YAMBO_ALLOC(WF_phases,(3,3,nb,nsym,1,1))
+       YAMBO_ALLOC(WF_phases,(n_max_deg,n_max_deg,nb,nsym,1,1))
        WF_phases=cZERO
        !
        ifrag=ifrag+1
@@ -110,8 +111,6 @@ subroutine WF_phase_matrices(En,Xk,blim)
        call WF_load(WF_k,0,1,blim,(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
        & space='G',title='-WF_phases',quiet=ifrag>1,keep_states_to_load=.true.)
        !
-       !s_count=0
-       !!
        !charac=0._SP
        !
        do isloop=1,nsym

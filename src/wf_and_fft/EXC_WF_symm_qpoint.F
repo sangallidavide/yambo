@@ -8,7 +8,7 @@
 subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,EXC_WFs)
  !
  use pars,          ONLY:SP,cZERO,cONE
- use electrons,     ONLY:n_sp_pol
+ use electrons,     ONLY:n_sp_pol,n_max_deg
  use D_lattice,     ONLY:idt_index,i_time_rev,nsym,sop_inv,sop_tab
  use R_lattice,     ONLY:bz_samp,qindx_X,qindx_C
  use BS_solvers,    ONLY:BS_mat,BSS_n_eig,BSS_eh_table_m1
@@ -32,8 +32,8 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  &          i_v1_bnd,i_v1_grp,i_c1_bnd,i_c1_grp,i_v2_bnd,i_v2_grp,i_c2_bnd,i_c2_grp,&
  &          ikmqbz,ikmqg0,iqbz,i_sp_pol,neh1,neh2,io_err,V_bands(2),C_bands(2)
  complex(SP) :: phase_vv,phase_cc
- complex(SP) :: WF_phases_cc(3,3,BS_bands(2)-BS_bands(1)+1,nsym,1,1),&
- &              WF_phases_vv(3,3,BS_bands(2)-BS_bands(1)+1,nsym,1,1)
+ complex(SP) :: WF_phases_cc(n_max_deg,n_max_deg,BS_bands(2)-BS_bands(1)+1,nsym,1,1),&
+ &              WF_phases_vv(n_max_deg,n_max_deg,BS_bands(2)-BS_bands(1)+1,nsym,1,1)
  !
  if(isq==idt_index) then
    do iexc=1,nstates
@@ -120,8 +120,6 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
                  if (neh2==0) cycle
                  !
                  phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1,1))
-                 !phase_vv=      WF_phases_vv(i_v2_bnd,i_v1_bnd,i_v1_grp,isq,1,1)
-                 !
                  phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1,1)
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
@@ -135,9 +133,6 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
        enddo
      enddo
    enddo
-   !
-   !write(*,*) il,"Al= ",BS_mat(1:10,il)
-   !write(*,*) iexc,"Arot= ",EXC_WFs(1:10,iexc)
    !
  enddo
  !
