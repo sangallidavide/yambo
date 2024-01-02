@@ -173,7 +173,9 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  ! Finally I compute the exciton symmetry
  !
  do i_grp=1,n_exc_to_analyze
-   write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,real(trace(:nclass,i_grp))
+   ! DEBUG <
+   !write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,n_of_exc(i_grp),real(trace(:nclass,i_grp))
+   ! DEBUG >
    do irap=1,nclass
      if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
      write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
@@ -184,9 +186,11 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    !if(irap==nclass+1) write(*,*) "Exc symm not found for ",i_grp
  enddo
  !
- do irap=1,nclass
-   write(*,*) 0.0_SP,nelem(irap),real(char_mat(irap,which_irr(:nclass)),SP)
- enddo
+ ! DEBUG <
+ !do irap=1,nclass
+ !  write(*,*) 0.0_SP,nelem(irap),real(char_mat(irap,which_irr(:nclass)),SP)
+ !enddo
+ ! DEBUG >
  !
  call of_open_close(filename)
  !
