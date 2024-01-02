@@ -23,7 +23,7 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  integer,       intent(in)   :: first_state,nstates
  integer,       intent(in)   :: iq,isq,igq
  integer,       intent(inout):: ID
- complex(SP),   intent(out)  :: EXC_WFs(BS_H_dim,3)
+ complex(SP),   intent(out)  :: EXC_WFs(BS_H_dim,nstates)
  integer,       intent(in)   :: S_index(BSS_n_eig)
  !
  ! Work space

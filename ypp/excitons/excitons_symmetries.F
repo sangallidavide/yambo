@@ -9,6 +9,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  use pars,           ONLY:SP,DP,cZERO,schlen
  use units,          ONLY:HA2EV
+ use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,EXCITONS_user_indexes
  use R_lattice,      ONLY:bz_samp,coll_scattering
  use electrons,      ONLY:levels
  use BS_solvers,     ONLY:BS_mat,BSS_n_eig
@@ -31,18 +32,17 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  type(levels)        :: Xen
  complex(SP)         :: BS_E(BSS_n_eig)
  !
- !real(SP) :: BS_E_real(EXCITONS_n_user_states)
- !integer  :: i_c,i_l,first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_of_exc_max
- real(SP) :: BS_E_real(BSS_n_eig)
- integer  :: S_index(BSS_n_eig)
- integer  :: first_exc(BSS_n_eig),n_of_exc(BSS_n_eig),n_exc_to_analyze,n_deg_grp,n_of_exc_max
- integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,irap,iclass,ielem,il,i_grp,&
- &           io_err,ID,n_elem_used
+ real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real,thresh
+ logical  :: l_mixed_states,l_partial_space
+ integer  :: S_index(EXCITONS_n_user_states)
+ integer  :: first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_deg_grp,n_of_exc_max
+ integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,&
+ &           irap,iclass,ielem,iexc,il,i_grp,io_err,ID,n_elem_used
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
- complex(SP) :: trace(12,BSS_n_eig)
+ complex(SP) :: trace(12,EXCITONS_n_user_states)
  !
- character(schlen)    :: filename,titles(3),tmp_ch
+ character(schlen)    :: filename,titles(4),tmp_ch,loc_msg,loc_fmt
  !
  integer, external :: io_QINDX
  !
@@ -80,19 +80,18 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  iqbz=qpt%k_table(iq,1)
  !iGq =qpt%g_table(iq,isq)
  !
- !do i_c=1,EXCITONS_n_user_states
- !  i_l=EXCITONS_user_indexes(i_c)
- !  BS_E_real(i_c)=real(BS_E(i_l))
- !enddo
+ do iexc=1,EXCITONS_n_user_states
+   il=EXCITONS_user_indexes(iexc)
+   BS_E_real(iexc)=real(BS_E(il))
+ enddo
  !
- BS_E_real=real(BS_E)
  call sort(BS_E_real,indx=S_index)
  !
- call degeneration_finder(BS_E_real,BSS_n_eig,first_exc,n_of_exc,n_deg_grp,&
- &                           0.0001/HA2EV,Include_single_values=.true.)
+ call degeneration_finder(BS_E_real,EXCITONS_n_user_states,first_exc,n_of_exc,n_deg_grp,&
+ &                           deg_energy,Include_single_values=.true.)
  !
- !n_of_exc_max=maxval(n_of_exc)
- n_of_exc_max=3
+ n_of_exc_max=maxval(n_of_exc)
+ !n_of_exc_max=3
  !
  YAMBO_ALLOC(EXC_WF_rot1,(BS_H_dim,n_of_exc_max))
  YAMBO_ALLOC(EXC_WF_rot2,(BS_H_dim,n_of_exc_max))
@@ -100,7 +99,6 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  filename="exc_syms_q"//trim(intc(iq))
  !
  call of_open_close(filename,'ot')
- !call msg("o "//trim(filename),"# Symmetries at k ",Xk%ptbz(ikbz,:))
  call msg("o "//trim(filename),"#"," Symmetries at iq "//trim(intc(iq)),INDENT=0)
  call msg("o "//trim(filename),"#")
  !
@@ -110,16 +108,14 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  call print_point_group("o "//trim(filename))
  !
- titles=(/" E[eV]  "," symm.  ","i_lambda"/)
+ titles=(/" E[eV]  "," n_deg  "," symm.  ","i_lambda"/)
  call msg("o "//trim(filename),"#")
  call msg("o "//trim(filename),'#',titles,INDENT=0,USE_TABS=.true.)
  call msg("o "//trim(filename),"#")
  !
  trace=cZERO
  !
- n_exc_to_analyze=min(10,n_deg_grp)
- !
- call live_timing("Exciton symmetries:",sum(nelem(:))*n_exc_to_analyze)
+ call live_timing("Exciton symmetries:",sum(nelem(:))*n_deg_grp)
  !
  do iclass=1,nclass
    ! The following loop is useful for debugging only
@@ -139,19 +135,17 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      iGqc=qpt%k_table(iq,isqc)                    ! the G shift
      iGqy=qpt%k_table(iq,isqy)                    ! the G shift
      !
-     do i_grp=1,n_exc_to_analyze
-       !
-       !write(*,*) i_grp," rotating ",n_of_exc(i_grp)," excitons"
+     do i_grp=1,n_deg_grp
        !
        ! Get A(l,R*q)= Ry * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1) !(:,:n_of_exc(i_grp)))
+       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1(:,:n_of_exc(i_grp)))
        !
        ! Get R * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2) !(:,:n_of_exc(i_grp)))
+       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2(:,:n_of_exc(i_grp)))
        !
        ! Compute the trace of the Irrep
        !
@@ -159,7 +153,6 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
          trace(iclass,i_grp) = trace(iclass,i_grp) +  &
          & Vstar_dot_V(BS_H_dim,EXC_WF_rot1(:,il),EXC_WF_rot2(:,il))
        enddo
-       !write(*,*) "trace= ",trace(iclass,i_grp)
        !
        call live_timing(steps=1)
        !
@@ -175,18 +168,40 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  ! Finally I compute the exciton symmetry
  !
- do i_grp=1,n_exc_to_analyze
+ thresh=0.01_SP
+ loc_fmt="(F10.4,12x,F4.2,12x,a,12x,i4)"
+ do i_grp=1,n_deg_grp
+   !
+   il=first_exc(i_grp)
    ! DEBUG <
-   !write(*,*) BS_E_real(first_exc(i_grp))*HA2EV,i_grp,n_of_exc(i_grp),real(trace(:nclass,i_grp))
+   !write(*,*) BS_E_real(il)*HA2EV,i_grp,n_of_exc(i_grp),real(trace(:nclass,i_grp))
    ! DEBUG >
-   do irap=1,nclass
-     if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<0.01_SP) ) cycle
-     write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
-     & BS_E_real(first_exc(i_grp))*HA2EV,trim(name_rap(irap)),first_exc(i_grp)
-     call msg("o "//trim(filename),'',tmp_ch,INDENT=-2)
-     exit
+   !
+   l_mixed_states = nint(abs(trace(1,i_grp))) > 3
+   if (l_mixed_states) tmp_ch="mixed states"
+   !
+   l_partial_space=.false.
+   do iclass=1,nclass
+     tmp_real=abs(trace(iclass,i_grp))
+     l_partial_space = tmp_real-real(nint(tmp_real),SP) > thresh
+     if(l_partial_space) exit
    enddo
-   !if(irap==nclass+1) write(*,*) "Exc symm not found for ",i_grp
+   if (l_partial_space) tmp_ch="partial space"
+   !
+   if ( .not. (l_mixed_states.or.l_partial_space) ) then
+     do irap=1,nclass
+       if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=thresh) ) cycle
+       tmp_ch=trim(name_rap(irap))
+       exit
+     enddo
+     if(irap==nclass+1) then
+       tmp_ch="char not found"
+     endif
+   endif
+   !
+   write(loc_msg,loc_fmt) BS_E_real(il)*HA2EV,real(trace(1,i_grp)),trim(tmp_ch),il
+   call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+   !
  enddo
  !
  ! DEBUG <
