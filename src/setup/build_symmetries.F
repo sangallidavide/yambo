@@ -98,7 +98,7 @@ subroutine detect_point_group(sp_nsym,dl_sop)
  real(DP), intent(in)  :: dl_sop(3,3,sp_nsym)
  !
  ! Double point group detection not coded
- if (n_spinor==2) return
+ if (n_spinor==2) call warning("Detecting no SOC point group")
  !
  ! Symmetries and point groups
  !
