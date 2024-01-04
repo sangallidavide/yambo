@@ -52,8 +52,6 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  !
  ! First get A(l,R*q)= Ry * A(l,q)
  !
- ipmq_last=0
- !
  do i_sp_pol=1,n_sp_pol
    !
    do ik=1,Xk%nibz
@@ -63,6 +61,8 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
      ! - the symmetry used to reach k_BZ, e.g. isk
      !ik_ref=ikbz
      !is_ref=isk
+     !
+     ipmq_last=0
      ! 
      nsz(1:2)=maxval(WF_phases_b_map(:,ik,i_sp_pol,1))
      nsz(1:2)=maxval(WF_phases_b_map(:,ik,i_sp_pol,1))
@@ -70,7 +70,7 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
      nsz(4)  =nsym
      nsz(5)  =Xk%nstar(ik)
      !
-     YAMBO_ALLOC(WF_phases_cc,(nsz(1),nsz(2),nsz(3),nsz(4),1))
+     YAMBO_ALLOC(WF_phases_cc,(nsz(1),nsz(2),nsz(3),nsz(4),nsz(5)))
      !
      call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
      io_err=io_WF_phases(BS_bands,ik,0,i_sp_pol,ID,nsz,WF_phases_cc)
@@ -109,7 +109,7 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
          nsz(4)  =nsym
          nsz(5)  =Xk%nstar(ipmq)
          !
-         YAMBO_ALLOC(WF_phases_vv,(nsz(1),nsz(2),nsz(3),nsz(4),5))
+         YAMBO_ALLOC(WF_phases_vv,(nsz(1),nsz(2),nsz(3),nsz(4),nsz(5)))
          !
          if (ipmq/=ip) then
            call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
@@ -157,8 +157,8 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
                  !
                  if (neh2==0) cycle
                  !
-                 phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,1))
-                 phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,1)
+                 phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,istarpmq))
+                 phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,istarp)
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
                  !
