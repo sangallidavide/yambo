@@ -611,7 +611,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  !
  ! Electrons
  if (l_electrons) then
-   if (l_dos.or.l_bands) call INIT_QP_ctl_switch('G')
+   if (l_dos.or.l_bands.or.l_sp_symm) call INIT_QP_ctl_switch('G')
    if (l_dos) then
      call initactivate(1,"DOSERange DOSESteps DOS_broad DOS_bands DOSUsesOcc")
      call initactivate(1,"PDOS_atoms PDOS_kinds PDOS_wfcs PDOS_l PDOS_j PDOS_m")
@@ -698,7 +698,6 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  endif
  !
  if (l_spin.and..not.l_excitons) call initactivate(1,"FFTGvecs")
- if (l_sp_symm)                  call initactivate(1,"FFTGvecs")
  !
  if (l_excitons) then
    call initactivate(1,"States En_treshold Res_treshold BSQindex")

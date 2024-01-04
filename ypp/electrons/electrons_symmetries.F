@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine electrons_symmetries(Xk,Xen)
+subroutine electrons_symmetries(Xk,Xen,blim,klim)
  !
  use pars,           ONLY:DP,SP,cZERO,schlen
  use units,          ONLY:HA2EV
@@ -25,8 +25,8 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  type(levels) :: Xen
  type(bz_samp):: Xk
+ integer, intent(in) :: blim(2),klim(2)
  !
- integer     :: blim(2)
  complex(SP) :: trace(12)
  complex(SP), allocatable :: WF_phases(:,:,:,:,:,:)
  !
@@ -38,8 +38,6 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  character(schlen)    :: filename,titles(3),tmp_ch
  !
- blim=(/1,Xen%nb/)
- !blim=(/1,5/)
  nb=blim(2)-blim(1)+1
  !
  allocate(first_el(nb))
@@ -58,23 +56,26 @@ subroutine electrons_symmetries(Xk,Xen)
  !
  do i_sp_pol=1,n_sp_pol
    !
-   do ik=1,Xk%nibz
+   do ik=klim(1),klim(2)
      !
      call degeneration_finder(Xen%E(blim(1):blim(2),ik,i_sp_pol),nb,&
      &                           first_el,n_of_el,n_deg_grp,0.0001/HA2EV,Include_single_values=.true.)
      !
-     do istark=1,Xk%nstar(ik)
+     ! This loop can be used for debug
+     do istark=1,1 !Xk%nstar(ik)
        !
        !if ( .not.PAR_IND_WF_k%element_1D(ik) ) cycle
        !
        isk =Xk%star(ik,istark)
        ikbz=Xk%k_table(ik,isk)
        !
-       filename="syms_k"//trim(intc(ikbz))//"_sp"//trim(intc(i_sp_pol))
+       !filename="syms_k"//trim(intc(ikbz))//"_sp"//trim(intc(i_sp_pol))
+       filename="syms_k"//trim(intc(ik))//"_sp"//trim(intc(i_sp_pol))
        !
        call of_open_close(filename,'ot')
        !call msg("o "//trim(filename),"# Symmetries at k ",Xk%ptbz(ikbz,:))
-       call msg("o "//trim(filename),"#"," Symmetries at ikbz "//trim(intc(ikbz)),INDENT=0)
+       !call msg("o "//trim(filename),"#"," Symmetries at ikbz "//trim(intc(ikbz)),INDENT=0)
+       call msg("o "//trim(filename),"# Symmetries at k ",Xk%pt(ik,:))
        call msg("o "//trim(filename),"#")
        !
        nrotk=Xk%grp_nsym(ikbz)
