@@ -203,7 +203,7 @@ FUNCTION tipo_sym( s )
   !! 5 - mirror symmetry;  
   !! 6 - improper rotation.
   !
-  use pars,       ONLY:DP
+  use pars,       ONLY:DP,zero_dfl_DP
   !
   IMPLICIT NONE
   !
@@ -214,7 +214,7 @@ FUNCTION tipo_sym( s )
   !
   ! ... local variables
   !
-  REAL(DP), PARAMETER :: eps=1.d-7
+  REAL(DP), PARAMETER :: eps=zero_dfl_DP
   REAL(DP) :: det, det1
   !
   ! Check for identity

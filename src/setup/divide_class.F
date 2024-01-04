@@ -29,7 +29,7 @@ SUBROUTINE divide_class( code_group, nrot, smat, nclass, nelem, elem, which_irr 
 !! Several equivalent names for the irreducible representation are given. D, G, L, S 
 !! are used for Delta, Gamma, Lambda and Sigma.
 !
-use pars,       ONLY:DP
+use pars,       ONLY:DP,zero_dfl_DP
 !
 IMPLICIT NONE
 !
@@ -55,7 +55,7 @@ REAL(DP) :: cmat(3,3), ax(3), bx(3), cx(3), ars
 INTEGER :: done(48), irot, jrot, krot, iclass, i, other, other1
 INTEGER :: tipo_sym, ipol, axis, axis1, axis2, ts, iax, ibx, icx, aclass, &
            bclass, cclass, imax, imbx, imcx, amclass, bmclass, cmclass, ind2(3)
-REAL(DP), PARAMETER :: eps = 1.d-7
+REAL(DP), PARAMETER :: eps=zero_dfl_DP
 REAL(DP) :: angle_rot, angle_rot_s, angle_vectors, ax_save(3,2:4)
 LOGICAL :: compare_mat, is_axis, is_parallel, isok, isok1, done_ax(6)
 !
@@ -910,12 +910,12 @@ FUNCTION compare_mat( A, B )
 !! This function compares two 3x3 matrix (\(A\) and \(B\)) and returns .TRUE. if 
 !! they coincide.
 !
-use pars,       ONLY:DP
+use pars,       ONLY:DP,zero_dfl_DP
 !
 IMPLICIT NONE
 !
 REAL(DP) :: A(3,3), B(3,3)
-REAL(DP), PARAMETER :: eps=1.d-5
+REAL(DP), PARAMETER :: eps=zero_dfl_DP
 LOGICAL :: compare_mat
 
  compare_mat=(ABS(MAXVAL(A-B))<eps).AND.(ABS(MINVAL(A-B))<eps)
@@ -926,7 +926,7 @@ FUNCTION is_axis( ax, iflag )
 !! This is a logical function that returns .TRUE. if \(\text{ax}\) is the versor
 !! of the axis x (\(\text{iflag}=1\)) or y (\(\text{iflag}=2\)) or z (\(\text{iflag}=3\)).
 !
-use pars,       ONLY:DP
+use pars,       ONLY:DP,zero_dfl_DP
 !
 IMPLICIT NONE
 !
@@ -935,7 +935,7 @@ INTEGER :: iflag
 !
 LOGICAL :: is_axis
 !
-REAL(DP), PARAMETER :: eps=1.d-7
+REAL(DP), PARAMETER :: eps=zero_dfl_DP
 !
 IF (iflag==1) THEN
    is_axis=ABS(ax(2))<eps.AND.ABS(ax(3))<eps
@@ -959,7 +959,7 @@ SUBROUTINE versor( smat, ax )
 !! z>=0. In the xy plane the axis is in the x>0 region and the positive
 !! y axis is taken for z=0 and x=0.
 !
-use pars,       ONLY:DP
+use pars,       ONLY:DP,zero_dfl_DP
 !
 IMPLICIT NONE
 !
@@ -967,7 +967,7 @@ REAL(DP) :: smat(3,3)
 !! the rotation matrix
 REAL(DP) :: ax(3)
 !! the rotation axis
-REAL(DP), PARAMETER  ::  eps=1.d-7
+REAL(DP), PARAMETER  ::  eps=zero_dfl_DP
 REAL(DP) :: a1(3), norm
 INTEGER :: ipol, jpol, tipo_sym, ts
 !
@@ -1057,11 +1057,11 @@ FUNCTION angle_rot( smat )
 !! This subroutine receives a rotation matrix and determines the 
 !! rotation angle. 
 !
-use pars,       ONLY:DP
+use pars,       ONLY:DP,zero_dfl_DP
 !
 IMPLICIT NONE
 !
-REAL(DP), PARAMETER  ::  eps=1.d-7
+REAL(DP), PARAMETER  ::  eps=zero_dfl_DP
 !
 REAL(DP) :: smat(3,3)
 !
@@ -2840,13 +2840,13 @@ SUBROUTINE which_c2( a, ia )
 !
 !! where \(m=\sqrt{3}\).
 !
-use pars,       ONLY:DP
+use pars,       ONLY:DP,zero_dfl_DP
 !
 IMPLICIT NONE
 !
 REAL(DP), INTENT(IN)  :: a(3)
 INTEGER,  INTENT(OUT) :: ia
-REAL(DP) :: epsil=1.D-7, sqr3=SQRT(3.0_DP)
+REAL(DP) :: epsil=zero_dfl_DP, sqr3=SQRT(3.0_DP)
 LOGICAL :: is_axis
 
 ia=0
