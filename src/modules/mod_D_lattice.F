@@ -32,13 +32,15 @@ module D_lattice
  ! SYMs
  !
  integer :: nsym        ! total symmetries
- integer :: nrot        ! spatial symmetries
+ integer :: sp_nsym     ! spatial symmetries
+ integer :: nrot        ! pure rotations
  integer :: i_time_rev  ! =1 yes TR , =0 no TR
  integer :: i_space_inv ! =1 yes SI,  =0 no SI
  integer :: inv_index   ! Index of the symmetry corresponding to -I (independently 
                         ! on the value of i_time_rev and i_space_inv
  integer :: idt_index   ! Indentity I  index
  logical :: mag_syms
+ logical, allocatable    :: pure_rotation(:)
  real(SP),allocatable    :: dl_sop(:,:,:)   ! Symmetry operation in real-space
  complex(SP),allocatable :: spin_sop(:,:,:)
  integer, allocatable    :: sop_tab(:,:)

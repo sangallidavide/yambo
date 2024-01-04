@@ -20,6 +20,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:VERIFY,DUMP,REP,OP_RD,RD,RD_CL
  use com,            ONLY:msg,of_open_close
+ use LIVE_t,         ONLY:live_timing
  !
 #include<memory.h>
  !
@@ -47,13 +48,15 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  call k_ibz2bz(Xk,'iku',.true.)
  call k_small_group(Xk)
  !
- call WF_phase_matrices(Xen,Xk,blim)
+ call WF_phase_matrices(Xen,Xk,blim,klim)
  !
  nsz=0
- YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nibz,n_sp_pol,2))
+ YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),klim(1):klim(2),n_sp_pol,2))
  !
  call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,2/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,0,0,0,ID,nsz)
+ !
+ call live_timing("Electron symmetries:",n_sp_pol*(klim(2)-klim(1)+1))
  !
  do i_sp_pol=1,n_sp_pol
    !
@@ -74,16 +77,16 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        filename="syms_k"//trim(intc(ik))//"_sp"//trim(intc(i_sp_pol))
        !
        call of_open_close(filename,'ot')
-       !call msg("o "//trim(filename),"# Symmetries at k ",Xk%ptbz(ikbz,:))
+       !call msg("o "//trim(filename),"# Symmetries at k ",Xk%ptbz(ikbz,:),INDENT=0)
        !call msg("o "//trim(filename),"#"," Symmetries at ikbz "//trim(intc(ikbz)),INDENT=0)
-       call msg("o "//trim(filename),"# Symmetries at k ",Xk%pt(ik,:))
+       call msg("o "//trim(filename),"# Symmetries at k ",Xk%pt(ik,:),INDENT=0)
        call msg("o "//trim(filename),"#")
        !
        nrotk=Xk%grp_nsym(ikbz)
        if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
        call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
        !
-       call print_point_group("o "//trim(filename))
+       call print_point_group("o "//trim(filename),nrotk,dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)))
        !
        nsz=(/maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,Xk%nstar(ik)/)
        YAMBO_ALLOC(WF_phases,(nsz(1),nsz(2),nsz(3),nsz(4),1))
@@ -125,8 +128,13 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        call of_open_close(filename)
        !
      enddo
+     !
+     call live_timing(steps=1)
+     !
    enddo 
  enddo
+ !
+ call live_timing()
  !
  nsz=0
  call io_control(ACTION=RD_CL,COM=REP,SEC=(/0/),MODE=DUMP,ID=ID)

@@ -13,7 +13,7 @@
 !
 ! #include<dev_defs.h>
 !
-subroutine WF_phase_matrices(En,Xk,blim)
+subroutine WF_phase_matrices(En,Xk,blim,klim)
  !    
  use pars,              ONLY:SP,cZERO
  use units,             ONLY:HA2EV
@@ -37,7 +37,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
  !
 #include<memory.h>
  !
- integer,       intent(in) :: blim(2)
+ integer,       intent(in) :: blim(2),klim(2)
  type(levels),  intent(in) :: En
  type(bz_samp), intent(in) :: Xk 
  !
@@ -77,7 +77,7 @@ subroutine WF_phase_matrices(En,Xk,blim)
  call PARALLEL_WF_distribute(CLEAN_UP=.TRUE.)
  call PARALLEL_WF_index( )
  !
- YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nibz,n_sp_pol,2))
+ YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),klim(1):klim(2),n_sp_pol,2))
  !
  call io_control(ACTION=OP_WR,COM=REP,SEC=(/1/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(blim,0,0,0,ID,nsz)
@@ -85,13 +85,13 @@ subroutine WF_phase_matrices(En,Xk,blim)
  WF_phases_b_map=0
  !
  !call live_timing("WF_phases:",PAR_IND_WF_k%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
- call live_timing("WF_phases:",Xk%nbz*n_sp_pol)
+ call live_timing("WF_phases:",(sum(Xk%nstar(klim(1):klim(2))))*n_sp_pol)
  !
  ifrag=0
  !
  do i_sp_pol=1,n_sp_pol
    !
-   do ik=1,Xk%nibz
+   do ik=klim(1),klim(2)
      !
      call degeneration_finder(En%E(blim(1):blim(2),ik,i_sp_pol),nb,&
      &                           first_el,n_of_el,n_deg_grp,0.0001/HA2EV,Include_single_values=.true.)
@@ -185,6 +185,8 @@ subroutine WF_phase_matrices(En,Xk,blim)
        !
        call WF_free(WF_k)
        !
+       call live_timing(steps=1)
+       !
        !call PP_redux_wait(WF_phases(:,:,s_count,k_count,i_sp_pol))
        !
        ! DEBUG <
@@ -195,8 +197,6 @@ subroutine WF_phase_matrices(En,Xk,blim)
        !enddo
        !write(*,*) ""
        ! DEBUG >
-       !
-       call live_timing(steps=1)
        !
      enddo ! istar
      !

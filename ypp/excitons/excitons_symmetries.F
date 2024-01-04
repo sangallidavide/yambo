@@ -53,7 +53,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  call k_ibz2bz(Xk,'iku',.true.)
  call k_small_group(Xk)
  !
- call WF_phase_matrices(Xen,Xk,BS_bands)
+ call WF_phase_matrices(Xen,Xk,BS_bands,(/1,Xk%nibz/))
  !
  YAMBO_ALLOC(WF_phases_b_map,(BS_bands(1):BS_bands(2),Xk%nibz,n_sp_pol,2))
  !
@@ -100,14 +100,14 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  filename="exc_syms_q"//trim(intc(iq))
  !
  call of_open_close(filename,'ot')
- call msg("o "//trim(filename),"#"," Symmetries at iq "//trim(intc(iq)),INDENT=0)
+ call msg("o "//trim(filename),"# Symmetries at qpt ",qpt%pt(iq,:),INDENT=0)
  call msg("o "//trim(filename),"#")
  !
  nrotq=qpt%grp_nsym(iqbz)
  if ( any( qpt%grp_table(:nrotq,iqbz)>nrot ) ) nrotq=nrotq/(1+i_time_rev)
  call detect_point_group(nrotq,real(dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)),DP),.true.)
  !
- call print_point_group("o "//trim(filename))
+ call print_point_group("o "//trim(filename),nrotq,dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)))
  !
  titles=(/" E[eV]  "," n_deg  "," symm.  ","i_lambda"/)
  call msg("o "//trim(filename),"#")
