@@ -95,12 +95,13 @@ module wave_func
      complex(SP), optional DEV_ATTR :: wf_d(:,:,:)
    end function
    !
-   integer function io_WF_phases(nb,ikbz,i_sp_pol,ID,WF_phases)
+   integer function io_WF_phases(nb,ik,istark,i_sp_pol,ID,nsz,WF_phases)
      use pars,        ONLY: SP
      use electrons,   ONLY: n_max_deg
      use D_lattice,   ONLY: nsym
-     integer               :: nb(2),ikbz,i_sp_pol,ID
-     complex(SP), optional :: WF_phases(n_max_deg,n_max_deg,nb(2)-nb(1)+1,nsym,1,1)
+     integer               :: nb(2),ik,istark,i_sp_pol,ID
+     integer, intent(in)   :: nsz(5)
+     complex(SP), optional :: WF_phases(:,:,:,:,:)
    end function io_WF_phases
    !
    function WF_symm(ifft,isc)

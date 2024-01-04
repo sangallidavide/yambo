@@ -28,10 +28,10 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  integer, intent(in) :: blim(2),klim(2)
  !
  complex(SP) :: trace(12)
- complex(SP), allocatable :: WF_phases(:,:,:,:,:,:)
+ complex(SP), allocatable :: WF_phases(:,:,:,:,:)
  !
  integer     :: iclass,irap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,blim_n(2), &
- &              ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk
+ &              ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,nsz(5)
  integer, allocatable :: first_el(:),n_of_el(:)
  !
  integer              :: io_err,ID
@@ -49,10 +49,11 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  !
  call WF_phase_matrices(Xen,Xk,blim)
  !
- YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nbz,nsym,2))
+ nsz=0
+ YAMBO_ALLOC(WF_phases_b_map,(blim(1):blim(2),Xk%nibz,n_sp_pol,2))
  !
- call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,3/),MODE=DUMP,ID=ID)
- io_err=io_WF_phases(blim,0,0,ID)
+ call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,2/),MODE=DUMP,ID=ID)
+ io_err=io_WF_phases(blim,0,0,0,ID,nsz)
  !
  do i_sp_pol=1,n_sp_pol
    !
@@ -84,11 +85,12 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        !
        call print_point_group("o "//trim(filename))
        !
-       !AMBO_ALLOC(WF_phases,(maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,1,1))
-       YAMBO_ALLOC(WF_phases,(n_max_deg,n_max_deg,nb,nsym,1,1))
+       nsz=(/maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,Xk%nstar(ik)/)
+       YAMBO_ALLOC(WF_phases,(nsz(1),nsz(2),nsz(3),nsz(4),1))
+       !AMBO_ALLOC(WF_phases,(n_max_deg,n_max_deg,nb,nsym,1,1))
        !
-       call io_control(ACTION=RD,COM=REP,SEC=(/2/),MODE=DUMP,ID=ID)
-       io_err=io_WF_phases(blim,ikbz,i_sp_pol,ID,WF_phases)
+       call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
+       io_err=io_WF_phases(blim,ik,istark,i_sp_pol,ID,nsz,WF_phases)
        !
        titles=(/" E[eV]  "," symm.  ","   ib   "/)
        call msg("o "//trim(filename),"#")
@@ -105,10 +107,10 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
              isp=Xk%grp_table(elem(ielem,iclass),ikbz)
              ipbz=Xk%k_table(ik,sop_tab(isp,isk))
              do ibk=1,n_of_el(i_grp)
-               trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1,1)
+               trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1)
              enddo
-	   enddo
-	   !trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
+           enddo
+           !trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
          enddo
          do irap=1,nclass
            if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
@@ -126,7 +128,8 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
    enddo 
  enddo
  !
+ nsz=0
  call io_control(ACTION=RD_CL,COM=REP,SEC=(/0/),MODE=DUMP,ID=ID)
- io_err=io_WF_phases(blim,0,0,ID)
+ io_err=io_WF_phases(blim,0,0,0,ID,nsz)
  !
 end subroutine electrons_symmetries

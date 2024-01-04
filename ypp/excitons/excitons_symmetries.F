@@ -12,7 +12,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,&
  &                        EXCITONS_user_indexes,EXC_symm_thresh
  use R_lattice,      ONLY:bz_samp,coll_scattering
- use electrons,      ONLY:levels
+ use electrons,      ONLY:levels,n_sp_pol
  use BS_solvers,     ONLY:BS_mat,BSS_n_eig
  use BS,             ONLY:BS_bands,BS_H_dim,BS_K_dim
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
@@ -55,10 +55,10 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  call WF_phase_matrices(Xen,Xk,BS_bands)
  !
- YAMBO_ALLOC(WF_phases_b_map,(BS_bands(1):BS_bands(2),Xk%nbz,nsym,2))
+ YAMBO_ALLOC(WF_phases_b_map,(BS_bands(1):BS_bands(2),Xk%nibz,n_sp_pol,2))
  !
- call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,3/),MODE=DUMP,ID=ID)
- io_err=io_WF_phases(BS_bands,0,0,ID)
+ call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,2/),MODE=DUMP,ID=ID)
+ io_err=io_WF_phases(BS_bands,0,0,0,ID,(/0,0,0,0,0/))
  !
  call build_inverse_eh_table(Xk%nbz)
  !
@@ -116,7 +116,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  trace=cZERO
  !
- call live_timing("Exciton symmetries:",sum(nelem(:))*n_deg_grp)
+ !call live_timing("Exciton symmetries:",sum(nelem(:))*n_deg_grp)
+ call live_timing("Exciton symmetries:",nclass*n_deg_grp)
  !
  do iclass=1,nclass
    ! The following loop is useful for debugging only
@@ -165,7 +166,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  call live_timing()
  !
  call io_control(ACTION=RD_CL,COM=REP,SEC=(/0/),MODE=DUMP,ID=ID)
- io_err=io_WF_phases(BS_bands,0,0,ID)
+ io_err=io_WF_phases(BS_bands,0,0,0,ID,(/0,0,0,0,0/))
  !
  ! Finally I compute the exciton symmetry
  !

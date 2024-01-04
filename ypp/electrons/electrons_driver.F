@@ -53,7 +53,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
  NB=(/1,maxval(Xen%nbm)/)
  NK=(/1,Xk%nibz/)
  !
- if ( any((/l_sp_wf,l_angular_momentum,l_position,l_mean_potential/)) ) then
+ if ( any((/l_sp_wf,l_sp_symm,l_angular_momentum,l_position,l_mean_potential/)) ) then
    !
    call QP_state_table_setup(Xen)
    !
@@ -68,7 +68,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
  !
  ! WFs
  !=====
- if( any((/l_mag,l_density,l_sp_wf,l_sp_symm,l_current,l_mean_potential,l_angular_momentum,l_position/)) ) then
+ if( any((/l_mag,l_density,l_sp_wf,l_current,l_mean_potential,l_angular_momentum,l_position/)) ) then
    !
    call PARALLEL_global_indexes(Xen,Xk,Xq," ",RESET=.TRUE.)
    call PARALLEL_WF_distribute(CLEAN_UP=.TRUE.)
@@ -98,7 +98,7 @@ subroutine electrons_driver(Xk,Xen,Xq)
  !
  ! SYMMETRIES
  !===============
- if (l_sp_symm) call electrons_symmetries(Xk,Xen)
+ if (l_sp_symm) call electrons_symmetries(Xk,Xen,NB,NK)
  !
  ! MAGNETIZATION 
  !===============

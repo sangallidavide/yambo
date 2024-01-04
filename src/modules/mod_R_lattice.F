@@ -66,6 +66,7 @@ module R_lattice
      ! Below "is" can be any symmetry operation, while is_used
    integer,  allocatable :: star(:,:)     ! ik,ikstar --> is_used      is_used sends ik in ikstar
    integer,  allocatable :: sstar(:,:)    ! ik_bz     --> ik,is_used   is_used sends ik in ikbz
+                                          !               istar        added dimension 3, index in the star
    integer,  allocatable :: s_table(:,:)  ! ik,is     --> is_used      revers of sstar(2)
    integer,  allocatable :: k_table(:,:)  ! ik,is     --> ik_bz        revers of sstar(1)
    integer,  allocatable :: g_table(:,:)  ! ik,is     --> ig_index
