@@ -282,7 +282,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! BSE/BSK
  !
  call it(defs,'BSEmod',  '[BSE] resonant/retarded/coupling',BSE_mode,case="a")
- call it(defs,'Lkind',   '[BSE,X] bar(default)/full',BSE_L_kind,verb_level=V_resp)
+ call it(defs,'Lkind',   '[BSE,X] bar(default)/full/tilde',BSE_L_kind,verb_level=V_resp)
  call it(defs,'BSEBands','[BSK] Bands range',BS_bands)
  call it(defs,'BSEHoleBands','[BSK] Bands range for Hole. If set, other bands are ignored in the hole channel',&
 &                                                                                            BS_core_bands(1:2),verb_level=V_resp)
