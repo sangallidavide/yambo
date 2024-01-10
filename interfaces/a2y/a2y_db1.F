@@ -15,7 +15,7 @@ subroutine a2y_db1(en,k,ncid)
  use pseudo,               only : pp_n_l_times_proj_max
  use wave_func,            only : wf_ncx
  use R_lattice,            only : ng_vec, bz_samp, nkibz
- use D_lattice,            only : nsym, n_atoms, n_atomic_species, atom_mass
+ use D_lattice,            only : lattice, n_atoms, n_atomic_species, atom_mass
  use mod_com2y,            only : print_interface_dimensions,  artificial_spin_pol
  !
 #include<memory.h>
@@ -53,6 +53,7 @@ subroutine a2y_db1(en,k,ncid)
  !
  call msg('s','Cell data...')
  call import_geometry_group
+ call msg("l","...["//trim(lattice)//" latt]")
  call msg("l","...done")
  !
  ! Electrons
@@ -101,8 +102,9 @@ contains
     use matrix_operate,       only : m3det_i
     use units,                only : Da2AU
     use R_lattice,            only : b
+    use vec_operate,          only : define_b_and_DL_vol
     use D_lattice,            only : nsym, i_time_rev, i_space_inv, dl_sop, &
-&                                    DL_vol, a, alat, &
+&                                    a, alat, &
 &                                    n_atomic_species,n_atoms_species,atoms_map, &
 &                                    n_atoms_species_max,atom_pos, n_atoms, Z_species
     use mod_com2y,            only : symmetries_check_and_load, alat_mult_factor,force_noSYMM
@@ -110,7 +112,7 @@ contains
     implicit none
     !
     logical                       :: l_identity, l_inversion
-    real(SP)                      :: lsop(3,3), cp(3)
+    real(SP)                      :: lsop(3,3)
     integer                       :: a_nsym, a_species, kptopt, det_s
     integer, allocatable          :: asop(:,:,:),symafm(:),trev(:)
     character(3), allocatable     :: atom_species_names(:)
@@ -130,13 +132,7 @@ contains
     alat(1) = alat_mult_factor*maxval( abs( a(1,:) ))
     alat(2) = alat_mult_factor*maxval( abs( a(2,:) ))
     alat(3) = alat_mult_factor*maxval( abs( a(3,:) ))
-    cp = cross_product(a(2,:),a(3,:))
-    do i1 = 1,3
-      DL_vol = DL_vol+a(1,i1)*cp(i1)
-    enddo
-    b(1,:) = cross_product(a(2,:),a(3,:))*2.0_SP*pi/DL_vol
-    b(2,:) = cross_product(a(3,:),a(1,:))*2.0_SP*pi/DL_vol
-    b(3,:) = cross_product(a(1,:),a(2,:))*2.0_SP*pi/DL_vol
+    call define_b_and_DL_vol()
     !
     ! Atomic position data
     !
@@ -233,6 +229,8 @@ contains
     endif
 
     call symmetries_check_and_load(asop,a_nsym,t_rev=trev)
+
+    call crystal_lattice()
 
     return
   end subroutine import_geometry_group

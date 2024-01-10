@@ -60,8 +60,6 @@ subroutine build_symmetries()
  call symmetry_group_table('r')
  call symmetry_equiv_atoms()
  !
- sp_nsym=nsym/(1+i_time_rev)
- !
  YAMBO_ALLOC(pure_rotation,(nsym))
  pure_rotation=.false.
  !
@@ -80,7 +78,7 @@ subroutine build_symmetries()
  !
  call msg('r','K-space Time-reversal ',(i_time_rev==1))
  call msg('r','Magnetic symmetries   ',mag_syms)
- if (i_time_rev==1) call msg('r','Time-reversal derived K-space symmetries',(/nsym/2+1,nsym/))
+ if (i_time_rev==1) call msg('r','Time-reversal derived K-space symmetries',(/sp_nsym+1,nsym/))
  !
 end subroutine build_symmetries
 !

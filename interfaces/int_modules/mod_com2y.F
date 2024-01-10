@@ -61,7 +61,7 @@ module mod_com2y
      !
      use com,       ONLY:msg
      use electrons, ONLY:l_spin_orbit,n_spin_den
-     use D_lattice, ONLY:nsym,dl_sop,i_time_rev,a,mag_syms,inv_index,&
+     use D_lattice, ONLY:sp_nsym,nsym,dl_sop,i_time_rev,a,mag_syms,inv_index,&
 &                        atoms_spatial_inversion,i_space_inv,alat
      use R_lattice, ONLY:b,rl_sop
      !
@@ -171,6 +171,7 @@ module mod_com2y
      !
      nsym=nsym_
      if (double_symmetries) nsym=2*nsym_
+     sp_nsym=nsym/(1+i_time_rev)
      !
      !From abinit help ...
      !

@@ -9,7 +9,7 @@ subroutine crystal_lattice()
  !
  use pars,           ONLY:SP,schlen
  use stderr,         ONLY:real2ch
- use D_lattice,      ONLY:a,alat,lattice,dl_sop,nsym
+ use D_lattice,      ONLY:a,alat,lattice,dl_sop,sp_nsym
  use vec_operate   , ONLY:v_norm
  use matrix_operate, ONLY:m3inv,m3det
  !
@@ -71,7 +71,7 @@ subroutine crystal_lattice()
    !
    do i_p=1,n_pre
      !
-     do i_s=1,nsym
+     do i_s=1,sp_nsym
        !
        do i=1,3
          latt_a_rot(i,:)=matmul(dl_sop(:,:,i_s),latt_a(i,:,i_l)*pre_factor(i_p))
@@ -84,35 +84,39 @@ subroutine crystal_lattice()
        !
        call m3inv(latt_a_rot,latt_a_m1)
        !
-       do i=0,n_rep
+       reps_loop: do i=0,n_rep
          do j=0,n_rep
            do k=0,n_rep
              !
+             if (lattice_test_failed(i_l,i_p)) exit reps_loop
+             !
              v=i*latt_a_rot(1,:)+j*latt_a_rot(2,:)+k*latt_a_rot(3,:)
              coeff=matmul(v,a_m1)
-             if (.not.lattice_test_failed(i_l,i_p)) lattice_test_failed(i_l,i_p) = v_norm( real(nint(coeff))-coeff  )  > 1.E-5
+             lattice_test_failed(i_l,i_p) = v_norm( real(nint(coeff))-coeff  )  > 1.E-5
+             !
+             if (lattice_test_failed(i_l,i_p)) exit reps_loop
              !
              v=i*a(1,:)+j*a(2,:)+k*a(3,:)
              coeff=matmul(v,latt_a_m1)
-             if (.not.lattice_test_failed(i_l,i_p)) lattice_test_failed(i_l,i_p) = v_norm( real(nint(coeff))-coeff  )  > 1.E-5
+             lattice_test_failed(i_l,i_p) = v_norm( real(nint(coeff))-coeff  )  > 1.E-5
              !
            enddo
          enddo
-       enddo
+       enddo reps_loop
        !
      enddo
      !
-     if (.not.lattice_test_failed(i_l,i_p)) then
-       if( lattice_map(max(1,n_l_found))<i_l ) then
-         n_l_found=n_l_found+1
-         lattice_map(n_l_found)=i_l
-         n_p_found(n_l_found)=n_p_found(n_l_found)+1
-         pre_map(n_l_found,n_p_found(n_l_found))=i_p
-       endif
-       if(pre_map(n_l_found,n_p_found(n_l_found))<i_p) then
-         n_p_found(n_l_found)=n_p_found(n_l_found)+1
-         pre_map(n_l_found,n_p_found(n_l_found))=i_p
-       endif
+     if (lattice_test_failed(i_l,i_p)) cycle
+     !
+     if( lattice_map(max(1,n_l_found))<i_l ) then
+       n_l_found=n_l_found+1
+       lattice_map(n_l_found)=i_l
+       n_p_found(n_l_found)=n_p_found(n_l_found)+1
+       pre_map(n_l_found,n_p_found(n_l_found))=i_p
+     endif
+     if(pre_map(n_l_found,n_p_found(n_l_found))<i_p) then
+       n_p_found(n_l_found)=n_p_found(n_l_found)+1
+       pre_map(n_l_found,n_p_found(n_l_found))=i_p
      endif
      !
    enddo
@@ -130,8 +134,10 @@ subroutine crystal_lattice()
      enddo
    enddo
    lattice="Unknown"
+ else if (n_l_found == 0 ) then
+   call warning('No crystal structure fits the given cell')
  else
-   lattice=lattice_name(lattice_map(i_l))
+   lattice=lattice_name(lattice_map(1))
  endif
  !
  !if (  count (.not.lattice_test_failed)  > 1 ) then

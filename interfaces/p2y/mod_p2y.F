@@ -414,7 +414,7 @@ contains
  subroutine get_cell
    use pars,                  only : pi
    use R_lattice,             ONLY : bz_samp, ng_vec
-   use D_lattice,             ONLY : DL_vol, a, alat,lattice
+   use D_lattice,             ONLY : a, alat,lattice
    use mod_com2y,             ONLY : alat_mult_factor
    use vec_operate,           ONLY :  define_b_and_DL_vol
     
@@ -446,7 +446,6 @@ contains
    alat(1) = maxval(abs(a(1,:)))*alat_mult_factor
    alat(2) = maxval(abs(a(2,:)))*alat_mult_factor
    alat(3) = maxval(abs(a(3,:)))*alat_mult_factor
-   call crystal_lattice()
    call define_b_and_DL_vol()
    !
    return
@@ -533,6 +532,8 @@ contains
      isym_(:,:,i1) = transpose(isym_(:,:,i1))
    enddo
    call symmetries_check_and_load(isym_(:,:,1:nsym_),nsym_,trevsym=trevsym_, t_rev=t_rev_)
+   !
+   call crystal_lattice()
    !
    if (warn) call warning(' Non-symmorphic symmetry operations are not supported!')
    !
