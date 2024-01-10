@@ -174,7 +174,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  l_char_table_imag=maxval(abs(real(cI*char_mat)))>0.01_SP
  !
  max_deg=nint(maxval(real(abs(char_mat(:,1)))))
- !if (l_char_table_imag) max_deg=max_deg*2
+ if (l_char_table_imag) max_deg=max_deg*2
  !
  do i_grp=1,n_deg_grp
    !
