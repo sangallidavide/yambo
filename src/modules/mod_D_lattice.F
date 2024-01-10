@@ -42,6 +42,7 @@ module D_lattice
  logical :: mag_syms
  logical, allocatable    :: pure_rotation(:)
  real(SP),allocatable    :: dl_sop(:,:,:)   ! Symmetry operation in real-space
+ real(SP),allocatable    :: dl_tra(:,:)     ! Symmetry translations in real-space
  complex(SP),allocatable :: spin_sop(:,:,:)
  integer, allocatable    :: sop_tab(:,:)
  integer, allocatable    :: sop_inv(:)
@@ -153,21 +154,24 @@ module D_lattice
      !
    end subroutine symmetry_group_table
    !
-   subroutine atoms_spatial_inversion()
+   subroutine atoms_spatial_inversion(sop_tra)
      use pars,           ONLY:zero_dfl
      use matrix_operate, ONLY:m3inv
      implicit none
+     real(SP), optional :: sop_tra(3)
      !
      ! Work Space
      !
      integer  :: ia,iap,is
-     real(SP) :: at_diff(3),a_m1(3,3)
+     real(SP) :: at_diff(3),a_m1(3,3),tra(3)
      !
      if (n_atoms_species_max==0) return
      !
      i_space_inv=1
      !
      call m3inv(transpose(a),a_m1)
+     if (.not.present(sop_tra)) tra=dl_tra(:,inv_index)
+     if (     present(sop_tra)) tra=sop_tra
      !
      do is=1,n_atomic_species
        atoms_loop: do ia=1,n_atoms_species(is)
@@ -175,9 +179,9 @@ module D_lattice
            !
            at_diff=matmul(a_m1,atom_pos(:,ia,is)+atom_pos(:,iap,is))
            !
-           at_diff(1)=abs(at_diff(1)-nint(at_diff(1)))     
-           at_diff(2)=abs(at_diff(2)-nint(at_diff(2)))     
-           at_diff(3)=abs(at_diff(3)-nint(at_diff(3)))     
+           at_diff(1)=abs(at_diff(1)-nint(at_diff(1)))-tra(1)
+           at_diff(2)=abs(at_diff(2)-nint(at_diff(2)))-tra(2)
+           at_diff(3)=abs(at_diff(3)-nint(at_diff(3)))-tra(3)
            !
            if (all(at_diff<=zero_dfl)) cycle atoms_loop
            !
@@ -225,7 +229,7 @@ module D_lattice
          do is=1,n_atomic_species
          do ia=1,n_atoms_species(is)
            !
-           v1=matmul(dl_sop(:,:,isym),atom_pos(:,ia,is))
+           v1=matmul(dl_sop(:,:,isym),atom_pos(:,ia,is))-dl_tra(:,isym)
            !
            lfound=.false.
            !

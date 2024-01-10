@@ -110,7 +110,7 @@ subroutine detect_point_group(sp_nsym,dl_sop)
 end subroutine detect_point_group
 !
 !
-subroutine print_point_group(fname,sp_nsym,dl_sop)
+subroutine print_point_group(fname,sp_nsym,dl_sop,dl_tra)
  !
  use pars,           ONLY:SP,schlen,cI
  use com,            ONLY:msg
@@ -125,6 +125,7 @@ subroutine print_point_group(fname,sp_nsym,dl_sop)
  character(*), intent(in) :: fname
  integer,  intent(in)  :: sp_nsym
  real(SP), intent(in)  :: dl_sop(3,3,sp_nsym)
+ real(SP), intent(in)  :: dl_tra(3,sp_nsym)
  !
  integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
  character(5)      :: vec_ch(12)
@@ -163,6 +164,18 @@ subroutine print_point_group(fname,sp_nsym,dl_sop)
      call msg(fname,trim(dumb_ch),reshape(dl_sop(:,:,is),(/9/)),INDENT=0)  
    enddo
  endif
+ !
+ call msg(fname,tmp_ch//'')
+ do is=1,sp_nsym
+   dumb_ch=trim(intc(is))//'] '
+   i1=9
+   do while (i1<nsym)
+     if(is<=i1) dumb_ch=' '//trim(dumb_ch)
+     i1=i1*10+9
+   enddo
+   dumb_ch=tmp_ch//' [T '//trim(dumb_ch)
+   call msg(fname,trim(dumb_ch),dl_tra(:,is),INDENT=0)  
+ enddo
  !
  call msg(fname,tmp_ch//'')
  call msg(fname,tmp_ch//'Point group is        ',group_name,INDENT=0)

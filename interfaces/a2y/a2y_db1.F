@@ -9,7 +9,7 @@ subroutine a2y_db1(en,k,ncid)
  !
  use netcdf
  use netcdf_data
- use pars,                 only : SP,pi
+ use pars,                 only : DP,SP,pi
  use com,                  only : msg
  use electrons,            only : levels, n_bands, n_spin,n_sp_pol,n_spinor, l_spin_orbit
  use pseudo,               only : pp_n_l_times_proj_max
@@ -115,6 +115,7 @@ contains
     real(SP)                      :: lsop(3,3)
     integer                       :: a_nsym, a_species, kptopt, det_s
     integer, allocatable          :: asop(:,:,:),symafm(:),trev(:)
+    real(DP),allocatable          :: trasl(:,:)
     character(3), allocatable     :: atom_species_names(:)
     integer,  allocatable, target :: atom_species_(:)
     real(SP), allocatable, target :: reduced_atom_positions_(:,:)
@@ -210,6 +211,12 @@ contains
     netcdf_error = nf90_get_var(ncid, varid, asop)
     call netcdf_check(ncid,netcdf_error,varid)
 
+    YAMBO_ALLOC( trasl, (3,a_nsym) )
+    varid = netcdf_inquire_varid(ncid, "reduced_symmetry_translations")
+    netcdf_error = nf90_get_var(ncid, varid, trasl)
+    call netcdf_check(ncid,netcdf_error,varid)
+
+
     YAMBO_ALLOC( symafm, (a_nsym) )
     varid = netcdf_inquire_varid(ncid, "symafm")
     netcdf_error = nf90_get_var(ncid, varid, symafm)
@@ -220,7 +227,6 @@ contains
     if (any(symafm==-1)) then
       trev=-99
       do is=1,a_nsym
-        write(*,*) symafm(is)
         det_s=m3det_i(asop(:,:,is))
         if (symafm(is)*det_s==-1)  trev(is)=1
         if (symafm(is)*det_s== 1)  trev(is)=0
@@ -228,7 +234,7 @@ contains
       if (any(trev==-99)) call error(" some symmetry has determinant different from 1 or -1")
     endif
 
-    call symmetries_check_and_load(asop,a_nsym,t_rev=trev)
+    call symmetries_check_and_load(asop,trasl,a_nsym,t_rev=trev)
 
     call crystal_lattice()
 

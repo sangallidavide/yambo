@@ -519,19 +519,16 @@ contains
    ! postporoc
    !
    do i1=1,nsym_
-     if (.not.v_is_zero(real(trasl_(:,i1),SP)) ) then 
-       warn=.TRUE.
-       if (.not.force_noWFs) then
-         call error(' Non-symmorphic symmetry operations are not supported! Use force_symmorphic=.true. in PWSCF')
-       endif
-     endif
+     if (v_is_zero(real(trasl_(:,i1),SP)) ) cycle
+     warn=.TRUE.
+     exit
    enddo
    !
    ! Note that invsym_ is well defined here, could be used for checks.
    do i1 = 1,nsym_
      isym_(:,:,i1) = transpose(isym_(:,:,i1))
    enddo
-   call symmetries_check_and_load(isym_(:,:,1:nsym_),nsym_,trevsym=trevsym_, t_rev=t_rev_)
+   call symmetries_check_and_load(isym_(:,:,1:nsym_),trasl_(:,1:nsym_),nsym_,trevsym=trevsym_, t_rev=t_rev_)
    !
    call crystal_lattice()
    !
