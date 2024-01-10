@@ -8,6 +8,7 @@
 subroutine crystal_lattice()
  !
  use pars,           ONLY:SP,schlen
+ use stderr,         ONLY:real2ch
  use D_lattice,      ONLY:a,alat,lattice,dl_sop,nsym
  use vec_operate   , ONLY:v_norm
  use matrix_operate, ONLY:m3inv,m3det
@@ -20,7 +21,8 @@ subroutine crystal_lattice()
  real(SP)           :: latt_a(3,3,n_lattices),latt_a_m1(3,3),&
 &                      a_m1(3,3),coeff(3),v(3),latt_a_rot(3,3),pre_factor(n_pre)
  character(schlen)  :: lattice_name(n_lattices)
- integer            :: i_l,i,j,k,i_s,i_p
+ integer            :: i_l,i,j,k,i_s,i_p,n_l,n_l_found,n_p_found(n_lattices),&
+ &                     lattice_map(n_lattices),pre_map(n_lattices,n_pre)
  logical            :: lattice_test_failed(n_lattices,n_pre)
  !
  ! Load standard lattice vectors 
@@ -59,6 +61,11 @@ subroutine crystal_lattice()
  pre_factor=(/.5_SP,1._SP,2._SP/)
  !
  lattice_test_failed=.FALSE.
+ lattice_map=-1
+ pre_map=-1
+ !
+ n_l_found=0
+ n_p_found=0
  !
  do i_l=1,n_lattices
    !
@@ -95,16 +102,44 @@ subroutine crystal_lattice()
        !
      enddo
      !
+     if (.not.lattice_test_failed(i_l,i_p)) then
+       if( lattice_map(max(1,n_l_found))<i_l ) then
+         n_l_found=n_l_found+1
+         lattice_map(n_l_found)=i_l
+         n_p_found(n_l_found)=n_p_found(n_l_found)+1
+         pre_map(n_l_found,n_p_found(n_l_found))=i_p
+       endif
+       if(pre_map(n_l_found,n_p_found(n_l_found))<i_p) then
+         n_p_found(n_l_found)=n_p_found(n_l_found)+1
+         pre_map(n_l_found,n_p_found(n_l_found))=i_p
+       endif
+     endif
+     !
    enddo
    !
  enddo
  !
- if (  count (.not.lattice_test_failed)  > 1 ) then
+ if (n_l_found > 1 ) then
    call warning('Two or more crystal structures fit the given cell')
- else if (  count (.not.lattice_test_failed) == 1 ) then
-   do i_l=1,n_lattices
-     if (any(.not.lattice_test_failed(i_l,:))) lattice=lattice_name(i_l)
+   do i_l=1,n_l_found
+     do i_p=1,n_p_found(i_l)
+       n_l=n_l+1
+       lattice=lattice_name(lattice_map(i_l))
+       call warning('Lattice '//trim(lattice)//' with prefactor '// &
+       &            trim( real2ch(pre_factor(pre_map(i_l,i_p))) )   )
+     enddo
    enddo
+   lattice="Unknown"
+ else
+   lattice=lattice_name(lattice_map(i_l))
  endif
+ !
+ !if (  count (.not.lattice_test_failed)  > 1 ) then
+ !  call warning('Two or more crystal structures fit the given cell')
+ !else if (  count (.not.lattice_test_failed) == 1 ) then
+ !  do i_l=1,n_lattices
+ !    if (any(.not.lattice_test_failed(i_l,:))) lattice=lattice_name(i_l)
+ !  enddo
+ !endif
  !
 end subroutine
