@@ -8,7 +8,7 @@
 subroutine fft_setup(iG_max,iGo_max,ONLY_SIZE)
  !
  use pars,           ONLY:SP,pi
- use D_lattice,      ONLY:a,nsym,dl_sop,sop_inv,i_time_rev,alat
+ use D_lattice,      ONLY:a,nsym,dl_sop,dl_tra,sop_inv,i_time_rev,alat
  use R_lattice,      ONLY:b,g_vec,ng_vec
  use matrix_operate, ONLY:m3inv
  use FFT_m,          ONLY:fft_dim,fft_size,fft_rot_r,fft_rot_r_inv,&
@@ -34,7 +34,7 @@ subroutine fft_setup(iG_max,iGo_max,ONLY_SIZE)
  ! 
  ! Work Space
  !
- integer  :: i1,i2,i3,i4,iv(3),ln(3),is,space_inv(3,3)
+ integer  :: i1,i2,i3,i4,iv(3),ln(3),is,space_inv(3,3),T1(3)
  real(SP) :: v1(3),M1(3,3),M2(3,3),mat(3,3),scal(3)
  real(SP), allocatable :: g_vec_rot(:,:)
  real(SP), allocatable DEV_ATTR :: g_vec_rot_d(:,:)
@@ -205,13 +205,15 @@ subroutine fft_setup(iG_max,iGo_max,ONLY_SIZE)
      if( is<=nsym/(1+i_time_rev) )                M1=matmul( dl_sop(:,:,sop_inv(is)),transpose(a))
      if( is> nsym/(1+i_time_rev) .and. is<=nsym ) M1=matmul(-dl_sop(:,:,sop_inv(is)),transpose(a))
      if( is==nsym+1 )                             M1=matmul( space_inv,transpose(a))
+     if( is<=nsym)   T1=nint(matmul(dl_tra(:,is),transpose(a))*fft_dim)
+     if( is==nsym+1) T1=0._SP
      M2=matmul(b,M1)/2.0_SP/pi
      forall (i1=1:3,i2=1:3) M2(i1,i2)=M2(i1,i2)*fft_dim(i1)/fft_dim(i2)
      !
      do i1=0,fft_dim(1)-1
        do i2=0,fft_dim(2)-1
          do i3=0,fft_dim(3)-1
-           iv=nint(matmul(M2,(/i1,i2,i3/)))
+           iv=nint(matmul(M2,(/i1,i2,i3/)-T1))
            i4=1+i1+i2*fft_dim(1)+i3*fft_dim(1)*fft_dim(2)
            if( is==nsym+1) then
              fft_rot_r_inv(i4)=1+modx(iv(1),fft_dim(1))+&

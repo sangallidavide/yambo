@@ -52,10 +52,10 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  have_cuda_loc=.true.
 #endif
  !
- ! |ib ik_is i_sp>
+ ! |ib ik is i_sp>
  call WF_apply_symm(isc%is,WF_symm_i_p)
  !
- ! | ob ok_os o_sp>   
+ ! | ob ok os o_sp>   
  call WF_apply_symm(isc%os,WF_symm_o_p)
  !
  ! \tilde{\rho} in Real Space
