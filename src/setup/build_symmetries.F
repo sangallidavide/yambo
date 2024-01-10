@@ -112,8 +112,8 @@ end subroutine detect_point_group
 !
 subroutine print_point_group(fname,sp_nsym,dl_sop)
  !
+ use pars,           ONLY:SP,schlen,cI
  use com,            ONLY:msg
- use pars,           ONLY:SP,schlen
  use electrons,      ONLY:n_spinor
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:group_code,group_name,nclass,nelem,elem,which_irr,&
@@ -128,7 +128,8 @@ subroutine print_point_group(fname,sp_nsym,dl_sop)
  !
  integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
  character(5)      :: vec_ch(12)
- logical           :: trev
+ character(15)     :: name_rap_tmp
+ logical           :: trev,l_print_aimag
  character(2)      :: tmp_ch
  character(schlen) :: dumb_ch
  !
@@ -192,6 +193,8 @@ subroutine print_point_group(fname,sp_nsym,dl_sop)
  !
  call msg(fname,tmp_ch//'Symm./classes  ',vec_ch(:nclass),INDENT=0)
  !
+ l_print_aimag=maxval(abs(real(cI*char_mat)))>0.01_SP
+ !
  do iclass=1,nclass_ref
    do jclass=1,nclass_ref
      write (vec_ch(jclass),'(F5.2)') real(char_mat(iclass,jclass),SP)
@@ -199,7 +202,20 @@ subroutine print_point_group(fname,sp_nsym,dl_sop)
        vec_ch(jclass)=" "//vec_ch(jclass)
      enddo
    enddo
-   call msg(fname,tmp_ch//name_rap(iclass),vec_ch(:nclass),INDENT=0)
+   name_rap_tmp=trim(name_rap(iclass))
+   if (l_print_aimag) name_rap_tmp(13:14)="re"
+   call msg(fname,tmp_ch//name_rap_tmp,vec_ch(:nclass),INDENT=0)
+   if (l_print_aimag) then
+     do jclass=1,nclass_ref
+       write (vec_ch(jclass),'(F5.2)') real(aimag(char_mat(iclass,jclass)),SP)
+       do ich=len_trim(vec_ch(jclass)),max_len-1
+         vec_ch(jclass)=" "//vec_ch(jclass)
+       enddo
+     enddo
+     name_rap_tmp=""
+     name_rap_tmp(13:14)="im"
+     call msg(fname,tmp_ch//name_rap_tmp,vec_ch(:nclass),INDENT=0)
+   endif
  enddo
  !
  call msg(fname,tmp_ch//'')

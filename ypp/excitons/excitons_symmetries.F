@@ -7,7 +7,7 @@
 !
 subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
- use pars,           ONLY:SP,DP,cZERO,schlen
+ use pars,           ONLY:SP,DP,cZERO,cI,schlen
  use units,          ONLY:HA2EV
  use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,&
  &                        EXCITONS_user_indexes,EXC_symm_thresh
@@ -33,12 +33,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  type(levels)        :: Xen
  complex(SP)         :: BS_E(BSS_n_eig)
  !
- real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real
- logical  :: l_mixed_states,l_partial_space
+ real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real,ref_val
+ logical  :: l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found
  integer  :: S_index(EXCITONS_n_user_states)
  integer  :: first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_deg_grp,n_of_exc_max
  integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,&
- &           irap,iclass,ielem,iexc,il,i_grp,io_err,ID,n_elem_used
+ &           irap,iclass,ielem,iexc,il,i_grp,io_err,ID,n_elem_used,max_deg
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
  complex(SP) :: trace(12,EXCITONS_n_user_states)
@@ -171,6 +171,10 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  ! Finally I compute the exciton symmetry
  !
  loc_fmt="(F10.4,12x,F4.2,12x,a,12x,i4)"
+ l_char_table_imag=maxval(abs(real(cI*char_mat)))>0.01_SP
+ !
+ max_deg=nint(maxval(real(abs(char_mat(:,1)))))
+ !if (l_char_table_imag) max_deg=max_deg*2
  !
  do i_grp=1,n_deg_grp
    !
@@ -179,8 +183,11 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    !write(*,*) BS_E_real(il)*HA2EV,i_grp,n_of_exc(i_grp),real(trace(:nclass,i_grp))
    ! DEBUG >
    !
-   l_mixed_states = nint(abs(trace(1,i_grp))) > 3
-   if (l_mixed_states) tmp_ch="mixed states"
+   l_mixed_states = nint(abs(trace(1,i_grp))) > max_deg 
+   if (l_mixed_states) then
+     tmp_ch="mixed states"
+     l_char_not_found=.true.
+   endif
    !
    l_partial_space=.false.
    do iclass=1,nclass
@@ -189,21 +196,39 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      l_partial_space = tmp_real > EXC_symm_thresh
      if(l_partial_space) exit
    enddo
-   if (l_partial_space) tmp_ch="partial space "//trim(real2ch(tmp_real))
+   if (l_partial_space) then
+     tmp_ch="partial space "//trim(real2ch(tmp_real))
+     l_char_not_found=.true.
+   endif
    !
    if ( .not. (l_mixed_states.or.l_partial_space) ) then
      do irap=1,nclass
-       if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=EXC_symm_thresh) ) cycle
+       !if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=EXC_symm_thresh) ) cycle
+       if ( .not.( all(abs(real(trace(:nclass,i_grp))      -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh) .or. &
+       &           all(abs(real(trace(:nclass,i_grp))/2._SP-real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh) )) cycle
        tmp_ch=trim(name_rap(irap))
+       l_char_not_found=.false.
        exit
      enddo
      if(irap==nclass+1) then
        tmp_ch="char not found"
+       l_char_not_found=.true.
      endif
    endif
    !
    write(loc_msg,loc_fmt) BS_E_real(il)*HA2EV,real(trace(1,i_grp)),trim(tmp_ch),il
    call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+   if (l_char_not_found) then
+     do ielem=1,2
+       loc_msg=""
+       do iclass=1,nclass
+         if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(trace(iclass,i_grp))
+         if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)") aimag(trace(iclass,i_grp))
+         loc_msg=trim(loc_msg)//trim(tmp_ch)
+       enddo
+       call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+     enddo
+   endif
    !
  enddo
  !
