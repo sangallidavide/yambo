@@ -15,7 +15,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  use stderr,        ONLY:intc
  use parallel_m,    ONLY:myid
  use electrons,     ONLY:n_spinor
- use vec_operate,   ONLY:k_rot
+ use vec_operate,   ONLY:c2a
  use R_lattice,     ONLY:k_pt,rl_sop
  use D_lattice,     ONLY:nsym,dl_tra,DEV_VAR(spin_sop),i_time_rev,idt_index
  use deviceXlib_m
@@ -79,9 +79,9 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  endif
  !
  ! Take care of transialtions
- krot=matmul(rl_sop(:,:,is),k_pt(isc(2),:))
+ krot=matmul(rl_sop(:,:,isymm),k_pt(isc(2),:))
  call c2a(v_in=krot,mode='ki2c')
- phase=exp(-cI*dot_product(dl_tra(:,isymm)),krot)
+ phase=exp(-cI*dot_product(dl_tra(:,isymm),krot))
  WF_symm=WF_symm*phase
  !
  ! take care of time reversal if needed
