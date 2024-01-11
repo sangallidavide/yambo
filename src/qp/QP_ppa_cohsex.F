@@ -63,9 +63,9 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  !
  ! Work Space
  !
- integer                  ::i_qp,i_w,iqbz,iqibz,ib,i_v,i_c,i_k,i_kmq,i_kmq_bz,i_kmq_s,   &
-&                           ig1,ig2,iqs,i_qp_to_start,iq_to_start,is,iq_mem,i_sp_pol,    &
-&                           alloc_err,iscs_save(2,4),X_range(2),io_err,ID,IO_ACT,timing_steps
+ integer ::i_qp,i_w,iqbz,iqibz,ib,i_v,i_c,i_k,i_kmq,i_kmq_Go,i_kmq_bz,i_kmq_s,   &
+&          ig1,ig2,iqs,i_qp_to_start,iq_to_start,is,iq_mem,i_sp_pol,    &
+&          alloc_err,iscs_save(2,4),X_range(2),io_err,ID,IO_ACT,timing_steps
  complex(SP), allocatable ::W_(:),dc(:),eet_factor(:,:)
  type(elemental_collision),target ::isc,iscp
  type(w_samp)     ::Sc_W(qp%n_states)
@@ -394,10 +394,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
      i_k=QP_table(i_qp,3)
      i_sp_pol=spin(QP_table(i_qp,:))
      !
-     ! Note DS 2022/07/29 : i_kmq_Go is not used.
-     ! This is related to issue with HSEX collisions in real-time.
-     ! See comment in COLLISIONS_HXC and in XCo_Hartree_Fock
-     !i_kmq_Go=qindx_S(i_k,iqbz,2)
+     i_kmq_Go=qindx_S(i_k,iqbz,2)
      i_kmq_bz=qindx_S(i_k,iqbz,1)
      !
      i_kmq  =k%sstar(i_kmq_bz,1)
@@ -413,7 +410,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
      !
      isc%is=(/i_v,i_k,  1,      i_sp_pol/)
      isc%os=(/0,  i_kmq,i_kmq_s,i_sp_pol/)
-     isc%qs(1)=i_kmq_s
+     isc%qs(1)=i_kmq_Go
      !
      iscp%is=(/i_c,i_k,1,i_sp_pol/)
      iscp%qs=isc%qs
