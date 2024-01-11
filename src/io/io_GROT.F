@@ -9,7 +9,7 @@ integer function io_GROT(io_db)
  !
  use D_lattice,      ONLY:nsym,inv_index
  use R_lattice,      ONLY:n_g_shells,ng_closed,ng_in_shell,E_of_shell,&
-&                         g_rot,minus_G,G_mod_indx
+&                         g_rot,g_phs,minus_G,G_mod_indx
 #ifdef _CUDA
  use R_lattice,      ONLY:minus_G_d
 #endif
@@ -49,6 +49,7 @@ integer function io_GROT(io_db)
  if (read_is_on(io_db)) then
    YAMBO_ALLOC(ng_in_shell,(n_g_shells))
    YAMBO_ALLOC(g_rot,(ng_closed,nsym_db))
+   YAMBO_ALLOC(g_phs,(ng_closed,nsym_db))
    YAMBO_ALLOC(E_of_shell,(n_g_shells))
    YAMBO_ALLOC(minus_G,(ng_closed))
    YAMBO_ALLOC(G_mod_indx,(ng_closed))
@@ -62,6 +63,11 @@ integer function io_GROT(io_db)
  !
  call io_bulk(io_db,VAR="GROT",VAR_SZ=(/ng_closed,nsym_db/))
  call io_bulk(io_db,I2=g_rot(:ng_closed,:))
+ !
+ if (write_is_on(io_db).or.variable_exist(io_db,"GPHASE")) then
+   call io_bulk(io_db,VAR="GPHASE",VAR_SZ=(/ng_closed,nsym_db/))
+   call io_bulk(io_db,R2=g_phs(:ng_closed,:))
+ endif
  !
  if (ver_is_gt_or_eq(io_db,revision=955).and.inv_index<0) then
    call io_bulk(io_db,VAR="minusG",VAR_SZ=(/ng_closed/))

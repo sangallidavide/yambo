@@ -130,6 +130,7 @@ module R_lattice
  integer              :: ng_closed      ! Number of G closed
  integer ,allocatable :: ng_in_shell(:) ! Number of G in each shell
  integer ,allocatable :: g_rot(:,:)
+ real(SP),allocatable :: g_phs(:,:)
  integer ,allocatable :: G_m_G(:,:)
  integer ,allocatable :: minus_G(:)
  integer ,allocatable :: G_mod_indx(:)
@@ -138,6 +139,7 @@ module R_lattice
  ! GPUs
  real(SP),allocatable DEV_ATTR :: g_vec_d(:,:)
  integer ,allocatable DEV_ATTR :: g_rot_d(:,:)
+ real(SP),allocatable DEV_ATTR :: g_phs_d(:,:)
  integer ,allocatable DEV_ATTR :: G_m_G_d(:,:)
  integer ,allocatable DEV_ATTR :: minus_G_d(:)
  !

@@ -14,13 +14,13 @@ subroutine G_shells_finder()
  use pars,         ONLY:SP
  use com,          ONLY:msg
  use LIVE_t,       ONLY:live_timing
- use D_lattice,    ONLY:nsym,inv_index
- use R_lattice,    ONLY:n_g_shells,ng_in_shell,ng_closed,&
-&                       g_vec,g_rot,E_of_shell,rl_sop,minus_G,G_mod_indx
+ use D_lattice,    ONLY:nsym,inv_index,dl_tra
+ use R_lattice,    ONLY:b,n_g_shells,ng_in_shell,ng_closed,&
+&                       g_vec,g_rot,g_phs,E_of_shell,rl_sop,minus_G,G_mod_indx
 #ifdef _CUDA
- use R_lattice,    ONLY:g_rot_d,minus_G_d
+ use R_lattice,    ONLY:g_rot_d,g_phs_d,minus_G_d
 #endif
- use vec_operate,  ONLY:iku_v_norm,v_is_zero,sort,degeneration_finder
+ use vec_operate,  ONLY:c2a,iku_v_norm,v_is_zero,sort,degeneration_finder
  use IO_int,       ONLY:io_control
  use IO_m,         ONLY:OP_RD_CL,OP_WR_CL,VERIFY
  use zeros,        ONLY:G_iku_zero,G_mod_zero
@@ -33,7 +33,7 @@ subroutine G_shells_finder()
  !
  integer :: i_1,i_2,ig_1,ig_2,i_s,i_m,n_g_shells_no_holes
  integer :: ng_in_shell_TMP(ng_closed),first_G_in_shell(ng_closed)
- real(SP):: G_mod(ng_closed),g_rotated(3),E_of_shell_TMP(ng_closed)
+ real(SP):: G_mod(ng_closed),g_rotated(3),G_cc(3),E_of_shell_TMP(ng_closed)
  type(PP_indexes) :: px
  !
  ! I/O
@@ -52,6 +52,7 @@ subroutine G_shells_finder()
      YAMBO_FREE(ng_in_shell)
      YAMBO_FREE(E_of_shell)
      YAMBO_FREE(g_rot)
+     YAMBO_FREE(g_phs)
      YAMBO_FREE(minus_G)
      call io_control(ACTION=OP_RD_CL,SEC=(/1,2/),MODE=VERIFY,ID=ID)
      io_err=io_GROT(ID)
@@ -61,6 +62,8 @@ subroutine G_shells_finder()
 #ifdef _CUDA
    if (allocated(g_rot_d)) deallocate(g_rot_d)
    allocate(g_rot_d,source=g_rot)
+   if (allocated(g_phs_d)) deallocate(g_phs_d)
+   allocate(g_phs_d,source=g_phs)
    if (allocated(minus_G_d)) deallocate(minus_G_d)
    allocate(minus_G_d,source=minus_G)
 #endif
@@ -72,9 +75,11 @@ subroutine G_shells_finder()
      YAMBO_FREE(ng_in_shell)
      YAMBO_FREE(E_of_shell)
      YAMBO_FREE(g_rot)
+     YAMBO_FREE(g_phs)
      YAMBO_FREE(minus_G)
 #ifdef _CUDA
      if (allocated(g_rot_d))   deallocate(g_rot_d)
+     if (allocated(g_phs_d))   deallocate(g_phs_d)
      if (allocated(minus_G_d)) deallocate(minus_G_d)
 #endif
    endif
@@ -89,6 +94,17 @@ subroutine G_shells_finder()
    G_mod(ig_1)=iku_v_norm(g_vec(ig_1,:))
  enddo
  call sort(G_mod,indx=G_mod_indx)
+ !
+ ! De-finining the g-phase for fractional translations
+ !====================================================
+ YAMBO_ALLOC(g_phs,(ng_closed,nsym))
+ g_phs=0
+ do ig_1=1,ng_closed
+   call c2a(b,g_vec(ig_1,:),G_cc,'ki2c')
+   do i_s=1,nsym
+     g_phs(ig_1,i_s)=dot_product(dl_tra(:,i_s),G_cc)
+   enddo
+ enddo
  !
  ! Shells build-up by finding equal module G_vectors
  ! ==================================================

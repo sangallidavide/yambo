@@ -29,7 +29,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
  !
 #include<dev_defs.h>
  !
- use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(G_m_G)
+ use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(g_phs),DEV_VAR(G_m_G)
  !
  implicit none
  !
@@ -51,7 +51,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
  complex(SP), pointer DEV_ATTR :: Xo_scatt_rhotw_p(:)
  complex(SP) DEV_ATTR :: DEV_VAR(rhotw_save)(Xo_scatt%ngrho),DEV_VAR(rhotw_save2)(Xo_scatt%ngrho)
  integer            :: sop_inv_l,X_ng
- complex(SP)        :: ctmp,Z_
+ complex(SP)        :: ctmp,Z_,gphase
  real(SP)           :: Z_eh_occ
  logical            :: l_X_term_vv
  integer            :: ngrho
@@ -143,7 +143,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
        !
        do ig1=2,X_ng
          ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-         Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
+	 gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,sop_inv_l)),sin(DEV_VAR(g_phs)(ig1,sop_inv_l)))
+         Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)*gphase
        enddo
        !
        if (is>nsym/(i_time_rev+1)) then
@@ -231,7 +232,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      !DEV_OMP parallel do default(shared), private(ig1,ig2)
      do ig1=1,X_ng
        ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-       Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
+       gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,sop_inv_l)),sin(DEV_VAR(g_phs)(ig1,sop_inv_l)))
+       Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)*gphase
      enddo
      !
      if (is>nsym/(i_time_rev+1)) then

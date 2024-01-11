@@ -18,7 +18,7 @@ subroutine WF_phase_matrices(En,Xk,blim,klim)
  use pars,              ONLY:SP,cZERO
  use units,             ONLY:HA2EV
  use LIVE_t,            ONLY:live_timing
- use R_lattice,         ONLY:bz_samp,G_m_G,minus_G,g_vec,rl_sop,g_rot
+ use R_lattice,         ONLY:bz_samp,G_m_G,minus_G,g_vec,rl_sop
  use D_lattice,         ONLY:nsym,sop_tab
  use electrons,         ONLY:levels,n_max_deg
  use wave_func,         ONLY:WAVEs,io_WF_phases,WF_phases_b_map

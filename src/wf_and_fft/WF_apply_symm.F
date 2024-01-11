@@ -81,7 +81,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  ! Take care of transialtions
  krot=matmul(rl_sop(:,:,isymm),k_pt(isc(2),:))
  call c2a(v_in=krot,mode='ki2c')
- phase=exp(-cI*dot_product(dl_tra(:,isymm),krot))
+ phase=exp(cI*dot_product(dl_tra(:,isymm),krot))
  WF_symm=WF_symm*phase
  !
  ! take care of time reversal if needed

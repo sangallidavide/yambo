@@ -23,7 +23,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  use electrons,      ONLY:n_spinor
  use collision_el,   ONLY:elemental_collision
  use D_lattice,      ONLY:idt_index
- use R_lattice,      ONLY:DEV_VAR(g_rot)
+ use R_lattice,      ONLY:DEV_VAR(g_rot),DEV_VAR(g_phs)
  use pseudo,         ONLY:pp_is_uspp
  use FFT_m,          ONLY:fftw_plan,cufft_plan,fft_size,fft_dim,DEV_VAR(fft_g_table)
  use interfaces,     ONLY:WF_apply_symm
@@ -34,6 +34,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  
  integer :: qs,iGo
  integer :: ig,ir,isc_ngrho,ib,ibp
+ complex(SP) :: gphase
  complex(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
  complex(SP), pointer DEV_ATTR :: rhotw_p(:)
  complex(DP), pointer DEV_ATTR :: rho_tw_rs_p(:)
@@ -147,14 +148,17 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  ! one extra conjg is performed on rho_tw_rs
  !
  if (qs==idt_index) then 
-   !$omp parallel do default(shared), private(ig)
+   !$omp parallel do default(shared), private(ig,igr)
    do ig = 1, isc%ngrho
-     isc%rhotw(ig)= cmplx(conjg(isc%rho_tw_rs(fft_g_table(ig,iGo))),kind=SP)
+     igr=fft_g_table(ig,iGo)
+     isc%rhotw(ig)= cmplx(conjg(isc%rho_tw_rs(igr)),kind=SP)
    enddo
  else
-   !$omp parallel do default(shared), private(ig)
+   !$omp parallel do default(shared), private(ig,igr)
    do ig = 1, isc%ngrho
-     isc%rhotw(ig)= cmplx(conjg(isc%rho_tw_rs(fft_g_table(g_rot(ig,qs),iGo))),kind=SP)
+     igr=fft_g_table(g_rot(ig,qs),iGo)
+     gphase=cmplx(cos(g_phs(ig,qs)),sin(g_phs(ig,qs)))
+     isc%rhotw(ig)= cmplx(conjg(isc%rho_tw_rs(igr)),kind=SP)*gphase
    enddo
  endif
  !
@@ -165,10 +169,11 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
 #ifdef _CUDA_LOC
    !$cuf kernel do(1) <<<*,*>>>
 #else
-   !$omp parallel do default(shared), private(ig)
+   !$omp parallel do default(shared), private(ig,igr)
 #endif
    do ig = 1, isc_ngrho
-     rhotw_p(ig)= cmplx(rho_tw_rs_p(DEV_VAR(fft_g_table)(ig,iGo)),kind=SP)
+     igr=DEV_VAR(fft_g_table)(ig,iGo)
+     rhotw_p(ig)= cmplx(rho_tw_rs_p(igr),kind=SP)
    enddo
    !
  else
@@ -179,7 +184,9 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
    !$omp parallel do default(shared), private(ig)
 #endif
    do ig = 1, isc_ngrho
-     rhotw_p(ig)= cmplx(rho_tw_rs_p(DEV_VAR(fft_g_table)(DEV_VAR(g_rot)(ig,qs),iGo)),kind=SP)
+     igr=DEV_VAR(fft_g_table)(DEV_VAR(g_rot)(ig,qs),iGo)
+     gphase=cmplx(cos(DEV_VAR(g_phs)(ig,qs)),sin(DEV_VAR(g_phs)(ig,qs)))
+     rhotw_p(ig)= cmplx(rho_tw_rs_p(igr),kind=SP)*gphase
    enddo
    !
  endif

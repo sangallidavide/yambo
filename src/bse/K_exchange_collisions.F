@@ -11,7 +11,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
  use D_lattice,      ONLY:nsym,i_time_rev,sop_inv,sop_inv_d
  use BS,             ONLY:BS_T_grp,K_EXCH_collision,BS_oscillators_alloc,BS_n_g_exch,&
 &                         BSE_L_kind,l_BS_magnons
- use R_lattice,      ONLY:g_rot,g_rot_d,qindx_X,bz_samp
+ use R_lattice,      ONLY:g_rot,g_rot_d,g_phs,g_phs_d,qindx_X,bz_samp
  use stderr,         ONLY:STRING_match
  use electrons,      ONLY:n_sp_pol
  use timing_m,       ONLY:timing
@@ -29,7 +29,8 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
  ! Work Space
  !
  integer :: i_T_el,i_T_el_p,N_T_el_p,i_c,i_v,i_sp_c,i_sp_v,i_k_bz,i_k,i_s,i_g0,i_g1,i_g2,i_p_bz,i_g_p,i_p,&
-&           i_sp,i_T_el_last_with_identity_sym,i_T_grp_last_with_identity_sym,i_T_grp_p
+&           i_s_m1,i_sp,i_T_el_last_with_identity_sym,i_T_grp_last_with_identity_sym,i_T_grp_p
+ complex(SP) :: gphase
 #ifdef _CUDA
   complex(SP), pointer, device :: O_x_d(:,:),O_x_sym_d(:,:)
 #endif
@@ -49,7 +50,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
  !
 #if defined(__NOTNOW) && ! defined(_CUDA)
  !$omp parallel default(shared), private( K_EXCH_collision, &
- !$omp &        i_T_el,i_k_bz,i_k,i_s, i_p_bz,i_p,i_sp, i_v,i_c,i_sp_c,i_sp_v, &
+ !$omp &        i_T_el,i_k_bz,i_k,i_s,i_sp_m1, i_p_bz,i_p,i_sp, i_v,i_c,i_sp_c,i_sp_v, &
  !$omp &        i_T_grp_last_with_identity_sym, i_T_el_last_with_identity_sym, &
  !$omp &        i_T_grp_p, N_T_el_p, i_T_el_p, i_g1, i_g2)
 #endif
@@ -66,6 +67,8 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
    i_k_bz=BS_T_grp(i_T_grp)%table(i_T_el,1)
    i_k   =Xk%sstar(i_k_bz,1)
    i_s   =Xk%sstar(i_k_bz,2)
+   !
+   i_s_m1=sop_inv(i_s)
    !
    i_p_bz=qindx_X(iq,i_k_bz,1)
    i_g_p =qindx_X(iq,i_k_bz,2)
@@ -128,17 +131,19 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
        !
        !$cuf kernel do (1) <<<*,*>>>
        do i_g1=2,BS_n_g_exch
-         i_g2=g_rot_d(i_g1,sop_inv_d(i_s))
-         O_x_d(i_g1,i_T_el) = O_x_sym_d(i_g2,i_T_el_last_with_identity_sym)
+         i_g2=g_rot_d(i_g1,i_s_m1)
+	 gphase = cmplx(cos(g_phs_d(i_g1,i_s_m1)),sin(g_phs_d(i_g1,i_s_m1)))
+         O_x_d(i_g1,i_T_el) = O_x_sym_d(i_g2,i_T_el_last_with_identity_sym)*gphase
        enddo
        !
 #else
        !
        !$omp parallel do default(shared), private(i_g1,i_g2)
        do i_g1=2,BS_n_g_exch
-         i_g2=g_rot(i_g1,sop_inv(i_s))
+         i_g2=g_rot(i_g1,i_s_m1)
+         gphase = cmplx(cos(g_phs(i_g1,i_s_m1)),sin(g_phs(i_g1,i_s_m1)))
          BS_T_grp(i_T_grp)%O_x(i_g1,i_T_el)=&
-         & BS_T_grp(i_T_grp_last_with_identity_sym)%O_x(i_g2,i_T_el_last_with_identity_sym)
+         & BS_T_grp(i_T_grp_last_with_identity_sym)%O_x(i_g2,i_T_el_last_with_identity_sym)*gphase
        enddo
        !$omp end parallel do
        !
