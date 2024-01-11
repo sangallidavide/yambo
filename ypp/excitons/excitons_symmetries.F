@@ -18,7 +18,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
  use stderr,         ONLY:intc,real2ch
  use D_lattice,      ONLY:which_irr,char_mat,nclass,elem,nelem,&
- &                        name_rap,i_time_rev,nsym,nrot,dl_sop
+ &                        name_rap,i_time_rev,nsym,nrot,dl_sop,dl_tra
  use vec_operate,    ONLY:sort,degeneration_finder
  use wrapper,        ONLY:Vstar_dot_V
  use IO_int,         ONLY:io_control
@@ -107,7 +107,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  if ( any( qpt%grp_table(:nrotq,iqbz)>nrot ) ) nrotq=nrotq/(1+i_time_rev)
  call detect_point_group(nrotq,real(dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)),DP),.true.)
  !
- call print_point_group("o "//trim(filename),nrotq,dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)))
+ call print_point_group("o "//trim(filename),nrotq,dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)),&
+ &                                                   dl_tra(:,qpt%grp_table(:nrotq,iqbz)) )
  !
  titles=(/" E[eV]  "," n_deg  "," symm.  ","i_lambda"/)
  call msg("o "//trim(filename),"#")

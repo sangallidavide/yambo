@@ -16,7 +16,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
  &                             WF,wf_nb_io_groups
  use electrons,           ONLY:levels,E_reset,n_sp_pol,n_spinor
  use LIVE_t,              ONLY:live_timing
- use R_lattice,           ONLY:bz_samp,g_rot,ng_closed,nkibz
+ use R_lattice,           ONLY:bz_samp,g_rot,g_phs,ng_closed,nkibz
  use D_lattice,           ONLY:spin_sop
  use interfaces,          ONLY:WF_load,WF_free
  use YPP_symm,            ONLY:wf_nc_k_save,wf_igk_save,wf_nc_k_reduced,wf_igk_reduced,&
@@ -49,7 +49,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
  !
  integer,     allocatable :: ic_rot_table(:) 
  complex(SP), allocatable :: wf_disk(:,:,:)
- complex(SP), allocatable :: wf_tmp(:,:)
+ complex(SP), allocatable :: wf_tmp(:,:),gphase(:)
  !
  ! Dummies
  !
@@ -166,6 +166,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
      if (n_steps>0) call live_timing('Rotation',n_steps)
      !
      YAMBO_ALLOC(ic_rot_table,(wf_ncx_new))
+     YAMBO_ALLOC(gphase,(wf_ncx_new))
      YAMBO_ALLOC(wf_tmp,(wf_ncx_new,n_spinor))
      !
      ACTION_=OP_APP_CL
@@ -180,7 +181,9 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
        !
        ic_rot_table=-1
        do ic=1,wf_nc_k_reduced(ik_save)
-         ig_rot=g_rot(wf_igk_reduced(ic,ik_save),is)
+         ig=wf_igk_reduced(ic,ik_save)
+         ig_rot=g_rot(ig,is)
+	 gphase(ic)=cmplx(cos(g_phs(ig,is)),sin(g_phs(ig,is)))
          l_found=.false.
          do ic_rot=1,wf_nc_k_new(ik)
            ig=wf_igk_new(ic_rot,ik)
@@ -215,7 +218,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
            i_wf=WF%index(ib,ik_save,i_sp_pol)
            !
            forall(ic=1:wf_nc_k_reduced(ik_save),i_spinor=1:n_spinor) &
-&            wf_tmp(ic_rot_table(ic),i_spinor)=WF%c(ic,i_spinor,i_wf)
+&          wf_tmp(ic_rot_table(ic),i_spinor)=WF%c(ic,i_spinor,i_wf)*conjg(gphase(ic))
            !
            if(n_spinor==2) then
              forall(ic=1:wf_nc_k_new(ik)) wf_tmp(ic,:)=matmul(spin_sop(:,:,is),wf_tmp(ic,:))
@@ -242,6 +245,7 @@ subroutine fix_WFs_and_E(E,k,k_save,kpoints_map,old_nsym,S_contains_TR,action_ki
      enddo
      !
      YAMBO_FREE(ic_rot_table)
+     YAMBO_FREE(gphase)
      YAMBO_FREE(wf_tmp)
      !
    enddo

@@ -35,7 +35,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  use X_m,           ONLY:X_ALLOC_elemental,X_mat,X_t
  use interfaces,    ONLY:WF_load,TDDFT_ALDA_R_space
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
- use R_lattice,     ONLY:qindx_S,bz_samp,g_rot,minus_G
+ use R_lattice,     ONLY:qindx_S,bz_samp,g_rot,g_phs,minus_G
  use hamiltonian,   ONLY:B_mat_index
  use fft_m,         ONLY:fft_size
  !
@@ -49,7 +49,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  ! Work Space
  !
  integer                 :: i_coll,first_coll,last_coll,ig1,ig2,iqbz,iqibz,alloc_err,iqs,iGo_max,NG_max,NG_XC,LOCAL_COMM(2),&
-&                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,&
+&                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_p_s_m1,i_loop,&
 &                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,bands_to_load(2),n_colls
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
  !
@@ -57,7 +57,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  type(yMPI_comm)          :: LOCAL_yMPI_COMM
  type(tddft_wf_t), target :: tddft_wf
  real(SP)                 :: Co
- complex(SP)              :: pre_factor1,pre_factor2
+ complex(SP)              :: pre_factor1,pre_factor2,gphase
  !
  complex(SP), allocatable :: EM1s(:,:),rhotw_tmp(:)
  integer                  :: io_err,ID_X,ID_HXC,ID_COH,TMP_VEC(ncpu)
@@ -403,11 +403,14 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
            !
            do i_star=2,k%nstar(i_p)
              !
-             i_p_s =k%star(i_p,i_star)
+             i_p_s   =k%star(i_p,i_star)
+             i_p_s_m1=sop_inv(i_p_s) 
              !
-             !$omp parallel do default(shared), private(ig1)
+             !$omp parallel do default(shared), private(ig1,ig2,gphase)
              do ig1=2,N_g_vecs_H
-               rhotw_tmp(ig1)=rhotw_tmp(ig1)+iscp_H%rhotw(g_rot(ig1,sop_inv(i_p_s)))
+               ig2=g_rot(ig1,i_p_s_m1)
+               gphase=cmplx(cos(g_phs(ig1,i_p_s_m1)),sin(g_phs(ig1,i_p_s_m1)))
+               rhotw_tmp(ig1)=rhotw_tmp(ig1)+iscp_H%rhotw(ig2)*gphase
              enddo
              !$omp end parallel do
              !

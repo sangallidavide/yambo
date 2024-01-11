@@ -13,7 +13,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  use electrons,     ONLY:n_spinor
  use wave_func,     ONLY:WAVEs,wf_nc_k,wf_igk
  use wave_func,     ONLY:wf_ng,wf_ng_1st_BZ
- use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(G_m_G)
+ use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(g_phs),DEV_VAR(G_m_G)
  use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),i_time_rev,nsym
  !
@@ -27,6 +27,8 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  !
  complex(SP)              DEV_ATTR :: WF_k_tmp(wf_ng_1st_BZ,n_spinor)
  complex(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
+ !
+ complex(SP) :: gphase
  !
  integer :: ib,i_wf
  integer :: ic,ig,igp,i_spinor
@@ -49,8 +51,8 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
      do ic=1,wf_nc_k(ik)
        ig=wf_igk(ic,ik)
        igp=DEV_VAR(G_m_G)(DEV_VAR(g_rot)(ig,isymm),ig0)
-       !if ( ib==b_to_load(1) ) write(*,*) ic,ig,igp
-       WF_k_tmp(igp,1)=WF_p(ig,1,i_wf)
+       gphase=cmplx(cos(DEV_VAR(g_phs)(ig,isymm)),sin(DEV_VAR(g_phs)(ig,isymm)))
+       WF_k_tmp(igp,1)=WF_p(ig,1,i_wf)*conjg(gphase)
      enddo
      !
    else
@@ -61,10 +63,12 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
      do ic=1,wf_nc_k(ik)
        ig=wf_igk(ic,ik)
        igp=DEV_VAR(G_m_G)(DEV_VAR(g_rot)(ig,isymm),ig0)
+       gphase=cmplx(cos(DEV_VAR(g_phs)(ig,isymm)),sin(DEV_VAR(g_phs)(ig,isymm)))
        WF_k_tmp(igp,1)=DEV_VAR(spin_sop)(1,1,isymm)*WF_p(ig,1,i_wf)+ &
 &                         DEV_VAR(spin_sop)(1,2,isymm)*WF_p(ig,2,i_wf)
        WF_k_tmp(igp,2)=DEV_VAR(spin_sop)(2,1,isymm)*WF_p(ig,1,i_wf)+ &
 &                         DEV_VAR(spin_sop)(2,2,isymm)*WF_p(ig,2,i_wf)
+       WF_k_tmp(igp,:)=WF_k_tmp(igp,:)*conjg(gphase)
      enddo
    endif
    !

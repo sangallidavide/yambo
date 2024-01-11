@@ -19,7 +19,7 @@ subroutine fix_PPs(E,k,k_save,kpoints_map,old_nsym,old_dl_sop,old_sop_inv,S_cont
  use DIPOLES,             ONLY:DIPOLE_t
  use stderr,              ONLY:intc
  use wave_func,           ONLY:wf_ng,wf_ncx
- use R_lattice,           ONLY:bz_samp,g_rot,nkibz
+ use R_lattice,           ONLY:bz_samp,g_rot,g_phs,nkibz
  use D_lattice,           ONLY:n_atomic_species
  use electrons,           ONLY:levels
  use YPP_symm,            ONLY:wf_nc_k_save,wf_igk_save,wf_nc_k_reduced,wf_igk_reduced,&
@@ -52,6 +52,7 @@ subroutine fix_PPs(E,k,k_save,kpoints_map,old_nsym,old_dl_sop,old_sop_inv,S_cont
  real(SP),allocatable     :: pp_kbd_store(:,:,:,:,:)
  real(SP),allocatable     :: pp_kbs_store(:,:)
  complex(SP), allocatable :: Vnl_store(:,:,:,:,:)
+ complex(SP)              :: gphase
  !
  ! Dummies
  !
@@ -281,14 +282,16 @@ subroutine fix_PPs(E,k,k_save,kpoints_map,old_nsym,old_dl_sop,old_sop_inv,S_cont
        is=kpoints_map(2,ik)
        !
        do ic=1,wf_nc_k_reduced(ik_save)
-         ig_rot=g_rot(wf_igk_reduced(ic,ik_save),is)
+         ig=wf_igk_reduced(ic,ik_save)
+         ig_rot=g_rot(ig,is)
+         gphase=cmplx(cos(g_phs(ig,is)),sin(g_phs(ig,is)))
          do ic_rot=1,wf_nc_k_new(ik)
            ig=wf_igk_new(ic_rot,ik)
            if(ig==ig_rot) exit
          enddo
          !
-         pp_kb(ic_rot,:,:,:) =pp_kb_store(ic,:,:,:,ik_save)
-         pp_kbd(ic_rot,:,:,:)=pp_kbd_store(ic,:,:,:,ik_save)
+         pp_kb(ic_rot,:,:,:) =pp_kb_store(ic,:,:,:,ik_save)*conjg(gphase)
+         pp_kbd(ic_rot,:,:,:)=pp_kbd_store(ic,:,:,:,ik_save)*conjg(gphase)
          !
        enddo
        !
@@ -355,14 +358,16 @@ subroutine fix_PPs(E,k,k_save,kpoints_map,old_nsym,old_dl_sop,old_sop_inv,S_cont
        is=kpoints_map(2,ik)
        !
        do ic=1,wf_nc_k_reduced(ik_save)
-         ig_rot=g_rot(wf_igk_reduced(ic,ik_save),is)
+         ig=wf_igk_reduced(ic,ik_save)
+         ig_rot=g_rot(ig,is)
+         gphase=cmplx(cos(g_phs(ig,is)),sin(g_phs(ig,is)))
          do ic_rot=1,wf_nc_k_new(ik)
            ig=wf_igk_new(ic_rot,ik)
            if(ig==ig_rot) exit
          enddo
          !
-         pp_kb(ic_rot,:,:,:) =pp_kb_store(ic,:,:,:,ik_save)
-         pp_kbd(ic_rot,:,:,:)=pp_kbd_store(ic,:,:,:,ik_save)
+         pp_kb(ic_rot,:,:,:) =pp_kb_store(ic,:,:,:,ik_save)*conjg(gphase)
+         pp_kbd(ic_rot,:,:,:)=pp_kbd_store(ic,:,:,:,ik_save)*conjg(gphase)
          !
        enddo
        !

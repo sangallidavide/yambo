@@ -13,7 +13,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  use R_lattice,      ONLY:bz_samp
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
-&                         i_time_rev,nsym,nrot,dl_sop,  &
+&                         i_time_rev,nsym,nrot,dl_sop,dl_tra,  &
 &                         sop_tab,name_rap
  use vec_operate,    ONLY:degeneration_finder
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
@@ -86,7 +86,8 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
        call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
        !
-       call print_point_group("o "//trim(filename),nrotk,dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)))
+       call print_point_group("o "//trim(filename),nrotk,dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),&
+       &                                                 dl_tra(:,Xk%grp_table(:nrotk,ikbz))   )
        !
        nsz=(/maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,Xk%nstar(ik)/)
        YAMBO_ALLOC(WF_phases,(nsz(1),nsz(2),nsz(3),nsz(4),1))
