@@ -33,7 +33,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  type(elemental_collision), target::isc
  
  integer :: qs,iGo
- integer :: ig,ir,isc_ngrho,ib,ibp
+ integer :: ig,igr,ir,isc_ngrho,ib,ibp
  complex(SP) :: gphase
  complex(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
  complex(SP), pointer DEV_ATTR :: rhotw_p(:)
