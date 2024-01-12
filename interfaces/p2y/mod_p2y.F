@@ -464,7 +464,6 @@ contains
 
    real(DP) :: trasl_(3,48)
    real     :: rmat1(3,3),rmat2(3,3)
-   logical  :: warn=.FALSE.
 
    trasl_=0._SP
 
@@ -516,14 +515,6 @@ contains
      call errore("get_symmetries"," Invalid dftdata fmt "//trim(dftdata_fmt),1)
    end select
    !
-   ! postporoc
-   !
-   do i1=1,nsym_
-     if (v_is_zero(real(trasl_(:,i1),SP)) ) cycle
-     warn=.TRUE.
-     exit
-   enddo
-   !
    ! Note that invsym_ is well defined here, could be used for checks.
    do i1 = 1,nsym_
      isym_(:,:,i1) = transpose(isym_(:,:,i1))
@@ -531,8 +522,6 @@ contains
    call symmetries_check_and_load(isym_(:,:,1:nsym_),trasl_(:,1:nsym_),nsym_,trevsym=trevsym_, t_rev=t_rev_)
    !
    call crystal_lattice()
-   !
-   if (warn) call warning(' Non-symmorphic symmetry operations are not supported!')
    !
  end subroutine get_symmetries
  !
