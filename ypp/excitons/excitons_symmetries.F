@@ -37,8 +37,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  logical  :: l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found
  integer  :: S_index(EXCITONS_n_user_states)
  integer  :: first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_deg_grp,n_of_exc_max
- integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,&
- &           irap,iclass,ielem,iexc,il1,il2,i_grp,i_sub_grp,io_err,ID,n_elem_used,max_deg
+ integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,ncmplx,&
+ &           irap,iclass,ielem,iexc,jexc,il1,il2,i_grp,i_sub_grp,io_err,ID,n_elem_used,max_deg
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
  complex(SP) :: trace(12,EXCITONS_n_user_states,EXCITONS_n_user_states)
@@ -112,6 +112,9 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  nrotq=qpt%grp_nsym(iqbz)
  if ( any( qpt%grp_table(:nrotq,iqbz)>nrot ) ) nrotq=nrotq/(1+i_time_rev)
+ !
+ !write(*,*) qpt%grp_table(:nrotq,iqbz)
+ !
  call detect_point_group(nrotq,real(dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)),DP),.true.)
  !
  call print_point_group("o "//trim(filename),nrotq,dl_sop(:,:,qpt%grp_table(:nrotq,iqbz)),&
@@ -185,10 +188,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    do il1=1,n_of_exc(i_grp)
      if ( ref_exc_grp(il1,i_grp) > 0 ) cycle
      ref_exc_grp(il1,i_grp)=il1
-     !write(*,*) i_grp,n_sub_grps(i_grp),ref_exc_sbgr(n_sub_grps(i_grp),i_grp)
+     iexc=first_exc(i_grp)+il1-1
      do il2=il1+1,n_of_exc(i_grp)
        ref_exc_grp(il2,i_grp)=il1
-       !write(*,*) i_grp,n_sub_grps(i_grp),il1,il2,sum(abs(exc_reps(:,il2,il1,i_grp)))
+       jexc=first_exc(i_grp)+il2-1
+       call msg('s',"Rep "//trim(intc(i_grp))//" ,Exc. mix "//trim(intc(iexc))//","&
+       &                  //trim(intc(jexc)),sum(abs(exc_reps(:,il2,il1,i_grp))))
        if ( sum(abs(exc_reps(:,il2,il1,i_grp)))>=nclass*EXC_symm_thresh) cycle
        ref_exc_grp(il2,i_grp)=-1
      enddo
@@ -287,14 +292,34 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    write(loc_msg,loc_fmt) BS_E_real(il1)*HA2EV,real(trace(1,i_sub_grp,i_grp)),trim(tmp_ch),il1
    call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
    if (l_char_not_found) then
-     do ielem=1,2
-       loc_msg=""
+     ncmplx=1
+     if ( any(aimag(trace(:,i_sub_grp,i_grp))>1.E-4_SP) ) ncmplx=2
+     do ielem=1,ncmplx
+       !
+       if (ielem==1) loc_msg="Real part analysis "
+       if (ielem==2) loc_msg="Img. part analysis"
+       call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+       loc_msg=" Sum"
        do iclass=1,nclass
          if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(trace(iclass,i_sub_grp,i_grp))
          if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)") aimag(trace(iclass,i_sub_grp,i_grp))
          loc_msg=trim(loc_msg)//trim(tmp_ch)
        enddo
+       !
        call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+       !
+       do il2=1,n_of_exc(i_grp)
+         if( exc_sbgr(il2,i_grp)/=i_sub_grp ) cycle
+         iexc=first_exc(i_grp)+il2-1
+         loc_msg="  "//trim(intc(iexc))
+         do iclass=1,nclass
+           if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(exc_reps(iclass,il2,il2,i_grp))
+           if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)")  real(exc_reps(iclass,il2,il2,i_grp))
+           loc_msg=trim(loc_msg)//trim(tmp_ch)
+         enddo
+         call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+       enddo
+       !
      enddo
      call msg("o "//trim(filename),'')
    endif
