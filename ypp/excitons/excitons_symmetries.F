@@ -99,6 +99,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  n_of_exc_max=maxval(n_of_exc)
  !n_of_exc_max=3
  !
+ call msg('s',"Scan of eneriges gave number of reps ",n_deg_grp)
+ !
  YAMBO_ALLOC(EXC_WF_rot1,(BS_H_dim,n_of_exc_max))
  YAMBO_ALLOC(EXC_WF_rot2,(BS_H_dim,n_of_exc_max))
  !
@@ -203,7 +205,14 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      exc_sbgr(il1,i_grp)=exc_sbgr(ref_exc_grp(il1,i_grp),i_grp)
    enddo
    !
+   if (n_sub_grps(i_grp)>1) then
+     call msg('s',"Rep "//trim(intc(i_grp))//" split into "&
+     &              //trim(intc(n_sub_grps(i_grp)))//" irreps")
+   endif
+   !
  enddo
+ !
+ call msg('s',"Scan of rep matrices gave number of irreps ",sum(n_sub_grps(:n_deg_grp)))
  !
  ! Compute the trace of the irreps
  !
