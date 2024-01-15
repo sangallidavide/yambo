@@ -9,20 +9,21 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  use pars,           ONLY:SP,DP,cZERO,cI,schlen
  use units,          ONLY:HA2EV
+ use parser_m,       ONLY:parser
  use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,&
  &                        EXCITONS_user_indexes,EXC_symm_thresh
  use R_lattice,      ONLY:bz_samp,coll_scattering
  use electrons,      ONLY:levels,n_sp_pol
  use BS_solvers,     ONLY:BS_mat,BSS_n_eig
  use BS,             ONLY:BS_bands,BS_H_dim,BS_K_dim
- use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
+ use wave_func,      ONLY:io_WF_phases,WF_phases_b_map,WF_phases
  use stderr,         ONLY:intc,real2ch
  use D_lattice,      ONLY:which_irr,char_mat,nclass,elem,nelem,&
  &                        name_rap,i_time_rev,nsym,nrot,dl_sop,dl_tra
  use vec_operate,    ONLY:sort,degeneration_finder
  use wrapper,        ONLY:Vstar_dot_V
  use IO_int,         ONLY:io_control
- use IO_m,           ONLY:DUMP,REP,OP_RD_CL,OP_RD,RD_CL
+ use IO_m,           ONLY:DUMP,REP,OP_RD_CL,OP_RD,RD_CL,RD
  use com,            ONLY:msg,of_open_close
  use LIVE_t,         ONLY:live_timing
  !
@@ -34,10 +35,10 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  complex(SP)         :: BS_E(BSS_n_eig)
  !
  real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real,ref_val
- logical  :: l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found
+ logical  :: l_min_mem,l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found
  integer  :: S_index(EXCITONS_n_user_states)
  integer  :: first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_deg_grp,n_of_exc_max
- integer  :: iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,ncmplx,&
+ integer  :: ik,i_sp_pol,iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,ncmplx,nsz(5),&
  &           irap,iclass,ielem,iexc,jexc,il1,il2,i_grp,i_sub_grp,io_err,ID,n_elem_used,max_deg
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
@@ -64,6 +65,30 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  call io_control(ACTION=OP_RD,COM=REP,SEC=(/1,2/),MODE=DUMP,ID=ID)
  io_err=io_WF_phases(BS_bands,0,0,0,ID,(/0,0,0,0,0/))
+ !
+ call parser("MinimizeMem",l_min_mem)
+ !
+ if (.not.l_min_mem) then
+   nsz(1:2)=maxval(WF_phases_b_map(:,:,:,1))
+   nsz(3)  =maxval(WF_phases_b_map(:,:,:,2))
+   nsz(4)  =nsym
+   nsz(5)  =Xk%nbz
+   YAMBO_ALLOC(WF_phases,(nsz(1),nsz(2),nsz(3),nsz(4),nsz(5)))
+   !
+   do i_sp_pol=1,n_sp_pol
+     do ik=1,Xk%nibz
+       nsz(1:2)=maxval(WF_phases_b_map(:,ik,i_sp_pol,1))
+       nsz(3)  =maxval(WF_phases_b_map(:,ik,i_sp_pol,2))
+       nsz(4)  =nsym
+       nsz(5)  =Xk%nstar(ik)
+       il1=1
+       if(ik>0) il1= sum(Xk%nstar(:ik-1))+1
+       call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
+       io_err=io_WF_phases( BS_bands,ik,0,i_sp_pol,ID,nsz, &
+       & WF_phases(:nsz(1),:nsz(2),:nsz(3),:,il1:il1+nsz(5)-1) )
+     enddo
+   enddo
+ endif
  !
  call build_inverse_eh_table(Xk%nbz)
  !
@@ -152,12 +177,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        ! Get A(l,R*q)= Ry * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1(:,:n_of_exc(i_grp)))
+       & iq,isqy,iGqy,ID,S_index,EXC_WF_rot1(:,:n_of_exc(i_grp)),l_min_mem)
        !
        ! Get R * A(l,q)
        !
        call EXC_WF_symm_qpoint(Xk,qpt,first_exc(i_grp),n_of_exc(i_grp),&
-       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2(:,:n_of_exc(i_grp)))
+       & iq,isqc,iGqc,ID,S_index,EXC_WF_rot2(:,:n_of_exc(i_grp)),l_min_mem)
        !
        ! Compute the trace of the Irrep
        !

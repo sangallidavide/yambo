@@ -298,6 +298,7 @@ subroutine INIT_ypp_load(defs)
  call it(defs,'FFTGvecs','[FFT] Plane-waves',wf_ng,G_unit)
  call it(defs,'Degen_Step', 'Maximum energy separation of two degenerate states',deg_energy,E_unit)
  call it(defs,'Symm_thresh', 'Threshold for accepting exciton character',EXC_symm_thresh)
+ call it('f',defs,'MinimizeMem', 'Minimize memory use')
 #if defined _YPP_ELPH
  call it(defs,'ResTresh', '[o/o] Treshold on processed polaronic residuals',elph_residual_treshold)
 #endif

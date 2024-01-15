@@ -5,7 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,EXC_WFs)
+subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
+&                                        ID,S_index,EXC_WFs,l_min_mem)
  !
  use pars,          ONLY:SP,cZERO,cONE
  use electrons,     ONLY:n_sp_pol,n_max_deg
@@ -13,7 +14,7 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  use R_lattice,     ONLY:bz_samp,qindx_X,qindx_C
  use BS_solvers,    ONLY:BS_mat,BSS_n_eig,BSS_eh_table_m1
  use BS,            ONLY:BS_bands,BS_H_dim
- use wave_func,     ONLY:io_WF_phases,WF_phases_b_map
+ use wave_func,     ONLY:io_WF_phases,WF_phases_b_map,WF_phases
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:DUMP,REP,RD
  !
@@ -25,12 +26,13 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
  integer,       intent(inout):: ID
  complex(SP),   intent(out)  :: EXC_WFs(BS_H_dim,nstates)
  integer,       intent(in)   :: S_index(BSS_n_eig)
+ logical,       intent(in)   :: l_min_mem
  !
  ! Work space
  !
  integer :: iexc,il,ik,istark,isk,ikbz,ipbz,ipmqbz,ipmqg0,iv1,ic1,iv2,ic2,&
  &          i_v1_bnd,i_v1_grp,i_c1_bnd,i_c1_grp,i_v2_bnd,i_v2_grp,i_c2_bnd,i_c2_grp,&
- &          ikmqbz,ikmqg0,iqbz,i_sp_pol,ip,ipmq,istarp,istarpmq,&
+ &          ikmqbz,ikmqg0,iqbz,i_sp_pol,ip,ipmq,istarp,istarpmq,i1,i2,&
  &          neh1,neh2,io_err,nsz(5),V_bands(2),C_bands(2),ipmq_last
  complex(SP) :: phase_vv,phase_cc
  complex(SP), allocatable :: WF_phases_cc(:,:,:,:,:),WF_phases_vv(:,:,:,:,:)
@@ -64,16 +66,19 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
      !
      ipmq_last=0
      ! 
-     nsz(1:2)=maxval(WF_phases_b_map(:,ik,i_sp_pol,1))
-     nsz(1:2)=maxval(WF_phases_b_map(:,ik,i_sp_pol,1))
-     nsz(3)  =maxval(WF_phases_b_map(:,ik,i_sp_pol,2))
-     nsz(4)  =nsym
-     nsz(5)  =Xk%nstar(ik)
-     !
-     YAMBO_ALLOC(WF_phases_cc,(nsz(1),nsz(2),nsz(3),nsz(4),nsz(5)))
-     !
-     call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
-     io_err=io_WF_phases(BS_bands,ik,0,i_sp_pol,ID,nsz,WF_phases_cc)
+     if (l_min_mem) then
+       !
+       nsz(1:2)=maxval(WF_phases_b_map(:,ik,i_sp_pol,1))
+       nsz(3)  =maxval(WF_phases_b_map(:,ik,i_sp_pol,2))
+       nsz(4)  =nsym
+       nsz(5)  =Xk%nstar(ik)
+       !
+       YAMBO_ALLOC(WF_phases_cc,(nsz(1),nsz(2),nsz(3),nsz(4),nsz(5)))
+       !
+       call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
+       io_err=io_WF_phases(BS_bands,ik,0,i_sp_pol,ID,nsz,WF_phases_cc)
+       !
+     endif
      !
      do istark=1,Xk%nstar(ik)
        !
@@ -97,13 +102,12 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
        !ikmqbz=qindx_C(ikbz,iqbz,1)
        !ikmqg0=qindx_C(ikbz,iqbz,2)
        !
-       if (ipmq/=ipmq_last) then
+       if (ipmq/=ipmq_last.and.l_min_mem) then
          !
          if (ipmq_last>0) then
            YAMBO_FREE(WF_phases_vv)
          endif
          !
-         nsz(1:2)=maxval(WF_phases_b_map(:,ipmq,i_sp_pol,1))
          nsz(1:2)=maxval(WF_phases_b_map(:,ipmq,i_sp_pol,1))
          nsz(3)  =maxval(WF_phases_b_map(:,ipmq,i_sp_pol,2))
          nsz(4)  =nsym
@@ -157,8 +161,16 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
                  !
                  if (neh2==0) cycle
                  !
-                 phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,istarpmq))
-                 phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,istarp)
+                 if (l_min_mem) then
+                   phase_vv=conjg(WF_phases_vv(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,istarpmq))
+                   phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,istarp)
+                 else
+                   i1=1 ; i2=1
+                   if(ip>0)   i1= sum(Xk%nstar(:ik-1))+istarp
+                   if(ipmq>0) i2= sum(Xk%nstar(:ik-1))+istarpmq
+                   phase_vv=conjg(WF_phases(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,i2))
+                   phase_cc=      WF_phases(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,i1)
+                 endif
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
                  !
@@ -172,8 +184,10 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,ID,S_index,E
        !
      enddo
      !
-     YAMBO_FREE(WF_phases_cc)
-     YAMBO_FREE(WF_phases_vv)
+     if (l_min_mem) then
+       YAMBO_FREE(WF_phases_cc)
+       YAMBO_FREE(WF_phases_vv)
+     endif
      !
    enddo
  enddo
