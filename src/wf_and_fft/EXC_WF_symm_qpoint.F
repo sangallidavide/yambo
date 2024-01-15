@@ -166,10 +166,10 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
                    phase_cc=      WF_phases_cc(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,istarp)
                  else
                    i1=1 ; i2=1
-                   if(ip>0)   i1= sum(Xk%nstar(:ik-1))+istarp
-                   if(ipmq>0) i2= sum(Xk%nstar(:ik-1))+istarpmq
-                   phase_vv=conjg(WF_phases(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,i2))
-                   phase_cc=      WF_phases(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,i1)
+                   if(ipmq>0) i1= sum(Xk%nstar(:ipmq-1))+istarpmq
+                   if(ip  >0) i2= sum(Xk%nstar(:ip  -1))+istarp
+                   phase_vv=conjg(WF_phases(i_v1_bnd,i_v2_bnd,i_v1_grp,isq,i1))
+                   phase_cc=      WF_phases(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,i2)
                  endif
                  !
                  EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc

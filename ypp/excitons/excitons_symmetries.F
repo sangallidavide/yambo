@@ -35,21 +35,21 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  complex(SP)         :: BS_E(BSS_n_eig)
  !
  real(SP) :: BS_E_real(EXCITONS_n_user_states),tmp_real,ref_val
- logical  :: l_min_mem,l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found
+ logical  :: l_min_mem,l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found,case_simple,case_cmplx
  integer  :: S_index(EXCITONS_n_user_states)
  integer  :: first_exc(EXCITONS_n_user_states),n_of_exc(EXCITONS_n_user_states),n_deg_grp,n_of_exc_max
  integer  :: ik,i_sp_pol,iqbz,iRqbz,isqc,isqy,isq_small_grp,iGqc,iGqy,nrotq,ncmplx,nsz(5),&
- &           irap,iclass,ielem,iexc,jexc,il1,il2,i_grp,i_sub_grp,io_err,ID,n_elem_used,max_deg
+ &           ich,jrap,irap,iclass,ielem,iexc,jexc,il1,il2,i_grp,i_sub_grp,io_err,ID,n_elem_used,max_deg
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
- complex(SP) :: trace(12,EXCITONS_n_user_states,EXCITONS_n_user_states)
+ complex(SP) :: trace(12,EXCITONS_n_user_states,EXCITONS_n_user_states),char_sum(12)
  complex(SP) :: exc_reps(12,EXCITONS_n_user_states,EXCITONS_n_user_states,EXCITONS_n_user_states)
  !
  integer  :: exc_sbgr(EXCITONS_n_user_states,EXCITONS_n_user_states),n_sub_grps(EXCITONS_n_user_states),&
  &           ref_exc_grp(EXCITONS_n_user_states,EXCITONS_n_user_states),&
  &           ref_exc_sbgr(EXCITONS_n_user_states,EXCITONS_n_user_states),which_class(12)
  !
- character(5)         :: vec_ch(12)
+ character(9)         :: vec_ch(12)
  character(schlen)    :: filename,titles(4),tmp_ch,loc_msg,loc_fmt
  !
  integer, external :: io_QINDX
@@ -286,10 +286,6 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    ! DEBUG >
    !
    l_mixed_states = nint(abs(trace(1,i_sub_grp,i_grp))) > max_deg 
-   if (l_mixed_states) then
-     tmp_ch="mixed states"
-     l_char_not_found=.true.
-   endif
    !
    l_partial_space=.false.
    do iclass=1,nclass
@@ -306,16 +302,36 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    if ( .not. (l_mixed_states.or.l_partial_space) ) then
      do irap=1,nclass
        !if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=EXC_symm_thresh) ) cycle
-       if ( .not.( all(abs(real(trace(:nclass,i_sub_grp,i_grp))                            &
-       &                  -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh) .or. &
-       &           all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP                      &
-       &                  -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh) )) cycle
+       ! Detection for standard point groups
+       case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))                            &
+       &                  -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh)
+       ! Detection for standard point groups with imaginary part.
+       ! 2 states with conjg character are summed together 
+       case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP                      &
+       &                  -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh)
+       if ( .not. (case_simple .or. case_cmplx) ) cycle
        tmp_ch=trim(name_rap(irap))
        l_char_not_found=.false.
        exit
      enddo
      if(irap==nclass+1) then
        tmp_ch="char not found"
+       l_char_not_found=.true.
+     endif
+   else if (l_mixed_states) then
+     main_loop: do irap=1,nclass
+       do jrap=1,nclass
+          char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
+         case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))      -real(char_sum(:nclass)))<=EXC_symm_thresh)
+         case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP-real(char_sum(:nclass)))<=EXC_symm_thresh)
+         if ( .not. (case_simple .or. case_cmplx) ) cycle
+         tmp_ch=trim(name_rap(irap))//"+"//trim(name_rap(jrap))
+         l_char_not_found=.false.
+         exit main_loop
+       enddo
+     enddo main_loop
+     if(irap==nclass+1) then
+       tmp_ch="mixed states (not sum)"
        l_char_not_found=.true.
      endif
    endif
@@ -332,10 +348,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
        vec_ch=""
        do iclass=1,nclass
-         !vec_ch(iclass)=trim(name_class(which_irr(iclass)))
          vec_ch(iclass)=trim(name_class(iclass))
+         do ich=len_trim(vec_ch(iclass)),5
+           vec_ch(iclass)=" "//vec_ch(iclass)
+         enddo
        enddo
-       call msg("o "//trim(filename)," Classes ",vec_ch(:nclass),INDENT=-2)
+       call msg("o "//trim(filename),"Class",vec_ch(:nclass),INDENT=0)
        !
        loc_msg=" Sum"
        do irap=1,nclass
