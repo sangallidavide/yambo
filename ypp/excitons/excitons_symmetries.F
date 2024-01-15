@@ -18,7 +18,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  use BS,             ONLY:BS_bands,BS_H_dim,BS_K_dim
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map,WF_phases
  use stderr,         ONLY:intc,real2ch
- use D_lattice,      ONLY:which_irr,char_mat,nclass,elem,nelem,&
+ use D_lattice,      ONLY:which_irr,char_mat,nclass,elem,nelem,name_class,&
  &                        name_rap,i_time_rev,nsym,nrot,dl_sop,dl_tra
  use vec_operate,    ONLY:sort,degeneration_finder
  use wrapper,        ONLY:Vstar_dot_V
@@ -47,8 +47,9 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  !
  integer  :: exc_sbgr(EXCITONS_n_user_states,EXCITONS_n_user_states),n_sub_grps(EXCITONS_n_user_states),&
  &           ref_exc_grp(EXCITONS_n_user_states,EXCITONS_n_user_states),&
- &           ref_exc_sbgr(EXCITONS_n_user_states,EXCITONS_n_user_states)
+ &           ref_exc_sbgr(EXCITONS_n_user_states,EXCITONS_n_user_states),which_class(12)
  !
+ character(5)         :: vec_ch(12)
  character(schlen)    :: filename,titles(4),tmp_ch,loc_msg,loc_fmt
  !
  integer, external :: io_QINDX
@@ -270,6 +271,11 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  max_deg=nint(maxval(real(abs(char_mat(:,1)))))
  if (l_char_table_imag) max_deg=max_deg*2
  !
+ do iclass=1,nclass
+   irap=which_irr(iclass)
+   which_class(irap)=iclass
+ enddo
+ !
  do i_grp=1,n_deg_grp
    do i_sub_grp=1,n_sub_grps(i_grp)
    !
@@ -324,8 +330,16 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        if (ielem==1) loc_msg="Real part analysis "
        if (ielem==2) loc_msg="Img. part analysis"
        call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
-       loc_msg=" Sum"
+       vec_ch=""
        do iclass=1,nclass
+         !vec_ch(iclass)=trim(name_class(which_irr(iclass)))
+         vec_ch(iclass)=trim(name_class(iclass))
+       enddo
+       call msg("o "//trim(filename)," Classes ",vec_ch(:nclass),INDENT=-2)
+       !
+       loc_msg=" Sum"
+       do irap=1,nclass
+         iclass=which_class(irap)
          if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(trace(iclass,i_sub_grp,i_grp))
          if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)") aimag(trace(iclass,i_sub_grp,i_grp))
          loc_msg=trim(loc_msg)//trim(tmp_ch)
@@ -337,9 +351,10 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
          if( exc_sbgr(il2,i_grp)/=i_sub_grp ) cycle
          iexc=first_exc(i_grp)+il2-1
          loc_msg="  "//trim(intc(iexc))
-         do iclass=1,nclass
+         do irap=1,nclass
+           iclass=which_class(irap)
            if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(exc_reps(iclass,il2,il2,i_grp))
-           if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)")  real(exc_reps(iclass,il2,il2,i_grp))
+           if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)") aimag(exc_reps(iclass,il2,il2,i_grp))
            loc_msg=trim(loc_msg)//trim(tmp_ch)
          enddo
          call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
