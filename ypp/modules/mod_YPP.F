@@ -258,9 +258,9 @@ module YPPm
  real(SP)          :: epsi0(3)
  integer           :: EXC_Phi_Grid
  !
- ! Exciton symmetry groups analysis
+ ! symmetry groups analysis
  ! 
- real(SP)          :: EXC_symm_thresh
+ real(SP)          :: symm_thresh
  !
  ! Transition Analysis
  !

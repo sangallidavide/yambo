@@ -11,7 +11,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  use units,          ONLY:HA2EV
  use parser_m,       ONLY:parser
  use YPPm,           ONLY:deg_energy,EXCITONS_n_user_states,&
- &                        EXCITONS_user_indexes,EXC_symm_thresh
+ &                        EXCITONS_user_indexes,symm_thresh
  use R_lattice,      ONLY:bz_samp,coll_scattering
  use electrons,      ONLY:levels,n_sp_pol
  use BS_solvers,     ONLY:BS_mat,BSS_n_eig
@@ -220,7 +220,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
        jexc=first_exc(i_grp)+il2-1
        call msg('s',"Rep "//trim(intc(i_grp))//" ,Exc. mix "//trim(intc(iexc))//","&
        &                  //trim(intc(jexc)),sum(abs(exc_reps(:,il2,il1,i_grp))))
-       if ( sum(abs(exc_reps(:,il2,il1,i_grp)))>=nclass*EXC_symm_thresh) cycle
+       if ( sum(abs(exc_reps(:,il2,il1,i_grp)))>=nclass*symm_thresh) cycle
        ref_exc_grp(il2,i_grp)=-1
      enddo
    enddo
@@ -291,7 +291,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    do iclass=1,nclass
      tmp_real=abs(trace(iclass,i_sub_grp,i_grp))
      tmp_real=abs(tmp_real-real(nint(tmp_real),SP))
-     l_partial_space = tmp_real > EXC_symm_thresh
+     l_partial_space = tmp_real > symm_thresh
      if(l_partial_space) exit
    enddo
    if (l_partial_space) then
@@ -301,14 +301,14 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    !
    if ( .not. (l_mixed_states.or.l_partial_space) ) then
      do irap=1,nclass
-       !if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=EXC_symm_thresh) ) cycle
+       !if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=symm_thresh) ) cycle
        ! Detection for standard point groups
        case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))                            &
-       &                  -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh)
+       &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
        ! Detection for standard point groups with imaginary part.
        ! 2 states with conjg character are summed together 
        case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP                      &
-       &                  -real(char_mat(irap,which_irr(:nclass))))<=EXC_symm_thresh)
+       &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
        if ( .not. (case_simple .or. case_cmplx) ) cycle
        tmp_ch=trim(name_rap(irap))
        l_char_not_found=.false.
@@ -322,8 +322,8 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
      main_loop: do irap=1,nclass
        do jrap=1,nclass
           char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
-         case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))      -real(char_sum(:nclass)))<=EXC_symm_thresh)
-         case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP-real(char_sum(:nclass)))<=EXC_symm_thresh)
+         case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))      -real(char_sum(:nclass)))<=symm_thresh)
+         case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP-real(char_sum(:nclass)))<=symm_thresh)
          if ( .not. (case_simple .or. case_cmplx) ) cycle
          tmp_ch=trim(name_rap(irap))//"+"//trim(name_rap(jrap))
          l_char_not_found=.false.

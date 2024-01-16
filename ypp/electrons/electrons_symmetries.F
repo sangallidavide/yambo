@@ -7,14 +7,15 @@
 !
 subroutine electrons_symmetries(Xk,Xen,blim,klim)
  !
- use pars,           ONLY:DP,SP,cZERO,schlen
+ use pars,           ONLY:DP,SP,cZERO,schlen,cI
  use units,          ONLY:HA2EV
+ use YPPm,           ONLY:symm_thresh
  use electrons,      ONLY:levels,n_sp_pol,n_max_deg
  use R_lattice,      ONLY:bz_samp
- use stderr,         ONLY:intc
+ use stderr,         ONLY:intc,real2ch
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
 &                         i_time_rev,nsym,nrot,dl_sop,dl_tra,  &
-&                         sop_tab,name_rap
+&                         sop_tab,name_rap,name_class
  use vec_operate,    ONLY:degeneration_finder
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
  use IO_int,         ONLY:io_control
@@ -28,16 +29,22 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  type(bz_samp):: Xk
  integer, intent(in) :: blim(2),klim(2)
  !
- complex(SP) :: trace(12)
+ complex(SP) :: trace(12),char_sum(12)
  complex(SP), allocatable :: WF_phases(:,:,:,:,:)
  !
- integer     :: iclass,irap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,blim_n(2), &
- &              ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,nsz(5)
+ real(SP) :: tmp_real
+ !
+ logical  :: l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found,case_simple,case_cmplx
+ integer  :: iclass,irap,jrap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,ib1,iel,blim_n(2),ich,       &
+ &           ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,max_deg,nsz(5),which_class(12), &
+ &           ncmplx
+ !
+ integer  :: io_err,ID
+ !
  integer, allocatable :: first_el(:),n_of_el(:)
  !
- integer              :: io_err,ID
- !
- character(schlen)    :: filename,titles(3),tmp_ch
+ character(9)         :: vec_ch(12)
+ character(schlen)    :: filename,titles(4),tmp_ch,loc_msg,loc_fmt
  !
  nb=blim(2)-blim(1)+1
  !
@@ -89,6 +96,17 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        call print_point_group("o "//trim(filename),nrotk,dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),&
        &                                                 dl_tra(:,Xk%grp_table(:nrotk,ikbz))   )
        !
+       loc_fmt="(F10.4,12x,F4.2,12x,a,12x,i4)"
+       l_char_table_imag=maxval(abs(real(cI*char_mat)))>0.01_SP
+       !
+       max_deg=nint(maxval(real(abs(char_mat(:,1)))))
+       if (l_char_table_imag) max_deg=max_deg*2
+       !
+       do iclass=1,nclass
+         irap=which_irr(iclass)
+         which_class(irap)=iclass
+       enddo
+       !
        nsz=(/maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,Xk%nstar(ik)/)
        YAMBO_ALLOC(WF_phases,(nsz(1),nsz(2),nsz(3),nsz(4),1))
        !AMBO_ALLOC(WF_phases,(n_max_deg,n_max_deg,nb,nsym,1,1))
@@ -96,12 +114,14 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        call io_control(ACTION=RD,COM=REP,SEC=(/3/),MODE=DUMP,ID=ID)
        io_err=io_WF_phases(blim,ik,istark,i_sp_pol,ID,nsz,WF_phases)
        !
-       titles=(/" E[eV]  "," symm.  ","   ib   "/)
+       titles=(/" E[eV]  "," n_deg  "," symm.  ","   ib   "/)
        call msg("o "//trim(filename),"#")
        call msg("o "//trim(filename),'#',titles,INDENT=0,USE_TABS=.true.)
        call msg("o "//trim(filename),"#")
        !
        do i_grp=1,n_deg_grp
+         !
+         ib1=first_el(i_grp)
          !
          trace=cZERO
          do iclass=1,nclass
@@ -109,19 +129,121 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
            ! can be performed
            do ielem=1,1 !nelem(iclass)
              isp=Xk%grp_table(elem(ielem,iclass),ikbz)
-             ipbz=Xk%k_table(ik,sop_tab(isp,isk))
+             !ipbz=Xk%k_table(ik,sop_tab(isp,isk))
              do ibk=1,n_of_el(i_grp)
                trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1)
              enddo
            enddo
            !trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
          enddo
-         do irap=1,nclass
-           if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
-           write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
-           & Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,trim(name_rap(irap)),first_el(i_grp)
-           call msg("o "//trim(filename),'',tmp_ch,INDENT=-2)
+         !
+         ! OLD detection and output
+         !
+         !do irap=1,nclass
+         !  if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<0.0001_SP) ) cycle
+         !  write(tmp_ch,"(F10.4,12x,a,12x,i4)") &
+         !   & Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,trim(name_rap(irap)),first_el(i_grp)
+         !  call msg("o "//trim(filename),'',tmp_ch,INDENT=-2)
+         !enddo
+         !
+         ! NEW detection and output imported from exciton_symmetries.F
+         !
+         l_mixed_states = nint(abs(trace(1))) > max_deg 
+         !
+         l_partial_space=.false.
+         do iclass=1,nclass
+           tmp_real=abs(trace(iclass))
+           tmp_real=abs(tmp_real-real(nint(tmp_real),SP))
+           l_partial_space = tmp_real > symm_thresh
+           if(l_partial_space) exit
          enddo
+         if (l_partial_space) then
+           tmp_ch="partial space "//trim(real2ch(tmp_real))
+           l_char_not_found=.true.
+         endif
+         !
+         if ( .not. (l_mixed_states.or.l_partial_space) ) then
+           do irap=1,nclass
+             !if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<=symm_thresh) ) cycle
+             ! Detection for standard point groups
+             case_simple=all(abs(real(trace(:nclass))                            &
+             &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
+             ! Detection for standard point groups with imaginary part.
+             ! 2 states with conjg character are summed together 
+             case_cmplx =all(abs(real(trace(:nclass))/2._SP                      &
+             &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
+             if ( .not. (case_simple .or. case_cmplx) ) cycle
+             tmp_ch=trim(name_rap(irap))
+             l_char_not_found=.false.
+             exit
+           enddo
+           if(irap==nclass+1) l_char_not_found=.true.
+         endif
+         if (l_mixed_states.or.l_char_not_found) then
+           main_loop: do irap=1,nclass
+             do jrap=1,nclass
+                char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
+               case_simple=all(abs(real(trace(:nclass))      -real(char_sum(:nclass)))<=symm_thresh)
+               case_cmplx =all(abs(real(trace(:nclass))/2._SP-real(char_sum(:nclass)))<=symm_thresh)
+               if ( .not. (case_simple .or. case_cmplx) ) cycle
+               tmp_ch=trim(name_rap(irap))//"+"//trim(name_rap(jrap))
+               l_char_not_found=.false.
+               exit main_loop
+             enddo
+           enddo main_loop
+           if(irap==nclass+1) then
+             if(l_mixed_states)   tmp_ch="mixed states (not sum)"
+             if(l_char_not_found) tmp_ch="char not found (not sum)"
+             l_char_not_found=.true.
+           endif
+         endif
+         !
+         write(loc_msg,loc_fmt) Xen%E(first_el(i_grp),ik,i_sp_pol)*HA2EV,real(trace(1)),trim(tmp_ch),ib1
+         call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+         if (l_char_not_found) then
+           ncmplx=1
+           if ( any(aimag(trace(:))>1.E-4_SP) ) ncmplx=2
+           do ielem=1,ncmplx
+             !
+             if (ielem==1) loc_msg="Real part analysis "
+             if (ielem==2) loc_msg="Img. part analysis"
+             call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+             vec_ch=""
+             do iclass=1,nclass
+               vec_ch(iclass)=trim(name_class(iclass))
+               do ich=len_trim(vec_ch(iclass)),5
+                 vec_ch(iclass)=" "//vec_ch(iclass)
+               enddo
+             enddo
+             call msg("o "//trim(filename),"Class",vec_ch(:nclass),INDENT=0)
+             !
+             loc_msg=" Sum"
+             do irap=1,nclass
+               iclass=which_class(irap)
+               if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(trace(iclass))
+               if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)") aimag(trace(iclass))
+               loc_msg=trim(loc_msg)//trim(tmp_ch)
+             enddo
+             !
+             call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+             !
+             do ibk=1,n_of_el(i_grp)
+               iel=first_el(i_grp)+ibk-1
+               loc_msg="  "//trim(intc(iel))
+               do irap=1,nclass
+                 iclass=which_class(irap)
+                 isp=Xk%grp_table(elem(1,iclass),ikbz)
+                 if(ielem==1) write(tmp_ch,"(2x,F5.2,2x)")  real(WF_phases(ibk,ibk,i_grp,isp,1))
+                 if(ielem==2) write(tmp_ch,"(2x,F5.2,2x)") aimag(WF_phases(ibk,ibk,i_grp,isp,1))
+                 loc_msg=trim(loc_msg)//trim(tmp_ch)
+               enddo
+               call msg("o "//trim(filename),'',loc_msg,INDENT=-2)
+             enddo
+             !
+           enddo
+           call msg("o "//trim(filename),'')
+         endif
+         !
        enddo
        !
        YAMBO_FREE(WF_phases)

@@ -935,7 +935,7 @@ INTEGER :: iflag
 !
 LOGICAL :: is_axis
 !
-REAL(DP), PARAMETER :: eps=zero_dfl_DP
+REAL(DP), PARAMETER :: eps=5.E-4_DP
 !
 IF (iflag==1) THEN
    is_axis=ABS(ax(2))<eps.AND.ABS(ax(3))<eps
@@ -967,7 +967,7 @@ REAL(DP) :: smat(3,3)
 !! the rotation matrix
 REAL(DP) :: ax(3)
 !! the rotation axis
-REAL(DP), PARAMETER  ::  eps=zero_dfl_DP
+REAL(DP), PARAMETER  ::  eps=1.E-4_DP
 REAL(DP) :: a1(3), norm
 INTEGER :: ipol, jpol, tipo_sym, ts
 !
@@ -2846,7 +2846,7 @@ IMPLICIT NONE
 !
 REAL(DP), INTENT(IN)  :: a(3)
 INTEGER,  INTENT(OUT) :: ia
-REAL(DP) :: epsil=zero_dfl_DP, sqr3=SQRT(3.0_DP)
+REAL(DP) :: epsil=5.E-4_DP, sqr3=SQRT(3.0_DP)
 LOGICAL :: is_axis
 
 ia=0
