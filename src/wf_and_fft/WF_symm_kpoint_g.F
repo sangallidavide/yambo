@@ -15,7 +15,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  use wave_func,     ONLY:wf_ng,wf_ng_1st_BZ
  use vec_operate,   ONLY:c2a
  use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(g_phs),DEV_VAR(G_m_G),&
- &                       k_pt,rl_sop
+ &                       k_pt,rl_sop,g_vec
  use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),sop_inv,dl_tra, &
  &                       dl_sop,i_time_rev,nsym
@@ -31,7 +31,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  complex(SP)              DEV_ATTR :: WF_k_tmp(wf_ng_1st_BZ,n_spinor)
  complex(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
  !
- real(SP)    :: krot(3)
+ real(SP)    :: krot(3),G_cc(3)
  complex(SP) :: gphase,kphase
  !
  integer :: ib,i_wf,isymm_m1
@@ -44,6 +44,8 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  !  
  krot=matmul(rl_sop(:,:,isymm),k_pt(ik,:))
  call c2a(v_in=krot,mode='ki2c')
+ !call c2a(v_in=g_vec(ig0,:),v_out=G_cc,mode='ki2c')
+ krot=krot!+G_cc
  !
  !krot=k_pt(ik,:)
  !call c2a(v_in=krot,mode='ki2c')
@@ -86,11 +88,10 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
      enddo
    endif
    !
-   ! Take care of transialtions
+   ! Take care of translations
    WF_k_tmp=WF_k_tmp*kphase
    !
    ! take care of time reversal if needed
-   !
    if(isymm>nsym/(1+i_time_rev)) call dev_conjg(WF_k_tmp)
    !
    call dev_memcpy(WF_p(:,:,i_wf),WF_k_tmp)
