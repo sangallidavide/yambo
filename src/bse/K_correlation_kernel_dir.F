@@ -56,20 +56,20 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
  do i_g1=1,BS_n_g_W
    i_g2=G_m_G_d(g_rot_d(i_g1,iq_W_s)   ,ig_W   )
    i_g3=G_m_G_d(g_rot_d(i_g1,iq_W_s_mq),ig_W_mq)
-   gphase1=cmplx(cos(g_phs_d(i_g1,iq_W_s)   ),sin(g_phs(i_g1,iq_W_s)   ))
-   gphase2=cmplx(cos(g_phs_d(i_g1,iq_W_s_mq)),sin(g_phs(i_g1,iq_W_s_mq)))
+   gphase1=cmplx(cos(g_phs_d(i_g2,iq_W_s)   ),sin(g_phs(i_g2,iq_W_s)   ))
+   gphase2=cmplx(cos(g_phs_d(i_g3,iq_W_s_mq)),sin(g_phs(i_g3,iq_W_s_mq)))
    O1(i_g1)=O_c_d_iO1(i_g2)*gphase1
    O2(i_g1)=O_c_d_iO2(i_g3)*gphase2
  enddo
  !
 #else
  !
- !$omp parallel do default(shared), private(i_g1,i_g2,i_g3)
+ !$omp parallel do default(shared), private(i_g1,i_g2,i_g3,gphase1,gphase2)
  do i_g1=1,BS_n_g_W
    i_g2=G_m_G(g_rot(i_g1,iq_W_s)   ,ig_W   )
    i_g3=G_m_G(g_rot(i_g1,iq_W_s_mq),ig_W_mq)
-   gphase1=cmplx(cos(g_phs(i_g1,iq_W_s)   ),sin(g_phs(i_g1,iq_W_s)   ))
-   gphase2=cmplx(cos(g_phs(i_g1,iq_W_s_mq)),sin(g_phs(i_g1,iq_W_s_mq)))
+   gphase1=cmplx(cos(g_phs(i_g2,iq_W_s)   ),sin(g_phs(i_g2,iq_W_s)   ))
+   gphase2=cmplx(cos(g_phs(i_g3,iq_W_s_mq)),sin(g_phs(i_g3,iq_W_s_mq)))
    O1(i_g1)=BS_blk(i_block_1)%O_c(i_g2,iO1)*gphase1
    O2(i_g1)=BS_blk(i_block_2)%O_c(i_g3,iO2)*gphase2
  enddo

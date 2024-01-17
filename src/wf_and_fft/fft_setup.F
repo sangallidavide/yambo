@@ -218,11 +218,11 @@ subroutine fft_setup(iG_max,iGo_max,ONLY_SIZE)
        do i2=0,fft_dim(2)-1
          do i3=0,fft_dim(3)-1
            !
-	   ! r-T
-           iv(1)=i1-T1(1) !modx(i1-T1(1),fft_dim(1))
-           iv(2)=i2-T1(2) !modx(i2-T1(2),fft_dim(2))
-           iv(3)=i3-T1(3) !modx(i3-T1(3),fft_dim(3))
-           ! R^-2(r-T)
+           ! r-T
+           iv(1)=i1+T1(1)
+           iv(2)=i2+T1(2)
+           iv(3)=i3+T1(3)
+           ! R^-1(r-T)
            iv=nint(matmul(M2,iv))
            ! back to 1st RL
            iv(1)=modx(iv(1),fft_dim(1))

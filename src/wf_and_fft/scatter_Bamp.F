@@ -151,14 +151,14 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
    !$omp parallel do default(shared), private(ig,igr)
    do ig = 1, isc%ngrho
      igr=fft_g_table(ig,iGo)
-     isc%rhotw(ig)= cmplx(conjg(isc%rho_tw_rs(igr)),kind=SP)
+     isc%rhotw(ig)= conjg(cmplx(isc%rho_tw_rs(igr),kind=SP))
    enddo
  else
-   !$omp parallel do default(shared), private(ig,igr)
+   !$omp parallel do default(shared), private(ig,igr,gphase)
    do ig = 1, isc%ngrho
      igr=fft_g_table(g_rot(ig,qs),iGo)
-     gphase=cmplx(cos(g_phs(ig,qs)),sin(g_phs(ig,qs)))
-     isc%rhotw(ig)= cmplx(conjg(isc%rho_tw_rs(igr)),kind=SP)*gphase
+     gphase=cmplx(cos(g_phs(igr,qs)),sin(g_phs(igr,qs)))
+     isc%rhotw(ig)= conjg(cmplx(isc%rho_tw_rs(igr),kind=SP)*gphase)
    enddo
  endif
  !
@@ -181,11 +181,11 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
 #ifdef _CUDA_LOC
    !$cuf kernel do(1) <<<*,*>>>
 #else
-   !$omp parallel do default(shared), private(ig)
+   !$omp parallel do default(shared), private(ig,igr,gphase)
 #endif
    do ig = 1, isc_ngrho
      igr=DEV_VAR(fft_g_table)(DEV_VAR(g_rot)(ig,qs),iGo)
-     gphase=cmplx(cos(DEV_VAR(g_phs)(ig,qs)),sin(DEV_VAR(g_phs)(ig,qs)))
+     gphase=cmplx(cos(DEV_VAR(g_phs)(igr,qs)),sin(DEV_VAR(g_phs)(igr,qs)))
      rhotw_p(ig)= cmplx(rho_tw_rs_p(igr),kind=SP)*gphase
    enddo
    !
