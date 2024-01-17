@@ -165,10 +165,10 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
          if ( .not. (l_mixed_states.or.l_partial_space) ) then
            do irap=1,nclass
              !if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<=symm_thresh) ) cycle
-             ! Detection for standard point groups
+             ! Detection for point groups without imaginary part
              case_simple=all(abs(real(trace(:nclass))                            &
              &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
-             ! Detection for standard point groups with imaginary part.
+             ! Detection for point groups with imaginary part.
              ! 2 states with conjg character are summed together 
              case_cmplx =all(abs(real(trace(:nclass))/2._SP                      &
              &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)

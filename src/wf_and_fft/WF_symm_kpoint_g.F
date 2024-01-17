@@ -18,7 +18,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  &                       k_pt,rl_sop
  use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),sop_inv,dl_tra, &
- &                       i_time_rev,nsym
+ &                       dl_sop,i_time_rev,nsym
  !
  implicit none
  !
@@ -32,7 +32,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  complex(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
  !
  real(SP)    :: krot(3)
- complex(SP) :: gphase
+ complex(SP) :: gphase,kphase
  !
  integer :: ib,i_wf,isymm_m1
  integer :: ic,ig,igp,i_spinor
@@ -41,6 +41,15 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  !
  WF_p => DEV_VAR(WF%c)
  isymm_m1=sop_inv(isymm)
+ !  
+ krot=matmul(rl_sop(:,:,isymm),k_pt(ik,:))
+ call c2a(v_in=krot,mode='ki2c')
+ !
+ !krot=k_pt(ik,:)
+ !call c2a(v_in=krot,mode='ki2c')
+ !krot=matmul(dl_sop(:,:,isymm),krot)
+ !
+ kphase=cmplx(cos(dot_product(dl_tra(:,isymm),krot)),sin(dot_product(dl_tra(:,isymm),krot)))
  !
  do ib=b_to_load(1),b_to_load(2)
    !
@@ -78,10 +87,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
    endif
    !
    ! Take care of transialtions
-   krot=matmul(rl_sop(:,:,isymm),k_pt(ik,:))
-   call c2a(v_in=krot,mode='ki2c')
-   gphase=cmplx(cos(dot_product(dl_tra(:,isymm),krot)),sin(dot_product(dl_tra(:,isymm),krot)))
-   WF_k_tmp=WF_k_tmp*gphase
+   WF_k_tmp=WF_k_tmp*kphase
    !
    ! take care of time reversal if needed
    !
