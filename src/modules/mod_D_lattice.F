@@ -229,7 +229,7 @@ module D_lattice
          do is=1,n_atomic_species
          do ia=1,n_atoms_species(is)
            !
-           v1=matmul(dl_sop(:,:,isym),atom_pos(:,ia,is))+dl_tra(:,isym)
+           v1=matmul(dl_sop(:,:,isym),atom_pos(:,ia,is))-dl_tra(:,isym)
            !
            lfound=.false.
            !
