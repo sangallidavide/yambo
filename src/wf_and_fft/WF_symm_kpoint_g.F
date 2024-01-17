@@ -15,7 +15,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  use wave_func,     ONLY:wf_ng,wf_ng_1st_BZ
  use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(g_phs),DEV_VAR(G_m_G)
  use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
- use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),i_time_rev,nsym
+ use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),sop_inv,i_time_rev,nsym
  !
  implicit none
  !
@@ -30,12 +30,13 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  !
  complex(SP) :: gphase
  !
- integer :: ib,i_wf
+ integer :: ib,i_wf,isymm_m1
  integer :: ic,ig,igp,i_spinor
  !
  if(isymm==idt_index) return
  !
  WF_p => DEV_VAR(WF%c)
+ isymm_m1=sop_inv(isymm)
  !
  do ib=b_to_load(1),b_to_load(2)
    !
@@ -52,7 +53,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
        ig=wf_igk(ic,ik)
        igp=DEV_VAR(G_m_G)(DEV_VAR(g_rot)(ig,isymm),ig0)
        gphase=cmplx(cos(DEV_VAR(g_phs)(ig,isymm)),sin(DEV_VAR(g_phs)(ig,isymm)))
-       WF_k_tmp(igp,1)=WF_p(ig,1,i_wf)*conjg(gphase)
+       WF_k_tmp(igp,1)=WF_p(ig,1,i_wf)*gphase
      enddo
      !
    else
@@ -63,12 +64,12 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
      do ic=1,wf_nc_k(ik)
        ig=wf_igk(ic,ik)
        igp=DEV_VAR(G_m_G)(DEV_VAR(g_rot)(ig,isymm),ig0)
-       gphase=cmplx(cos(DEV_VAR(g_phs)(ig,isymm)),sin(DEV_VAR(g_phs)(ig,isymm)))
-       WF_k_tmp(igp,1)=DEV_VAR(spin_sop)(1,1,isymm)*WF_p(ig,1,i_wf)+ &
-&                         DEV_VAR(spin_sop)(1,2,isymm)*WF_p(ig,2,i_wf)
-       WF_k_tmp(igp,2)=DEV_VAR(spin_sop)(2,1,isymm)*WF_p(ig,1,i_wf)+ &
-&                         DEV_VAR(spin_sop)(2,2,isymm)*WF_p(ig,2,i_wf)
-       WF_k_tmp(igp,:)=WF_k_tmp(igp,:)*conjg(gphase)
+       gphase=cmplx(cos(DEV_VAR(g_phs)(igp,isymm)),sin(DEV_VAR(g_phs)(igp,isymm)))
+       WF_k_tmp(igp,1)=DEV_VAR(spin_sop)(1,1,isymm)*WF_p(igp,1,i_wf)+ &
+&                         DEV_VAR(spin_sop)(1,2,isymm)*WF_p(igp,2,i_wf)
+       WF_k_tmp(igp,2)=DEV_VAR(spin_sop)(2,1,isymm)*WF_p(igp,1,i_wf)+ &
+&                         DEV_VAR(spin_sop)(2,2,isymm)*WF_p(igp,2,i_wf)
+       WF_k_tmp(igp,:)=WF_k_tmp(igp,:)*gphase
      enddo
    endif
    !

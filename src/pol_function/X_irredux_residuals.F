@@ -55,7 +55,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
  real(SP)           :: Z_eh_occ
  logical            :: l_X_term_vv
  integer            :: ngrho
- integer            :: ig1,ig2,ik,is,ikp,ikbz,ikpbz,i_spin,&
+ integer            :: ig1,ig2,ik,is,ikp,ikbz,ikg0,ikpbz,i_spin,&
 &                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,ROWS(2)
  !
  ! DIPOLES
@@ -84,6 +84,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
    i_spin = X_poles_tab(n_poles,4)
    !
    ikpbz  = qindx_X(iq,ikbz,1)
+   ikg0   = qindx_X(iq,ikbz,2)
    !
    ik = Xk%sstar(ikbz,1)
    is = Xk%sstar(ikbz,2)
@@ -139,11 +140,12 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
        sop_inv_l=sop_inv(is)
        !
        !DEV_CUF kernel do(1) <<<*,*>>>
-       !DEV_OMP parallel do default(shared), private(ig1,ig2)
+       !DEV_OMP parallel do default(shared), private(ig1,ig2,gphase)
        !
        do ig1=2,X_ng
          ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-	 gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,sop_inv_l)),sin(DEV_VAR(g_phs)(ig1,sop_inv_l)))
+	 !gphase=cmplx(cos(DEV_VAR(g_phs)(ig2,is)),sin(DEV_VAR(g_phs)(ig2,is)))
+         gphase=cmplx(cos(DEV_VAR(g_phs)(ig2,sop_inv_l)),sin(DEV_VAR(g_phs)(ig2,sop_inv_l)))
          Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)*gphase
        enddo
        !
@@ -177,7 +179,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      !
      Xo_scatt%is=(/ic,ik,is,i_spin/)
      Xo_scatt%os=(/iv,ikp,isp,i_spin/)
-     Xo_scatt%qs=(/qindx_X(iq,ikbz,2),iq,1/)
+     Xo_scatt%qs=(/ikg0,iq,1/)
      !
      call DEV_SUB(scatter_Bamp)(Xo_scatt)
      !
@@ -229,10 +231,11 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      sop_inv_l=sop_inv(is)
      !
      !DEV_CUF kernel do(1) <<<*,*>>>
-     !DEV_OMP parallel do default(shared), private(ig1,ig2)
+     !DEV_OMP parallel do default(shared), private(ig1,ig2,gphase)
      do ig1=1,X_ng
        ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-       gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,sop_inv_l)),sin(DEV_VAR(g_phs)(ig1,sop_inv_l)))
+       !gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,is)),sin(DEV_VAR(g_phs)(ig1,is)))
+       gphase=cmplx(cos(DEV_VAR(g_phs)(ig2,sop_inv_l)),sin(DEV_VAR(g_phs)(ig2,sop_inv_l)))
        Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)*gphase
      enddo
      !
