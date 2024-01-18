@@ -22,7 +22,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  use pars,           ONLY:cZERO,cONE,DP,SP
  use electrons,      ONLY:n_spinor
  use collision_el,   ONLY:elemental_collision
- use D_lattice,      ONLY:idt_index
+ use D_lattice,      ONLY:idt_index,non_symmorphic_syms
  use R_lattice,      ONLY:DEV_VAR(g_rot),DEV_VAR(g_phs)
  use pseudo,         ONLY:pp_is_uspp
  use FFT_m,          ONLY:fftw_plan,cufft_plan,fft_size,fft_dim,DEV_VAR(fft_g_table)
@@ -33,7 +33,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  type(elemental_collision), target::isc
  
  integer :: qs,iGo
- integer :: ig,igr,ir,isc_ngrho,ib,ibp
+ integer :: ig,igr,igs,ir,isc_ngrho,ib,ibp
  complex(SP) :: gphase
  complex(SP), pointer DEV_ATTR :: WF_symm_i_p(:,:), WF_symm_o_p(:,:)
  complex(SP), pointer DEV_ATTR :: rhotw_p(:)
@@ -143,6 +143,9 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  qs =isc%qs(3)
  isc_ngrho=isc%ngrho
  !
+ if (qs/=idt_index .and. non_symmorphic_syms) &
+ & call error(" Non symmorphic syms not coded with q-rotation in scatter bamp")
+ !
 #if defined _FFTQE && !defined _USE_3D_FFT && !defined _CUDA_LOC
  !
  ! one extra conjg is performed on rho_tw_rs
@@ -156,9 +159,11 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  else
    !$omp parallel do default(shared), private(ig,igr,gphase)
    do ig = 1, isc%ngrho
-     igr=fft_g_table(g_rot(ig,qs),iGo)
-     gphase=cmplx(cos(g_phs(igr,qs)),sin(g_phs(igr,qs)))
-     isc%rhotw(ig)= conjg(cmplx(isc%rho_tw_rs(igr),kind=SP)*gphase)
+     igr=g_rot(ig,qs)
+     igs=fft_g_table(igr,iGo)
+     !To check what to do. gphase coding below might not be not correct
+     !gphase=cmplx(cos(g_phs(igr,qs)),sin(g_phs(igr,qs)))
+     isc%rhotw(ig)= conjg(cmplx(isc%rho_tw_rs(igs),kind=SP))!*gphase)
    enddo
  endif
  !
@@ -184,9 +189,11 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
    !$omp parallel do default(shared), private(ig,igr,gphase)
 #endif
    do ig = 1, isc_ngrho
-     igr=DEV_VAR(fft_g_table)(DEV_VAR(g_rot)(ig,qs),iGo)
-     gphase=cmplx(cos(DEV_VAR(g_phs)(igr,qs)),sin(DEV_VAR(g_phs)(igr,qs)))
-     rhotw_p(ig)= cmplx(rho_tw_rs_p(igr),kind=SP)*gphase
+     igr=DEV_VAR(g_rot)(ig,qs)
+     igs=DEV_VAR(fft_g_table)(igr,iGo)
+     !To check what to do. gphase coding below might not be not correct
+     !gphase=cmplx(cos(DEV_VAR(g_phs)(igr,qs)),sin(DEV_VAR(g_phs)(igr,qs)))
+     rhotw_p(ig)= cmplx(rho_tw_rs_p(igr),kind=SP)!*gphase
    enddo
    !
  endif

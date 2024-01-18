@@ -17,7 +17,8 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor
  use FFT_m,         ONLY:fft_size
  use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G,TDDFT_ALDA_R_space
- use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,i_space_inv,sop_inv,sop_tab
+ use D_lattice,     ONLY:nsym,DL_vol,i_time_rev,i_space_inv,sop_inv,sop_tab,&
+&                        non_symmorphic_syms
  use R_lattice,     ONLY:G_m_G,qindx_B,bz_samp,g_rot,RIM_W,&
 &                        qindx_X,qindx_B_max,qindx_B_load,&
 &                        RIM_ng,RIM_W_is_diagonal,RIM_W_ng
@@ -155,7 +156,7 @@ subroutine K(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  if (load_O_X) call msg('r','[BSE] Exchange components ',BS_n_g_exch)
  !
- if (iq/=1 .and. n_spinor==2 .and. nsym>1) then
+ if ( ((iq/=1.and.n_spinor==2) .or. non_symmorphic_syms) .and. nsym>1) then
    ! Default is direct algorithm, unless imposed from input
    call parser('ImposeStdAlg',l_std_alg)
    l_dir_alg=.not.l_std_alg

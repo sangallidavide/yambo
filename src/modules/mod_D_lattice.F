@@ -40,6 +40,7 @@ module D_lattice
                         ! on the value of i_time_rev and i_space_inv
  integer :: idt_index   ! Indentity I  index
  logical :: mag_syms
+ logical :: non_symmorphic_syms
  logical, allocatable    :: pure_rotation(:)
  real(SP),allocatable    :: dl_sop(:,:,:)   ! Symmetry operation in real-space
  real(SP),allocatable    :: dl_tra(:,:)     ! Symmetry translations in real-space
@@ -177,9 +178,7 @@ module D_lattice
        atoms_loop: do ia=1,n_atoms_species(is)
          do iap=1,n_atoms_species(is) 
            !
-           at_diff=matmul(a_m1,atom_pos(:,ia,is)+atom_pos(:,iap,is)-tra(1))
-           !
-           !at_diff=at_diff-tra(1)
+           at_diff=matmul(a_m1,atom_pos(:,ia,is)+atom_pos(:,iap,is)-2._SP*tra)
            !
            at_diff(1)=abs(at_diff(1)-nint(at_diff(1)))
            at_diff(2)=abs(at_diff(2)-nint(at_diff(2)))

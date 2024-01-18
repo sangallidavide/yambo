@@ -62,7 +62,8 @@ module mod_com2y
      use com,       ONLY:msg
      use electrons, ONLY:l_spin_orbit,n_spin_den
      use D_lattice, ONLY:sp_nsym,nsym,dl_sop,i_time_rev,a,mag_syms,inv_index,&
-&                        atoms_spatial_inversion,i_space_inv,alat,dl_tra
+&                        atoms_spatial_inversion,i_space_inv,alat,dl_tra,    &
+&                        non_symmorphic_syms
      use R_lattice, ONLY:b,rl_sop
      !
      implicit none
@@ -87,6 +88,8 @@ module mod_com2y
        if(.not.trevsym) i_time_rev=0
      endif
      if(any(t_rev(:)==1)) mag_syms=.true.
+     !
+     non_symmorphic_syms=any(trasl>1.E-5_SP)
      !
      double_symmetries=.not.mag_syms
      if (mag_syms) i_time_rev=1

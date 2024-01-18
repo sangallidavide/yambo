@@ -102,7 +102,7 @@ subroutine G_shells_finder()
  do ig_1=1,ng_closed
    call c2a(b,g_vec(ig_1,:),G_cc,'ki2c')
    do i_s=1,nsym
-     g_phs(ig_1,i_s)=dot_product(dl_tra(:,i_s),G_cc)
+     g_phs(ig_1,i_s)=-dot_product(dl_tra(:,i_s),G_cc)
    enddo
  enddo
  !

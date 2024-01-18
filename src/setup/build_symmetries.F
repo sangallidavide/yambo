@@ -118,7 +118,7 @@ subroutine print_point_group(fname,sp_nsym,dl_sop,dl_tra)
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:group_code,group_name,nclass,nelem,elem,which_irr,&
 &                         nclass_ref,char_mat,name_rap,name_class,ir_ram,&
-&                         i_time_rev,nsym
+&                         i_time_rev,nsym,non_symmorphic_syms
  !
  implicit none
  !
@@ -165,17 +165,19 @@ subroutine print_point_group(fname,sp_nsym,dl_sop,dl_tra)
    enddo
  endif
  !
- call msg(fname,tmp_ch//'')
- do is=1,sp_nsym
-   dumb_ch=trim(intc(is))//'] '
-   i1=9
-   do while (i1<nsym)
-     if(is<=i1) dumb_ch=' '//trim(dumb_ch)
-     i1=i1*10+9
+ if (non_symmorphic_syms) then
+   call msg(fname,tmp_ch//'')
+   do is=1,sp_nsym
+     dumb_ch=trim(intc(is))//'] '
+     i1=9
+     do while (i1<nsym)
+       if(is<=i1) dumb_ch=' '//trim(dumb_ch)
+       i1=i1*10+9
+     enddo
+     dumb_ch=tmp_ch//' [T '//trim(dumb_ch)
+     call msg(fname,trim(dumb_ch),dl_tra(:,is),INDENT=0)  
    enddo
-   dumb_ch=tmp_ch//' [T '//trim(dumb_ch)
-   call msg(fname,trim(dumb_ch),dl_tra(:,is),INDENT=0)  
- enddo
+ endif
  !
  call msg(fname,tmp_ch//'')
  call msg(fname,tmp_ch//'Point group is        ',group_name,INDENT=0)

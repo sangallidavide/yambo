@@ -144,8 +144,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
        !
        do ig1=2,X_ng
          ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-	 !gphase=cmplx(cos(DEV_VAR(g_phs)(ig2,is)),sin(DEV_VAR(g_phs)(ig2,is)))
-         gphase=cmplx(cos(DEV_VAR(g_phs)(ig2,sop_inv_l)),sin(DEV_VAR(g_phs)(ig2,sop_inv_l)))
+	 gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,is)),sin(DEV_VAR(g_phs)(ig1,is)))
          Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)*gphase
        enddo
        !
@@ -234,8 +233,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt)
      !DEV_OMP parallel do default(shared), private(ig1,ig2,gphase)
      do ig1=1,X_ng
        ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-       !gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,is)),sin(DEV_VAR(g_phs)(ig1,is)))
-       gphase=cmplx(cos(DEV_VAR(g_phs)(ig2,sop_inv_l)),sin(DEV_VAR(g_phs)(ig2,sop_inv_l)))
+       gphase=cmplx(cos(DEV_VAR(g_phs)(ig1,is)),sin(DEV_VAR(g_phs)(ig1,is)))
        Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)*gphase
      enddo
      !

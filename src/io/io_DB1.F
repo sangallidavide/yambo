@@ -3,11 +3,11 @@
 !
 ! Copyright (C) 2014 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM, DS
 !
 integer function io_DB1(E,k,ID)
  !
- use pars,             ONLY:SP
+ use pars,             ONLY:SP,LP_YIO
  use units,            ONLY:HA2EV
  use com,              ONLY:msg
  use C_driver,         ONLY:code_version,code_revision,code_GPL_revision
@@ -15,7 +15,7 @@ integer function io_DB1(E,k,ID)
 &                           n_spinor
  use D_lattice,        ONLY:a, alat, nsym, i_time_rev, input_GS_Tel, dl_tra, dl_sop, &
 &                           Tel, n_atoms_species_max,n_atomic_species,n_atoms_species,atom_pos, &
-&                           Z_species, n_atoms, mag_syms, atom_mass, atoms_map
+&                           Z_species, n_atoms, non_symmorphic_syms, mag_syms, atom_mass, atoms_map
  use R_lattice,        ONLY:ng_vec, g_vec, bz_samp,nkibz,&
 &                           QP_states_k,nXkibz,ng_closed
  use wave_func,        ONLY:wf_ncx, wf_nc_k, wf_igk,wf_ng,wf_nb_io
@@ -23,7 +23,8 @@ integer function io_DB1(E,k,ID)
  use wave_func,        ONLY:wf_igk_d
 #endif
  use LIVE_t,           ONLY:live_timing_is_on
- use IO_int,           ONLY:io_connect,io_disconnect,io_elemental,io_bulk,ver_is_gt_or_eq
+ use IO_int,           ONLY:io_connect,io_disconnect,def_variable_elemental,io_variable_elemental,&
+&                           io_elemental,io_bulk,ver_is_gt_or_eq
  use IO_m,             ONLY:io_sec,variable_exist,io_status,read_is_on,&
 &                           serial_number,io_serial_number,io_code_revision,&
 &                           DUMP,io_mode,write_is_on,io_code_version
@@ -199,6 +200,13 @@ integer function io_DB1(E,k,ID)
    if (ver_is_gt_or_eq(ID,revision=1240).and.ver_is_gt_or_eq(ID,(/3,2,5/))) then
      call io_elemental(ID, VAR="mag_syms",VAR_SZ=1,MENU=0)
      call io_elemental(ID, L0=mag_syms,VAR=' Magnetic symmetries             ')
+   endif
+   !
+   if (variable_exist(ID,"non_symmorphic_syms").or.write_is_on(ID)) then
+     call def_variable_elemental(ID, VAR="non_symmorphic_syms",VAR_SZ=5,VAR_KIND=LP_YIO,MENU=0)
+     call  io_variable_elemental(ID, L0=non_symmorphic_syms,VAR=' Non symmorphic symmetries')
+   else
+     non_symmorphic_syms=.false.
    endif
    !
    if (ver_is_gt_or_eq(ID,revision=4351)) then

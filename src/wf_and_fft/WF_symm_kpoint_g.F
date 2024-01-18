@@ -72,7 +72,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
        igr=DEV_VAR(g_rot)(ig,isymm)
        igs=DEV_VAR(G_m_G)(igr,ig0)
        gphase=cmplx(cos(DEV_VAR(g_phs)(igr,isymm)),sin(DEV_VAR(g_phs)(igr,isymm)))
-       WF_k_tmp(igs,1)=WF_p(ig,1,i_wf)*gphase
+       WF_k_tmp(igs,1)=WF_p(ig,1,i_wf)*conjg(gphase)
      enddo
      !
    else
@@ -82,18 +82,19 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
 #endif
      do ic=1,wf_nc_k(ik)
        ig=wf_igk(ic,ik)
-       igp=DEV_VAR(G_m_G)(DEV_VAR(g_rot)(ig,isymm),ig0)
-       gphase=cmplx(cos(DEV_VAR(g_phs)(igp,isymm)),sin(DEV_VAR(g_phs)(igp,isymm)))
-       WF_k_tmp(igp,1)=DEV_VAR(spin_sop)(1,1,isymm)*WF_p(ig,1,i_wf)+ &
+       igr=DEV_VAR(g_rot)(ig,isymm)
+       igs=DEV_VAR(G_m_G)(igr,ig0)
+       gphase=cmplx(cos(DEV_VAR(g_phs)(igr,isymm)),sin(DEV_VAR(g_phs)(igr,isymm)))
+       WF_k_tmp(igs,1)=DEV_VAR(spin_sop)(1,1,isymm)*WF_p(ig,1,i_wf)+ &
 &                         DEV_VAR(spin_sop)(1,2,isymm)*WF_p(ig,2,i_wf)
-       WF_k_tmp(igp,2)=DEV_VAR(spin_sop)(2,1,isymm)*WF_p(ig,1,i_wf)+ &
+       WF_k_tmp(igs,2)=DEV_VAR(spin_sop)(2,1,isymm)*WF_p(ig,1,i_wf)+ &
 &                         DEV_VAR(spin_sop)(2,2,isymm)*WF_p(ig,2,i_wf)
-       WF_k_tmp(igp,:)=WF_k_tmp(igp,:)*gphase
+       WF_k_tmp(igs,:)=WF_k_tmp(igs,:)*conjg(gphase)
      enddo
    endif
    !
    ! Take care of translations
-   WF_k_tmp=WF_k_tmp*kphase
+   WF_k_tmp=WF_k_tmp*conjg(kphase)
    !
    ! take care of time reversal if needed
    if(isymm>nsym/(1+i_time_rev)) call dev_conjg(WF_k_tmp)

@@ -132,16 +132,16 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp)
        !$cuf kernel do (1) <<<*,*>>>
        do i_g1=2,BS_n_g_exch
          i_g2=g_rot_d(i_g1,i_s_m1)
-	 gphase = cmplx(cos(g_phs_d(i_g2,i_s_m1)),sin(g_phs_d(i_g2,i_s_m1)))
+         gphase = cmplx(cos(g_phs_d(i_g1,i_s)),sin(g_phs_d(i_g1,i_s)))
          O_x_d(i_g1,i_T_el) = O_x_sym_d(i_g2,i_T_el_last_with_identity_sym)*gphase
        enddo
        !
 #else
        !
-       !$omp parallel do default(shared), private(i_g1,i_g2)
+       !$omp parallel do default(shared), private(i_g1,i_g2,gphase)
        do i_g1=2,BS_n_g_exch
          i_g2=g_rot(i_g1,i_s_m1)
-         gphase = cmplx(cos(g_phs(i_g2,i_s_m1)),sin(g_phs(i_g2,i_s_m1)))
+         gphase = cmplx(cos(g_phs(i_g1,i_s)),sin(g_phs(i_g1,i_s)))
          BS_T_grp(i_T_grp)%O_x(i_g1,i_T_el)=&
          & BS_T_grp(i_T_grp_last_with_identity_sym)%O_x(i_g2,i_T_el_last_with_identity_sym)*gphase
        enddo

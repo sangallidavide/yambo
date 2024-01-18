@@ -6,12 +6,13 @@
 ! Authors (see AUTHORS file for details): AM DS HM
 !
 !************************* WARNING **************************
-!* In this subroutine there is a bug for finite q (iq/=1)   *
-!* plus spin-orbit that we were not able to solve yet.      * 
+!* In this subroutine is not correct at in 2 cases:         *
+!* a) finite q-bse plus spin-orbit coupling                 * 
+!* b) non symmorphyc symmetri operations                    * 
 !* An alternative subroutine that applies symmetries in a   *
 !* different way is proposed K_correlation_collisions_dir.F *
-!* This second subroutine is automatically called when      *
-!* iq/=1 and spin_orbit is present.                         *
+!* This second subroutine is automatically called in the    *
+!* two above mentioned cases                                *
 !************************************************************
 !
 subroutine K_correlation_collisions_std(iq,i_block,qindx_ID_frag,Xk,q)
