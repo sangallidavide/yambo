@@ -178,7 +178,7 @@ module D_lattice
        atoms_loop: do ia=1,n_atoms_species(is)
          do iap=1,n_atoms_species(is) 
            !
-           at_diff=matmul(a_m1,atom_pos(:,ia,is)+atom_pos(:,iap,is)-2._SP*tra)
+           at_diff=matmul(a_m1,atom_pos(:,ia,is)+atom_pos(:,iap,is)+tra)
            !
            at_diff(1)=abs(at_diff(1)-nint(at_diff(1)))
            at_diff(2)=abs(at_diff(2)-nint(at_diff(2)))
