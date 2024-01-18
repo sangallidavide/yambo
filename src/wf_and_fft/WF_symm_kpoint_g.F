@@ -35,7 +35,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  complex(SP) :: gphase,kphase
  !
  integer :: ib,i_wf,isymm_m1
- integer :: ic,ig,igp,i_spinor
+ integer :: ic,ig,igp,igr,igs,i_spinor
  !
  if(isymm==idt_index) return
  !
@@ -44,7 +44,9 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  !  
  krot=matmul(rl_sop(:,:,isymm),k_pt(ik,:))
  call c2a(v_in=krot,mode='ki2c')
- !call c2a(v_in=g_vec(ig0,:),v_out=G_cc,mode='ki2c')
+ !G_cc=matmul(rl_sop(:,:,isymm),g_vec(ig0,:))
+ !G_cc=g_vec(ig0,:)
+ !call c2a(v_in=G_cc,mode='ki2c')
  krot=krot!+G_cc
  !
  !krot=k_pt(ik,:)
@@ -52,6 +54,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
  !krot=matmul(dl_sop(:,:,isymm),krot)
  !
  kphase=cmplx(cos(dot_product(dl_tra(:,isymm),krot)),sin(dot_product(dl_tra(:,isymm),krot)))
+ !if(any(abs(G_cc)>1.E-4)) write(*,*) ig0,kphase,G_cc
  !
  do ib=b_to_load(1),b_to_load(2)
    !
@@ -66,9 +69,10 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,i_sp_pol,isymm,ig0,WF)
 #endif
      do ic=1,wf_nc_k(ik)
        ig=wf_igk(ic,ik)
-       igp=DEV_VAR(G_m_G)(DEV_VAR(g_rot)(ig,isymm),ig0)
-       gphase=cmplx(cos(DEV_VAR(g_phs)(igp,isymm)),sin(DEV_VAR(g_phs)(igp,isymm)))
-       WF_k_tmp(igp,1)=WF_p(ig,1,i_wf)*gphase
+       igr=DEV_VAR(g_rot)(ig,isymm)
+       igs=DEV_VAR(G_m_G)(igr,ig0)
+       gphase=cmplx(cos(DEV_VAR(g_phs)(igr,isymm)),sin(DEV_VAR(g_phs)(igr,isymm)))
+       WF_k_tmp(igs,1)=WF_p(ig,1,i_wf)*gphase
      enddo
      !
    else
