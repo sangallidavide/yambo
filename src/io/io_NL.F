@@ -7,7 +7,7 @@
 !
 integer function io_NL(what,ID)
  !
- use pars,          ONLY:schlen,SP,IP,LP,IP_YIO,LP_YIO,CR_YIO
+ use pars,          ONLY:schlen,SP,IP,CR_YIO,IP_YIO
  use units,         ONLY:HA2EV, AU2KWCMm2, AUT2FS
  use nl_optics,     ONLY:E_tot_t,E_ext_t,E_ks_t,NL_P_t,NL_J_t, &
 &                        n_frequencies,l_pump_and_probe
@@ -94,6 +94,7 @@ integer function io_NL(what,ID)
  if(read_is_on(ID).and..not.allocated(NL_P_t)) then
    !
    YAMBO_ALLOC(NL_P_t,(NE_steps,3))
+   YAMBO_ALLOC(NL_J_t,(NE_steps,6))
    !
    YAMBO_ALLOC(E_tot_t,(NE_steps,3))
    YAMBO_ALLOC(E_ext_t,(NE_steps,3))
