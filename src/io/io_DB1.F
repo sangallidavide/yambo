@@ -53,12 +53,10 @@ integer function io_DB1(E,k,ID)
  !
  ! Work Space
  !
- integer :: code_version_local(3),code_revision_local,MENU
+ integer :: code_version_local(3),code_revision_local
  !
  io_DB1 =io_connect(desc="db1",type=0,ID=ID)
  if (io_DB1/=0) goto 1
- !
- MENU=1
  !
  if (any((/io_sec(ID,:)==1/))) then
    !
@@ -217,8 +215,7 @@ integer function io_DB1(E,k,ID)
      io_code_revision(ID,2)=code_GPL_revision
    endif
    !
-   call io_elemental(ID, VAR="",VAR_SZ=0,MENU=MENU)
-   MENU=0
+   call io_elemental(ID, VAR="",VAR_SZ=0,MENU=1)
    !
    ! Exporting E%nb/k%nibz when in DUMP
    !
@@ -363,7 +360,7 @@ integer function io_DB1(E,k,ID)
  call io_bulk(ID, VAR="WFC_GRID", VAR_SZ=shape(wf_igk) )
  call io_bulk(ID, I2=wf_igk )
 #ifdef _CUDA
- if(read_is_on(ID)) then
+ if (read_is_on(ID)) then
    wf_igk_d = wf_igk
  endif
 #endif
