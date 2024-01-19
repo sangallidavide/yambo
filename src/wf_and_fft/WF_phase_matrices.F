@@ -93,6 +93,11 @@ subroutine WF_phase_matrices(En,Xk,blim,klim)
    !
    do ik=klim(1),klim(2)
      !
+     ifrag=ifrag+1
+     !
+     call WF_load(WF_k,0,1,blim,(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
+     & space='G',title='-WF_phases',quiet=ifrag>1,keep_states_to_load=.true.)
+     !
      call degeneration_finder(En%E(blim(1):blim(2),ik,i_sp_pol),nb,&
      &                           first_el,n_of_el,n_deg_grp,0.0001/HA2EV,Include_single_values=.true.)
      !
@@ -115,12 +120,11 @@ subroutine WF_phase_matrices(En,Xk,blim,klim)
        isk =Xk%star(ik,istark)
        ikbz=Xk%k_table(ik,isk)
        !
-       ifrag=ifrag+1
-       !
-       call WF_load(WF_k,0,1,blim,(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
-       & space='G',title='-WF_phases',quiet=ifrag>1,keep_states_to_load=.true.)
-       !
        !charac=0._SP
+       !if (istark==1) then
+       !  write(*,*) ""
+       !  write(*,*) "ik = ",ik,Xk%pt(ik,:)
+       !endif
        !
        do isloop=1,nsym
          !
@@ -135,8 +139,11 @@ subroutine WF_phase_matrices(En,Xk,blim,klim)
          iGk_y =minus_G(Xk%g_table(ik,isk_y))
          !
          call WF_copy(WF_k,WF_Rk_c)
-         !
          call WF_copy(WF_k,WF_Rk_y)
+	 !
+	 !if (ik==13 .and. isloop==7) then
+	 !  write(*,*) "next two "
+	 !endif
          !
          call WF_symm_kpoint_g(blim,ik,i_sp_pol,isk_c,iGk_c,WF_Rk_c)
          call WF_symm_kpoint_g(blim,ik,i_sp_pol,isk_y,iGk_y,WF_Rk_y)
@@ -183,8 +190,6 @@ subroutine WF_phase_matrices(En,Xk,blim,klim)
          !
        enddo ! isp
        !
-       call WF_free(WF_k)
-       !
        call live_timing(steps=1)
        !
        !call PP_redux_wait(WF_phases(:,:,s_count,k_count,i_sp_pol))
@@ -204,6 +209,8 @@ subroutine WF_phase_matrices(En,Xk,blim,klim)
      io_err=io_WF_phases(blim,ik,0,i_sp_pol,ID,nsz,WF_phases)
      !
      YAMBO_FREE(WF_phases)
+     !
+     call WF_free(WF_k)
      !
    enddo   ! ik
    !
