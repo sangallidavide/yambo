@@ -496,7 +496,7 @@ subroutine K_diago_driver(iq,W,X_static)
        BSS_n_eig = 1
      endif
      !
-     call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
+     call SlepcInitialize(PETSC_NULL_CHARACTER,ierr)
      !
    end subroutine K_slepc_local_init
    !
@@ -510,6 +510,7 @@ subroutine K_diago_driver(iq,W,X_static)
        call PARALLEL_Haydock_VEC_COMMs('reset')
      endif
      !
+     call SlepcFinalize(ierr)
    end subroutine K_slepc_local_free
 #endif
    !
