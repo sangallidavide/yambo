@@ -1,25 +1,9 @@
 !
-!        Copyright (C) 2000-2022 the YAMBO team
-!              http://www.yambo-code.org
+! License-Identifier: GPL
+!
+! Copyright (C) 2006 The Yambo Team
 !
 ! Authors (see AUTHORS file for details): AM
-! 
-! This file is distributed under the terms of the GNU 
-! General Public License. You can redistribute it and/or 
-! modify it under the terms of the GNU General Public 
-! License as published by the Free Software Foundation; 
-! either version 2, or (at your option) any later version.
-!
-! This program is distributed in the hope that it will 
-! be useful, but WITHOUT ANY WARRANTY; without even the 
-! implied warranty of MERCHANTABILITY or FITNESS FOR A 
-! PARTICULAR PURPOSE.  See the GNU General Public License 
-! for more details.
-!
-! You should have received a copy of the GNU General Public 
-! License along with this program; if not, write to the Free 
-! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
-! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
 module vec_operate
  !
@@ -76,10 +60,10 @@ module vec_operate
      v_norm=sqrt(dot_product(v,v))
    end function v_norm
    !
-   pure real(SP) function v_norm2(v)
+   pure real(SP) function v_norm_square(v)
      real(SP), intent(in) :: v(3)
-     v_norm2=v(1)*v(1)+v(2)*v(2)+v(3)*v(3)
-   end function v_norm2
+     v_norm_square=v(1)*v(1)+v(2)*v(2)+v(3)*v(3)
+   end function v_norm_square
    !
    real(SP) function iku_v_norm(v,inside_bz)
      !
@@ -206,7 +190,7 @@ module vec_operate
      !
      ! rlu = Reduced Lattice Units (crystal coordinated in Quantum-Espresso)
      ! cc  = Cartesian Coordinates (atomic units)
-     ! iku = Internal K-Units (internal Yambo units similar to 2pi/Alat in QE but with 3 scaling foctors)
+     ! iku = Internal K-Units (internal Yambo units similar to 2pi/Alat in QE but with 3 scaling factors)
      ! 
      ! Nota bene: "a" stands for "rlu" for no obvious reason  
      !
