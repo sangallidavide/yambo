@@ -14,8 +14,8 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  use R_lattice,      ONLY:bz_samp
  use stderr,         ONLY:intc,real2ch
  use D_lattice,      ONLY:elem,which_irr,char_mat,nclass,elem,nelem,&
-&                         i_time_rev,nsym,nrot,dl_sop,dl_tra,  &
-&                         sop_tab,name_rap,name_class
+&                         i_time_rev,nsym,nrot,dl_sop,dl_tra,sop_tab,&
+&                         which_class,name_rap,name_class
  use vec_operate,    ONLY:degeneration_finder
  use wave_func,      ONLY:io_WF_phases,WF_phases_b_map
  use IO_int,         ONLY:io_control
@@ -36,8 +36,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  !
  logical  :: l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found,case_simple,case_cmplx
  integer  :: iclass,irap,jrap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,ib1,iel,blim_n(2),ich,       &
- &           ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,max_deg,nsz(5),which_class(12), &
- &           ncmplx
+ &           ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,max_deg,nsz(5),ncmplx
  !
  integer  :: io_err,ID
  !
@@ -102,11 +101,6 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        max_deg=nint(maxval(real(abs(char_mat(:,1)))))
        if (l_char_table_imag) max_deg=max_deg*2
        !
-       do iclass=1,nclass
-         irap=which_irr(iclass)
-         which_class(irap)=iclass
-       enddo
-       !
        nsz=(/maxval(n_of_el),maxval(n_of_el),n_deg_grp,nsym,Xk%nstar(ik)/)
        YAMBO_ALLOC(WF_phases,(nsz(1),nsz(2),nsz(3),nsz(4),1))
        !AMBO_ALLOC(WF_phases,(n_max_deg,n_max_deg,nb,nsym,1,1))
@@ -133,6 +127,9 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
              do ibk=1,n_of_el(i_grp)
                trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1)
              enddo
+	     !if (ik==13) then
+	     !  write(*,*) "trac= ",i_grp,iclass,isp,trace(iclass)
+	     !endif
            enddo
            !trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
          enddo

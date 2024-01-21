@@ -104,6 +104,7 @@ module D_lattice
  integer :: nelem(12)      ! The elements of each class
  integer :: elem(8,12)     ! Which elements in the smat list for each class
  integer :: which_irr(12)  ! See the subroutine description
+ integer :: which_class(12)! Inverse of which_irr
  !
  integer :: nclass_ref                 ! The number of classes
  character(len=15) :: name_rap(12)     ! name of the representations

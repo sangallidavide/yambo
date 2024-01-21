@@ -88,12 +88,15 @@ subroutine detect_point_group(sp_nsym,dl_sop)
  use pars,           ONLY:DP
  use electrons,      ONLY:n_spinor
  use D_lattice,      ONLY:group_code,group_name,nclass,nelem,elem,which_irr,&
-&                         nclass_ref,char_mat,name_rap,name_class,ir_ram
+&                         nclass_ref,char_mat,name_rap,name_class,ir_ram,&
+&                         which_class
  !
  implicit none
  !
  integer,  intent(in)  :: sp_nsym
  real(DP), intent(in)  :: dl_sop(3,3,sp_nsym)
+ !
+ integer :: iclass, irap
  !
  ! Double point group detection not coded
  if (n_spinor==2) call warning("Detecting no SOC point group")
@@ -103,6 +106,11 @@ subroutine detect_point_group(sp_nsym,dl_sop)
  call find_group(sp_nsym,dl_sop,group_name,group_code)
  !
  call divide_class(group_code,sp_nsym,dl_sop,nclass,nelem,elem,which_irr)
+ !
+ do iclass=1,nclass
+   irap=which_irr(iclass)
+   which_class(irap)=iclass
+ enddo
  !
  ! DS: to check if nclass and nclass_ref can be different in any case
  call set_irr_rap( group_code, nclass_ref, char_mat, name_rap, name_class, ir_ram )
@@ -117,7 +125,7 @@ subroutine print_point_group(fname,sp_nsym,dl_sop,dl_tra)
  use electrons,      ONLY:n_spinor
  use stderr,         ONLY:intc
  use D_lattice,      ONLY:group_code,group_name,nclass,nelem,elem,which_irr,&
-&                         nclass_ref,char_mat,name_rap,name_class,ir_ram,&
+&                         nclass_ref,char_mat,name_rap,name_class,which_class,&
 &                         i_time_rev,nsym,non_symmorphic_syms
  !
  implicit none
@@ -183,13 +191,14 @@ subroutine print_point_group(fname,sp_nsym,dl_sop,dl_tra)
  call msg(fname,tmp_ch//'Point group is        ',group_name,INDENT=0)
  call msg(fname,tmp_ch//'')
  call msg(fname,tmp_ch//'Number of classes        ',nclass,INDENT=0)
- call msg(fname,tmp_ch//'Symmetries per class     ',nelem(:nclass),INDENT=0)
+ call msg(fname,tmp_ch//'Symmetries per class     ',nelem(which_class(:nclass)),INDENT=0)
  call msg(fname,tmp_ch//'Name of classes          ',name_class(:nclass),INDENT=0)
  !
  len_class=-1
  do iclass=1,nclass
    len_class(iclass)=len_trim(name_class(iclass))
-   call msg(fname,tmp_ch//'Symmetries in class '//name_class(iclass),elem(:nelem(iclass),iclass),INDENT=0)
+   call msg(fname,tmp_ch//'Symmetries in class '//name_class(iclass),&
+   &        elem(:nelem(which_class(iclass)),which_class(iclass)),INDENT=0)
  enddo
  max_len=max(maxval(len_class),5)
  !
