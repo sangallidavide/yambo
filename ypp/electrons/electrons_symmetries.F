@@ -29,7 +29,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  type(bz_samp):: Xk
  integer, intent(in) :: blim(2),klim(2)
  !
- complex(SP) :: trace(12),char_sum(12)
+ complex(SP) :: trace(12),char_tmp(12)
  complex(SP), allocatable :: WF_phases(:,:,:,:,:)
  !
  real(SP) :: tmp_real
@@ -177,15 +177,13 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
          endif
          !
          if ( .not. (l_mixed_states.or.l_partial_space) ) then
+           ! Detection
            do irap=1,nclass
-             !if ( .not. all(abs(trace(:nclass)-char_mat(irap,which_irr(:nclass)))<=symm_thresh) ) cycle
-             ! Detection for point groups without imaginary part
-             case_simple=all(abs(trace(:nclass)                            &
-             &                  -char_mat(irap,which_irr(:nclass)))<=symm_thresh)
-             ! Detection for point groups with imaginary part.
-             ! 2 states with conjg character are summed together 
-             case_cmplx =all(abs(real(trace(:nclass))/2._SP                      &
-             &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
+             char_tmp(:nclass)=char_mat(irap,which_irr(:nclass))
+             ! Point groups without imaginary part
+             case_simple=all(abs(     trace(:nclass)       -     char_tmp(:nclass)) <=symm_thresh)
+             ! Point groups with imaginary part: 2 states with conjg character are summed together 
+             case_cmplx =all(abs(real(trace(:nclass))/2._SP-real(char_tmp(:nclass)))<=symm_thresh)
              if ( .not. (case_simple .or. case_cmplx) ) cycle
              tmp_ch=trim(name_rap(irap))
              l_char_not_found=.false.
@@ -196,9 +194,9 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
          if (l_mixed_states.or.l_char_not_found) then
            main_loop: do irap=1,nclass
              do jrap=1,nclass
-               char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
-               case_simple=all(abs(real(trace(:nclass))      -real(char_sum(:nclass)))<=symm_thresh)
-               case_cmplx =all(abs(real(trace(:nclass))/2._SP-real(char_sum(:nclass)))<=symm_thresh)
+               char_tmp(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
+               case_simple=all(abs(     trace(:nclass)       -     char_tmp(:nclass) )<=symm_thresh)
+               case_cmplx =all(abs(real(trace(:nclass))/2._SP-real(char_tmp(:nclass)))<=symm_thresh)
                if ( .not. (case_simple .or. case_cmplx) ) cycle
                tmp_ch=trim(name_rap(irap))//"+"//trim(name_rap(jrap))
                l_char_not_found=.false.
