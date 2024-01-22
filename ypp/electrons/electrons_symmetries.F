@@ -36,16 +36,20 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  !
  logical  :: l_mixed_states,l_partial_space,l_char_table_imag,l_char_not_found,case_simple,case_cmplx
  integer  :: iclass,irap,jrap,i_sp_pol,ikbz,ipbz,ik,isk,ibk,istark,ib1,iel,blim_n(2),ich,       &
- &           ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,max_deg,nsz(5),ncmplx
+ &           ielem,isp,k_count,s_count,n_deg_grp,i_grp,nb,nrotk,max_deg,nsz(5),ncmplx,list(48)
  !
  integer  :: io_err,ID
  !
  integer, allocatable :: first_el(:),n_of_el(:)
  !
  character(9)         :: vec_ch(12)
- character(schlen)    :: filename,titles(4),tmp_ch,loc_msg,loc_fmt
+ character(schlen)    :: filename,titles(4),tmp_ch,loc_msg,ref_msg,loc_fmt
  !
  nb=blim(2)-blim(1)+1
+ !
+ do ielem=1,48
+   list(ielem)=ielem
+ enddo
  !
  allocate(first_el(nb))
  allocate( n_of_el(nb))
@@ -79,17 +83,30 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
        isk =Xk%star(ik,istark)
        ikbz=Xk%k_table(ik,isk)
        !
+       nrotk=Xk%grp_nsym(ikbz)
+       if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
+       !
        !filename="syms_k"//trim(intc(ikbz))//"_sp"//trim(intc(i_sp_pol))
        filename="syms_k"//trim(intc(ik))//"_sp"//trim(intc(i_sp_pol))
+       !
+       ref_msg=""
+       loc_msg=""
+       do isp=1,nrotk
+         write(tmp_ch,"(2x,i2)") isp
+         ref_msg=trim(ref_msg)//trim(tmp_ch)
+         write(tmp_ch,"(2x,i2)") Xk%grp_table(isp,ikbz)
+         loc_msg=trim(loc_msg)//trim(tmp_ch)
+       enddo
        !
        call of_open_close(filename,'ot')
        !call msg("o "//trim(filename),"# Symmetries at k ",Xk%ptbz(ikbz,:),INDENT=0)
        !call msg("o "//trim(filename),"#"," Symmetries at ikbz "//trim(intc(ikbz)),INDENT=0)
        call msg("o "//trim(filename),"# Symmetries at k ",Xk%pt(ik,:),INDENT=0)
        call msg("o "//trim(filename),"#")
+       call msg("o "//trim(filename),"# Syms smallk grp ",ref_msg,INDENT=0)
+       call msg("o "//trim(filename),"# Syms gamma  grp ",loc_msg,INDENT=0)
+       call msg("o "//trim(filename),"#")
        !
-       nrotk=Xk%grp_nsym(ikbz)
-       if ( any( Xk%grp_table(:nrotk,ikbz)>nrot ) ) nrotk=nrotk/(1+i_time_rev)
        call detect_point_group(nrotk,real(dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),DP),.true.)
        !
        call print_point_group("o "//trim(filename),nrotk,dl_sop(:,:,Xk%grp_table(:nrotk,ikbz)),&
@@ -128,7 +145,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
                trace(iclass)=trace(iclass)+WF_phases(ibk,ibk,i_grp,isp,1)
              enddo
 	     !if (ik==13) then
-	     !  write(*,*) "trac= ",i_grp,iclass,isp,trace(iclass)
+	     !  write(*,*) "trace= ",i_grp,which_irr(iclass),elem(ielem,iclass),isp,trace(iclass)
 	     !endif
            enddo
            !trace(iclass)=trace(iclass)/real(nelem(iclass),SP)
@@ -179,7 +196,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
          if (l_mixed_states.or.l_char_not_found) then
            main_loop: do irap=1,nclass
              do jrap=1,nclass
-                char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
+               char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
                case_simple=all(abs(real(trace(:nclass))      -real(char_sum(:nclass)))<=symm_thresh)
                case_cmplx =all(abs(real(trace(:nclass))/2._SP-real(char_sum(:nclass)))<=symm_thresh)
                if ( .not. (case_simple .or. case_cmplx) ) cycle
