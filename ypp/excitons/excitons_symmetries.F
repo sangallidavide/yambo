@@ -42,7 +42,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  &           ich,jrap,irap,iclass,ielem,iexc,jexc,il1,il2,i_grp,i_sub_grp,io_err,ID,n_elem_used,max_deg
  !
  complex(SP), allocatable :: EXC_WF_rot1(:,:),EXC_WF_rot2(:,:)
- complex(SP) :: trace(12,EXCITONS_n_user_states,EXCITONS_n_user_states),char_sum(12)
+ complex(SP) :: trace(12,EXCITONS_n_user_states,EXCITONS_n_user_states),trace_loc(12),char_tmp(12)
  complex(SP) :: exc_reps(12,EXCITONS_n_user_states,EXCITONS_n_user_states,EXCITONS_n_user_states)
  !
  integer  :: exc_sbgr(EXCITONS_n_user_states,EXCITONS_n_user_states),n_sub_grps(EXCITONS_n_user_states),&
@@ -301,14 +301,12 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    !
    if ( .not. (l_mixed_states.or.l_partial_space) ) then
      do irap=1,nclass
-       !if ( .not. all(abs(trace(:nclass,i_grp)-char_mat(irap,which_irr(:nclass)))<=symm_thresh) ) cycle
-       ! Detection for standard point groups
-       case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))                            &
-       &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
-       ! Detection for standard point groups with imaginary part.
-       ! 2 states with conjg character are summed together 
-       case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP                      &
-       &                  -real(char_mat(irap,which_irr(:nclass))))<=symm_thresh)
+       char_tmp(:nclass)=char_mat(irap,which_irr(:nclass))
+       trace_loc(:nclass)=trace(:nclass,i_sub_grp,i_grp)
+       ! Point groups without imaginary part
+       case_simple=all(abs(     trace_loc(:nclass)       -     char_tmp(:nclass)) <=symm_thresh)
+       ! Point groups with imaginary part: 2 states with conjg character are summed together 
+       case_cmplx =all(abs(real(trace_loc(:nclass))/2._SP-real(char_tmp(:nclass)))<=symm_thresh)
        if ( .not. (case_simple .or. case_cmplx) ) cycle
        tmp_ch=trim(name_rap(irap))
        l_char_not_found=.false.
@@ -321,9 +319,10 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    else if (l_mixed_states) then
      main_loop: do irap=1,nclass
        do jrap=1,nclass
-          char_sum(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
-         case_simple=all(abs(real(trace(:nclass,i_sub_grp,i_grp))      -real(char_sum(:nclass)))<=symm_thresh)
-         case_cmplx =all(abs(real(trace(:nclass,i_sub_grp,i_grp))/2._SP-real(char_sum(:nclass)))<=symm_thresh)
+         char_tmp(:nclass)=char_mat(irap,which_irr(:nclass))+char_mat(jrap,which_irr(:nclass))
+         trace_loc(:nclass)=trace(:nclass,i_sub_grp,i_grp)
+         case_simple=all(abs(     trace_loc(:nclass)       -     char_tmp(:nclass) )<=symm_thresh)
+         case_cmplx =all(abs(real(trace_loc(:nclass))/2._SP-real(char_tmp(:nclass)))<=symm_thresh)
          if ( .not. (case_simple .or. case_cmplx) ) cycle
          tmp_ch=trim(name_rap(irap))//"+"//trim(name_rap(jrap))
          l_char_not_found=.false.
