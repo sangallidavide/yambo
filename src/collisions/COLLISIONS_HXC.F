@@ -11,11 +11,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  !
  use drivers,       ONLY:l_use_COH_collisions
  use pars,          ONLY:SP,pi,cZERO
+ use parser_m,      ONLY:parser
  use com,           ONLY:msg
  use frequency,     ONLY:w_samp
  use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor,n_full_bands,n_met_bands
  use LIVE_t,        ONLY:live_timing
  use hamiltonian,   ONLY:H_potential
+ use BS,            ONLY:BS_blk,n_BS_blks
  use D_lattice,     ONLY:DL_vol,sop_inv
  use tddft,         ONLY:tddft_wf_t
  use xc_functionals,ONLY:F_xc,V_xc,F_xc_mat,magn,XC_potential_driver
@@ -51,9 +53,10 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  ! Work Space
  !
  integer                 :: i_coll,first_coll,last_coll,ig1,ig2,iqbz,iqibz,alloc_err,iqs,iGo_max,NG_max,NG_XC,LOCAL_COMM(2),&
-&                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,&
-&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,bands_to_load(2),n_colls,n_GmG
+&                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,iB,&
+&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,i_steps,bands_to_load(2),n_colls,n_GmG
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
+ logical                 :: block_loaded(n_BS_blks),l_BSE_minimal_memory
  !
  type(elemental_collision):: isc_XC,iscp_XC,isc_H,iscp_H
  type(yMPI_comm)          :: LOCAL_yMPI_COMM
@@ -86,6 +89,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  call k_build_up_BZ_tables(k)
  call k_build_up_BZ_tables(q)
  call k_expand(k)
+ !
+ call parser('COLLBseMem',l_BSE_minimal_memory)
  !
  if (l_compute_screening.and.(IO_BS_err/=0.or.(.not.COLLISIONS_CV_only))) then
    !
@@ -261,6 +266,15 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  if (COLLISIONS_HXC_local)                      n_steps=n_steps+PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements
  if (COLLISIONS_HXC_MB.or.l_use_COH_collisions) n_steps=n_steps+PAR_NC_local*PAR_nQ_bz*PAR_n_Bp_mat_elements
  !
+ if (IO_BS_err==0) then
+   block_loaded=.false.
+   i_steps=2
+   if (COLLISIONS_CV_only) then
+     i_steps=1
+     n_steps=PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements
+   endif
+ endif
+ !
  ! Define the local COMM
  !
  if (COLLISIONS_parallel_SC_structure) then
@@ -362,6 +376,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  !
  ! CLEAN
  !
+ if (IO_BS_err==0.and..not.l_BSE_minimal_memory) then
+   do iB=1,n_BS_blks
+     if(.not.block_loaded(iB)) cycle
+     YAMBO_FREE(BS_blk(iB)%mat)
+   enddo
+ endif
+ !
  if (l_compute_screening) then
    YAMBO_FREE(EM1s)
    call X_ALLOC_elemental('X')
@@ -412,8 +433,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      logical      :: l_conj,l_cI,l_m1
      !
      iB=-1
-     iB_save=-1
      jB=-1
+     iB_save=-1
      !
      do i_q_fake=1,q%nbz
        !
@@ -462,7 +483,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              if (l_BSE_kernel_full) then
                ! Coupling block
                iB=i_BSE+BS_K_dim(1) ; jB=j_BSE
-	     else
+             else
                ! Coupling block
                if(j_BSE>=i_BSE) then ; iB=i_BSE+BS_K_dim(1) ; jB=j_BSE-i_BSE+1; endif
                ! Coupling is symmetric
@@ -503,7 +524,15 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              !
            endif
            !
-           if(iB/=iB_save) then
+           if(.not.(block_loaded(iB).or.l_BSE_minimal_memory)) then
+             YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
+             BS_blk(iB)%mat=cZERO
+             call io_control(ACTION=RD,ID=ID_BS)
+             call io_BS_PAR_block(1,iB,ID_BS,"matonly")
+             block_loaded(iB)=.true.
+           endif
+           !
+           if(iB/=iB_save .and. l_BSE_minimal_memory) then
              if(iB_save/=-1) deallocate(BS_blk(iB_save)%mat)
              allocate(BS_blk(iB)%mat (BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
              BS_blk(iB)%mat=cZERO
@@ -522,11 +551,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            !
            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)-M_ij/spin_occ
            !
+           call live_timing(steps=i_steps)
+           !
          enddo
        enddo
      enddo
      !
-     deallocate(BS_blk(iB_save)%mat)
+     if(l_BSE_minimal_memory) deallocate(BS_blk(iB_save)%mat)
      !
    end subroutine map_BSE_to_HXC_collisions
    !
@@ -622,7 +653,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              endif
              !
              HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*pre_factor1+Co*pre_factor2
-	     ! DS: 2023/10/25 Merge Check
+             ! DS: 2023/10/25 Merge Check
              !HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*conjg(pre_factor1)+Co*pre_factor2
              !
              call live_timing(steps=1)
@@ -783,7 +814,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            !
            isc_XC%os(1)=i_np
            !
-	   ! DS: 2023/10/25 Merge Check
+           ! DS: 2023/10/25 Merge Check
            !if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os).or.any(isc_XC%qs/=iscp_XC%qs)) then
            if (any(isc_XC%is/=iscp_XC%is).or.any(isc_XC%os/=iscp_XC%os)) then
              call scatter_Bamp(isc_XC)
@@ -796,7 +827,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              !$omp parallel do default(shared), private(ig1), reduction(+:pre_factor1)
              do ig1=1,N_g_vecs_X
                pre_factor1=pre_factor1+isc_XC%rhotw(ig1)*iscp_XC%gamp(ig1,1)*conjg(iscp_XC%rhotw(ig1))
-	       ! DS: 2023/10/25 Merge Check
+               ! DS: 2023/10/25 Merge Check
                !ig2=G_m_G(ig1,minus_G(i_kmq_G0))
                !pre_factor1=pre_factor1+conjg(isc_XC%rhotw(ig2))*iscp_XC%gamp(ig2,1)*iscp_XC%rhotw(ig2)
              enddo
@@ -817,7 +848,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              do ig1=1,N_g_vecs_C
                do ig2=1,N_g_vecs_C
                  pre_factor2=pre_factor2+isc_XC%rhotw(ig2)*EM1s(ig2,ig1)*conjg(iscp_XC%rhotw(ig1))
-	         ! DS: 2023/10/25 Merge Check
+                 ! DS: 2023/10/25 Merge Check
                  !pre_factor2=pre_factor2+conjg(isc_XC%rhotw(ig2))*EM1s(ig2,ig1)*conjg(iscp_XC%rhotw(ig1))
                enddo
              enddo

@@ -693,8 +693,9 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  !
  call TMP_mirror_bands( )
  !
- call it(defs,'HXC_Potential', '[SC] SC HXC Potential',H_potential,protect=.FALSE.,case="A")
- call it(defs,'COLLCut',    '[SC,RT] Cutoff on the collisions, 0=full 1=none',COLLISIONS_cutoff,verb_level=V_sc)
+ call it(defs,'HXC_Potential',  '[SC] SC HXC Potential',H_potential,protect=.FALSE.,case="A")
+ call it(defs,'COLLCut',        '[SC,RT] Cutoff on the collisions, 0=full 1=none',COLLISIONS_cutoff,verb_level=V_sc)
+ call it('f',defs,'COLLBseMem', '[SC,RT] Minimize memory use in bse kernel conversion',verb_level=V_sc)
  !
 #endif
  !

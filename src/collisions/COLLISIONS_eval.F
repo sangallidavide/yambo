@@ -375,7 +375,8 @@ subroutine check_BS_parameters_consistency(Xk)
  !
  use R_lattice,       ONLY:bz_samp
  use QP_m,            ONLY:QP_ng_SH,QP_ng_Sx,QP_ng_Sc
- use BS,              ONLY:BS_blk,BS_n_g_W,BS_n_g_exch,BS_K_dim
+ use BS,              ONLY:BS_blk,BS_n_g_W,BS_n_g_exch,BS_K_dim,BS_bands
+ use collision_ext,   ONLY:COLL_bands
  !
  implicit none
  !
@@ -399,6 +400,14 @@ subroutine check_BS_parameters_consistency(Xk)
  !
  if (BS_n_g_W   /=QP_ng_Sc) &
  & call error(" Different cutoff between coll(corr) and bse(direct)")
+ !
+ if ( any(BS_bands/=COLL_bands) ) then
+   if ( BS_bands(1)>COLL_bands(1) .or. BS_bands(2)<COLL_bands(2) ) then
+     call error(" Too few bands in BSE kernel")
+   else
+     call warning(" More bands than needed in BSE kernel")
+   endif
+ endif
  !
 end subroutine check_BS_parameters_consistency
 !

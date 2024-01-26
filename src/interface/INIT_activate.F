@@ -457,7 +457,7 @@ subroutine INIT_activate()
  !
  ! Collisions
  !
- if (l_eval_collisions) call initactivate( 0,'COLLBands')
+ if (l_eval_collisions) call initactivate( 0,'COLLBands COLLBseMem')
  !
  if ( (l_eval_collisions.or.l_real_time).and.l_elel_scatt ) call initactivate(1,'PlasmaPerc')
  !
