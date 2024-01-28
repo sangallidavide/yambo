@@ -56,7 +56,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
 &                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,iB,&
 &                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,i_steps,bands_to_load(2),n_colls,n_GmG
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
- logical                 :: block_loaded(n_BS_blks),l_BSE_minimal_memory
  !
  type(elemental_collision):: isc_XC,iscp_XC,isc_H,iscp_H
  type(yMPI_comm)          :: LOCAL_yMPI_COMM
@@ -89,8 +88,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  call k_build_up_BZ_tables(k)
  call k_build_up_BZ_tables(q)
  call k_expand(k)
- !
- call parser('COLLBseMem',l_BSE_minimal_memory)
  !
  if (l_compute_screening.and.(IO_BS_err/=0.or.(.not.COLLISIONS_CV_only))) then
    !
@@ -267,7 +264,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  if (COLLISIONS_HXC_MB.or.l_use_COH_collisions) n_steps=n_steps+PAR_NC_local*PAR_nQ_bz*PAR_n_Bp_mat_elements
  !
  if (IO_BS_err==0) then
-   block_loaded=.false.
    i_steps=2
    if (COLLISIONS_CV_only) then
      i_steps=1
@@ -376,13 +372,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  !
  ! CLEAN
  !
- if (IO_BS_err==0.and..not.l_BSE_minimal_memory) then
-   do iB=1,n_BS_blks
-     if(.not.block_loaded(iB)) cycle
-     YAMBO_FREE(BS_blk(iB)%mat)
-   enddo
- endif
- !
  if (l_compute_screening) then
    YAMBO_FREE(EM1s)
    call X_ALLOC_elemental('X')
@@ -429,12 +418,25 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      use IO_m,          ONLY:RD
      !
      complex(SP)  :: M_ij
-     integer      :: i_BSE,j_BSE,i_k_bz_bse,i_p_bz_bse,iB,iB_save,jB,i_q_fake,i_p_bz
-     logical      :: l_conj,l_cI,l_m1
+     integer      :: i_BSE,j_BSE,i_k_bz_bse,i_p_bz_bse,iB,jB,i_q_fake,i_p_bz
+     logical      :: l_use_mat,l_conj,l_cI,l_m1
      !
      iB=-1
      jB=-1
-     iB_save=-1
+     !
+     i_k_bz_bse=BS_K_io_map(k%k_table(i_k,1))
+     !
+     i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
+     iB=mod(i_BSE-1,BS_K_dim(1))+1
+     !
+     do jB=iB,iB+BS_K_dim(1),BS_K_dim(1)
+       allocate(BS_blk(jB)%mat (BS_blk(jB)%size(1),BS_blk(jB)%size(2)))
+       allocate(BS_blk(jB)%tam (BS_blk(jB)%zise(1),BS_blk(jB)%zise(2)))
+       BS_blk(jB)%mat=cZERO
+       BS_blk(jB)%tam=cZERO
+       call io_control(ACTION=RD,ID=ID_BS)
+       call read_BS_par_collisions(1,jB,ID_BS)
+     enddo
      !
      do i_q_fake=1,q%nbz
        !
@@ -453,7 +455,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
            !
-           i_k_bz_bse=BS_K_io_map(k%k_table(i_k,1))
            !i_p_bz_bse=BS_K_io_map(k%k_table(i_p,i_p_s))
            i_p_bz_bse=BS_K_io_map(i_p_bz)
            !
@@ -466,12 +467,14 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              l_m1=.false.
              if (l_BSE_kernel_full) then
                ! Resonant block
-               iB=i_BSE ; jB=j_BSE; l_conj=.false. 
+               iB=i_BSE ; jB=j_BSE; l_conj=.false.
+               l_use_mat=.true. 
              else
+               iB=i_BSE
                ! Resonant block
-               if(j_BSE>=i_BSE) then; iB=i_BSE ; jB=j_BSE-i_BSE+1; l_conj=.false. ; endif
+               if(j_BSE>=i_BSE) then; l_use_mat=.true. ; jB=j_BSE-i_BSE+1; l_conj=.false.; endif
                ! Resonant is hermitian
-               if(j_BSE< i_BSE) then; iB=j_BSE ; jB=i_BSE-j_BSE+1; l_conj=.true.  ; endif
+               if(j_BSE< i_BSE) then; l_use_mat=.false.; jB=j_BSE  ; l_conj=.true. ; endif
              endif
              !
            else if(i_BSE<=BS_K_dim(1) .and. j_BSE>BS_K_dim(1)) then
@@ -483,11 +486,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              if (l_BSE_kernel_full) then
                ! Coupling block
                iB=i_BSE+BS_K_dim(1) ; jB=j_BSE
+               l_use_mat=.true.
              else
+               iB=i_BSE+BS_K_dim(1)
                ! Coupling block
-               if(j_BSE>=i_BSE) then ; iB=i_BSE+BS_K_dim(1) ; jB=j_BSE-i_BSE+1; endif
+               if(j_BSE>=i_BSE) then ; l_use_mat=.true. ; jB=j_BSE-i_BSE+1; endif
                ! Coupling is symmetric
-               if(j_BSE< i_BSE) then ; iB=j_BSE+BS_K_dim(1) ; iB=i_BSE-j_BSE+1; endif
+               if(j_BSE< i_BSE) then ; l_use_mat=.false.; jB=j_BSE ; endif
              endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
@@ -499,11 +504,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              if (l_BSE_kernel_full) then
                ! Anti-Coupling
                iB=j_BSE+BS_K_dim(1); jB=i_BSE
+               l_use_mat=.true.
              else
+               iB=i_BSE+BS_K_dim(1)
                ! Anti-Coupling from coupling: the whole BSE matrix is Pseudo-Hermitian
-               if(j_BSE>=i_BSE) then; iB=i_BSE+BS_K_dim(1); jB=j_BSE-i_BSE+1; endif
+               if(j_BSE>=i_BSE) then; l_use_mat=.true. ; jB=j_BSE-i_BSE+1; endif
                ! Anti-Coupling is symmetric
-               if(j_BSE< i_BSE) then; iB=j_BSE+BS_K_dim(1); jB=i_BSE-j_BSE+1; endif
+               if(j_BSE< i_BSE) then; l_use_mat=.false.; jB=j_BSE  ; endif
              endif
              !
            else if(i_BSE> BS_K_dim(1) .and. j_BSE> BS_K_dim(1)) then
@@ -514,34 +521,21 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
              j_BSE=j_BSE-BS_K_dim(1)
              if (l_BSE_kernel_full) then
                ! Anti-resonant from Resonant
-               iB=j_BSE; jB=i_BSE-i_BSE; l_conj=.true.
+               iB=j_BSE; jB=i_BSE-j_BSE+1; l_conj=.true.
+               l_use_mat=.true.
              else
+               iB=i_BSE
                ! Anti-resonant from Resonant: the whole BSE matrix is Pseudo-Hermitian
-               if(j_BSE>=i_BSE) then; iB=i_BSE; jB=j_BSE-i_BSE+1; l_conj=.true.; endif
+               if(j_BSE>=i_BSE) then; l_use_mat=.true. ; jB=j_BSE-i_BSE+1; l_conj=.true.; endif
                ! Anti-resonant is hermitian
-               if(j_BSE< i_BSE) then; iB=j_BSE; jB=i_BSE-j_BSE+1; l_conj=.false.; endif
+               if(j_BSE< i_BSE) then; l_use_mat=.false.; jB=j_BSE  ; l_conj=.false.; endif
              endif
              !
            endif
            !
-           if(.not.(block_loaded(iB).or.l_BSE_minimal_memory)) then
-             YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-             BS_blk(iB)%mat=cZERO
-             call io_control(ACTION=RD,ID=ID_BS)
-             call io_BS_PAR_block(1,iB,ID_BS,"matonly")
-             block_loaded(iB)=.true.
-           endif
+           if (     l_use_mat) M_ij= BS_blk(iB)%mat(1,jB)
+           if (.not.l_use_mat) M_ij= BS_blk(iB)%tam(jB,1)
            !
-           if(iB/=iB_save .and. l_BSE_minimal_memory) then
-             if(iB_save/=-1) deallocate(BS_blk(iB_save)%mat)
-             allocate(BS_blk(iB)%mat (BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-             BS_blk(iB)%mat=cZERO
-             call io_control(ACTION=RD,ID=ID_BS)
-             call io_BS_PAR_block(1,iB,ID_BS,"matonly")
-             iB_save=iB
-           endif
-           !
-           M_ij= BS_blk(iB)%mat(1,jB)
            if(l_conj) M_ij= conjg(M_ij)
            if(l_cI)   M_ij=  cI * M_ij
            if(l_m1)   M_ij=     - M_ij
@@ -557,7 +551,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        enddo
      enddo
      !
-     if(l_BSE_minimal_memory) deallocate(BS_blk(iB_save)%mat)
+     i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
+     iB=mod(i_BSE-1,BS_K_dim(1))+1
+     !
+     do jB=iB,iB+BS_K_dim(1),BS_K_dim(1)
+       deallocate(BS_blk(jB)%mat)
+       deallocate(BS_blk(jB)%tam)
+     enddo
      !
    end subroutine map_BSE_to_HXC_collisions
    !

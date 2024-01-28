@@ -233,6 +233,12 @@ module BS
    character, allocatable        :: done(:,:)
    integer, allocatable          :: table(:,:)
    !
+   ! For collisions only
+   !--------------------
+   integer                       :: zise(2)       ! dual of %size
+   integer                       :: poordinate(2) ! dual of %coordinate
+   complex(SP), allocatable      :: tam(:,:)      ! dual of %mat
+   !
    ! Oscillators...
    !
    ! ... correlation

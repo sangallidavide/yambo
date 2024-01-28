@@ -35,6 +35,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  use X_m,            ONLY:X_t
  use plasma,         ONLY:EH_gas
  use frequency,      ONLY:w_samp
+ use BS,             ONLY:BS_kpt_bz
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,OP_RD,RD_CL,RD_CL_IF_END,VERIFY,REP,NONE,DUMP,io_COLLs,manage_action
  use parallel_m,     ONLY:PAR_IND_G_k,PAR_IND_Bp_mat,PAR_IND_Plasma
@@ -52,10 +53,10 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  ! WorkSpace
  !
  logical       :: l_collisions_from_bse,l_tmp
- integer       :: ID,IO_err,IO_err_BS,IO_ACT,ID_head,ID_mat,ID_cmpr
+ integer       :: ID,IO_err,IO_err_BS,IO_ACT,ID_head,ID_mat,ID_cmpr,BS_nk
  character(20) :: PAR_ch,FREE_ch
  !
- integer, external :: io_BS_header
+ integer, external :: io_BS_header,io_BS_PAR_init
  !
  call timing('COLLISIONS_eval',OPR='start')
  !
@@ -130,16 +131,19 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
      !
      ! Check if I can use the BSE kernel for the collisions
      !
+     allocate(BS_kpt_bz(3,Xk%nbz))
      call io_control(ACTION=OP_RD_CL,COM=NONE,MODE=DUMP,ID=ID_head)
      IO_err_BS=io_BS_header(1,X(2),ID_head,"full")
      !
      if (IO_err_BS==0) then 
        call set_BS_blks(Xk)
-       call K_restart(1,X(2),ID_head,ID_mat,ID_cmpr,l_tmp)
-       call check_BS_parameters_consistency(Xk)
-       call build_inverse_BS_eh_table(Xk)
+       call io_control(ACTION=OP_RD,COM=REP,MODE=DUMP,ID=ID_mat)
+       IO_err_BS=io_BS_PAR_init(1,ID_mat,"full")
+       call build_inverse_BS_eh_table(Xk,ID_mat,BS_nk)
+       call check_BS_parameters_consistency(Xk,BS_nk)
        call build_BS_kpt_map(Xk)
      endif
+     deallocate(BS_kpt_bz)
      !
    endif
    !
@@ -320,7 +324,7 @@ subroutine set_BS_blks(Xk)
  !
  use pars,         ONLY:cZERO
  use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat, &
-&                       BSK_IO_mode,BS_kpt_bz,l_BSE_kernel_full
+&                       BSK_IO_mode,l_BSE_kernel_full
  use R_lattice,    ONLY:bz_samp
  !
 #include<memory.h>
@@ -335,10 +339,16 @@ subroutine set_BS_blks(Xk)
  !
  allocate(BS_blk(n_BS_blks))
  BS_blk(:)%size(1)=1
+ ! dual part
+ BS_blk(:)%zise(2)=1
  !
  do iB=1,BS_K_dim(1)
    BS_blk(iB            )%coordinate(1)=iB
    BS_blk(iB+BS_K_dim(1))%coordinate(1)=iB
+   ! dual part
+   BS_blk(iB            )%poordinate(1)=1
+   BS_blk(iB+BS_K_dim(1))%poordinate(1)=1
+   ! mode
    BS_blk(iB            )%mode="R"
    BS_blk(iB+BS_K_dim(1))%mode="C"
  enddo
@@ -352,26 +362,18 @@ subroutine set_BS_blks(Xk)
      BS_blk(iB+BS_K_dim(1))%size(2)=BS_K_dim(1)-iB+1
      BS_blk(iB            )%coordinate(2)=iB
      BS_blk(iB+BS_K_dim(1))%coordinate(2)=iB
+     ! dual part
+     BS_blk(iB            )%zise(1)=BS_K_dim(1)-BS_blk(iB)%size(2)
+     BS_blk(iB+BS_K_dim(1))%zise(1)=BS_K_dim(1)-BS_blk(iB)%size(2)
+     BS_blk(iB            )%poordinate(2)=iB
+     BS_blk(iB+BS_K_dim(1))%poordinate(2)=iB
    enddo
  endif
- !
- do iB=1,n_BS_blks
-   !AMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-   !allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-   !BS_blk(iB)%mat=cZERO
-   !BS_blk(iB)%done(:,:)="f"
-   if (BS_blk(iB)%coordinate(1)==BS_blk(iB)%coordinate(2)) then 
-     allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
-     BS_blk(iB)%table=0
-   endif
- enddo
- !
- YAMBO_ALLOC(BS_kpt_bz,(3,Xk%nbz))
  !
 end subroutine set_BS_blks
 !
 !
-subroutine check_BS_parameters_consistency(Xk)
+subroutine check_BS_parameters_consistency(Xk,BS_nk)
  !
  use R_lattice,       ONLY:bz_samp
  use QP_m,            ONLY:QP_ng_SH,QP_ng_Sx,QP_ng_Sc
@@ -381,13 +383,9 @@ subroutine check_BS_parameters_consistency(Xk)
  implicit none
  !
  type(bz_samp), intent(in) :: Xk
+ integer,       intent(in) :: BS_nk
  !
- integer :: i_H,BS_nk
- !
- BS_nk=-1
- do i_H=1,2*BS_K_dim(1)
-   BS_nk = max(BS_blk(i_H)%table(1,1),BS_nk)
- enddo
+ integer :: i_H
  !
  if ( Xk%nbz/=BS_nk ) &
  & call error(" Different number of k-points between bse kernel and SAVE folder")
@@ -412,43 +410,7 @@ subroutine check_BS_parameters_consistency(Xk)
 end subroutine check_BS_parameters_consistency
 !
 !
-subroutine set_BS_blks_global(Xk)
- !
- use pars,         ONLY:cZERO
- use BS,           ONLY:BS_K_dim,n_BS_blks,n_BS_blks_min,BS_blk,BS_res_ares_n_mat,BSK_IO_mode,BS_kpt_bz
- use R_lattice,    ONLY:bz_samp
- !
-#include<memory.h>
- !
- type(bz_samp), intent(in) :: Xk
- !
- integer   :: iB
- !
- BS_res_ares_n_mat=1
- n_BS_blks=2
- n_BS_blks_min=n_BS_blks
- !
- allocate(BS_blk(n_BS_blks))
- BS_blk(1)%mode="R"
- BS_blk(2)%mode="C"
- !
- do iB=1,n_BS_blks
-   BS_blk(iB)%size(:)=BS_K_dim(1)
-   BS_blk(iB)%coordinate(:)=1
-   YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-   allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
-   BS_blk(iB)%mat=cZERO
-   BS_blk(iB)%done(:,:)="f"
-   allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
-   BS_blk(iB)%table=0
- enddo
- !
- YAMBO_ALLOC(BS_kpt_bz,(3,Xk%nbz))
- !
-end subroutine set_BS_blks_global
-!
-!
-subroutine build_inverse_BS_eh_table(Xk)
+subroutine build_inverse_BS_eh_table(Xk,ID_mat,BS_nk)
  !
  use electrons,       ONLY:n_sp_pol
  use R_lattice,       ONLY:bz_samp
@@ -458,27 +420,46 @@ subroutine build_inverse_BS_eh_table(Xk)
  implicit none
  !
  type(bz_samp), intent(in) :: Xk
+ integer, intent(in)       :: ID_mat
+ integer, intent(out)      :: BS_nk
  !
- integer :: i_H,ik_bz,iv,ic,i_sp_c,i_sp_v
+ integer :: i_res_ares,i_H,ik_bz,iv,ic,i_sp_c,i_sp_v
+ !
+ allocate(BS_blk(1)%table(5,BS_K_dim(1)))
+ allocate(BS_blk(2)%table(5,BS_K_dim(1)))
+ !
+ call read_BS_table(1,ID_mat)
+ !
+ BS_nk=-1
+ do i_res_ares=1,2
+ do i_H=1,BS_K_dim(1)
+   BS_nk = max(BS_blk(i_res_ares)%table(1,i_H),BS_nk)
+ enddo
+ enddo
  !
  allocate(BSS_eh_table_m1(Xk%nbz,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol,n_sp_pol))
  BSS_eh_table_m1=0
  !call live_timing('BSE inverse eh-table',BS_H_dim)
  !
- do i_H=1,2*BS_K_dim(1)
+ do i_res_ares=1,2
+ do i_H=1,BS_K_dim(1)
    !
-   ik_bz    = BS_blk(i_H)%table(1,1)
-   iv       = BS_blk(i_H)%table(2,1)
-   ic       = BS_blk(i_H)%table(3,1)
-   i_sp_c   = BS_blk(i_H)%table(4,1)
-   i_sp_v   = BS_blk(i_H)%table(5,1)
+   ik_bz    = BS_blk(i_res_ares)%table(1,i_H)
+   iv       = BS_blk(i_res_ares)%table(2,i_H)
+   ic       = BS_blk(i_res_ares)%table(3,i_H)
+   i_sp_c   = BS_blk(i_res_ares)%table(4,i_H)
+   i_sp_v   = BS_blk(i_res_ares)%table(5,i_H)
    !
-   BSS_eh_table_m1(ik_bz,iv,ic,i_sp_c,i_sp_v)=i_H
+   BSS_eh_table_m1(ik_bz,iv,ic,i_sp_c,i_sp_v)=i_H+(i_res_ares-1)*BS_K_dim(1)
    !
    !call live_timing(steps=1)
    !
  enddo
+ enddo
  !call live_timing( )
+ !
+ deallocate(BS_blk(1)%table)
+ deallocate(BS_blk(2)%table)
  !
 end subroutine build_inverse_BS_eh_table
 !

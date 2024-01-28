@@ -11,7 +11,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  use LIVE_t,       ONLY:live_timing
  use com,          ONLY:msg
  use X_m,          ONLY:X_t
- use drivers,      ONLY:l_bs_fxc,l_bss,l_eval_collisions
+ use drivers,      ONLY:l_bs_fxc,l_bss
  use BS,           ONLY:l_BSE_restart,l_BSE_kernel_complete,&
 &                       BS_K_cutoff,BS_K_cutoff_done,n_BS_blks
  use IO_int,       ONLY:io_control
@@ -79,7 +79,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
    enddo
  endif
  !
- if(l_BSE_kernel_complete.and.(l_bss.or.l_eval_collisions).and.io_BS_err==0) then
+ if(l_BSE_kernel_complete.and.l_bss.and.io_BS_err==0) then
    if(trim(IO_mode)=="full") then
      timing_string="Loading full BSE kernel"
      ID_now=ID
@@ -87,11 +87,6 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
    if(trim(IO_mode)=="compressed_head") then
      timing_string="Loading BSE_done from compressed file"
      ID_now=ID_compr
-   endif
-   if(l_eval_collisions) then
-     IO_mode="tableonly"
-     timing_string="Loading BSE table only"
-     ID_now=ID
    endif
    if(n_BS_blks>0) call live_timing(trim(timing_string),n_BS_blks)
    do i_block=1,n_BS_blks
@@ -140,7 +135,6 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  endif
  !
  call io_control(ACTION=IO_ACT,COM=REP,ID=ID_head)
- if(l_eval_collisions) return
  call io_control(ACTION=RD_CL,COM=REP,ID=ID)
  if(     l_BSE_kernel_complete) call io_BS_PAR_free(ID_head,ID,IO_mode,.true.)
  if(.not.l_BSE_kernel_complete) call io_BS_PAR_free(ID_head,ID,IO_mode,.false.)
@@ -158,7 +152,7 @@ subroutine K_restart(iq,X,ID_head,ID,ID_compr,l_partial_kernel_loaded)
  call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/1/),ID=ID)
  io_BS_err=io_BS(iq,X,ID)
  !
- if (io_BS_err==0.and.(l_bss.or.l_eval_collisions)) then
+ if (io_BS_err==0.and.l_bss) then
    if(n_BS_blks>0) call live_timing("Loading BSE kernel",n_BS_blks)
    call io_control(ACTION=OP_RD,COM=NONE,MODE=DUMP,SEC=(/1/),ID=ID)
    io_BS_err=io_BS(iq,X,ID)

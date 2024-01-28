@@ -101,11 +101,13 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
      ! Complex collisions
      if(def2) then
        COLL_chunksize(1)=2
-       COLL_chunksize(2:3)=YAMBO_DEF_CHUNK
-       if (COLL_element%N<YAMBO_DEF_CHUNK) COLL_chunksize(2)=COLL_element%N
-       if (COLL_grp%N<YAMBO_DEF_CHUNK)     COLL_chunksize(3)=0
+       !COLL_chunksize(2:3)=YAMBO_DEF_CHUNK
+       !if (COLL_element%N<YAMBO_DEF_CHUNK) COLL_chunksize(2)=COLL_element%N
+       !if (COLL_grp%N<YAMBO_DEF_CHUNK)     COLL_chunksize(3)=COLL_grp%N
+       COLL_chunksize(2)=COLL_element%N
+       COLL_chunksize(3)=1 !COLL_grp%N
        call def_variable_bulk(ID,'COLLISIONS_v',2,(/2,COLL_element%N,COLL_grp%N/),SP,&
-       &                      par_io_kind='independent',chunksize=COLL_chunksize(1:2))
+       &                      par_io_kind='independent',chunksize=COLL_chunksize)
      endif
      if(io3 ) then
        call C_F_POINTER(C_LOC(COLL_element%v_c(:COLL_element%N)),tmp_link_complex,(/COLL_element%N,1/))
@@ -136,6 +138,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
 #if defined _RT
  ! nf90_sync is performed up to LAST_COLL_sync and at steps of 5% of bse kernel
  file_sync= i_coll<=LAST_COLL_sync .and. mod(i_coll,max(1,PAR_COLL_min/20))==0 .and. index(trim(db_name),"HXC")/=0
+ !file_sync= .false.
  !
  if(write_is_on(ID).and.file_sync.and.io3) then
    stat = nf90_sync(io_unit(ID))
