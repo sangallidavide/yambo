@@ -17,7 +17,8 @@ subroutine setup(en,Xen,Ken,k,Xk)
  use D_lattice,      ONLY:a,alat,DL_vol,Tel,atom_mass,atom_pos,atoms_map,&
 &                         input_Tel_is_negative,dl_sop,dl_tra,sp_nsym,nsym,i_time_rev,&
 &                         inv_index,atoms_string,load_PT_elements,n_atoms_species,Z_species,&
-&                         n_atomic_species,PT_elements,non_periodic_directions,lattice
+&                         n_atomic_species,PT_elements,non_periodic_directions,lattice,&
+&                         non_symmorphic_syms
  use R_lattice,      ONLY:RL_vol,b,n_g_shells,ng_in_shell,Xk_grid_new_mapping,FineGd_desc,&
 &                         bz_samp,g_vec,E_of_shell,ng_closed,bz_samp_duplicate_Fg,MAX_kpts_to_report
  use com,            ONLY:msg,fat_log
@@ -185,7 +186,11 @@ subroutine setup(en,Xen,Ken,k,Xk)
  !
  if ( wf_ng > maxval(wf_igk) ) then
    call warning("wf_ng > maxval(wf_igk), probably because FFTGvecs in input. Reducing it")
+ endif
+ !
+ if (non_symmorphic_syms .and. wf_ng<maxval(wf_igk)) then
    wf_ng=maxval(wf_igk)
+   call warning("Non symmorphic symmetries forcing wf_ng= maxval(wf_igk)= "//trim(intc(wf_ng)))
  endif
  !
  call msg('r','nG shells         ',n_g_shells)

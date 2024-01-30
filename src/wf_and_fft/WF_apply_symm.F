@@ -26,7 +26,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  complex(SP), intent(out) DEV_ATTR :: WF_symm(fft_size,n_spinor)
  !
  complex(SP), pointer     DEV_ATTR :: WF_p(:,:,:)
- complex(SP) :: gphase
+ complex(SP) :: kphase
  real(SP)    :: krot(3)
  integer  :: i_wf
  integer  :: ifft,isymm
@@ -81,8 +81,8 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  ! Take care of transialtions
  krot=matmul(rl_sop(:,:,isymm),k_pt(isc(2),:))
  call c2a(v_in=krot,mode='ki2c')
- gphase=cmplx(cos(dot_product(dl_tra(:,isymm),krot)),sin(dot_product(dl_tra(:,isymm),krot)))
- WF_symm=WF_symm*gphase
+ kphase=cmplx(cos(dot_product(dl_tra(:,isymm),krot)),sin(dot_product(dl_tra(:,isymm),krot)))
+ WF_symm=WF_symm*conjg(kphase)
  !
  ! take care of time reversal if needed
  !
