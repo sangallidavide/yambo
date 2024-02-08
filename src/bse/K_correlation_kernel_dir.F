@@ -29,7 +29,7 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
  !
  complex(SP)  :: K_correlation_kernel_dir
  !
- integer      :: iO1,i_block_1,iO2,i_block_2,i_g,i_gr,i_gs,i_gsr,iq_W_s_m1,iq_W_s_mq_m1
+ integer      :: iO1,iO2,i_g,i_gr,i_gs,i_gsr,iq_W_s_m1,iq_W_s_mq_m1
  complex(SP)  :: O1(BS_n_g_W),O2(BS_n_g_W),O_times_W(BS_n_g_W),gphase
 #ifdef _CUDA
  attributes(device)   :: O1,O2,O_times_W
@@ -45,16 +45,13 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
  iq_W_s_m1   =sop_inv(iq_W_s)
  iq_W_s_mq_m1=sop_inv(iq_W_s_mq)
  !
- iO1       = BS_blk(i_block)%O_table1(i_k_s,i_p_s,1,1,i_n_k,i_n_p,i_k_sp_pol_n)
- i_block_1 = BS_blk(i_block)%O_table2(i_k_s,i_p_s,1,1,i_n_k,i_n_p,i_k_sp_pol_n)
- !
- iO2       = BS_blk(i_block)%O_table1(i_kmq_s,i_pmq_s,i_kmq_t,i_pmq_t,i_m_k,i_m_p,i_k_sp_pol_m)
- i_block_2 = BS_blk(i_block)%O_table2(i_kmq_s,i_pmq_s,i_kmq_t,i_pmq_t,i_m_k,i_m_p,i_k_sp_pol_m)
+ iO1 = BS_blk(i_block)%O_table(i_k_s,i_p_s,1,1,i_n_k,i_n_p,i_k_sp_pol_n)
+ iO2 = BS_blk(i_block)%O_table(i_kmq_s,i_pmq_s,i_kmq_t,i_pmq_t,i_m_k,i_m_p,i_k_sp_pol_m)
  !
 #ifdef _CUDA
  !
- O_c_d_iO1 => BS_blk(i_block_1)%O_c_d(:,iO1)
- O_c_d_iO2 => BS_blk(i_block_2)%O_c_d(:,iO2)
+ O_c_d_iO1 => BS_blk(i_block)%O_c_d(:,iO1)
+ O_c_d_iO2 => BS_blk(i_block)%O_c_d(:,iO2)
  !$cuf kernel do(1) <<<*,*>>>
  do i_g=1,BS_n_g_W
    i_gs =G_m_G_d(i_g ,ig_W  )
@@ -80,8 +77,8 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
    i_gs =G_m_G(i_g ,ig_W  )
    i_gr =g_rot(i_g ,iq_W_s)
    i_gsr=G_m_G(i_gr,ig_W  )
-   gphase=cmplx(cos(g_phs(i_gs,iq_W_s_m1)   ),sin(g_phs(i_gs,iq_W_s_m1)   ))
-   O1(i_g)=BS_blk(i_block_1)%O_c(i_gsr,iO1)*conjg(gphase)
+   gphase=cmplx(cos(g_phs(i_g,iq_W_s_m1)   ),sin(g_phs(i_g,iq_W_s_m1)   ))
+   O1(i_g)=BS_blk(i_block)%O_c(i_gsr,iO1)*conjg(gphase)
  enddo
  !$omp end parallel do
  !
@@ -90,8 +87,8 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
    i_gs =G_m_G(i_g ,ig_W_mq  )
    i_gr =g_rot(i_g ,iq_W_s_mq)
    i_gsr=G_m_G(i_gr,ig_W_mq  )
-   gphase=cmplx(cos(g_phs(i_gs,iq_W_s_mq_m1)),sin(g_phs(i_gs,iq_W_s_mq_m1)))
-   O2(i_g)=BS_blk(i_block_2)%O_c(i_gsr,iO2)*conjg(gphase)
+   gphase=cmplx(cos(g_phs(i_g,iq_W_s_mq_m1)),sin(g_phs(i_g,iq_W_s_mq_m1)))
+   O2(i_g)=BS_blk(i_block)%O_c(i_gsr,iO2)*conjg(gphase)
  enddo
  !$omp end parallel do
  !
