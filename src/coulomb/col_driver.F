@@ -40,7 +40,7 @@ subroutine col_driver(bare_NG,q)
  use R_lattice,     ONLY:d3q_factor,RIM_is_diagonal,RIM_qpg,bare_qpg,&
 &                        nqibz,g_vec,q_pt,nqbz,RIM_ng,RIM_n_rand_pts,&
 &                        bz_samp,q_norm,cutoff_presets,bare_qpg_d,&
-&                        cut_geometry,cut_is_slab,idir,q0_def_norm
+&                        cut_geometry,cut_is_slab,idir,q0_def_norm,eps_env
  use wave_func,     ONLY:wf_ng
  use IO_int,        ONLY:io_control
  use IO_m,          ONLY:OP_RD_CL,OP_WR_CL,REP,VERIFY
@@ -173,6 +173,7 @@ subroutine col_driver(bare_NG,q)
    !
    call cutoff_driver(q)
    q_norm(1)=q0_def_norm
+   bare_qpg=bare_qpg/eps_env
    !
  endif
  !
