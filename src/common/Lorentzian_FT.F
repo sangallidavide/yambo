@@ -12,9 +12,9 @@ function Lorentzian_FT(W,pole,ordering)
  ! Fourier transform of the Lorentzian function
  ! theta(t)*e^{-i*pole*t} [this is the retarded version, other ordering are computed]
  !
- ! AM,01/08/16. Note that aimag(pole) is always negative while aimag(W)>0
+ ! AM,01/08/16. Note that aimag(pole)<0, while aimag(W)>0
  !
- ! DS,31/10/18. Note that the present structure, at fieite q, uses the relation e_{n,k}=e_{n,-k},
+ ! DS,31/10/18. Note that the present structure, at finite q, uses the relation e_{n,k}=e_{n,-k},
  !              See Fetter-Walecka, p.158 from Eq.(12.29) to (12.30)
  !              Such relation is not always true. See for example magnetic systems with SOC and no SI.
  !              See also finite-q BSE where resonant and anti-resonant block are explicitly computed if needed
