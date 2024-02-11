@@ -69,6 +69,7 @@ subroutine el_magnetization(en,Xk,magn,bands)
      if (l_WFs_on_the_fly) then
        call WF_load(WF,WF_G_max,WF_Go_indx,bands_range,(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
 &                   space='R',title='-mang',keep_states_to_load=.true.)
+       wf_rspace_size=size(WF%r(:,1,1))
      endif
      !
      do ib=bands_range(1),bands_range(2)
