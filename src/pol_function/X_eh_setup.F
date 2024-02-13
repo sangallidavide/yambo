@@ -3,7 +3,7 @@
 !
 ! Copyright (C) 2007 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM DS
 !
 integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  !
@@ -11,7 +11,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  use X_m,           ONLY:X_t,X_poles,X_Ein_poles,X_poles_tab,l_X_terminator,X_term_E,&
  &                       l_X_abs,l_X_magn
  use R_lattice,     ONLY:qindx_X,bz_samp
- use electrons,     ONLY:levels,n_sp_pol,spin_occ
+ use electrons,     ONLY:levels,n_sp_pol,spin_occ,i_spin_majority,get_spin_majority
  use frequency,     ONLY:ordered_grid_index
  use parallel_m,    ONLY:PAR_IND_CON_BANDS_X,PAR_IND_Xk_bz,PAR_IND_VAL_BANDS_X
  !
@@ -53,6 +53,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  poles=0._SP 
  Ein_poles=0._SP
  !
+ if (l_X_magn) call get_spin_majority(Xen)
  !
  X_eh_setup=0
  local_tresh=epsilon(1._SP)
@@ -62,9 +63,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
    v_sp_pol = c_sp_pol
    !
    if (l_X_magn.and.n_sp_pol==2) then
-     !if(c_sp_pol==1) cycle
-     !if(i_res_ares==1.and.c_sp_pol==1) cycle
-     !if(i_res_ares==2.and.c_sp_pol==2) cycle
+     if(c_sp_pol==i_spin_majority) cycle
      v_sp_pol=mod(c_sp_pol,n_sp_pol)+1
    endif
    !

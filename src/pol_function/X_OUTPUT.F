@@ -77,7 +77,7 @@ subroutine X_OUTPUT(iq,Xen,Xk,wv,X,spectra)
  fac=4._SP*pi/Q_plus_G_sq_modulus
  !
  ! Magnons response function
- if (X_do_obs("magn")) X_magnons(:,1,1)=spectra(:,1)
+ if (X_do_obs("Spm")) X_magnons(:,1,1)=spectra(:,1)
  !
  ! Epsilon. This is always the 3D one
  if (X_do_obs("eps")) Epsilon_ii(:,1)=spectra(:,1)*fac+1._SP
@@ -101,7 +101,7 @@ subroutine X_OUTPUT(iq,Xen,Xk,wv,X,spectra)
    if (X_do_obs("eps"))   Epsilon_ii(:,2)=Epsilon_ii(:,1)
    if (X_do_obs("alpha")) Alpha(:,2)=Alpha(:,1)
    if (X_do_obs("eel"))   EEL(:,2) = EEL(:,1)
-   if (X_do_obs("magn"))  X_magnons(:,2,1)=X_magnons(:,1,1)
+   if (X_do_obs("Spm"))   X_magnons(:,2,1)=X_magnons(:,1,1)
  else
    !
    ! Epsilon. Procedure to get epsilon from Lfull
@@ -152,7 +152,7 @@ subroutine X_OUTPUT(iq,Xen,Xk,wv,X,spectra)
      !
    endif
    !
-   if (X_do_obs("magn")) X_magnons(:,2,1)=spectra(:,2)
+   if (X_do_obs("Spm")) X_magnons(:,2,1)=spectra(:,2)
    !
    if (l_pf_fxc) then
      call TDDFT_PF_coefficient(Xen,Xk,a_xc,b_xc)
@@ -211,6 +211,15 @@ subroutine X_OUTPUT(iq,Xen,Xk,wv,X,spectra)
    do iw=1,wv%n_freqs
      output_data(1:3)=(/real(wv%p(iw)),real(X_fxc(iw)*q_norm(iq)**2),aimag(X_fxc(iw)*q_norm(iq)**2)/)
      call X_OUTPUT_driver("WRITE fxc",data=output_data(:3))
+   enddo
+ endif
+ !
+ ! Magnons output
+ if (X_do_obs("Spm")) then 
+   do iw=1,wv%n_freqs
+     output_data=(/real(wv%p(iw)),aimag(X_magnons(iw,2,1)),real(X_magnons(iw,2,1)),&
+     &                            aimag(X_magnons(iw,1,1)),real(X_magnons(iw,1,1))/)
+     call X_OUTPUT_driver("WRITE Spm",data=output_data(:n_data))
    enddo
  endif
  !

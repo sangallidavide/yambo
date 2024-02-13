@@ -214,7 +214,8 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
  !
  n_res_ares=1
- if(l_X_magn.and.n_spinor==2.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
+ !if(l_X_magn.and.n_spinor==2.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
+ if(l_X_magn.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
  !
 #if defined _SC 
  if (l_sc_run.and..not.l_eval_collisions) live_t_string=what//'@it['//trim(intc(it_now))//'] '
@@ -324,7 +325,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
    if(.not.allocated(Xen%GreenF)) & 
 &       call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
 #else
-   ! DS: *** critical for magnons *** 
+   !
    !     Here it is always assumed that resonant and anti-resonat terms can be related by T-rev
    !     
    call X_GreenF_analytical(iq,X_poles_tab(i_bg,:),Xw,Xen,Xk,GreenF,ordering,'G',.FALSE.,l_X_terminator)
