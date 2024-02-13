@@ -24,7 +24,8 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use parallel_m,    ONLY:PAR_IND_Q_ibz,PAR_COM_Q_A2A,PAR_COM_RL_INDEX,PAR_IND_CON_BANDS_X,&
 &                        PAR_IND_Xk_ibz,PAR_IND_VAL_BANDS_X
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
- use TDDFT,         ONLY:F_xc_gspace,FXC_K_diagonal
+ use TDDFT,         ONLY:F_xc_gspace,FXC_K_diagonal,FXC_mode,l_Fxc_in_Xo
+ use xc_functionals,ONLY:F_xc_mat
  use interfaces,    ONLY:WF_load,WF_free
  use matrix,        ONLY:MATRIX_reset
  !
@@ -38,9 +39,9 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  ! 
  ! Work Space
  !
- integer          :: iq
+ integer          :: iq,X_par_size
  complex(SP)      :: fac,spectra(wv%n_freqs,2)
- logical          :: l_skip_non_int_eps,Macroscopic_CPU
+ logical          :: l_skip_non_int_eps,Macroscopic_CPU,l_Fxc_explicit
  !
  integer,external :: OPTICS_select_q_and_G
  !
@@ -53,10 +54,17 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  !l_X_photolum  = (index(Chi_prop,'photolum')/=0)
  l_X_magn      = (index(Chi_prop,'magn')/=0) .and.n_spin>1
  !
+ l_Fxc_in_Xo    = trim(FXC_mode)=="G-Fxc_in_Xo"
+ l_Fxc_explicit = trim(FXC_mode)=="G-def"
+ !
+ if (.not.(l_Fxc_in_Xo .or. l_Fxc_explicit)) call error("Wrong FXC_mode:"//trim(FXC_mode))
+ !
+ if (l_Fxc_in_Xo .and. .not.l_X_magn) call error("New FXC_mode coded only for magnons")
+ !
  ! Basic Checks
  call X_pre_setup(Xen,Xk,X)
  !
- allocate(X_par(1))
+ allocate(X_par(2))
  !
  do iq=X%iq(1),X%iq(2)
    !
@@ -80,11 +88,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    call X_Double_Grid_setup(iq,Xk,Xk%FGbz)
    !
    ! ALDA (only once) 
-   if (l_alda_fxc.and..not.allocated(F_xc_gspace)) then
-     !
-     call TDDFT_ALDA_G_space(Xen,Xk)
-     !
-   endif
+   if (l_alda_fxc) call TDDFT_ALDA_G_space(Xen,Xk)
    !
    ! workaround for possible compiler bug
 #if defined _PGI || defined _NV
@@ -111,6 +115,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    call X_half_mat_check(Xen,Xk,wv)
    !
    call X_ALLOC_parallel(X_par(1),X%ng,wv%n_freqs,"XUP")
+   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_ALLOC_parallel(X_par(2),X%ng,wv%n_freqs,"XUP")
    !
    Macroscopic_CPU=X_par(1)%rows(1)<=i_G_shift.and.i_G_shift<=X_par(1)%rows(2).and.&
 &                  X_par(1)%cols(1)<=i_G_shift.and.i_G_shift<=X_par(1)%cols(2)
@@ -130,11 +135,14 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    endif
    call PP_redux_wait(spectra(:,1),COMM=PAR_COM_RL_INDEX%COMM)
    !
+   ! Compute Xo*Fxc
+   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_irredux(iq,"Xo*Fxc",X_par(2),Xen,Xk,wv,X,Dip)
+   !
    if (.not.l_rpa_IP) then
      !
      ! X Dyson equation solver, i_G_shift is now handled in X_redux
      ! All cores allocated X_par(1)%blc(1,1,:), although only some have it filled properly
-     call X_redux(iq,"X",X_par(1),wv,X,"response")
+     call X_redux(iq,"X",X_par(1),X_par(2),wv,X,"response")
      !
      ! If l_X_abs, at variance with the IP case, after the call to X_redux,
      ! X_par now contains the factor 4*pi/bare_qpg**2
@@ -155,6 +163,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    ! CLEAN (each q)
    call FREQUENCIES_reset(wv,"all")
    call MATRIX_reset(X_par(1))
+   if (l_alda_fxc.and.l_Fxc_in_Xo) call MATRIX_reset(X_par(2))
    YAMBO_FREE(X_par_lower_triangle%blc)
    if (use_X_DbGd) then
      YAMBO_FREE(X_DbGd_nkpt_at_q_table)
@@ -171,6 +180,9 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  call PP_wait()
  if (allocated(F_xc_gspace)) then
    YAMBO_FREE(F_xc_gspace)
+ endif
+ if (allocated(F_xc_mat)) then
+   YAMBO_FREE(F_xc_mat)
  endif
  if (l_bs_fxc) then
    YAMBO_FREE(FXC_K_diagonal)

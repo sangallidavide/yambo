@@ -130,8 +130,9 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
          !
          if (.not.l_XTerm_vv) f_eh=Xen%f(iv,ik_m_q,v_sp_pol)*(spin_occ-Xen%f(ic,ik,c_sp_pol))/spin_occ
          if (     l_XTerm_vv) f_eh=Xen%f(iv,ik_m_q,v_sp_pol)*Xen%f(ic,ik,c_sp_pol)/spin_occ
+         if (      l_X_magn ) f_eh=Xen%f(iv,ik_m_q,v_sp_pol)-Xen%f(ic,ik,c_sp_pol)/spin_occ
          !
-         if (abs(f_eh)<local_tresh)  cycle  
+         if (f_eh<local_tresh)  cycle  
          !                                                              
          if (any((/abs(E_eh)<X%ehe(1),abs(E_eh)>X%ehe(2).and.X%ehe(2)>0._SP/))) cycle
          !

@@ -26,6 +26,7 @@ module TDDFT
 ! logical          :: FXC_is_causal
  logical          :: FXC_is_retarded
  logical          :: l_Fxc_from_Vxc
+ logical          :: l_Fxc_in_Xo
  !
  real(SP),    allocatable :: FXC_K_diagonal(:)
  complex(SP), allocatable :: F_xc_gspace(:,:,:)

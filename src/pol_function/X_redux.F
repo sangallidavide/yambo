@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM AF 
 !
-subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
+subroutine X_redux(iq,what,X_par,X_par_tddft,Xw,X,call_kind)
  !
  ! Here we solve the Dyson equation using a combination of Serial(SER)/Parallel(PAR)/SLK environments.
  !
@@ -33,7 +33,8 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  use interfaces,    ONLY:LINEAR_ALGEBRA_driver,MATRIX_transfer
  use stderr,        ONLY:intc
  use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,X_par_lower_triangle,i_G_shift,l_X_magn
- use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits
+ use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits,&
+&                        l_Fxc_in_Xo
  use timing_m,      ONLY:timing
  use cuda_m
  use deviceXlib_m
@@ -41,7 +42,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
 #include<dev_defs.h>
 #include<memory.h>
  !
- type(PAR_matrix) :: X_par
+ type(PAR_matrix) :: X_par,X_par_tddft
  type(X_t)        :: X
  type(w_samp)     :: Xw
  integer          :: iq
@@ -108,6 +109,10 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
  YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
  BUFFER%blc=cZERO
  !
+#if !defined SLK
+ if (BUFFER%kind=="SLK") call error("[LA] SLK library required but not available")
+#endif
+ !
  if (compute_on_gpu) then
    YAMBO_ALLOC(KERNEL%blc_d,(KERNEL%BLCrows(1):KERNEL%BLCrows(2),KERNEL%BLCcols(1):KERNEL%BLCcols(2),1))
    YAMBO_ALLOC(BUFFER%blc_d,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
@@ -121,7 +126,7 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
    BUFFER_SAVE=cZERO
  endif
  !
- if (l_alda_fxc.and.BUFFER%kind=="SLK") then
+ if (l_alda_fxc.and.BUFFER%kind=="SLK".and..not.l_Fxc_in_Xo) then
    call MATRIX_init( "SLK", K_FXC , FXC_n_g_corr, 1 )
    YAMBO_ALLOC(K_FXC%blc,(K_FXC%BLCrows(1):K_FXC%BLCrows(2),K_FXC%BLCcols(1):K_FXC%BLCcols(2),1))
    K_FXC%blc=cZERO
@@ -167,6 +172,14 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
 &                                                   COMM=PAR_COM_X_WORLD,COMM_name="X_redux_1_"//trim(intc(i_LA_pool)))
      endif
      !
+     if (l_alda_fxc.and.l_Fxc_in_Xo) then
+       KERNEL%I = iw_par_buffer
+       call MATRIX_transfer(M_in=X_par_tddft,M_out=KERNEL,INDEX_in=iw_X(1),&
+       &                             SND=X_par%INTRA_comm%CPU_id==0,&
+       &                             RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
+       &                             COMM=PAR_COM_X_WORLD,COMM_name="X_tddft_redux_1_"//trim(intc(i_LA_pool)))
+     endif
+     !
    enddo
    !
    if (iw_par>PAR_n_freqs) cycle
@@ -175,8 +188,11 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
    ! ==================
    !
    iw         = PAR_FREQS_index(iw_par)
-   KERNEL%blc = cZERO
-   if (compute_on_gpu) call dev_memset(KERNEL%blc_d,cZERO)
+   !
+   if (.not.(l_alda_fxc.and.l_Fxc_in_Xo)) then
+     KERNEL%blc = cZERO
+     if (compute_on_gpu) call dev_memset(KERNEL%blc_d,cZERO)
+   endif
    !
    Xo_cols(:)=BUFFER%cols(:)
    Xo_rows(:)=BUFFER%rows(:)
@@ -201,19 +217,15 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
        !$omp end parallel do
      endif
      !
-   else if (l_alda_fxc) then
+   else if (l_alda_fxc.and..not.l_FXC_in_Xo) then
      !
      ! ALDA Fxc
      !
      if (BUFFER%kind=="SLK") then
-#if defined _SCALAPACK
        call PARALLEL_M_by_M(BUFFER,K_FXC,KERNEL,"N","N",X%ng,FXC_n_g_corr,FXC_n_g_corr)
-#else
-       call error("[LA] SLK library required but not available")
-#endif
      else
        call M_by_M('N','N',X%ng,FXC_n_g_corr,FXC_n_g_corr,-cONE,BUFFER%blc(:FXC_n_g_corr,:FXC_n_g_corr,BUFFER%I),X%ng,&
-&                  F_xc_gspace(:,:,1),FXC_n_g_corr,cZERO,KERNEL%blc(:FXC_n_g_corr,:FXC_n_g_corr,1),X%ng)
+       &                  F_xc_gspace(:,:,1),FXC_n_g_corr,cZERO,KERNEL%blc(:FXC_n_g_corr,:FXC_n_g_corr,1),       X%ng )
      endif
      !
    endif
@@ -225,7 +237,11 @@ subroutine X_redux(iq,what,X_par,Xw,X,call_kind)
      call dev_memcpy(BUFFER%blc_d(:,:,BUFFER%I),BUFFER%blc(:,:,BUFFER%I))
    endif
    !
-   ! no Fxc [delta_(g1,g2)-Xo(g1,g2)*v(g2)]
+   ! A this point
+   ! - BUFFER contains Xo
+   ! - KERNEL is either 0 or contains -Xo*F_xc,
+   !   in the call to X_redux_build_kernel the code adds to KERNEL 
+   !   [delta_(g1,g2)-Xo(g1,g2)*v(g2)]
    !
    call X_redux_build_kernel(KERNEL,BUFFER,Xo_rows,Xo_cols)
    !

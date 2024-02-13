@@ -9,14 +9,14 @@ subroutine TDDFT_ALDA_G_space(E,k)
  !
  use pars,          ONLY:DP,SP
  use X_m,           ONLY:l_X_magn,l_X_abs
- use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace
+ use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,l_Fxc_in_Xo,l_Fxc_from_Vxc
  use QP_m,          ONLY:QP_ng_Vxc
  use com,           ONLY:msg
  use FFT_m,         ONLY:fft_size,fftw_plan,fft_dim,fft_g_table
  use electrons,     ONLY:levels,n_spin,n_spinor
  use R_lattice,     ONLY:bz_samp,G_m_G
  use wave_func,     ONLY:WF
- use xc_functionals,ONLY:V_xc,F_xc,magn,XC_potential_driver
+ use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind
  use interfaces,    ONLY:WF_load,WF_free,eval_G_minus_G
  !
@@ -32,7 +32,8 @@ subroutine TDDFT_ALDA_G_space(E,k)
  !
  integer, external        :: G_index_energy_factor
  !
- if (allocated(F_xc_gspace)) return
+ if (allocated(F_xc_gspace).and..not.l_Fxc_in_Xo) return
+ if (allocated(F_xc_mat)   .and.     l_Fxc_in_Xo) return
  !
  ! Fxc RL size setup looking at the max index of G-G'
  !
@@ -51,10 +52,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
  ! ALDA functional
  !
  YAMBO_ALLOC(F_xc,(fft_size,n_spin,n_spin))
- YAMBO_ALLOC(V_xc,(fft_size,n_spin))
- V_xc=0._SP
- YAMBO_ALLOC(F_xc_DP,(fft_size))
- if (l_X_magn.and.n_spinor==2) then
+ if (l_X_magn.or.n_spinor==2.or.l_Fxc_from_Vxc) then
    YAMBO_ALLOC(V_xc,(fft_size,n_spin))
    V_xc=0._SP
    QP_ng_Vxc=nG
@@ -62,8 +60,18 @@ subroutine TDDFT_ALDA_G_space(E,k)
  if (n_spin>1) then
    YAMBO_ALLOC(magn,(fft_size,3))
  endif
+ !
  call XC_potential_driver(E,k,WF_kind,WF_xc_functional,2)
  !
+ if (l_Fxc_in_Xo) then
+   !
+   YAMBO_ALLOC(F_xc_mat,(fft_size,n_spin,n_spin,n_spin,n_spin))
+   call Build_F_xc_mat(V_xc,F_xc,F_xc_mat)
+   goto 100
+   !
+ endif
+ !
+ YAMBO_ALLOC(F_xc_DP,(fft_size))
  if(l_X_abs) then
    do i1=1,fft_size
      F_xc_DP(i1)=sum(cmplx(F_xc(i1,:,:),kind=DP))
@@ -96,6 +104,8 @@ subroutine TDDFT_ALDA_G_space(E,k)
  enddo
  !
  ! Clean
+ !
+100 continue
  !
  YAMBO_FREE(V_xc)
  YAMBO_FREE(F_xc)

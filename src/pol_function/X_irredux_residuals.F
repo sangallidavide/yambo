@@ -7,7 +7,7 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
+subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_res,Xo_scatt,i_comp)
  !
  ! This subroutine must be kept thread-safe, since it is used
  ! inside an external omp loop.
@@ -40,18 +40,20 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
  type(X_t),    intent(in) :: X
  type(DIPOLE_t),intent(in):: Dip
  integer,      intent(in) :: i_cg,iq,i_comp
+ character(*), intent(in) :: what
  complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
  !
  ! Work sapce
  !
- complex(SP), pointer DEV_ATTR :: Xo_scatt_rhotw_p(:)
+ complex(SP), pointer DEV_ATTR :: Xo_scatt_rhotw_p(:),Xo_scatt_rhotw_tddft_p(:,:,:)
  complex(SP) DEV_ATTR :: DEV_VAR(rhotw_save)(Xo_scatt%ngrho),DEV_VAR(rhotw_save2)(Xo_scatt%ngrho)
+ complex(SP) DEV_ATTR :: DEV_VAR(rhotw_save_tddft)(Xo_scatt%ngrho)
  integer            :: sop_inv_l,X_ng
  complex(SP)        :: ctmp,Z_,DIP_spin(3)
  real(SP)           :: Z_eh_occ
- logical            :: l_X_term_vv
+ logical            :: l_X_term_vv,l_tddft
  integer            :: ngrho
- integer            :: ig1,ig2,ik,ikp,ikv,ikc,ikbz,ikpbz,is,c_sp_pol,v_sp_pol,&
+ integer            :: ig1,ig2,ig_first,ik,ikp,ikv,ikc,ikbz,ikpbz,is,c_sp_pol,v_sp_pol,&
 &                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,ROWS(2)
  !
  ! DIPOLES
@@ -59,6 +61,15 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
  complex(SP)        :: DIP_projected,field_dir(3)
  !
  field_dir=Dip%q0/v_norm(Dip%q0)*q0_def_norm
+ !
+ l_tddft=index(what,"Fxc")>0
+ !
+#ifdef _CUDA
+ if(l_tddft) call error("tddft Fxc in Xo and CUDA not coded")
+#endif
+ !
+ ig_first=2
+ if (l_X_magn) ig_first=1
  !
  isave     = 0
  n_poles   = sum(bare_grid_N(1:i_cg-1))
@@ -96,7 +107,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
    ! take into account the cancellation of terms
    ! occurring when dealing with the wings
    ig_start=X_rows(1)
-   if (iq==1) ig_start= max(2,ig_start)
+   if (iq==1) ig_start= max(ig_first,ig_start)
    !
    ! Note the renormalization of the Z_eh_occ=f(1-f)*Z factor
    !
@@ -104,7 +115,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
    !
    if (allocated(Xen%GreenF)) Z_=cONE
    !
-   Z_eh_occ = Xen%f(iv,ikv,v_sp_pol)*(spin_occ-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
+   !Z_eh_occ = Xen%f(iv,ikv,v_sp_pol)*(spin_occ-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
+   Z_eh_occ = (Xen%f(iv,ikv,v_sp_pol)-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
    !
    if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_treshold) Z_eh_occ=1._SP
    !
@@ -115,6 +127,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
    !
    X_ng=X%ng
    Xo_scatt_rhotw_p => DEV_VAR(Xo_scatt%rhotw)
+   if (l_tddft) Xo_scatt_rhotw_tddft_p => DEV_VAR(Xo_scatt%rhotw_tddft)
    !
    if (iq==1) then
      !
@@ -125,7 +138,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
      Xo_scatt%os = (/iv,ik,1,v_sp_pol/)
      Xo_scatt%qs = (/1,1,1/)
      !
-     if (.not.X%ng==1) then
+     if (.not.X%ng==1.or.l_X_magn) then
        !
        if ( any((/isave(1)/=iv,isave(2)/=ic,isave(3)/=ik,isave(4)/=c_sp_pol/)) ) then
          !
@@ -136,10 +149,15 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
          if(l_X_magn) then
            if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
            if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
+           if (l_tddft) then
+             if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
+             if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+           endif
          endif
          !
          ! rhotw_save=Xo_scatt%rhotw
          call dev_memcpy(DEV_VAR(rhotw_save),DEV_VAR(Xo_scatt%rhotw))
+         if (l_tddft) call dev_memcpy(DEV_VAR(rhotw_save_tddft),DEV_VAR(Xo_scatt%rhotw_tddft(:,c_sp_pol,v_sp_pol)))
          !
          isave=(/iv,ic,ik,c_sp_pol/)
          !
@@ -149,14 +167,26 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
        !
        !DEV_CUF kernel do(1) <<<*,*>>>
        !DEV_OMP parallel do default(shared), private(ig1,ig2)
-       !
-       do ig1=2,X_ng
+       do ig1=ig_first,X_ng
          ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
          Xo_scatt_rhotw_p(ig1)=DEV_VAR(rhotw_save)(ig2)
        enddo
        !
        if (is>nsym/(i_time_rev+1)) then
          call dev_conjg( DEV_VAR(Xo_scatt%rhotw) )
+       endif
+       !
+       if (l_tddft) then
+         !DEV_CUF kernel do(1) <<<*,*>>>
+         !DEV_OMP parallel do default(shared), private(ig1,ig2)
+         do ig1=ig_first,X_ng
+           ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
+           Xo_scatt_rhotw_tddft_p(ig1,c_sp_pol,v_sp_pol)=DEV_VAR(rhotw_save_tddft)(ig2)
+         enddo
+         !
+         if (is>nsym/(i_time_rev+1)) then
+           call dev_conjg( DEV_VAR(Xo_scatt%rhotw_tddft(:,c_sp_pol,v_sp_pol)) )
+         endif
        endif
        !
      endif
@@ -181,12 +211,13 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
        !
      endif
      !
-     if(l_X_magn) then
-       ! iG=1 case
-       DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
-       if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
-       if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
-     endif
+     ! Not needed, in the spin channel also the G=0 term is well defined
+     !if(l_X_magn) then
+     !  ! iG=1 case
+     !  DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
+     !  if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
+     !  if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
+     !endif
      !
    else
      !
@@ -201,10 +232,24 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
      if(l_X_magn) then
        if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
        if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
+       if (l_tddft) then
+         if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
+         if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+       endif
      endif
      !
    endif
    !
+   if (l_tddft) then
+     !write(*,*) c_sp_pol,v_sp_pol,Xo_scatt_rhotw_tddft_p(1:3,c_sp_pol,v_sp_pol)
+     !DEV_OMP parallel do default(shared), private(ig2)
+     do ig2=X_cols(1),X_cols(2)
+       ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
+       call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt%rhotw(ig2),&
+       & conjg(Xo_scatt_rhotw_tddft_p(ROWS(1):ROWS(2),c_sp_pol,v_sp_pol)),Xo_res(ROWS(1):ROWS(2),ig2))
+     enddo
+   else
+    !
    ! Filling the upper triangular part of the residual here ! 
    !-------------^^^^^---------------------------------------
 #ifdef _CUDA
@@ -281,10 +326,12 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,i_comp)
      call dev_memcpy(DEV_VAR(Xo_scatt%rhotw),DEV_VAR(rhotw_save2))
      !
    endif
+     !
+   endif
    !
  enddo loop_bare_grid
  !
- if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_treshold) then
+ if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_treshold.and.l_X_abs) then
     ctmp=Xo_res(1,1)
     Xo_res(1,1)=ctmp/real(drude_n_states,SP)
  endif

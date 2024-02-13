@@ -28,7 +28,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
  use IO_m,          ONLY:OP_RD_CL,OP_APP_CL,VERIFY,REP,io_RESPONSE
  use com,           ONLY:depth
- use TDDFT,         ONLY:F_xc_gspace
+ use TDDFT,         ONLY:F_xc_gspace,l_Fxc_in_Xo
  use interfaces,    ONLY:WF_load,WF_free
  use QP_m,          ONLY:QP_n_W_freqs_redux
  use matrix,        ONLY:MATRIX_reset,MATRIX_copy
@@ -61,6 +61,9 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  ! TMP: control response mode via X_abs
  !      IT would be better to have a dedicated l_X_screening or similar
  l_X_abs=.true.
+ !
+ ! At present this works only for magnons
+ l_Fxc_in_Xo=.false.
  !
  ! Check if there is a Efield directions average to be done
  !
@@ -312,7 +315,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
        call elemental_IO( iq , .TRUE. )
      endif
      !
-     if (.not.l_rpa_IP) call X_redux(iq,"X"//trim(X_what),X_par(iq_mem),Xw,X,"screening")
+     if (.not.l_rpa_IP) call X_redux(iq,"X"//trim(X_what),X_par(iq_mem),X_par(1),Xw,X,"screening")
      !
      if (n_OPTICAL_dir_to_eval>1.and.iq_dir==1) call MATRIX_copy(X_par(iq_mem),X_par_average,.TRUE.)
      if (n_OPTICAL_dir_to_eval>1)               call X_AVERAGE_do_it("ACCUMULATE",X_par(iq_mem))

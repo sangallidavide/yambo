@@ -37,6 +37,7 @@ module collision_el
    !
    complex(SP), allocatable :: gamp(:,:)
    complex(SP), allocatable :: rhotw(:)
+   complex(SP), allocatable :: rhotw_tddft(:,:,:)
    !
    ! scatter bamp workspace
    !
@@ -76,6 +77,7 @@ module collision_el
      !
      YAMBO_FREE(ggw%gamp)
      YAMBO_FREE(ggw%rhotw)
+     YAMBO_FREE(ggw%rhotw_tddft)
      YAMBO_FREE(ggw%rho_tw_rs)
      YAMBO_FREE(ggw%WF_symm_i)
      YAMBO_FREE(ggw%WF_symm_o)
@@ -99,7 +101,7 @@ module collision_el
    end subroutine
    !
    subroutine elemental_collision_alloc(ggw,NG,NG_GAMP,GRADIENT,TITLE)
-     use electrons,      ONLY:n_spinor
+     use electrons,      ONLY:n_spinor,n_spin
      use FFT_m,          ONLY:fft_size
      type(elemental_collision), target ::ggw
      integer,         OPTIONAL :: NG
@@ -133,6 +135,9 @@ module collision_el
          YAMBO_ALLOC(ggw%rhotw,(RHOSIZE))
          if (have_cuda) then
            YAMBO_ALLOC(ggw%rhotw_d,(RHOSIZE))
+         endif
+         if (index(TITLE,"Fxc")>0) then
+           YAMBO_ALLOC(ggw%rhotw_tddft,(RHOSIZE,n_spin,n_spin))
          endif
          !
        endif
