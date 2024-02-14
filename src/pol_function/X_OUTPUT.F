@@ -152,7 +152,7 @@ subroutine X_OUTPUT(iq,Xen,Xk,wv,X,spectra)
      !
    endif
    !
-   if (X_do_obs("Spm")) X_magnons(:,2,1)=spectra(:,2)
+   if (X_do_obs("Spm")) X_magnons(:,2,1)=-spectra(:,2)
    !
    if (l_pf_fxc) then
      call TDDFT_PF_coefficient(Xen,Xk,a_xc,b_xc)

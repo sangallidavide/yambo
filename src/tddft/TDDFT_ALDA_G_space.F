@@ -81,7 +81,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
    ! The non collinear case implementation should be extended, while here the 
    ! mixing between the +-, --, -+ and ++ components is neglected in the G-space implementation
    do i1=1,fft_size
-     F_xc_DP(i1)=    cmplx(F_xc(i1,2,2),kind=DP)
+     F_xc_DP(i1)=    cmplx(F_xc(i1,1,2),kind=DP)
    enddo
  endif
  !
