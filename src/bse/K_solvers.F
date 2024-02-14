@@ -14,7 +14,7 @@ subroutine K_solvers(iq,Ken,Xk,q,X_static,W_bss)
  use X_m,            ONLY:X_t
  use BS_solvers,     ONLY:BSS_desc,BSS_free,BS_mat,run_Haydock,&
 &                         run_inversion,run_Diago,run_Slepc
- use BS,             ONLY:BS_K_has_been_calculated_loaded,&
+ use BS,             ONLY:BS_K_has_been_calculated_loaded,l_BS_jdos,&
 &                         BS_blks_free,l_BS_abs,l_BS_kerr,l_BS_magnons
  use parallel_m,     ONLY:master_cpu,CPU_structure
  use IO_int,         ONLY:IO_and_Messaging_switch
@@ -98,6 +98,7 @@ subroutine K_solvers(iq,Ken,Xk,q,X_static,W_bss)
    ! A possible alternative could be to use the algorithm with Cf
    ! from both the left and the right hand side to get from a single Haydock loop
    !
+   if (l_BS_jdos)    call K_Haydock(iq,W_bss,"jdos",Xk)
    if (l_BS_abs)     call K_Haydock(iq,W_bss,"optics",Xk)
    if (l_BS_kerr)    call K_Haydock(iq,W_bss,"kerr",Xk)
    if (l_BS_magnons) call K_Haydock(iq,W_bss,"magnons",Xk)

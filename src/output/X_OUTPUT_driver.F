@@ -99,7 +99,7 @@ subroutine X_OUTPUT_driver(WHAT,keys,solver,IQ,IG,DESC,data)
        endif
      endif
      if (STRING_match(solver,"Inversion")) call X_obs_onoff("- Esort E_IP kerr magnons jdos")
-     if (STRING_match(solver,"Haydock")) call X_obs_onoff("- Esort jdos E_IP")
+     if (STRING_match(solver,"Haydock")) call X_obs_onoff("- Esort E_IP")
      if (STRING_match(solver,"Diago").or.STRING_match(solver,"Slepc")) call X_obs_onoff("- E_IP")
    endif
    !
