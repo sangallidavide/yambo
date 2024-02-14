@@ -65,6 +65,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  call X_pre_setup(Xen,Xk,X)
  !
  allocate(X_par(2))
+ allocate(X_par_lower_triangle(2))
  !
  do iq=X%iq(1),X%iq(2)
    !
@@ -114,8 +115,8 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    ! Response function parallel allocation
    call X_half_mat_check(Xen,Xk,wv)
    !
-   call X_ALLOC_parallel(X_par(1),X%ng,wv%n_freqs,"XUP")
-   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_ALLOC_parallel(X_par(2),X%ng,wv%n_freqs,"XUP")
+   call X_ALLOC_parallel(X_par(1),X_par_lower_triangle(1),X%ng,wv%n_freqs,"XUP")
+   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_ALLOC_parallel(X_par(2),X_par_lower_triangle(2),X%ng,wv%n_freqs,"XUP")
    !
    Macroscopic_CPU=X_par(1)%rows(1)<=i_G_shift.and.i_G_shift<=X_par(1)%rows(2).and.&
 &                  X_par(1)%cols(1)<=i_G_shift.and.i_G_shift<=X_par(1)%cols(2)
@@ -124,7 +125,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    if (iq> 1) call PP_wait(COMM=PAR_COM_Q_A2A%COMM)
    !
    ! Irredux (Xo) 
-   call X_irredux(iq,"Xo",X_par(1),Xen,Xk,wv,X,Dip)
+   call X_irredux(iq,"Xo",X_par(1),X_par_lower_triangle(1),Xen,Xk,wv,X,Dip)
    !
    ! Without LF. I start defining spectra=eps-1
    spectra=cZERO
@@ -136,13 +137,14 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    call PP_redux_wait(spectra(:,1),COMM=PAR_COM_RL_INDEX%COMM)
    !
    ! Compute Xo*Fxc
-   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_irredux(iq,"Xo*Fxc",X_par(2),Xen,Xk,wv,X,Dip)
+   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_irredux(iq,"Xo*Fxc",X_par(2),X_par_lower_triangle(2),Xen,Xk,wv,X,Dip)
    !
    if (.not.l_rpa_IP) then
      !
      ! X Dyson equation solver, i_G_shift is now handled in X_redux
      ! All cores allocated X_par(1)%blc(1,1,:), although only some have it filled properly
-     call X_redux(iq,"X",X_par(1),X_par(2),wv,X,"response")
+     call X_redux(iq,"X",X_par(1),X_par_lower_triangle(1),&
+     &                   X_par(2),X_par_lower_triangle(2),wv,X,"response")
      !
      ! If l_X_abs, at variance with the IP case, after the call to X_redux,
      ! X_par now contains the factor 4*pi/bare_qpg**2
@@ -163,8 +165,11 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    ! CLEAN (each q)
    call FREQUENCIES_reset(wv,"all")
    call MATRIX_reset(X_par(1))
-   if (l_alda_fxc.and.l_Fxc_in_Xo) call MATRIX_reset(X_par(2))
-   YAMBO_FREE(X_par_lower_triangle%blc)
+   YAMBO_FREE(X_par_lower_triangle(1)%blc)
+   if (l_alda_fxc.and.l_Fxc_in_Xo) then
+     call MATRIX_reset(X_par(2))
+     YAMBO_FREE(X_par_lower_triangle(1)%blc)
+   endif
    if (use_X_DbGd) then
      YAMBO_FREE(X_DbGd_nkpt_at_q_table)
      YAMBO_FREE(X_DbGd_nkpt_at_q)
@@ -174,8 +179,10 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  !
  ! CLEAN
  !
- call MATRIX_reset(X_par_lower_triangle)
+ call MATRIX_reset(X_par_lower_triangle(1))
+ if (l_alda_fxc.and.l_Fxc_in_Xo) call MATRIX_reset(X_par_lower_triangle(2))
  deallocate(X_par)
+ deallocate(X_par_lower_triangle)
  if(WF_buffered_IO) call WF_free(WF_buffer)
  call PP_wait()
  if (allocated(F_xc_gspace)) then

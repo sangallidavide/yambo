@@ -7,7 +7,7 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
+subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  !
  ! Non interacting Xo
  !
@@ -38,7 +38,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use openmp,        ONLY:OPENMP_compute_mutex,omp_locks
 #endif
  use frequency,     ONLY:w_samp,bare_grid_N,coarse_grid_N,coarse_grid_Pt
- use interfaces,    ONLY:WF_load,WF_free
+ use interfaces,    ONLY:WF_load,WF_free,X_irredux_residuals
  use electrons,     ONLY:levels,n_spinor,n_sp_pol
  use R_lattice,     ONLY:qindx_X,bz_samp,G_m_G
  use D_lattice,     ONLY:i_space_inv
@@ -46,7 +46,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc
  use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,X_lower_triangle_matrix_in_use,&
 &                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
-&                        l_X_terminator,X_terminator_E,X_term_E,X_par_lower_triangle,drude_n_states,&
+&                        l_X_terminator,X_terminator_E,X_term_E,drude_n_states,&
 &                        l_X_abs,l_X_kerr,l_X_magn
  use X_m,           ONLY:rhotw_save_d
  use cuda_m,        ONLY:have_cuda
@@ -60,6 +60,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
 #include<memory.h>
  !
  type(PAR_matrix), target :: X_par
+ type(PAR_matrix), target :: X_low
  type(levels)         :: Xen
  type(bz_samp)        :: Xk
  type(X_t)            :: X
@@ -76,14 +77,16 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
 &                            i_comp,i_res_ares,n_res_ares
- logical                  :: force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
+ logical                  :: l_tddft,force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
  complex(SP),allocatable  :: Xo_res(:,:)
+ complex(SP),allocatable  :: oX_res(:,:)
  !
  complex(SP),allocatable DEV_ATTR :: Xo_res_d(:,:)
+ complex(SP),allocatable DEV_ATTR :: oX_res_d(:,:)
  complex(SP),pointer     DEV_ATTR :: X_par_blc_d(:,:,:)
- complex(SP),pointer     DEV_ATTR :: X_par_lowtri_blc_d(:,:,:)
+ complex(SP),pointer     DEV_ATTR :: X_low_blc_d(:,:,:)
  complex(SP)              :: GreenF_iw
  integer                  :: PAR_COM_RL_INDEX_n_CPU
  integer                  :: lda
@@ -95,6 +98,8 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !===================
  GreenF                           = cZERO
  drude_GreenF                     = cZERO
+ !
+ l_tddft=index(what,"Fxc")>0
  !
  X_rows1=X_par%rows(1)
  X_rows2=X_par%rows(2)
@@ -228,7 +233,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
 #if !defined _CUDA
  !$omp parallel num_threads(n_out_threads) default(shared), &
- !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,ig_col,&
+ !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,oX_res,Xo_scatt,ig_col,&
  !$omp &        ig1,ig_row_transp,iw,mutexid,i_res_ares,i_comp,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
@@ -244,12 +249,18 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
    YAMBO_ALLOC(Xo_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
    YAMBO_ALLOC(rhotw_save_d,(ngrho))
  endif
+ if (l_tddft) then
+   YAMBO_ALLOC(oX_res,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
+   if (have_cuda) then
+     YAMBO_ALLOC(oX_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
+   endif
+ endif
  call elemental_collision_free(Xo_scatt)
  call elemental_collision_alloc(Xo_scatt,NG=ngrho,TITLE=trim(what)) 
  !
  if (have_cuda) then
    X_par_blc_d => X_par%blc_d
-   if (X_lower_triangle_matrix_in_use)  X_par_lowtri_blc_d => X_par_lower_triangle%blc_d
+   if (X_lower_triangle_matrix_in_use)  X_low_blc_d => X_low%blc_d
  endif
  !
  ! Drude term
@@ -260,7 +271,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,DEV_VAR(Xo_res),Xo_scatt,1)
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,1,DEV_VAR(Xo_res))
      !
      ctmp = DEV_VAR(Xo_res)(1,1)
      !
@@ -315,7 +326,11 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
    !
    ! 1) First compute the residuals
    !================================
-   call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,DEV_VAR(Xo_res),Xo_scatt,i_comp)
+   if (l_tddft) then
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,DEV_VAR(Xo_res),oX_res=DEV_VAR(oX_res))
+   else
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,DEV_VAR(Xo_res))
+   endif
    !
    ! 2) Then the frequency dependent term
    !=======================================
@@ -376,7 +391,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      !
 #endif
      !
-     if (.not.X_FILL_UP_matrix_only) then
+     if (.not.X_FILL_UP_matrix_only .or. l_tddft) then
        !
        ! ----    ----
        ! -xxx    ----
@@ -393,7 +408,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
            !
            if (ig1 < ig_col) then
              ig_row_transp = ig_col
-             X_par_lowtri_blc_d(ig_row_transp,ig1,iw)=X_par_lowtri_blc_d(ig_row_transp,ig1,iw) + &
+             X_low_blc_d(ig_row_transp,ig1,iw)=X_low_blc_d(ig_row_transp,ig1,iw) + &
 &                                                     GreenF_iw*conjg(Xo_res_d(ig1,ig_col))
            endif
            !
@@ -433,14 +448,24 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
          ig_row_transp = ig_col
          X_cols_transp = (/X_rows1_l,X_rows2_l/)
          !
-         if (PAR_COM_RL_INDEX_n_CPU>1) then
-           lda=size(X_par_lower_triangle%blc(:,1,1))
-           call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, & 
-&                        X_par_lower_triangle%blc(ig_row_transp,X_cols_transp(1),iw),lda)
+	 if (PAR_COM_RL_INDEX_n_CPU>1) then
+           lda=size(X_low%blc(:,1,1))
+	   if (l_tddft) then
+             call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, & 
+&                          X_low%blc(ig_row_transp,X_cols_transp(1),iw),lda)
+           else
+             call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, & 
+&                          X_low%blc(ig_row_transp,X_cols_transp(1),iw),lda)
+           endif
          else
            lda=size(X_par%blc(:,1,1))
-           call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, &
-&                        X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
+	   if (l_tddft) then
+             call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, &
+&                          X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
+           else
+             call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, &
+&                          X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
+           endif
          endif
          !
 #  if defined _OPENMP
@@ -501,14 +526,14 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  if (have_cuda) then
    X_par%blc=X_par%blc_d
-   if (X_lower_triangle_matrix_in_use) X_par_lower_triangle%blc=X_par_lower_triangle%blc_d
+   if (X_lower_triangle_matrix_in_use) X_low%blc=X_low%blc_d
    YAMBO_FREE(X_par%blc_d)
-   YAMBO_FREE(X_par_lower_triangle%blc_d)
+   YAMBO_FREE(X_low%blc_d)
  endif
  !
  do iw=1,Xw%n_freqs
    call PP_redux_wait(X_par%blc(:,:,iw),COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
-   if (X_lower_triangle_matrix_in_use) call PP_redux_wait(X_par_lower_triangle%blc(:,:,iw),COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
+   if (X_lower_triangle_matrix_in_use) call PP_redux_wait(X_low%blc(:,:,iw),COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
  enddo
  !
  call timing(what//' (REDUX)',OPR='stop')
@@ -516,7 +541,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  ! Populate the lower triangle/piece of Xo 
  !=========================================
  !
- if (.not.X_FILL_UP_matrix_only.and.PAR_COM_RL_INDEX%n_CPU==1) return
+ if ( ((.not.X_FILL_UP_matrix_only).or.l_tddft) .and.PAR_COM_RL_INDEX%n_CPU==1 ) return
  !
  ! X_FILL_UP_matrix_only=.TRUE.
  !
@@ -573,10 +598,10 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      ig_row_transp=ig_col
      do ig_row=max(ig_col,X_par%rows(1)),X_par%rows(2)
        ig_col_transp=ig_row
-       ! FILL THE UPPER PART OF X_par_lower
-       X_par_lower_triangle%blc(ig_row_transp,ig_col_transp,iw)=X_par%blc(ig_row_transp,ig_col_transp,iw)
+       ! FILL THE UPPER PART OF X_low
+       X_low%blc(ig_row_transp,ig_col_transp,iw)=X_par%blc(ig_row_transp,ig_col_transp,iw)
        ! FILL THE LOWER PART OF X_par
-       X_par%blc(ig_row,ig_col,iw)                             =X_par_lower_triangle%blc(ig_row,ig_col,iw)
+       X_par%blc(ig_row,ig_col,iw)              =X_low%blc(ig_row,ig_col,iw)
      enddo
    enddo
    enddo

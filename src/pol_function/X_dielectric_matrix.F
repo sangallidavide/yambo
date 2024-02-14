@@ -216,6 +216,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
 #endif
    if (.not.io_RESPONSE) allocate(X_par(PAR_nQ_ibz))
    if (.not.io_RESPONSE) call X_ALLOC_elemental('X',(/X%ng,X%ng,X_MEM_n_tot_freqs/))
+   allocate(X_par_lower_triangle(1))
  endif
  !
  ! WF distribution 
@@ -308,14 +309,15 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
      if (n_OPTICAL_dir_to_eval>1) call X_AVERAGE_setup("DIR-LOOP",iq_dir,X%q0)
      if (n_OPTICAL_dir_to_eval>1) X_what="("//trim(intc(iq_dir))//" of "//trim(intc(n_OPTICAL_dir_to_eval))//")"
      !
-     call X_irredux(iq,"Xo"//trim(X_what),X_par(iq_mem),Xen,Xk,Xw,X,Dip)
+     call X_irredux(iq,"Xo"//trim(X_what),X_par(iq_mem),X_par_lower_triangle(1),Xen,Xk,Xw,X,Dip)
      !
      if (l_write_disk_Xo.and.n_OPTICAL_dir_to_eval==1) then
        call X_mat_filling(iq_mem,X,Xw,X_MEM_n_freqs,X_MEM_n_tot_freqs,X_mat)
        call elemental_IO( iq , .TRUE. )
      endif
      !
-     if (.not.l_rpa_IP) call X_redux(iq,"X"//trim(X_what),X_par(iq_mem),X_par(1),Xw,X,"screening")
+     if (.not.l_rpa_IP) call X_redux(iq,"X"//trim(X_what),X_par(iq_mem),X_par_lower_triangle(1),&
+     &                                         X_par(1),X_par_lower_triangle(1),Xw,X,"screening")
      !
      if (n_OPTICAL_dir_to_eval>1.and.iq_dir==1) call MATRIX_copy(X_par(iq_mem),X_par_average,.TRUE.)
      if (n_OPTICAL_dir_to_eval>1)               call X_AVERAGE_do_it("ACCUMULATE",X_par(iq_mem))
@@ -345,8 +347,8 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
    !
    ! CLEAN (2)
    if (io_RESPONSE) call MATRIX_reset(X_par(iq_mem))
-   YAMBO_FREE(X_par_lower_triangle%blc)
-   call MATRIX_reset(X_par_lower_triangle)
+   YAMBO_FREE(X_par_lower_triangle(1)%blc)
+   call MATRIX_reset(X_par_lower_triangle(1))
    !
    if (use_X_DbGd) then
      YAMBO_FREE(X_DbGd_nkpt_at_q)
@@ -367,6 +369,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
 #endif
    deallocate(X_par)
  endif
+ deallocate(X_par_lower_triangle)
  if (allocated(F_xc_gspace)) then
    YAMBO_FREE(F_xc_gspace)
  endif

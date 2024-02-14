@@ -7,7 +7,7 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_res,Xo_scatt,i_comp)
+subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,oX_res)
  !
  ! This subroutine must be kept thread-safe, since it is used
  ! inside an external omp loop.
@@ -42,6 +42,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_res,Xo_scatt,i_comp)
  integer,      intent(in) :: i_cg,iq,i_comp
  character(*), intent(in) :: what
  complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
+ complex(SP), optional, intent(out) DEV_ATTR :: oX_res(X_cols(1):X_cols(2),X_rows(1):X_rows(2))
  !
  ! Work sapce
  !
@@ -54,7 +55,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_res,Xo_scatt,i_comp)
  logical            :: l_X_term_vv,l_tddft
  integer            :: ngrho
  integer            :: ig1,ig2,ig_first,ik,ikp,ikv,ikc,ikbz,ikpbz,is,c_sp_pol,v_sp_pol,&
-&                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,ROWS(2)
+&                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,COLS(2),ROWS(2)
  !
  ! DIPOLES
  !
@@ -150,8 +151,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_res,Xo_scatt,i_comp)
            if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
            if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
            if (l_tddft) then
-             if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
-             if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+             if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+             if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
            endif
          endif
          !
@@ -233,21 +234,35 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_res,Xo_scatt,i_comp)
        if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
        if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
        if (l_tddft) then
-         if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
-         if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+         if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+         if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
        endif
      endif
      !
    endif
    !
    if (l_tddft) then
-     !write(*,*) c_sp_pol,v_sp_pol,Xo_scatt_rhotw_tddft_p(1:3,c_sp_pol,v_sp_pol)
-     !DEV_OMP parallel do default(shared), private(ig2)
-     do ig2=X_cols(1),X_cols(2)
-       ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
-       call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt%rhotw(ig2),&
-       & conjg(Xo_scatt_rhotw_tddft_p(ROWS(1):ROWS(2),c_sp_pol,v_sp_pol)),Xo_res(ROWS(1):ROWS(2),ig2))
-     enddo
+     !if (present(oX_res) then
+       !DEV_OMP parallel do default(shared), private(ig2)
+       do ig2=X_cols(1),X_cols(2)
+	 ! Upper part
+         ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
+         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2,v_sp_pol,c_sp_pol),&
+         & conjg(Xo_scatt%rhotw(ROWS(1):ROWS(2))),Xo_res(ROWS(1):ROWS(2),ig2))
+       enddo
+       do ig2=X_rows(1),X_rows(2)
+	 ! lower part
+         COLS=(/X_cols(1),min(ig2-1,X_cols(1))/)
+         call V_plus_alpha_V(COLS(2)-COLS(1)+1,-Z_eh_occ*Xo_scatt%rhotw(ig2),&
+         & conjg(Xo_scatt_rhotw_tddft_p(COLS(1):COLS(2),v_sp_pol,c_sp_pol)),oX_res(COLS(1):COLS(2),ig2))
+       enddo
+     !else
+     !  do ig2=X_cols(1),X_cols(2)
+     !   ! Full X
+     !    call V_plus_alpha_V(X_rows(2)-X_rows(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2,v_sp_pol,c_sp_pol),&
+     !    & conjg(Xo_scatt%rhotw(X_rows(1):X_rows(2))),Xo_res(X_rows(1):X_rows(2),ig2))
+     !  enddo
+     !endif
    else
     !
    ! Filling the upper triangular part of the residual here ! 

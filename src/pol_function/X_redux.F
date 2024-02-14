@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM AF 
 !
-subroutine X_redux(iq,what,X_par,X_par_tddft,Xw,X,call_kind)
+subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  !
  ! Here we solve the Dyson equation using a combination of Serial(SER)/Parallel(PAR)/SLK environments.
  !
@@ -32,7 +32,7 @@ subroutine X_redux(iq,what,X_par,X_par_tddft,Xw,X,call_kind)
  use wrapper,       ONLY:M_by_M
  use interfaces,    ONLY:LINEAR_ALGEBRA_driver,MATRIX_transfer
  use stderr,        ONLY:intc
- use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,X_par_lower_triangle,i_G_shift,l_X_magn
+ use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,i_G_shift,l_X_magn
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits,&
 &                        l_Fxc_in_Xo
  use timing_m,      ONLY:timing
@@ -42,7 +42,7 @@ subroutine X_redux(iq,what,X_par,X_par_tddft,Xw,X,call_kind)
 #include<dev_defs.h>
 #include<memory.h>
  !
- type(PAR_matrix) :: X_par,X_par_tddft
+ type(PAR_matrix) :: X_par,X_low,X_alda_up,X_alda_dn
  type(X_t)        :: X
  type(w_samp)     :: Xw
  integer          :: iq
@@ -161,23 +161,29 @@ subroutine X_redux(iq,what,X_par,X_par_tddft,Xw,X,call_kind)
      !
      ! Only the CPU of this POOL has to store the X matrix (RCV logical).
      !
-     call MATRIX_transfer(M_in=X_par,               M_out=BUFFER,INDEX_in=iw_X(1),&
-&                                                   SND=X_par%INTRA_comm%CPU_id==0,&
-&                                                   RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
-&                                                   COMM=PAR_COM_X_WORLD,COMM_name="X_redux_1_"//trim(intc(i_LA_pool)))
-     if(allocated(X_par_lower_triangle%blc)) then
-       call MATRIX_transfer(M_in=X_par_lower_triangle,M_out=BUFFER,INDEX_in=iw_X(1),&
-&                                                   SND=X_par%INTRA_comm%CPU_id==0,&
-&                                                   RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
-&                                                   COMM=PAR_COM_X_WORLD,COMM_name="X_redux_1_"//trim(intc(i_LA_pool)))
+     call MATRIX_transfer(M_in=X_par,M_out=BUFFER,INDEX_in=iw_X(1),&
+&                                    SND=X_par%INTRA_comm%CPU_id==0,&
+&                                    RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
+&                                    COMM=PAR_COM_X_WORLD,COMM_name="X_redux_1_"//trim(intc(i_LA_pool)))
+     if(allocated(X_low%blc)) then
+       call MATRIX_transfer(M_in=X_low,M_out=BUFFER,INDEX_in=iw_X(1),&
+&                                      SND=X_par%INTRA_comm%CPU_id==0,&
+&                                      RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
+&                                      COMM=PAR_COM_X_WORLD,COMM_name="X_redux_1_"//trim(intc(i_LA_pool)))
      endif
      !
      if (l_alda_fxc.and.l_Fxc_in_Xo) then
        KERNEL%I = iw_par_buffer
-       call MATRIX_transfer(M_in=X_par_tddft,M_out=KERNEL,INDEX_in=iw_X(1),&
+       call MATRIX_transfer(M_in=X_alda_up,M_out=KERNEL,INDEX_in=iw_X(1),&
        &                             SND=X_par%INTRA_comm%CPU_id==0,&
        &                             RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
        &                             COMM=PAR_COM_X_WORLD,COMM_name="X_tddft_redux_1_"//trim(intc(i_LA_pool)))
+       if(allocated(X_alda_dn%blc)) then
+         call MATRIX_transfer(M_in=X_alda_dn,M_out=KERNEL,INDEX_in=iw_X(1),&
+         &                             SND=X_par%INTRA_comm%CPU_id==0,&
+         &                             RCV=i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1,&
+         &                             COMM=PAR_COM_X_WORLD,COMM_name="X_tddft_redux_1_"//trim(intc(i_LA_pool)))
+       endif
      endif
      !
    enddo
@@ -239,7 +245,7 @@ subroutine X_redux(iq,what,X_par,X_par_tddft,Xw,X,call_kind)
    !
    ! A this point
    ! - BUFFER contains Xo
-   ! - KERNEL is either 0 or contains -Xo*F_xc,
+   ! - KERNEL is either 0 or contains -Xo*F_xc(g1,g2),
    !   in the call to X_redux_build_kernel the code adds to KERNEL 
    !   [delta_(g1,g2)-Xo(g1,g2)*v(g2)]
    !

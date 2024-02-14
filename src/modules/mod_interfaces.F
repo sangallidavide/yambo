@@ -293,6 +293,24 @@ module interfaces
      type(tddft_wf_t), target, intent(inout) :: tddft_wf
    end function TDDFT_ALDA_eh_space_R_kernel
    !
+   subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,oX_res)
+     use pars,          ONLY:SP
+     use collision_el,  ONLY:elemental_collision
+     use electrons,     ONLY:levels
+     use R_lattice,     ONLY:bz_samp
+     use X_m,           ONLY:X_t,X_cols,X_rows
+     use DIPOLES,       ONLY:DIPOLE_t
+     type(elemental_collision), target :: Xo_scatt
+     type(levels), intent(in) :: Xen
+     type(bz_samp),intent(in) :: Xk
+     type(X_t),    intent(in) :: X
+     type(DIPOLE_t),intent(in):: Dip
+     integer,      intent(in) :: i_cg,iq,i_comp
+     character(*), intent(in) :: what
+     complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
+     complex(SP), optional, intent(out) DEV_ATTR :: oX_res(X_cols(1):X_cols(2),X_rows(1):X_rows(2))
+   end subroutine
+   !
  end interface
  !
  interface WF_shift_kpoint

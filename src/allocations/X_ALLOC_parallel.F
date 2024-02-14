@@ -5,19 +5,19 @@
 !
 ! Authors (see AUTHORS file for details): AM
 !
-subroutine X_ALLOC_parallel(X_par,NG,NW,mode)
+subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
  !
  use pars,          ONLY:cZERO
  use parallel_m,    ONLY:COMM_copy,PAR_COM_RL_INDEX,PAR_COM_RL_A2A,PAR_COM_HOST
  use matrix,        ONLY:MATRIX_reset,PAR_matrix
- use X_m,           ONLY:X_par_lower_triangle,X_rows,X_cols,&
+ use X_m,           ONLY:X_rows,X_cols,&
 &                        X_FILL_UP_matrix_only,X_lower_triangle_matrix_in_use
  use parallel_int,  ONLY:PARALLEL_live_message,PP_redux_wait
  use cuda_m,        ONLY:have_cuda
  !
 #include<memory.h>
  !
- type(PAR_matrix) :: X_par
+ type(PAR_matrix) :: X_par,X_low
  integer          :: NG,NW
  integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
  character(*)     :: mode
@@ -53,25 +53,25 @@ subroutine X_ALLOC_parallel(X_par,NG,NW,mode)
  !
  if (l_XUP.and..not.X_FILL_UP_matrix_only.and.X_par%INTER_comm%n_CPU>1) then
    !
-   call MATRIX_reset(X_par_lower_triangle)
+   call MATRIX_reset(X_low)
    X_lower_triangle_matrix_in_use=.TRUE.
-   X_par_lower_triangle%kind ="XDN"
-   X_par_lower_triangle%rows =X_par%cols
-   X_par_lower_triangle%cols =X_par%rows
-   X_par_lower_triangle%nrows=X_par%ncols
-   X_par_lower_triangle%ncols=X_par%nrows
+   X_low%kind ="XDN"
+   X_low%rows =X_par%cols
+   X_low%cols =X_par%rows
+   X_low%nrows=X_par%ncols
+   X_low%ncols=X_par%nrows
    !
-   !TMP_SIZE=(/X_par%cols(2)-X_par%cols(1)+1,X_par%rows(2)-X_par%rows(1)+1,NW*2/)
-   !AMBO_PAR_ALLOC_CHECK3(X_par_lower_triangle%blc,TMP_SIZE)
-   YAMBO_ALLOC(X_par_lower_triangle%blc,(X_par%cols(1):X_par%cols(2),X_par%rows(1):X_par%rows(2),NW))
-   X_par_lower_triangle%blc=cZERO
+   !TMP_SIZE=(/X_low%rows(2)-X_low%rows(1)+1,X_low%cols(2)-X_low%cols(1)+1,NW*2/)
+   !AMBO_PAR_ALLOC_CHECK3(X_low%blc,TMP_SIZE)
+   YAMBO_ALLOC(X_low%blc,(X_low%rows(1):X_low%rows(2),X_low%cols(1):X_low%cols(2),NW))
+   X_low%blc=cZERO
    if (have_cuda.and..not.l_CPU_ONLY) then
-     YAMBO_ALLOC(X_par_lower_triangle%blc_d,(X_par%cols(1):X_par%cols(2),X_par%rows(1):X_par%rows(2),NW))
-     X_par_lower_triangle%blc_d=cZERO
+     YAMBO_ALLOC(X_low%blc_d,(X_low%rows(1):X_low%rows(2),X_low%cols(1):X_low%cols(2),NW))
+     X_low%blc_d=cZERO
    endif
    !
-   call COMM_copy(PAR_COM_RL_A2A,   X_par_lower_triangle%INTRA_comm)
-   call COMM_copy(PAR_COM_RL_INDEX, X_par_lower_triangle%INTER_comm)
+   call COMM_copy(PAR_COM_RL_A2A,   X_low%INTRA_comm)
+   call COMM_copy(PAR_COM_RL_INDEX, X_low%INTER_comm)
  endif
  !
  !TMP_SIZE=(/X_par%rows(2)-X_par%rows(1)+1,X_par%cols(2)-X_par%cols(1)+1,NW*2/)

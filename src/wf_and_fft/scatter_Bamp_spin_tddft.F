@@ -37,9 +37,13 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  !
  complex(SP) :: WF_spin(fft_size,n_spinor)
  !
- integer     :: qs,iGo,ig, ir,ic,i_sp_loop,o_sp_loop,is_yambo,os_yambo
+ integer     :: qs,iGo,ig,ir,ic,is(4),os(4),i_sp_loop,o_sp_loop,is_yambo,os_yambo
  !
  if (.not. allocated(isc%rhotw_tddft) ) call error("rhotw_tdddft not allocated")
+ !
+ ! Here I invert the indexes instead of calling the function with opposite indexes.
+ is=isc%os
+ os=isc%is
  !
  do i_sp_loop=1,n_sp_pol
    do o_sp_loop=1,n_sp_pol
@@ -52,21 +56,21 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
       os_yambo=i_sp_loop
       !
       if (is_yambo==os_yambo) cycle
-      if (isc%is(4)==is_yambo) cycle
-      if (isc%os(4)==os_yambo) cycle
+      if (is(4)==is_yambo) cycle
+      if (os(4)==os_yambo) cycle
  !
  ! |ib ik_is i_sp>
- call WF_apply_symm(isc%is,isc%WF_symm_i)
+ call WF_apply_symm(is,isc%WF_symm_i)
  !
  ! | ob ok_os o_sp>   
- call WF_apply_symm(isc%os,isc%WF_symm_o)
+ call WF_apply_symm(os,isc%WF_symm_o)
  !
  if (n_sp_pol==2) then
    if (which=="x") WF_spin=isc%WF_symm_i
-   if (which=="y") WF_spin=isc%WF_symm_i*cI*(-1)**(isc%is(4)-1)
-   if (which=="z") WF_spin=isc%WF_symm_i   *(-1)**(isc%is(4)-1)
-   if (which=="+") WF_spin=isc%WF_symm_i*0.5_SP*real(1+(-1)**isc%is(4),SP)
-   if (which=="-") WF_spin=isc%WF_symm_i*0.5_SP*real(1-(-1)**isc%is(4),SP)
+   if (which=="y") WF_spin=isc%WF_symm_i*cI*(-1)**(is(4)-1)
+   if (which=="z") WF_spin=isc%WF_symm_i   *(-1)**(is(4)-1)
+   if (which=="+") WF_spin=isc%WF_symm_i*0.5_SP*real(1+(-1)**is(4),SP)
+   if (which=="-") WF_spin=isc%WF_symm_i*0.5_SP*real(1-(-1)**is(4),SP)
  else
    if (which=="x") then
      WF_spin(:,1)=    isc%WF_symm_i(:,2)
@@ -93,7 +97,8 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  !$omp parallel default(shared), private(ir)
  !$omp do
  do ir = 1, fft_size
-   isc%rho_tw_rs(ir) = F_xc_mat(ir,is_yambo,os_yambo,isc%is(4),isc%os(4))*conjg(WF_spin(ir,1))*isc%WF_symm_o(ir,1)
+   isc%rho_tw_rs(ir) = F_xc_mat(ir,is_yambo,os_yambo,is(4),os(4))*&
+   &                             conjg(WF_spin(ir,1))*isc%WF_symm_o(ir,1)
  enddo
  !$omp end do
  !
@@ -142,7 +147,7 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
 #endif
  !    
  !
-    !write(*,*) is_yambo,os_yambo,isc%is(4),isc%os(4),F_xc_mat(1:10,is_yambo,os_yambo,isc%is(4),isc%os(4))
+    !write(*,*) is_yambo,os_yambo,is(4),os(4),F_xc_mat(1:10,is_yambo,os_yambo,is(4),os(4))
     !write(*,*) "Bap ",i_sp_loop,o_sp_loop,isc%rhotw_tddft(1:10,i_sp_loop,o_sp_loop)
      !
    enddo
