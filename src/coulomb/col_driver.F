@@ -173,7 +173,7 @@ subroutine col_driver(bare_NG,q)
    !
    call cutoff_driver(q)
    q_norm(1)=q0_def_norm
-   bare_qpg=bare_qpg/eps_env
+   bare_qpg=bare_qpg*sqrt(eps_env)
    !
  endif
  !
