@@ -77,6 +77,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
  Xo_res    = cZERO
  Z_        = cONE
  !
+ if(l_tddft) oX_res = cZERO
+ !
  ngrho     = Xo_scatt%ngrho
  !
  loop_bare_grid: do i_bg = 1,bare_grid_N(i_cg)
@@ -252,7 +254,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
        enddo
        do ig2=X_rows(1),X_rows(2)
 	 ! lower part
-         COLS=(/X_cols(1),min(ig2-1,X_cols(1))/)
+         COLS=(/X_cols(1),min(ig2-1,X_cols(2))/)
          call V_plus_alpha_V(COLS(2)-COLS(1)+1,-Z_eh_occ*Xo_scatt%rhotw(ig2),&
          & conjg(Xo_scatt_rhotw_tddft_p(COLS(1):COLS(2),v_sp_pol,c_sp_pol)),oX_res(COLS(1):COLS(2),ig2))
        enddo

@@ -447,7 +447,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
          !
          ig_row_transp = ig_col
          X_cols_transp = (/X_rows1_l,X_rows2_l/)
-         !
+	 !
 	 if (PAR_COM_RL_INDEX_n_CPU>1) then
            lda=size(X_low%blc(:,1,1))
 	   if (l_tddft) then
@@ -460,10 +460,10 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
          else
            lda=size(X_par%blc(:,1,1))
 	   if (l_tddft) then
-             call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, &
+             call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, &
 &                          X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            else
-             call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, &
+             call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, &
 &                          X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            endif
          endif
