@@ -141,7 +141,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
      Xo_scatt%os = (/iv,ik,1,v_sp_pol/)
      Xo_scatt%qs = (/1,1,1/)
      !
-     if (.not.X%ng==1.or.l_X_magn) then
+     if (.not.X%ng==1) then
        !
        if ( any((/isave(1)/=iv,isave(2)/=ic,isave(3)/=ik,isave(4)/=c_sp_pol/)) ) then
          !
@@ -214,13 +214,14 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
        !
      endif
      !
-     ! Not needed, in the spin channel also the G=0 term is well defined
-     !if(l_X_magn) then
-     !  ! iG=1 case
-     !  DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
-     !  if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
-     !  if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
-     !endif
+     ! In the spin channel also the G=0 term is well defined
+     ! However WFs are not loadd and the following is needed
+     if(l_X_magn) then
+       ! iG=1 case
+       DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
+       if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
+       if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
+     endif
      !
    else
      !
