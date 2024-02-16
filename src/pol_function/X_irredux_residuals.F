@@ -215,8 +215,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
      endif
      !
      ! In the spin channel also the G=0 term is well defined
-     ! However WFs are not loadd and the following is needed
-     if(l_X_magn) then
+     ! However WFs are not loadd for X%ng==1, and the following is needed
+     if(l_X_magn.and.X%ng==1) then
        ! iG=1 case
        DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
        if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
