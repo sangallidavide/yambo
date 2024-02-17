@@ -27,7 +27,7 @@ subroutine excitons_get_user_states(BS_E_degs,Res,n_eig,recompute)
  use com,           ONLY:msg
  use stderr,        ONLY:STRING_split,intc
  use YPPm,          ONLY:EXCITONS_user_indexes,EXCITONS_n_user_states,EXCITON_E_treshold,&
-                         EXCITON_Res_treshold,MAGNON_Res_threshold,state_ctl,BS_E
+                         EXCITON_Res_treshold,MAGNON_Res_threshold,state_ctl,BS_E,exc_kind
  !
  implicit none
  !
@@ -77,7 +77,7 @@ subroutine excitons_get_user_states(BS_E_degs,Res,n_eig,recompute)
  !
  if (EXCITONS_n_user_states>n_user) &
  & call warning(" "//trim(intc(EXCITONS_n_user_states-n_user))//&
- & " excitonic states added to the USER selection to preserve degeneracy")
+ & ""//exc_kind//"ic states added to the USER selection to preserve degeneracy")
  !
  ! 2. Using the "En_treshold" variable
  !------------------------------------
@@ -102,7 +102,7 @@ subroutine excitons_get_user_states(BS_E_degs,Res,n_eig,recompute)
  endif
  !
  if (EXCITONS_n_user_states==0) return
- call msg("s"," "//trim(intc(EXCITONS_n_user_states))//" excitonic states selected")
+ call msg("s"," "//trim(intc(EXCITONS_n_user_states))//" "//exc_kind//"ic states selected")
  !
  if(allocated(EXCITONS_user_indexes)) deallocate(EXCITONS_user_indexes)
  allocate(EXCITONS_user_indexes(EXCITONS_n_user_states))

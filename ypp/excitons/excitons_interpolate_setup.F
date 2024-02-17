@@ -15,7 +15,7 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,BS_all_E,ID_INTERP_EXC,repor
  use electrons,     ONLY:levels
  use interpolate,   ONLY:INTERPOLATION_BZ,INTERP_obj,INTERPOLATION_coefficients
  use YPPm,          ONLY:BS_E,EXCITONS_user_indexes,EXCITONS_n_user_states,coo_out,K_transform,&
- &                       l_magnons,BS_R_left,BS_R_right,BS_R_left_magn,BS_R_right_magn
+ &                       l_magnons,BS_R_left,BS_R_right,BS_R_left_magn,BS_R_right_magn,exc_kind
  use BS_solvers,    ONLY:BSS_n_eig
  use com,           ONLY:msg
  use stderr,        ONLY:intc
@@ -43,14 +43,14 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,BS_all_E,ID_INTERP_EXC,repor
    BS_all_E(i_c,1)=BS_E(i_l)
  enddo
  !
- call section('*','Excitons Interpolation')
+ call section('*',exc_kind//'s Interpolation')
  call excitons_read(k,Xk,en,Xen,1,"clean",io_err)
  !
  ! Read all eigenvalues and eigenvectors
  !
  n_eig=BSS_n_eig
  do iq=2,q%nibz
-   call msg('s','Reading excitons at @ Q-index #',iq)
+   call msg('s','Reading '//exc_kind//'s at @ Q-index #',iq)
    call excitons_read(k,Xk,en,Xen,iq,"check",io_err)
    call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",io_err)
    n_eig=min(n_eig,BSS_n_eig)
@@ -75,7 +75,7 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,BS_all_E,ID_INTERP_EXC,repor
    YAMBO_ALLOC(values,(EXCITONS_n_user_states+4))
    allocate(headings(EXCITONS_n_user_states+4))
    !
-   call msg('nr','Excitons Energies:')
+   call msg('nr',exc_kind//'s Energies:')
    headings(1:3)=(/"q_x ("//trim(coo_out)//")","q_y ("//trim(coo_out)//")","q_z ("//trim(coo_out)//")"/)
    !
    do i_c=1,EXCITONS_n_user_states
@@ -102,7 +102,7 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,BS_all_E,ID_INTERP_EXC,repor
  ! Fourier interpolation of exciton dispersion
  !
  call INTERPOLATION_BZ_setup(q)
- INTERP_obj(ID_INTERP_EXC)%what="excitons"
+ INTERP_obj(ID_INTERP_EXC)%what=exc_kind//"s"
  call INTERPOLATION_coefficients(R1D=BS_all_E,k=q,NK=q%nibz,ID=ID_INTERP_EXC,ID_obj=ID_INTERP_EXC)
  !
 end subroutine

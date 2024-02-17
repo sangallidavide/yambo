@@ -39,7 +39,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
 #endif
  use frequency,     ONLY:w_samp,bare_grid_N,coarse_grid_N,coarse_grid_Pt
  use interfaces,    ONLY:WF_load,WF_free,X_irredux_residuals
- use electrons,     ONLY:levels,n_spinor,n_sp_pol
+ use electrons,     ONLY:levels,n_spinor,n_sp_pol,i_spin_majority
  use R_lattice,     ONLY:qindx_X,bz_samp,G_m_G
  use D_lattice,     ONLY:i_space_inv
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
@@ -312,7 +312,10 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
    endif
    !
    if(l_X_magn) then
-     if(n_sp_pol==2) i_comp=X_poles_tab(i_bg,5)
+     if(n_sp_pol==2) then
+       if(i_spin_majority==1) i_comp=    X_poles_tab(i_bg,5)
+       if(i_spin_majority==2) i_comp=mod(X_poles_tab(i_bg,5),2)+1
+     endif
      if(n_spinor==2) i_comp=i_res_ares
      if(i_comp==1.and.l_res   ) ordering="r"
      if(i_comp==2.and.l_ares_T) ordering="Ta"

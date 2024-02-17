@@ -12,7 +12,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  use stderr,        ONLY:intc
  use electrons,     ONLY:levels,spin
  use YPP_interfaces,ONLY:excitons_sort_and_report
- use YPPm,          ONLY:l_magnons,l_sort,l_exc_wf,l_spin,l_amplitude,&
+ use YPPm,          ONLY:l_magnons,l_sort,l_exc_wf,l_spin,l_amplitude,exc_kind,&
  &                       EXCITONS_n_user_states,EXCITONS_user_indexes,BSiq, &
  &                       BS_R_left,BS_R_right,BS_R_left_magn,BS_R_right_magn,&
  &                       BS_E,BS_E_SOC_corr,l_interp,l_dipoles,MAGNON_Res_threshold
@@ -47,11 +47,14 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  !
  if(.not.l_flag) return
  !
+ exc_kind="exciton"
+ if (l_magnons) exc_kind="magnon "
+ !
  if(.not.l_interp) then
-   call section('*','Excitonic Properties @ Q-index #'//trim(intc(BSiq)))
+   call section('*',exc_kind//'ic Properties @ Q-index #'//trim(intc(BSiq)))
    iq= BSiq
  else if(l_interp) then
-   call section('*','Excitonic Properties')
+   call section('*',exc_kind//'ic Properties')
    iq = 1
  endif
  !
