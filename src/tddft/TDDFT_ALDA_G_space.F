@@ -37,15 +37,21 @@ subroutine TDDFT_ALDA_G_space(E,k)
  !
  ! Fxc RL size setup looking at the max index of G-G'
  !
- if (FXC_n_g_corr/= eval_G_minus_G(FXC_n_g_corr,0) ) then
-   FXC_n_g_corr   = eval_G_minus_G(FXC_n_g_corr,0)
-   call msg('s','[TDDFT] ALDA Fxc size forced by symmetry to be ',FXC_n_g_corr)
+ if (.not.l_Fxc_in_Xo) then
+   if (FXC_n_g_corr/= eval_G_minus_G(FXC_n_g_corr,0) ) then
+     FXC_n_g_corr   = eval_G_minus_G(FXC_n_g_corr,0)
+     call msg('s','[TDDFT] ALDA Fxc size forced by symmetry to be ',FXC_n_g_corr)
+   endif
+   !
+   nG=G_index_energy_factor(FXC_n_g_corr,4._SP)
+ else
+   !
+   nG=G_index_energy_factor(FXC_n_g_corr,1._SP)
+   !
  endif
  !
  ! WF distributed & load
  !=======================
- !
- nG=G_index_energy_factor(FXC_n_g_corr,4._SP)
  !
  call WF_load(WF,nG,1,(/1,E%nbm/),(/1,k%nibz/),title='-Rho')
  !
