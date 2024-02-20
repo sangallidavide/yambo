@@ -109,7 +109,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
  BUFFER%blc=cZERO
  !
-#if !defined SLK
+#if !defined _SCALAPACK
  if (BUFFER%kind=="SLK") call error("[LA] SLK library required but not available")
 #endif
  !
