@@ -102,6 +102,9 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  l_tddft=index(what,"Fxc")>0
  X_lower_triangle_matrix_in_use= (trim(X_low%kind)=="XDN")
  !
+ if (l_tddft .and. PAR_COM_RL_INDEX%n_CPU>1) &
+ & call error("New TDDFT and distribution over G not working")
+ !
  X_rows1=X_par%rows(1)
  X_rows2=X_par%rows(2)
  X_cols1=X_par%cols(1)
@@ -492,13 +495,6 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
    !
  enddo
  !
- ! DEBUG <
- !if(     allocated(oX_res)) write(*,*) "values oX_res ",X_par%rows,X_par%cols,oX_res(X_par%rows(1),X_par%cols(1)+1)
- !if(.not.allocated(oX_res)) write(*,*) "values Xo_res ",X_par%rows,X_par%cols,Xo_res(X_par%rows(1),X_par%cols(1)+1)
- !if(     allocated(X_low%blc)) write(*,*) "define vv_caxpy ",l_tddft,X_low%blc(X_par%cols(1),X_par%rows(1)+1,1),shape(X_low%blc)
- !if(.not.allocated(X_low%blc)) write(*,*) "define vv_caxpy ",l_tddft,X_par%blc(X_par%cols(1),X_par%rows(1)+1,1),shape(X_par%blc)
- ! DEBUG >
- !
  ! CLEAN
  !=======
  !
@@ -616,11 +612,6 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
    enddo
    enddo
    !$omp end parallel do
-   !
-   ! DEBUG <
-   !write(*,*) "fill lower ", X_par%cols,X_par%rows,Xw%n_freqs,&
-   !& X_par%blc(X_par%rows(1),X_par%cols(1),1)
-   ! DEBUG <
    !
  endif
  !
