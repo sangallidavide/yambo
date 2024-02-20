@@ -21,6 +21,7 @@ subroutine G_shells_finder()
  use R_lattice,    ONLY:g_rot_d,minus_G_d
 #endif
  use vec_operate,  ONLY:iku_v_norm,v_is_zero,sort,degeneration_finder
+ use wave_func,    ONLY:wf_nc_k,E_of_WFs
  use IO_int,       ONLY:io_control
  use IO_m,         ONLY:OP_RD_CL,OP_WR_CL,VERIFY
  use zeros,        ONLY:G_iku_zero,G_mod_zero
@@ -40,6 +41,8 @@ subroutine G_shells_finder()
  !
  integer           :: ID,io_err
  integer, external :: io_GROT
+ !
+ E_of_WFs=iku_v_norm(g_vec(wf_nc_k(1),:))**2/2._SP
  !
  ! I/O (read)
  !============

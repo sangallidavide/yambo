@@ -59,6 +59,8 @@ module wave_func
  integer                :: wf_ng_1st_BZ   ! For WFs in the 1st BZ
  integer                :: wf_ng_overlaps ! For WFs shifted used by the overlaps
  !
+ real(SP)               :: E_of_WFs
+ !
  ! Wave function derivatives
  !
  complex(SP), allocatable :: wf_x(:,:,:)
