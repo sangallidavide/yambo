@@ -10,8 +10,7 @@ subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
  use pars,          ONLY:cZERO
  use parallel_m,    ONLY:COMM_copy,PAR_COM_RL_INDEX,PAR_COM_RL_A2A,PAR_COM_HOST
  use matrix,        ONLY:MATRIX_reset,PAR_matrix
- use X_m,           ONLY:X_rows,X_cols,&
-&                        X_FILL_UP_matrix_only,X_lower_triangle_matrix_in_use
+ use X_m,           ONLY:X_rows,X_cols,X_FILL_UP_matrix_only
  use parallel_int,  ONLY:PARALLEL_live_message,PP_redux_wait
  use cuda_m,        ONLY:have_cuda
  !
@@ -24,7 +23,7 @@ subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
  !
  ! Work Space
  !
- logical :: l_XUP,l_PAR,l_CPU_ONLY
+ logical :: l_XUP,l_PAR,l_CPU_ONLY,l_tddft
  !
  ! Reset...
  !
@@ -36,6 +35,7 @@ subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
  !
  ! Type of allocation....
  !
+ l_tddft    = index(mode,"TDDFT")>0
  l_XUP      = index(mode,"XUP")>0
  l_PAR      = index(mode,"X")>0.and.index(mode,"XUP")==0
  l_CPU_ONLY = index(mode,"CPU_ONLY")>0
@@ -51,10 +51,9 @@ subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
  X_rows = X_par%rows
  X_cols = X_par%cols
  !
- if (l_XUP.and..not.X_FILL_UP_matrix_only.and.X_par%INTER_comm%n_CPU>1) then
+ if (l_XUP.and.(.not.X_FILL_UP_matrix_only.or.l_tddft).and.X_par%INTER_comm%n_CPU>1) then
    !
    call MATRIX_reset(X_low)
-   X_lower_triangle_matrix_in_use=.TRUE.
    X_low%kind ="XDN"
    X_low%rows =X_par%cols
    X_low%cols =X_par%rows

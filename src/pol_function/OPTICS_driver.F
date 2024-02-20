@@ -116,7 +116,8 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    call X_half_mat_check(Xen,Xk,wv)
    !
    call X_ALLOC_parallel(X_par(1),X_par_lower_triangle(1),X%ng,wv%n_freqs,"XUP")
-   if (l_alda_fxc.and.l_Fxc_in_Xo) call X_ALLOC_parallel(X_par(2),X_par_lower_triangle(2),X%ng,wv%n_freqs,"XUP")
+   if (l_alda_fxc.and.l_Fxc_in_Xo) &
+   & call X_ALLOC_parallel(X_par(2),X_par_lower_triangle(2),X%ng,wv%n_freqs,"XUP-TDDFT")
    !
    Macroscopic_CPU=X_par(1)%rows(1)<=i_G_shift.and.i_G_shift<=X_par(1)%rows(2).and.&
 &                  X_par(1)%cols(1)<=i_G_shift.and.i_G_shift<=X_par(1)%cols(2)

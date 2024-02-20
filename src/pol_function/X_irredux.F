@@ -44,7 +44,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  use D_lattice,     ONLY:i_space_inv
  use collision_el,  ONLY:elemental_collision,elemental_collision_free,elemental_collision_alloc
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc
- use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,X_lower_triangle_matrix_in_use,&
+ use X_m,           ONLY:X_t,X_poles,X_Ein_poles,current_iq,X_poles_tab,&
 &                        self_detect_E_range,X_FILL_UP_matrix_only,use_X_DbGd,&
 &                        l_X_terminator,X_terminator_E,X_term_E,drude_n_states,&
 &                        l_X_abs,l_X_kerr,l_X_magn
@@ -77,7 +77,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
 &                            i_comp,i_res_ares,n_res_ares
- logical                  :: l_tddft,force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
+ logical                  :: X_lower_triangle_matrix_in_use,l_tddft,force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
  complex(SP),allocatable  :: Xo_res(:,:)
@@ -100,6 +100,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  drude_GreenF                     = cZERO
  !
  l_tddft=index(what,"Fxc")>0
+ X_lower_triangle_matrix_in_use= (trim(X_low%kind)=="XDN")
  !
  X_rows1=X_par%rows(1)
  X_rows2=X_par%rows(2)
@@ -449,10 +450,10 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
          !
          ig_row_transp = ig_col
          X_cols_transp = (/X_rows1_l,X_rows2_l/)
-	 !
-	 if (PAR_COM_RL_INDEX_n_CPU>1) then
+         !
+         if (PAR_COM_RL_INDEX_n_CPU>1) then
            lda=size(X_low%blc(:,1,1))
-	   if (l_tddft) then
+           if (l_tddft) then
              call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, & 
 &                          X_low%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            else
@@ -461,7 +462,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
            endif
          else
            lda=size(X_par%blc(:,1,1))
-	   if (l_tddft) then
+           if (l_tddft) then
              call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, &
 &                          X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            else
@@ -490,6 +491,13 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
 #endif
    !
  enddo
+ !
+ ! DEBUG <
+ !if(     allocated(oX_res)) write(*,*) "values oX_res ",X_par%rows,X_par%cols,oX_res(X_par%rows(1),X_par%cols(1)+1)
+ !if(.not.allocated(oX_res)) write(*,*) "values Xo_res ",X_par%rows,X_par%cols,Xo_res(X_par%rows(1),X_par%cols(1)+1)
+ !if(     allocated(X_low%blc)) write(*,*) "define vv_caxpy ",l_tddft,X_low%blc(X_par%cols(1),X_par%rows(1)+1,1),shape(X_low%blc)
+ !if(.not.allocated(X_low%blc)) write(*,*) "define vv_caxpy ",l_tddft,X_par%blc(X_par%cols(1),X_par%rows(1)+1,1),shape(X_par%blc)
+ ! DEBUG >
  !
  ! CLEAN
  !=======
@@ -577,7 +585,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  ! "o" = calculated
  ! "x" = to be filled now
  !
- if (X_FILL_UP_matrix_only) then
+ if (X_FILL_UP_matrix_only.and..not.l_tddft) then
    !
    !$omp parallel do default(shared), private(iw,ig_col,ig_row,ig_row_transp,ig_col_transp), collapse(2)
    do iw=1,Xw%n_freqs
@@ -608,6 +616,11 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
    enddo
    enddo
    !$omp end parallel do
+   !
+   ! DEBUG <
+   !write(*,*) "fill lower ", X_par%cols,X_par%rows,Xw%n_freqs,&
+   !& X_par%blc(X_par%rows(1),X_par%cols(1),1)
+   ! DEBUG <
    !
  endif
  !

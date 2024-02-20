@@ -245,10 +245,9 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    !
    ! A this point
    ! - BUFFER contains Xo
-   ! - KERNEL is either 0 or contains -Xo*F_xc(g1,g2),
-   !   in the call to X_redux_build_kernel the code adds to KERNEL 
-   !   [delta_(g1,g2)-Xo(g1,g2)*v(g2)]
+   ! - KERNEL is either 0 [ no tddft] or -[Xo*F_xc](g1,g2) [new tddft]
    !
+   ! The following call adds to KERNEL (delta_(g1,g2)-Xo(g1,g2)*v(g2))
    call X_redux_build_kernel(KERNEL,BUFFER,Xo_rows,Xo_cols)
    !
    ! X(g,gp)=Sum_gpp[KERNEL]^-1_(g,gpp)*Xo(gpp,gp)
