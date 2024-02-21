@@ -37,7 +37,7 @@ module collision_el
    !
    complex(SP), allocatable :: gamp(:,:)
    complex(SP), allocatable :: rhotw(:)
-   complex(SP), allocatable :: rhotw_tddft(:,:,:)
+   complex(SP), allocatable :: rhotw_tddft(:)
    !
    ! scatter bamp workspace
    !
@@ -137,7 +137,7 @@ module collision_el
            YAMBO_ALLOC(ggw%rhotw_d,(RHOSIZE))
          endif
          if (index(TITLE,"Fxc")>0) then
-           YAMBO_ALLOC(ggw%rhotw_tddft,(RHOSIZE,n_spin,n_spin))
+           YAMBO_ALLOC(ggw%rhotw_tddft,(RHOSIZE))
          endif
          !
        endif

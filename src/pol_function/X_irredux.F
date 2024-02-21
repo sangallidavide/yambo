@@ -89,7 +89,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  complex(SP),pointer     DEV_ATTR :: X_low_blc_d(:,:,:)
  complex(SP)              :: GreenF_iw
  integer                  :: PAR_COM_RL_INDEX_n_CPU
- integer                  :: lda
+ integer                  :: lda,ldb
  !
  integer,    external     :: X_eh_setup
  type(elemental_collision), target :: Xo_scatt
@@ -111,6 +111,8 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  X_cols2=X_par%cols(2)
  PAR_COM_RL_INDEX_n_CPU=PAR_COM_RL_INDEX%n_CPU
  !
+ if (PAR_COM_RL_INDEX_n_CPU> 1 .and. allocated(X_low%blc)) lda=size(X_low%blc(:,1,1))
+ if (PAR_COM_RL_INDEX_n_CPU==1 .and. allocated(X_par%blc)) lda=size(X_par%blc(:,1,1))
  !
  ! Logicals to use bare or Double Grid GF (no poles accumulation)
  !=======================================================
@@ -253,10 +255,11 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
    YAMBO_ALLOC(rhotw_save_d,(ngrho))
  endif
  if (l_tddft) then
-   YAMBO_ALLOC(oX_res,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
+   YAMBO_ALLOC(oX_res,(X_par%cols(1):X_par%cols(2),X_par%rows(1):X_par%rows(2)))
    if (have_cuda) then
-     YAMBO_ALLOC(oX_res_d,(X_par%rows(1):X_par%rows(2),X_par%cols(1):X_par%cols(2)))
+     YAMBO_ALLOC(oX_res_d,(X_par%cols(1):X_par%cols(2),X_par%rows(1):X_par%rows(2)))
    endif
+   ldb=size(oX_res(:,1))
  endif
  call elemental_collision_free(Xo_scatt)
  call elemental_collision_alloc(Xo_scatt,NG=ngrho,TITLE=trim(what)) 
@@ -455,18 +458,16 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
          X_cols_transp = (/X_rows1_l,X_rows2_l/)
          !
          if (PAR_COM_RL_INDEX_n_CPU>1) then
-           lda=size(X_low%blc(:,1,1))
            if (l_tddft) then
-             call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, & 
+             call vv_caxpy(X_nrows_l,GreenF(iw),oX_res(ig_row_transp,X_cols_transp(1)) ,ldb, & 
 &                          X_low%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            else
              call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, & 
 &                          X_low%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            endif
          else
-           lda=size(X_par%blc(:,1,1))
            if (l_tddft) then
-             call vv_caxpy(X_nrows_l,GreenF(iw),      oX_res(X_rows1_l:X_rows2_l,ig_col) ,1, &
+             call vv_caxpy(X_nrows_l,GreenF(iw),oX_res(ig_row_transp,X_cols_transp(1)) ,ldb, & 
 &                          X_par%blc(ig_row_transp,X_cols_transp(1),iw),lda)
            else
              call vv_caxpy(X_nrows_l,GreenF(iw),conjg(Xo_res(X_rows1_l:X_rows2_l,ig_col)),1, &

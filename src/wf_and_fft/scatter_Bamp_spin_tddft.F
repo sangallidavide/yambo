@@ -19,7 +19,7 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  !
  !  iq_is = ik_is-ok_os-Go
  !
- use pars,           ONLY:SP,cI
+ use pars,           ONLY:SP,cI,cZERO
  use electrons,      ONLY:n_spinor,n_sp_pol
  use collision_el,   ONLY:elemental_collision
  use interfaces,     ONLY:WF_apply_symm
@@ -45,19 +45,15 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  is=isc%os
  os=isc%is
  !
- do i_sp_loop=1,n_sp_pol
-   do o_sp_loop=1,n_sp_pol
-      ! This takes into account the different conventions between the definition of the spin indexes
-      ! between yambo and the derivation of fxc in spin space for magnons
-      ! This happens because in the yambo convention the left indexes "v sigma_v, c sigma_c, k" are inverted
-      ! with respect to the standard convention, i.e. "c sigma_c, v sigma_v, k"
-      ! As a result f_\up\dn,\dn\up is in yambo f_\dn\up,\dn\up and so on
-      is_yambo=o_sp_loop
-      os_yambo=i_sp_loop
-      !
-      if (is_yambo==os_yambo) cycle
-      if (is(4)==is_yambo) cycle
-      if (os(4)==os_yambo) cycle
+ isc%rhotw_tddft=cZERO
+ !
+ ! This takes into account the different conventions between the definition of the spin indexes
+ ! between yambo and the derivation of fxc in spin space for magnons
+ ! This happens because in the yambo convention the left indexes "v sigma_v, c sigma_c, k" are inverted
+ ! with respect to the standard convention, i.e. "c sigma_c, v sigma_v, k"
+ ! As a result f_\up\dn,\dn\up is in yambo f_\dn\up,\dn\up and so on
+ is_yambo=os(4)
+ os_yambo=is(4)
  !
  ! |ib ik_is i_sp>
  call WF_apply_symm(is,isc%WF_symm_i)
@@ -97,7 +93,7 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  !$omp parallel default(shared), private(ir)
  !$omp do
  do ir = 1, fft_size
-   isc%rho_tw_rs(ir) = F_xc_mat(ir,is_yambo,os_yambo,is(4),os(4))*&
+   isc%rho_tw_rs(ir) = F_xc_mat(ir,is(4),os(4),is_yambo,os_yambo)*&
    &                             conjg(WF_spin(ir,1))*isc%WF_symm_o(ir,1)
  enddo
  !$omp end do
@@ -129,28 +125,24 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  if (qs==idt_index) then 
    !$omp parallel do default(shared), private(ig)
    do ig = 1, isc%ngrho
-     isc%rhotw_tddft(ig,i_sp_loop,o_sp_loop)= isc%rho_tw_rs(fft_g_table(ig,iGo))
+     isc%rhotw_tddft(ig)= isc%rho_tw_rs(fft_g_table(ig,iGo))
    enddo
    !$omp end parallel do
  else
    !$omp parallel do default(shared), private(ig)
    do ig = 1, isc%ngrho
-     isc%rhotw_tddft(ig,i_sp_loop,o_sp_loop)= isc%rho_tw_rs(fft_g_table(g_rot(qs,ig),iGo))
+     isc%rhotw_tddft(ig)= isc%rho_tw_rs(fft_g_table(g_rot(qs,ig),iGo))
    enddo
    !$omp end parallel do
  endif
 #else
  do ig = 1,isc%ngrho
-   if (qs==idt_index) isc%rhotw_tddft(ig,i_sp_loop,o_sp_loop)= isc%rho_tw_rs(fft_g_table(ig,iGo))
-   if (qs/=idt_index) isc%rhotw_tddft(ig,i_sp_loop,o_sp_loop)= isc%rho_tw_rs(fft_g_table(g_rot(qs,ig),iGo))
+   if (qs==idt_index) isc%rhotw_tddft(ig)= isc%rho_tw_rs(fft_g_table(ig,iGo))
+   if (qs/=idt_index) isc%rhotw_tddft(ig)= isc%rho_tw_rs(fft_g_table(g_rot(qs,ig),iGo))
  enddo
 #endif
  !    
- !
-    !write(*,*) is_yambo,os_yambo,is(4),os(4),F_xc_mat(1:10,is_yambo,os_yambo,is(4),os(4))
-    !write(*,*) "Bap ",i_sp_loop,o_sp_loop,isc%rhotw_tddft(1:10,i_sp_loop,o_sp_loop)
-     !
-   enddo
- enddo
+ !write(*,*) is_yambo,os_yambo,is(4),os(4),F_xc_mat(1:10,is_yambo,os_yambo,is(4),os(4))
+ !write(*,*) "Bap ",i_sp_loop,o_sp_loop,isc%rhotw_tddft(1:10)
  !
 end subroutine scatter_Bamp_spin_tddft

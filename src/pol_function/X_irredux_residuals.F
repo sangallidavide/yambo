@@ -46,7 +46,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
  !
  ! Work sapce
  !
- complex(SP), pointer DEV_ATTR :: Xo_scatt_rhotw_p(:),Xo_scatt_rhotw_tddft_p(:,:,:)
+ complex(SP), pointer DEV_ATTR :: Xo_scatt_rhotw_p(:),Xo_scatt_rhotw_tddft_p(:)
  complex(SP) DEV_ATTR :: DEV_VAR(rhotw_save)(Xo_scatt%ngrho),DEV_VAR(rhotw_save2)(Xo_scatt%ngrho)
  complex(SP) DEV_ATTR :: DEV_VAR(rhotw_save_tddft)(Xo_scatt%ngrho)
  integer            :: sop_inv_l,X_ng
@@ -55,7 +55,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
  logical            :: l_X_term_vv,l_tddft
  integer            :: ngrho
  integer            :: ig1,ig2,ig_first,ik,ikp,ikv,ikc,ikbz,ikpbz,is,c_sp_pol,v_sp_pol,&
-&                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,COLS(2),ROWS(2)
+&                      isp,iv,ic,isave(4),n_poles,i_bg,ig_start,ROWS(2)
  !
  ! DIPOLES
  !
@@ -80,6 +80,11 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
  if(l_tddft) oX_res = cZERO
  !
  ngrho     = Xo_scatt%ngrho
+ !
+ X_ng=X%ng
+ !
+ Xo_scatt_rhotw_p => DEV_VAR(Xo_scatt%rhotw)
+ if (l_tddft) Xo_scatt_rhotw_tddft_p => DEV_VAR(Xo_scatt%rhotw_tddft)
  !
  loop_bare_grid: do i_bg = 1,bare_grid_N(i_cg)
    !
@@ -128,10 +133,6 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
    ! Scattering CALL
    !-----------------
    !
-   X_ng=X%ng
-   Xo_scatt_rhotw_p => DEV_VAR(Xo_scatt%rhotw)
-   if (l_tddft) Xo_scatt_rhotw_tddft_p => DEV_VAR(Xo_scatt%rhotw_tddft)
-   !
    if (iq==1) then
      !
      ! iq=1: Symmetries are applyed later and
@@ -160,7 +161,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
          !
          ! rhotw_save=Xo_scatt%rhotw
          call dev_memcpy(DEV_VAR(rhotw_save),DEV_VAR(Xo_scatt%rhotw))
-         if (l_tddft) call dev_memcpy(DEV_VAR(rhotw_save_tddft),DEV_VAR(Xo_scatt%rhotw_tddft(:,c_sp_pol,v_sp_pol)))
+         if (l_tddft) call dev_memcpy(DEV_VAR(rhotw_save_tddft),DEV_VAR(Xo_scatt%rhotw_tddft))
          !
          isave=(/iv,ic,ik,c_sp_pol/)
          !
@@ -184,11 +185,11 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
          !DEV_OMP parallel do default(shared), private(ig1,ig2)
          do ig1=ig_first,X_ng
            ig2=DEV_VAR(g_rot)(ig1,sop_inv_l)
-           Xo_scatt_rhotw_tddft_p(ig1,c_sp_pol,v_sp_pol)=DEV_VAR(rhotw_save_tddft)(ig2)
+           Xo_scatt_rhotw_tddft_p(ig1)=DEV_VAR(rhotw_save_tddft)(ig2)
          enddo
          !
          if (is>nsym/(i_time_rev+1)) then
-           call dev_conjg( DEV_VAR(Xo_scatt%rhotw_tddft(:,c_sp_pol,v_sp_pol)) )
+           call dev_conjg( DEV_VAR(Xo_scatt%rhotw_tddft) )
          endif
        endif
        !
@@ -250,19 +251,19 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
        do ig2=X_cols(1),X_cols(2)
          ! Upper part
          ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
-         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2,v_sp_pol,c_sp_pol),&
+         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2),&
          & conjg(Xo_scatt%rhotw(ROWS(1):ROWS(2))),Xo_res(ROWS(1):ROWS(2),ig2))
        enddo
        do ig2=X_rows(1),X_rows(2)
          ! lower part
-         COLS=(/X_cols(1),min(ig2-1,X_cols(2))/)
-         call V_plus_alpha_V(COLS(2)-COLS(1)+1,-Z_eh_occ*Xo_scatt%rhotw(ig2),&
-         & conjg(Xo_scatt_rhotw_tddft_p(COLS(1):COLS(2),v_sp_pol,c_sp_pol)),oX_res(COLS(1):COLS(2),ig2))
+         ROWS=(/max(ig2+1,X_cols(1)),X_cols(2)/)
+         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt%rhotw_tddft(ig2),&
+         & conjg(Xo_scatt%rhotw(ROWS(1):ROWS(2))),oX_res(ROWS(1):ROWS(2),ig2))
        enddo
      !else
      !  do ig2=X_cols(1),X_cols(2)
      !   ! Full X
-     !    call V_plus_alpha_V(X_rows(2)-X_rows(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2,v_sp_pol,c_sp_pol),&
+     !    call V_plus_alpha_V(X_rows(2)-X_rows(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2),&
      !    & conjg(Xo_scatt%rhotw(X_rows(1):X_rows(2))),Xo_res(X_rows(1):X_rows(2),ig2))
      !  enddo
      !endif
