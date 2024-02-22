@@ -109,11 +109,13 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  !$omp end parallel
  !
  ! perform the actual FFT
+ ! N.B. Here there is the "-1" Fourier trasnform to compensate
+ !      For the conjg operation done in X_irredux_residauls
  !
 #if defined _FFTW
- call fft_3d(isc%rho_tw_rs,fft_dim,+1,fftw_plan)
+ call fft_3d(isc%rho_tw_rs,fft_dim,-1,fftw_plan)
 #else
- call fft_3d(isc%rho_tw_rs,fft_dim,+1)
+ call fft_3d(isc%rho_tw_rs,fft_dim,-1)
 #endif
  !
  ! e^[I(Rs(G-G0)).r]
@@ -142,7 +144,4 @@ subroutine scatter_Bamp_spin_tddft(isc,which)
  enddo
 #endif
  !    
- !write(*,*) is_yambo,os_yambo,is(4),os(4),F_xc_mat(1:10,is_yambo,os_yambo,is(4),os(4))
- !write(*,*) "Bap ",i_sp_loop,o_sp_loop,isc%rhotw_tddft(1:10)
- !
 end subroutine scatter_Bamp_spin_tddft

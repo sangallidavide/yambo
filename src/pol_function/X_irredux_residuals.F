@@ -251,13 +251,13 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
        do ig2=X_cols(1),X_cols(2)
          ! Upper part
          ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
-         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt_rhotw_tddft_p(ig2),&
+         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*conjg(Xo_scatt_rhotw_tddft_p(ig2)),&
          & conjg(Xo_scatt%rhotw(ROWS(1):ROWS(2))),Xo_res(ROWS(1):ROWS(2),ig2))
        enddo
        do ig2=X_rows(1),X_rows(2)
          ! lower part
          ROWS=(/max(ig2+1,X_cols(1)),X_cols(2)/)
-         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*Xo_scatt%rhotw_tddft(ig2),&
+         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*conjg(Xo_scatt%rhotw_tddft(ig2)),&
          & conjg(Xo_scatt%rhotw(ROWS(1):ROWS(2))),oX_res(ROWS(1):ROWS(2),ig2))
        enddo
      !else
