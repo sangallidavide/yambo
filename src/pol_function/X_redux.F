@@ -382,7 +382,7 @@ contains
      !
      ! The old X_par structure need to be cleaned and replaced by a non symmetric structure
      !
-     if (X_par%INTER_comm%n_CPU>1) call X_ALLOC_parallel(X_par,X%ng,Xw%n_freqs,"X,CPU_ONLY")
+     if (X_par%INTER_comm%n_CPU>1) call X_ALLOC_parallel(X_par,X_low,X%ng,Xw%n_freqs,"X,CPU_ONLY")
      !
      ! Now the interfaces. 
      !
