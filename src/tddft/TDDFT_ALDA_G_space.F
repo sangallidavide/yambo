@@ -14,7 +14,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
  use com,           ONLY:msg
  use FFT_m,         ONLY:fft_size,fftw_plan,fft_dim,fft_g_table
  use electrons,     ONLY:levels,n_spin,n_spinor
- use R_lattice,     ONLY:bz_samp,G_m_G
+ use R_lattice,     ONLY:bz_samp,G_m_G,qindx_X
  use wave_func,     ONLY:WF
  use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind
@@ -51,7 +51,7 @@ subroutine TDDFT_ALDA_G_space(E,k)
  ! WF distributed & load
  !=======================
  !
- call WF_load(WF,nG,1,(/1,E%nbm/),(/1,k%nibz/),title='-Rho')
+ call WF_load(WF,nG,maxval(qindx_X(:,:,2)),(/1,E%nbm/),(/1,k%nibz/),title='-Rho')
  !
  ! ALDA functional
  !
