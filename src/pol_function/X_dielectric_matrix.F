@@ -29,7 +29,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  use IO_m,          ONLY:OP_RD_CL,OP_APP_CL,VERIFY,REP,io_RESPONSE
  use com,           ONLY:depth
  use TDDFT,         ONLY:F_xc_gspace,l_Fxc_in_Xo
- use interfaces,    ONLY:WF_load,WF_free
+ use interfaces,    ONLY:WF_load,WF_free,X_irredux
  use QP_m,          ONLY:QP_n_W_freqs_redux
  use matrix,        ONLY:MATRIX_reset,MATRIX_copy
  !

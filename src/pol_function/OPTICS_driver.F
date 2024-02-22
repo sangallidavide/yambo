@@ -26,7 +26,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use wave_func,     ONLY:WF,WF_buffer,WF_buffered_IO
  use TDDFT,         ONLY:F_xc_gspace,FXC_K_diagonal,FXC_mode,l_Fxc_in_Xo
  use xc_functionals,ONLY:F_xc_mat
- use interfaces,    ONLY:WF_load,WF_free
+ use interfaces,    ONLY:WF_load,WF_free,X_irredux
  use matrix,        ONLY:MATRIX_reset
  !
 #include<memory.h>

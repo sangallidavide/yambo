@@ -293,6 +293,24 @@ module interfaces
      type(tddft_wf_t), target, intent(inout) :: tddft_wf
    end function TDDFT_ALDA_eh_space_R_kernel
    !
+   subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
+     use matrix,        ONLY:PAR_matrix
+     use frequency,     ONLY:w_samp
+     use electrons,     ONLY:levels
+     use R_lattice,     ONLY:bz_samp
+     use DIPOLES,       ONLY:DIPOLE_t
+     use X_m,           ONLY:X_t,X_poles
+     type(PAR_matrix), target :: X_par
+     type(PAR_matrix), target :: X_low
+     type(levels)         :: Xen
+     type(bz_samp)        :: Xk
+     type(X_t)            :: X
+     type(DIPOLE_t)       :: Dip
+     type(w_samp)         :: Xw
+     integer              :: iq
+     character(*)         :: what
+   end subroutine X_irredux
+   !
    subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,oX_res)
      use pars,          ONLY:SP
      use collision_el,  ONLY:elemental_collision

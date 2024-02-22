@@ -58,7 +58,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
  logical          :: compute_on_gpu
  type(PAR_matrix) :: K_FXC
- type(PAR_matrix), target      :: BUFFER,KERNEL
+ type(PAR_matrix), target      :: BUFFER,BUFFER2,KERNEL
  complex(SP), pointer DEV_ATTR :: BUFFER_blc_d(:,:,:)
  complex(SP), allocatable      :: BUFFER_SAVE(:)
  !
@@ -82,6 +82,8 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  if (PAR_COM_SLK%n_CPU>=4.and.have_cuda) compute_on_gpu=.false.
  !
  if (have_cuda) call msg('s','[LA] '//what//' compute_on_gpu ',compute_on_gpu )
+ !
+ if (.not.X_use_lin_sys) call warning("X inversion implementaiton to be finlized")
  !
  ! ... and frequencies distribution
  !         ========================
@@ -108,6 +110,12 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  !AMBO_PAR_ALLOC_CHECK3(BUFFER%blc,TMP_SIZE)
  YAMBO_ALLOC(BUFFER%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
  BUFFER%blc=cZERO
+ !
+ if (.not.X_use_lin_sys) then
+   call MATRIX_init( "SLK", BUFFER2 , X%ng, buffer_nfreq )
+   YAMBO_ALLOC(BUFFER2%blc,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
+   BUFFER2%blc=cZERO
+ endif
  !
 #if !defined _SCALAPACK
  if (BUFFER%kind=="SLK") call error("[LA] SLK library required but not available")
@@ -139,6 +147,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    if(call_kind=="screening") iw_par_buffer=iw_par
    !
    BUFFER%I   = iw_par_buffer
+   BUFFER2%I   = iw_par_buffer
    !
    ! [1] Interface PAR/SER(Xo) => SLK/SER(X_redux)
    ! =============================================
@@ -263,7 +272,14 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
      ! Matrix Inversion + Matmul
      !
      call LINEAR_ALGEBRA_driver(INV,M_slk=KERNEL)
-     call LINEAR_ALGEBRA_driver(MAT_MUL,M_slk=KERNEL,B_slk=BUFFER,C_slk=BUFFER)
+     !
+     BUFFER2%blc=cZERO
+     call LINEAR_ALGEBRA_driver(MAT_MUL,M_slk=KERNEL,B_slk=BUFFER,C_slk=BUFFER2)
+     do ig2=BUFFER%cols(1),BUFFER%cols(2)
+       do ig1=BUFFER%rows(1),BUFFER%rows(2)
+         BUFFER%blc(ig1,ig2,BUFFER%I)=BUFFER2%blc(ig1,ig2,BUFFER%I)
+       enddo
+     enddo
      !
    endif
    !
