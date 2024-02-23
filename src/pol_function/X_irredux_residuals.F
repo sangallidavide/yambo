@@ -123,8 +123,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
    !
    if (allocated(Xen%GreenF)) Z_=cONE
    !
-   !Z_eh_occ = Xen%f(iv,ikv,v_sp_pol)*(spin_occ-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
-   Z_eh_occ = (Xen%f(iv,ikv,v_sp_pol)-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
+   if (.not.l_X_magn) Z_eh_occ = Xen%f(iv,ikv,v_sp_pol)*(spin_occ-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
+   if (     l_X_magn) Z_eh_occ = (Xen%f(iv,ikv,v_sp_pol)-Xen%f(ic,ikc,c_sp_pol))/spin_occ/real(Xk%nbz,SP)/DL_vol*real(Z_)
    !
    if (iq==1.and.abs(coarse_grid_Pt(i_cg))<Dip%Energy_treshold) Z_eh_occ=1._SP
    !

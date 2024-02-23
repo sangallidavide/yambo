@@ -64,8 +64,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
    !
    if (l_X_magn.and.n_sp_pol==2) then
      ! Here I consider both the resonant and the anti-resonant contribution
-     ! so the following line is commented
-     !if(c_sp_pol==i_spin_majority) cycle
+     ! So, at variance with the BSE case, I loop on both spin channels
      v_sp_pol=mod(c_sp_pol,n_sp_pol)+1
    endif
    !
