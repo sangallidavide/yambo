@@ -216,8 +216,8 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
 #endif
    if (.not.io_RESPONSE) allocate(X_par(PAR_nQ_ibz))
    if (.not.io_RESPONSE) call X_ALLOC_elemental('X',(/X%ng,X%ng,X_MEM_n_tot_freqs/))
-   allocate(X_par_lower_triangle(1))
  endif
+ allocate(X_par_lower_triangle(1))
  !
  ! WF distribution 
  !=================
