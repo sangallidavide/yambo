@@ -75,9 +75,8 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  character(schlen)        :: live_t_string
  integer(IPL)             :: HOST_SIZE(2),TMP_SIZE(2)
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,&
-&                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
-&                            i_comp,i_res_ares,n_res_ares
- logical                  :: X_lower_triangle_matrix_in_use,l_tddft,force_bare_X_G,Drude_pole,skip_WF_load,l_res,l_ares_T,l_ares_R
+&                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err
+ logical                  :: X_lower_triangle_matrix_in_use,l_tddft,force_bare_X_G,Drude_pole,skip_WF_load
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
  complex(SP),allocatable  :: Xo_res(:,:)
@@ -216,19 +215,11 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  !========
  live_t_string=what//'@q['//trim(intc(iq))//'] '
  !
- ordering=X%ordering
- l_res   = X%ordering=="R".or.X%ordering=="T".or.X%ordering=="r"
- l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
- l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
- !
- n_res_ares=1
- if(l_X_magn.and.n_spinor==2.and.(l_ares_T.or.l_ares_R)) n_res_ares=2
- !
 #if defined _SC 
  if (l_sc_run.and..not.l_eval_collisions) live_t_string=what//'@it['//trim(intc(it_now))//'] '
 #endif
  !
- if (coarse_grid_N>=n_out_threads) call live_timing(trim(live_t_string),coarse_grid_N*n_res_ares/n_out_threads)
+ if (coarse_grid_N>=n_out_threads) call live_timing(trim(live_t_string),coarse_grid_N/n_out_threads)
  !
  ! OpenMP setup
  !==============
@@ -236,7 +227,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
 #if !defined _CUDA
  !$omp parallel num_threads(n_out_threads) default(shared), &
  !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,oX_res,Xo_scatt,ig_col,&
- !$omp &        ig1,ig_row_transp,iw,mutexid,i_res_ares,i_comp,&
+ !$omp &        ig1,ig_row_transp,iw,mutexid,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
  !
@@ -274,7 +265,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
      if(.not.Drude_pole) cycle
      if(.not.(X_par%rows(1)==1.and.X_par%cols(1)==1)) cycle
      !
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,1,DEV_VAR(Xo_res))
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,DEV_VAR(Xo_res))
      !
      ctmp = DEV_VAR(Xo_res)(1,1)
      !
@@ -296,10 +287,9 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  ! MAIN LOOP
  !===========
  !
- i_comp=1
+ ordering = X%ordering
+ if (l_X_magn) ordering="r"
  !
- do i_res_ares=1,n_res_ares
-   !
 #if !defined _CUDA
  !$omp do
 #endif
@@ -315,27 +305,12 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
      cycle
    endif
    !
-   if(l_X_magn) then
-     if(n_sp_pol==2) then
-       if(i_spin_majority==1) i_comp=    X_poles_tab(i_bg,5)
-       if(i_spin_majority==2) i_comp=mod(X_poles_tab(i_bg,5),2)+1
-     endif
-     if(n_spinor==2) i_comp=i_res_ares
-     if(i_comp==1.and.l_res   ) ordering="r"
-     if(i_comp==2.and.l_ares_T) ordering="Ta"
-     if(i_comp==2.and.l_ares_R) ordering="Ra"
-     if(i_comp==2.and..not.(l_ares_T.or.l_ares_R)) then
-       if (master_thread) call live_timing(steps=1)
-       cycle
-     endif
-   endif
-   !
    ! 1) First compute the residuals
    !================================
    if (l_tddft) then
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,DEV_VAR(Xo_res),oX_res=DEV_VAR(oX_res))
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,DEV_VAR(Xo_res),oX_res=DEV_VAR(oX_res))
    else
-     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,DEV_VAR(Xo_res))
+     call X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,DEV_VAR(Xo_res))
    endif
    !
    ! 2) Then the frequency dependent term
@@ -490,8 +465,6 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
 #if !defined _CUDA
  !$omp end do
 #endif
-   !
- enddo
  !
  ! CLEAN
  !=======

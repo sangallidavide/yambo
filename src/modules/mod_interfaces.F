@@ -311,7 +311,7 @@ module interfaces
      character(*)         :: what
    end subroutine X_irredux
    !
-   subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,oX_res)
+   subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,Xo_res,oX_res)
      use pars,          ONLY:SP
      use collision_el,  ONLY:elemental_collision
      use electrons,     ONLY:levels
@@ -323,7 +323,7 @@ module interfaces
      type(bz_samp),intent(in) :: Xk
      type(X_t),    intent(in) :: X
      type(DIPOLE_t),intent(in):: Dip
-     integer,      intent(in) :: i_cg,iq,i_comp
+     integer,      intent(in) :: i_cg,iq
      character(*), intent(in) :: what
      complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
      complex(SP), optional, intent(out) DEV_ATTR :: oX_res(X_cols(1):X_cols(2),X_rows(1):X_rows(2))

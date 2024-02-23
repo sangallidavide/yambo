@@ -5,15 +5,16 @@
 !
 ! Authors (see AUTHORS file for details): AM DS
 !
-subroutine PARALLEL_global_dimensions(E,Xk,q,ENVIRONMENT)
+subroutine PARALLEL_global_dimensions(E,Xk,q,X,Dip,Do_dip_limits,ENVIRONMENT)
  !
  use com,           ONLY:secnm
+ use pars,          ONLY:SP
  use parallel_m,    ONLY:PAR_Q_bz_range,PAR_Q_ibz_range,PAR_QP_range,PAR_n_v_bands,PAR_n_c_bands,&
 &                        PAR_EH_range,PAR_Dip_ib,PAR_Dip_ib_lim,PAR_X_ib,PAR_X_iq,PAR_n_G_vectors,&
 &                        PAR_n_freqs,PAR_K_range,PAR_n_bands
  use drivers,       ONLY:l_eval_collisions,l_elph_corr,l_gw0,l_HF_and_locXC,l_life,l_sc_run,l_nl_optics
  use BS,            ONLY:BS_bands,BS_nT_at_k,BS_n_eh_spaces
- use X_m,           ONLY:X_ng
+ use X_m,           ONLY:X_ng,X_t,l_X_terminator
 #if defined _PHEL
  use PHEL,          ONLY:PH_Q
 #endif
@@ -33,12 +34,16 @@ subroutine PARALLEL_global_dimensions(E,Xk,q,ENVIRONMENT)
  use collision_ext, ONLY:COLL_bands,COH_collisions,P_collisions,HXC_collisions
 #endif
  use electrons,     ONLY:levels
+ use DIPOLES,       ONLY:DIPOLE_t
  use R_lattice,     ONLY:bz_samp,nqibz,nqbz
  use QP_m,          ONLY:QP_n_states,QP_nb,QP_n_G_bands
 #include<memory.h>
  !
  type(levels)         :: E
  type(bz_samp)        :: Xk,q
+ type(X_t)            :: X
+ type(DIPOLE_t)       :: Dip
+ logical              :: Do_dip_limits
  character(*)         :: ENVIRONMENT
  !
  ! Work Space
@@ -47,6 +52,26 @@ subroutine PARALLEL_global_dimensions(E,Xk,q,ENVIRONMENT)
  logical :: computing_Fock
  !
  computing_Fock= ( l_HF_and_locXC .and. index(secnm,"Non-Local Fock")/=0 )
+ !
+ if (X%iq(2)/=-1) then
+   PAR_X_ib=X%ib
+   PAR_X_iq=X%iq
+ endif
+ !
+ if (Dip%ib(2)/=-1) then
+   if (Do_dip_limits) then
+     if (Dip%bands_ordered.or.Dip%Energy_treshold<0._SP) then
+       Dip%ib_lim(1)=maxval(E%nbm)
+       Dip%ib_lim(2)=minval(E%nbf)+1
+       if (l_X_terminator) Dip%ib_lim(2)=Dip%ib(1)
+     else
+       Dip%ib_lim(1)=Dip%ib(2)
+       Dip%ib_lim(2)=Dip%ib(1)
+     endif
+   endif
+   PAR_Dip_ib=Dip%ib
+   PAR_Dip_ib_lim=Dip%ib_lim
+ endif
  !
  ! K-pts
  !-------

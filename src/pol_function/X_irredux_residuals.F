@@ -7,7 +7,7 @@
 !
 !> @callgraph
 !> @callergraph
-subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,oX_res)
+subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,Xo_res,oX_res)
  !
  ! This subroutine must be kept thread-safe, since it is used
  ! inside an external omp loop.
@@ -39,7 +39,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
  type(bz_samp),intent(in) :: Xk
  type(X_t),    intent(in) :: X
  type(DIPOLE_t),intent(in):: Dip
- integer,      intent(in) :: i_cg,iq,i_comp
+ integer,      intent(in) :: i_cg,iq
  character(*), intent(in) :: what
  complex(SP),  intent(out) DEV_ATTR :: Xo_res(X_rows(1):X_rows(2),X_cols(1):X_cols(2))
  complex(SP), optional, intent(out) DEV_ATTR :: oX_res(X_cols(1):X_cols(2),X_rows(1):X_rows(2))
@@ -107,8 +107,9 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
    ikp= Xk%sstar(ikpbz,1)
    isp= Xk%sstar(ikpbz,2)
    !
-   if (i_comp==1) then; ikc=ik ; ikv=ikp; endif
-   if (i_comp==2) then; ikc=ikp; ikv=ik ; endif
+   ikc=ik ; ikv=ikp;
+   !if (i_comp==1) then; ikc=ik ; ikv=ikp; endif
+   !if (i_comp==2) then; ikc=ikp; ikv=ik ; endif
    !
    l_X_term_vv = (l_X_terminator.and.ic>=X%ib(1).and.ic<=Xen%nbm(c_sp_pol))
    !
@@ -151,12 +152,14 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
          if(l_X_abs.and.trim(global_gauge)=="velocity") &
          &  call DEV_SUB(scatter_Bamp_using_the_gradient)(Xo_scatt,'o')
          if(l_X_magn) then
-           if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
-           if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
-           if (l_tddft) then
-             if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
-             if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
-           endif
+           call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
+           if(l_tddft) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+           !if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
+           !if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
+           !if (l_tddft) then
+           !  if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+           !  if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
+           !endif
          endif
          !
          ! rhotw_save=Xo_scatt%rhotw
@@ -220,8 +223,9 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
      if(l_X_magn.and.X%ng==1) then
        ! iG=1 case
        DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
-       if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
-       if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
+       DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
+       !if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
+       !if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
      endif
      !
    else
@@ -235,12 +239,14 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,Xo_res,
      if(l_X_abs)  call DEV_SUB(scatter_Bamp)(Xo_scatt)
      !
      if(l_X_magn) then
-       if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
-       if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
-       if (l_tddft) then
-         if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
-         if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
-       endif
+       call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
+       if (l_tddft) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+       !if(i_comp==1) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"+")
+       !if(i_comp==2) call DEV_SUB(scatter_Bamp_spin)(Xo_scatt,"-")
+       !if (l_tddft) then
+       !  if(i_comp==1) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"-")
+       !  if(i_comp==2) call DEV_SUB(scatter_Bamp_spin_tddft)(Xo_scatt,"+")
+       !endif
      endif
      !
    endif

@@ -71,7 +71,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    ! PARALLEL indexes
    !==================
-   call PARALLEL_global_indexes(Xen,Xk,q,"Response_G_space",X=X)
+   call PARALLEL_global_indexes(Xen,Xk,q,"Response_G_space",X=X,X_all_bands=(l_X_magn.and.X%ordering/="r"))
    !
    ! WF distribution 
    !=================
