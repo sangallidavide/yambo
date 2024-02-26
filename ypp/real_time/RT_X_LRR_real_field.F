@@ -12,7 +12,7 @@
 subroutine RT_X_LRR_real_field(en)
  !
  use YPP_real_time,  ONLY:RT_conf,Use_FFT,l_force_min_damp,RT_time,Pol,Curr,ElField,&
-&                         OBS_el_free,X_kind,N_pumps
+&                         OBS_el_free,X_kind,N_pumps,l_skip_OBS_IO
  use pars,           ONLY:SP,pi,cI,cZERO,schlen
  use units,          ONLY:HA2EV
  use electrons,      ONLY:levels
@@ -97,7 +97,7 @@ subroutine RT_X_LRR_real_field(en)
  ! ... FT
  !--------
  !
- call RT_OBSERVABLES_damp_and_write(ElField,RT_conf,.TRUE.)
+ call RT_OBSERVABLES_damp_and_write(ElField,RT_conf,.true.) !(l_skip_OBS_IO.or.N_pumps==0))
  !
  !... Analytic ...
  !
