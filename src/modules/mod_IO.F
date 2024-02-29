@@ -421,12 +421,12 @@ module IO_m
    integer function netcdf_dim_size(ID,DIMNAME)
      ! Returns the value of the specified dim of a variable
      integer,      intent(in)    :: ID
-     character(*), intent(inout) :: DIMNAME
+     character(*), intent(in)    :: DIMNAME
      integer                     :: nf90_err,NF90_DIM_ID
      netcdf_dim_size=0
      nf90_err=nf90_inq_dimid(io_unit(ID),DIMNAME,NF90_DIM_ID)
      if(nf90_err/=NF90_NOERR) return
-     nf90_err=nf90_inquire_dimension(io_unit(ID),NF90_DIM_ID, name = dimname, len = netcdf_dim_size)
+     nf90_err=nf90_inquire_dimension(io_unit(ID),NF90_DIM_ID, len = netcdf_dim_size)
    end function
    !
    integer function netcdf_dim(ID,DIM,dim_name)

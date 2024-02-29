@@ -72,6 +72,7 @@ module BS
  real(SP),allocatable :: BS_K_cutoff_done(:)
  real(SP),allocatable :: BSqpts(:,:)
  real(SP),allocatable :: BS_kpt_bz(:,:)
+ real(SP),allocatable :: BS_kpt_ibz(:,:)
  integer,allocatable :: BS_K_io_map(:)
  !
  ! Resonant/Antiresonant handling
