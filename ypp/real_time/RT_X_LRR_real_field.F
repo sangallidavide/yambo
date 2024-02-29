@@ -97,7 +97,7 @@ subroutine RT_X_LRR_real_field(en)
  ! ... FT
  !--------
  !
- call RT_OBSERVABLES_damp_and_write(ElField,RT_conf,.true.) !(l_skip_OBS_IO.or.N_pumps==0))
+ call RT_OBSERVABLES_damp_and_write(ElField,RT_conf,(l_skip_OBS_IO.or.N_pumps==0))
  !
  !... Analytic ...
  !
