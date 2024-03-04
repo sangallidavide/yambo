@@ -199,8 +199,8 @@ module fields
          !endif
          ! DEBUG >
        case('FROM_FILE')
-	 i_file=get_field_file_index(field_defs(2))
-	 T_0=field_from_file(1,1,i_file)*FS2AUT
+         i_file=get_field_file_index(field_defs(2))
+         T_0=field_from_file(1,1,i_file)*FS2AUT
          W_0=0._SP
          damp_func=1._SP
        case('SOFTSIN','THETA')
@@ -215,7 +215,7 @@ module fields
        case('GAUSS','QSSIN','QSFIELD','PULSE','SPULSE')
          ! Fields which need T_0
          W_0=(field_frequency(E_field,1)+field_frequency(E_field,n_freqs))/2._SP
-	 T_0_fac=3._SP*sigma_eff
+         T_0_fac=3._SP*sigma_eff
          if(trim(field_defs(2))=="1SIGMA" .or. trim(field_defs(3))=="1SIGMA") T_0_fac=1._SP*sigma_eff
          if(trim(field_defs(2))=="2SIGMA" .or. trim(field_defs(3))=="2SIGMA") T_0_fac=2._SP*sigma_eff
          if(trim(field_defs(2))=="3SIGMA" .or. trim(field_defs(3))=="3SIGMA") T_0_fac=3._SP*sigma_eff
@@ -247,30 +247,30 @@ module fields
          if (envelop_only_) then
            W_field=0._SP
            W_field_m1=0._SP
-	   der_fac=0._SP
+           der_fac=0._SP
            WtimesT=fr_shift(i_field)
            f0t=cONE ; f1t=cONE
          else
            W_field=field_frequency(E_field,i_fr)
-	   if(W_field> 0._SP) W_field_m1=1._SP/W_field
-	   if(W_field==0._SP) W_field_m1=0._SP
-	   der_fac=W_field+2._SP*c_sigma_chirp*(Tloc-T_0)
-	   !
-	   ! The frequency shift is applied in two cases
-	   ! (i n_fields=2) to have a circular polarized pulse, and
+           if(W_field> 0._SP) W_field_m1=1._SP/W_field
+           if(W_field==0._SP) W_field_m1=0._SP
+           der_fac=W_field+2._SP*c_sigma_chirp*(Tloc-T_0)
+           !
+           ! The frequency shift is applied in two cases
+           ! (i n_fields=2) to have a circular polarized pulse, and
            WtimesT=W_field*(Tloc-T_0)+fr_shift(i_field)
            ! each frequency has a different initial phase
            if(l_multi_phase) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
            if(chirp>0._SP) WtimesT=WtimesT+c_sigma_chirp*(Tloc-T_0)**2._SP
-	   !
-	   ! CONTROL RES / ANTIRES case
+           !
+           ! CONTROL RES / ANTIRES case
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
            ! f1t=-f0t'
            f0t=cmplx(cos_wt,0._SP) ; f1t=cmplx(sin_wt,0._SP)
            if(trim(field_defs(2))=="ANTIRES")     then ; f0t= 0.5_SP*      exp_iwt  ; f1t=-cI*0.5_SP*      exp_iwt   ; endif
            if(trim(field_defs(2))=="RES")         then ; f0t= 0.5_SP*conjg(exp_iwt) ; f1t= cI*0.5_SP*conjg(exp_iwt)  ; endif
          endif
-	 !
+         !
          EXPf=exp(-(T-T_0)**2/(2._SP*sigma_eff**2) )
          !
          select case( trim(field_defs(1)) )
@@ -278,9 +278,9 @@ module fields
            i_T=nint((T-T_0)/(RT_dyn_step/2._SP))+1
            if (order==0 ) f_now=field_from_file(i_T,2+3*(i_field-1),i_file)
            if (order==1 ) f_now=field_from_file(i_T,3+3*(i_field-1),i_file)
-	   if (order==2 ) f_now=field_from_file(i_T,4+3*(i_field-1),i_file)
-	   if (envelop_only_) f_now=0._SP
-	   !
+           if (order==2 ) f_now=field_from_file(i_T,4+3*(i_field-1),i_file)
+           if (envelop_only_) f_now=0._SP
+           !
          case('STATIC')
            if (order==0 ) f_now=T
            if (order==1 ) f_now=1._SP
@@ -296,7 +296,7 @@ module fields
            if (order==0 ) f_now=-(f0t-1._SP)*W_field_m1
            if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0)*f1t     ! theta function
            if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t  &  ! delta function
-	                       &+theta_function(sigma-T,RT_dyn_step,0)*f0t*der_fac
+                               &+theta_function(sigma-T,RT_dyn_step,0)*f0t*der_fac
            !
          case('SIN')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
