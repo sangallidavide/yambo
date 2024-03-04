@@ -350,13 +350,12 @@ module fields
            if (order==2 ) f_now=(der_fac*f0t-(T-T_0)*f1t/sigma_eff**2)*EXPf
            !
          case('QSFIELD')
-           if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            !
            if (order==0 ) f_now=                      f1t          *EXPf
-           if (order==1 ) f_now=( W_field*f0t-(T-T_0)*f1t/sigma**2)*EXPf
-           if (order==2 ) f_now=(-W_field*f1t-f1t/sigma**2                           &
-                          &             -W_field*(T-T_0)*f1t/sigma**2                    &
-                          &             -(T-T_0)*(W_field*f0t-(T-T_0)*f1t/sigma**2)/sigma**2)*EXPf
+           if (order==1 ) f_now=( der_fac*f0t-(T-T_0)*f1t/sigma**2)*EXPf
+           if (order==2 ) f_now=(-der_fac*f1t-f1t/sigma**2                           &
+                          &             -der_fac*(T-T_0)*f1t/sigma**2                    &
+                          &             -(T-T_0)*(der_fac*f0t-(T-T_0)*f1t/sigma**2)/sigma**2)*EXPf
            !
          case('PULSE')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
