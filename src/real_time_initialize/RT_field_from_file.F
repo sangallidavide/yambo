@@ -32,7 +32,7 @@ subroutine RT_load_field_from_file_init(filename)
  !
  integer :: n_time_steps
  !
- open(unit=99,file=trim(com_path)//"/"//trim(filename))
+ open(unit=99,file=trim(filename))
  read(99,*) n_time_steps
  close(99)
  field_from_file_steps=max(field_from_file_steps,n_time_steps)
@@ -67,7 +67,7 @@ subroutine RT_load_field_from_file(filename,i_field)
    allocate(field_from_file(field_from_file_steps,7,n_ext_fields_max))
    field_from_file=0._SP
  endif
- open(unit=99,file=trim(com_path)//"/"//trim(filename))
+ open(unit=99,file=trim(filename))
  read(99,*) n_time_steps
  do i1=1,n_time_steps
    read(99,*) field_from_file(i1,:,i_field_file) 

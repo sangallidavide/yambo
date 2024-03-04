@@ -276,10 +276,13 @@ module fields
          select case( trim(field_defs(1)) )
          case('FROM_FILE')
            i_T=nint((T-T_0)/(RT_dyn_step/2._SP))+1
-           if (order==0 ) f_now=field_from_file(i_T,2+3*(i_field-1),i_file)
-           if (order==1 ) f_now=field_from_file(i_T,3+3*(i_field-1),i_file)
-           if (order==2 ) f_now=field_from_file(i_T,4+3*(i_field-1),i_file)
-           if (envelop_only_) f_now=0._SP
+	   if (i_T<=0.or.envelop_only_) then
+             f_now=0
+	   else
+             if (order==0 ) f_now=field_from_file(i_T,2+(i_field-1),i_file)
+             if (order==1 ) f_now=field_from_file(i_T,4+(i_field-1),i_file)
+             if (order==2 ) f_now=field_from_file(i_T,6+(i_field-1),i_file)
+	   endif
            !
          case('STATIC')
            if (order==0 ) f_now=T
