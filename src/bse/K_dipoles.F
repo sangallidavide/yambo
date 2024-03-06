@@ -71,7 +71,8 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  if (iq==1.and.i_G_shift==1) then
    call DIPOLE_IO(Xk,Ken,Dip,'read ',io_err,'K')
  else
-   call WF_load(WF,1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),title='-Oscillators/R space/K_IP')
+   call WF_load(WF,1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),&
+   &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
    call elemental_collision_free(BSE_scatt)
    call elemental_collision_alloc(BSE_scatt,NG=i_G_shift,TITLE="BSE") 
  endif
@@ -266,7 +267,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  if(iq>1.or.i_G_shift>1) then
    call elemental_collision_free(BSE_scatt)
-   call WF_free(WF)
+   call WF_free(WF,keep_states_to_load=.true.)
  endif
  !
  call timing('BSE dipoles',OPR='stop')

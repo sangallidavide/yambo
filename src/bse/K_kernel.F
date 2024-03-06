@@ -863,14 +863,14 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if ( (iHxc==1 .and. l_bs_exch_wf_in_loop)                   .or. &
     & (iHxc==2 .and. l_bs_tddft_wf_in_loop.and.l_tddft_gsum) .or. &
     & (iHxc==3 .and. l_bs_corr_wf_in_loop .and.l_dir_alg   ) ) then
-   call WF_free(WF_k,keep_states_to_load=l_write_kernel)
-   call WF_free(WF_p,keep_states_to_load=l_write_kernel)
+   call WF_free(WF_k,keep_states_to_load=.not.l_write_kernel)
+   call WF_free(WF_p,keep_states_to_load=.not.l_write_kernel)
    if (iHxc==3) then
-     call WF_free(WF_kmq,keep_states_to_load=l_write_kernel)
-     call WF_free(WF_pmq,keep_states_to_load=l_write_kernel)
+     call WF_free(WF_kmq,keep_states_to_load=.not.l_write_kernel)
+     call WF_free(WF_pmq,keep_states_to_load=.not.l_write_kernel)
    endif
  else
-   call WF_free(WF,keep_states_to_load=l_write_kernel)
+   call WF_free(WF,keep_states_to_load=.not.l_write_kernel)
  endif
  !
  l_matrix_init=.false.

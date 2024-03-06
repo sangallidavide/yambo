@@ -415,9 +415,9 @@ subroutine K_correlation_collisions_std(iq,i_block,qindx_ID_frag,Xk,q)
        !
    end subroutine fill_indexes
    !
-   subroutine EVAL_table(iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki_ko,i_s_collision)
+   subroutine EVAL_table(iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki_ko,i_s_coll)
      implicit none
-     integer, intent(in) :: iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki_ko,i_s_collision
+    integer, intent(in) :: iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki_ko,i_s_coll
      integer :: iB_ref, iB_p
      iB_ref=-1
      do iB_p=iB,1,-1
@@ -425,39 +425,39 @@ subroutine K_correlation_collisions_std(iq,i_block,qindx_ID_frag,Xk,q)
        if(BS_blk(iB_p)%ik/=BS_blk(iB)%ik .or. BS_blk(iB_p)%ip/=BS_blk(iB)%ip) exit
        if(.not.allocated(BS_blk(iB_p)%O_table)) cycle
        if( iki>size(BS_blk(iB_p)%O_table(1,1,:,1,1,1,1)) .or. iko>size(BS_blk(iB_p)%O_table(1,1,1,:,1,1,1)) ) cycle
-       if(BS_blk(iB_p)%O_table(1,i_s_collision,iki,iko,ibi,ibo,i_sp_pol)==0) cycle
+       if(BS_blk(iB_p)%O_table(1,i_s_coll,iki,iko,ibi,ibo,i_sp_pol)==0) cycle
        iB_ref=iB_p
        exit
      enddo
      if ( iB_ref==-1 ) then
        iB_ref=iB
        BS_blk(iB)%N_oscillators=BS_blk(iB)%N_oscillators+1 
-       BS_blk(iB)%O_table(1,i_s_collision,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
-       BS_blk(iB)%O_table(2,i_s_collision,iki,iko,ibi,ibo,i_sp_pol)=iB
-       O_todo_table(i_s_collision,iki,iko,ibi,ibo,i_sp_pol)=.true.
+       BS_blk(iB)%O_table(1,i_s_coll,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
+       BS_blk(iB)%O_table(2,i_s_coll,iki,iko,ibi,ibo,i_sp_pol)=iB
+       O_todo_table(i_s_coll,iki,iko,ibi,ibo,i_sp_pol)=.true.
      endif
      BS_blk(iB)%O_table(:,i_s_ki_ko,iki,iko,ibi,ibo,i_sp_pol)= &
-&      BS_blk(iB_ref)%O_table(:,i_s_collision,iki,iko,ibi,ibo,i_sp_pol)
+&      BS_blk(iB_ref)%O_table(:,i_s_coll,iki,iko,ibi,ibo,i_sp_pol)
    end subroutine
    !
-   subroutine EVAL_collision(iB,iki,iko,ikit,ikot,i_sp_pol_i,i_sp_pol_o,ibi,ibo,iq_W_in,i_s_collision,isc)
+   subroutine EVAL_collision(iB,iki,iko,ikit,ikot,i_sp_pol_i,i_sp_pol_o,ibi,ibo,iq_W_in,i_s_coll,isc)
      use collision_el,  ONLY:elemental_collision
      use deviceXlib_m,  ONLY:dev_memcpy
      implicit none
-     integer,intent(in) :: iB,iki,iko,ikit,ikot,ibi,ibo,i_sp_pol_i,i_sp_pol_o,iq_W_in,i_s_collision
+     integer,intent(in) :: iB,iki,iko,ikit,ikot,ibi,ibo,i_sp_pol_i,i_sp_pol_o,iq_W_in,i_s_coll
      type(elemental_collision),intent(inout) :: isc
      integer :: iB_oscillator
-     if (.not.O_todo_table(i_s_collision,ikit,ikot,ibi,ibo,i_sp_pol_i)) return 
+     if (.not.O_todo_table(i_s_coll,ikit,ikot,ibi,ibo,i_sp_pol_i)) return 
      isc%is=(/ibi,iki,1,i_sp_pol_i/)
-     isc%os=(/ibo,iko,i_s_collision,i_sp_pol_o/)
+     isc%os=(/ibo,iko,i_s_coll,i_sp_pol_o/)
      isc%qs=(/1,iq_W_in,1/)
      !
-     iB_oscillator = BS_blk(iB)%O_table(1,i_s_collision,ikit,ikot,ibi,ibo,i_sp_pol_i)
+     iB_oscillator = BS_blk(iB)%O_table(1,i_s_coll,ikit,ikot,ibi,ibo,i_sp_pol_i)
      !
      call DEV_SUB(scatter_Bamp)(isc,WF,WF,.false.)
      call dev_memcpy( DEV_VAR(BS_blk(iB)%O_c)(:,iB_oscillator), DEV_VAR(isc%rhotw) )
      !
-     O_todo_table(i_s_collision,ikit,ikot,ibi,ibo,i_sp_pol_i) = .false.
+     O_todo_table(i_s_coll,ikit,ikot,ibi,ibo,i_sp_pol_i) = .false.
    end subroutine
    !
 end subroutine K_correlation_collisions_std
