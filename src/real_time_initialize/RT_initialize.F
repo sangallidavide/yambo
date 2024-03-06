@@ -485,7 +485,7 @@ subroutine RT_initialize(E,k,q)
      call msg('r', trim(MSG_ch)//' max intensity               ',Efield(i1)%intensity*AU2KWCMm2,'[kW/cm^2]')
      !
      if( (field_defs(1)=='QSSIN') .or. (field_defs(1)=='GAUSS') .or. (field_defs(1)=='DELTA') ) then
-       call msg('r', trim(MSG_ch)//' max fluence                 ',Efield(i1)%fluence,'[nJ/cm^2]')
+       call msg('r', trim(MSG_ch)//' max fluence                 ',Efield(i1)%fluence*AU2KWCMm2,'[nJ/cm^2]')
        call msg('r', trim(MSG_ch)//' area at selected Rabi trans.',Efield(i1)%pi_kind )
        call msg('r', trim(MSG_ch)//' final time                  ',Efield(i1)%t_final*AUT2FS,'[fs]')
        call msg('r', trim(MSG_ch)//' half maximum full width     ',Efield(i1)%width*2.*sqrt(2.*log(2.))*AUT2FS,'[fs]')
