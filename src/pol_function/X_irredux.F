@@ -78,7 +78,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  character(schlen)        :: live_t_string
  integer                  :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,ngshift, &
 &                            X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
-&                            is,ik_last,ikmq_last,ik,ik_bz,ikmq,ikmq_bz
+&                            is,ik_last,ikmq_last,ik,ikmq,ikmq_bz,ikl
  logical                  :: force_bare_X_G,Drude_pole,skip_WF_load
  real(SP)                 :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff
  complex(SP)              :: GreenF(Xw%n_freqs),drude_GreenF(Xw%n_freqs),ctmp
@@ -138,27 +138,34 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
      wf_ng=wf_ng_1st_bz
      !
      ikmq_bz =qindx_X(iq,1,1)
-     !
      ikmq=Xk%sstar(ikmq_bz,1)
-     if (     WF_load_bz) is  =Xk%sstar(ikmq_bz,2)
-     if (.not.WF_load_bz) is  =Xk%sstar(ikmq_bz,2)
      !
      call WF_load(WF_k,  ngrho,ngshift,X%ib,(/1,1/),title='-X',keep_states_to_load=.true.)
-     call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),isymm=is,title='-X',keep_states_to_load=.true.)
-     !call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikmq,ikmq/),title='-X',keep_fft=.true.,&
-     !&                       impose_free_and_alloc=.true.,keep_states_to_load=.true.)
      !
+     if(iq>1) then
+       ! 
+       if (     WF_load_bz) is =Xk%sstar(ikmq_bz,2)
+       if (.not.WF_load_bz) is =1
+       ikl=ikmq
+       if(WF_shifted_grids) ikl=1
+       call WF_load(WF_kmq,ngrho,ngshift,X%ib,(/ikl,ikl/),isymm=is,title='-X',keep_states_to_load=.true.)
+       !
+     endif
      !
      ik_last=1
      if(     WF_load_bz) ikmq_last=ikmq_bz
      if(.not.WF_load_bz) ikmq_last=ikmq
      !
      WF1 => WF_k
-     WF2 => WF_kmq
+     if(iq> 1) WF2 => WF_kmq
+     if(iq==1) WF2 => WF_k
      !
    else
      !
      call WF_load(WF,ngrho,ngshift,X%ib,(/1,Xk%nibz/),title='-X')
+     !
+     ik_last=1
+     ikmq_last=1
      !
      WF1 => WF
      WF2 => WF
@@ -260,7 +267,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
 #if !defined _CUDA && defined _FALSE
  !$omp parallel num_threads(n_out_threads) default(shared), &
  !$omp &        private(i_cg,Drude_pole,GreenF,i_bg,Xo_res,Xo_scatt,ig_col,&
- !$omp &        ig1,ig_row_transp,iw,mutexid,ik,ik_bz,ikmq,ikmq_bz,ikmq_last,ik_last,&
+ !$omp &        ig1,ig_row_transp,iw,mutexid,ik,ikmq_last,ik_last,&
  !$omp &        X_rows1_l,X_rows2_l,X_nrows_l,X_cols_transp)
 #endif
  !

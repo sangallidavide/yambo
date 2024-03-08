@@ -75,8 +75,6 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  !
  integer                      :: io_err(3)
  !
- !
- !
  call set_parms(grid='  local', command=' define')
  !
  if (wf_ng.lt.0.8_SP*maxval(wf_igk)) &
