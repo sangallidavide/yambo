@@ -7,7 +7,7 @@
 !
 module wave_func
  !
- use pars,           ONLY:SP
+ use pars,           ONLY:SP,schlen
  !
 #include <dev_defs.h>
 #include <memory.h>
@@ -91,6 +91,8 @@ module wave_func
  integer,    allocatable:: wf_igk(:,:)
  integer,    allocatable DEV_ATTR :: wf_igk_d(:,:)
  logical                :: wf_norm_test
+ !
+ character(schlen)  :: WF_path(4)
  !
  interface
    !

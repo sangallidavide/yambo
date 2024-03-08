@@ -91,7 +91,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
+     call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif
@@ -102,7 +102,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
+     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,2)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif

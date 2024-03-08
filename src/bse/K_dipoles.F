@@ -14,7 +14,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  use R_lattice,     ONLY:bz_samp,q0_def_norm,qindx_X
  use stderr,        ONLY:intc
  use com,           ONLY:msg
- use wave_func,     ONLY:WF
+ use wave_func,     ONLY:WAVEs,WF_shifted_grids
  use stderr,        ONLY:STRING_match
  use interfaces,    ONLY:WF_load,WF_free
  use electrons,     ONLY:levels,spin
@@ -46,10 +46,12 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  logical           ::geometry_ok
  integer           ::ik_bz,ok_bz,ik,ok,isymm,osymm,iGo,iv,ic,i_sp_pol_c,i_sp_pol_v,i_T_g,i_T,&
-&                    io_err,i_res_ares,i_dip
+&                    io_err,i_res_ares,i_dip,ikmq,ikmq_bz
  complex(SP)       ::DIP_Splus,DIP_Smins,DIP_projected(BS_dip_size),DIP_expanded(3)
  character(6)      ::DIP_kind
  !
+ type (WAVEs), target :: WF_k,WF_kmq
+ type (WAVEs), pointer:: WF1,WF2
  type(elemental_collision):: BSE_scatt
  !
  call section('=','Loading Dipoles @q'//trim(intc(iq)))
@@ -68,11 +70,24 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  ! These are trivial to compute at finite q, instead they are 
  ! obtained via the dipoles in the q->0 limit and stored to disk
  !
- if (iq==1.and.i_G_shift==1) then
+ if (iq==1.and.i_G_shift==1.and..not.WF_shifted_grids) then
    call DIPOLE_IO(Xk,Ken,Dip,'read ',io_err,'K')
  else
-   call WF_load(WF,1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),&
-   &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
+   if (WF_shifted_grids) then
+     ikmq_bz =qindx_X(iq,1,1)
+     ikmq=Xk%sstar(ikmq_bz,1)
+     call WF_load(WF_k,  1,maxval(qindx_X(:,:,2)),BS_bands,(/1,1/),&
+     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
+     call WF_load(WF_kmq,1,maxval(qindx_X(:,:,2)),BS_bands,(/ikmq,ikmq/),&
+     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
+     WF1=>WF_k
+     WF2=>WF_kmq
+   else
+     call WF_load(WF_k,1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),&
+     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
+     WF1=>WF_k
+     WF2=>WF_k
+   endif
    call elemental_collision_free(BSE_scatt)
    call elemental_collision_alloc(BSE_scatt,NG=i_G_shift,TITLE="BSE") 
  endif
@@ -162,7 +177,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
          ! This is needed to have something consistent with the definiion from scatter_Bamp at finite-q
          if (trim(global_gauge)=="length") DIP_projected=DIP_projected*q0_def_norm
        else
-         if(trim(global_gauge)=="length")   call scatter_Bamp(BSE_scatt,WF,WF,.false.)
+         if(trim(global_gauge)=="length")   call scatter_Bamp(BSE_scatt,WF1,WF2,.false.)
          if(trim(global_gauge)=="velocity") call scatter_Bamp_using_the_gradient(BSE_scatt,"o")
          DIP_projected(1)=-conjg(BSE_scatt%rhotw(i_G_shift))
        endif
@@ -267,7 +282,8 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  if(iq>1.or.i_G_shift>1) then
    call elemental_collision_free(BSE_scatt)
-   call WF_free(WF,keep_states_to_load=.true.)
+   call WF_free(WF_k,keep_states_to_load=.true.)
+   if(WF_shifted_grids) call WF_free(WF_kmq,keep_states_to_load=.true.)
  endif
  !
  call timing('BSE dipoles',OPR='stop')

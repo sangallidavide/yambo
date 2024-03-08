@@ -235,28 +235,28 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
          if (i_k_ref/=i_k) then
            i_k_ref=i_k
            !$omp critical 
-           call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
            !$omp end critical
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
            !$omp critical 
-           call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,1)
            !$omp end critical
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
            !$omp critical 
-           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,2)
            !$omp end critical
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
            !$omp critical 
-           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,2)
            !$omp end critical
          endif
          !
@@ -319,28 +319,28 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
          if (i_k_ref/=i_k) then
            i_k_ref=i_k
            !$omp critical 
-           call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
            !$omp end critical
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
            !$omp critical 
-           call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,1)
            !$omp end critical
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
            !$omp critical 
-           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,2)
            !$omp end critical
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
            !$omp critical 
-           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1)
+           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,2)
            !$omp end critical
          endif
          !

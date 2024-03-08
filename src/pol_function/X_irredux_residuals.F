@@ -115,12 +115,12 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,ngshift, &
      !
      if( ik_new/=ik_last ) then
        ik_last=ik_new
-       call WF_load_fast(WF_k  ,ngrho,ngshift,X%ib,ik ,(/1,n_sp_pol/),is_wf )
+       call WF_load_fast(WF_k  ,ngrho,ngshift,X%ib,ik ,(/1,n_sp_pol/),is_wf,1)
      endif
      !
      if( ikp_new/=ikp_last .and. iq>1) then
        ikp_last=ikp_new
-       call WF_load_fast(WF_kmq,ngrho,ngshift,X%ib,ikp,(/1,n_sp_pol/),isp_wf)
+       call WF_load_fast(WF_kmq,ngrho,ngshift,X%ib,ikp,(/1,n_sp_pol/),isp_wf,2)
      endif
      !
    endif

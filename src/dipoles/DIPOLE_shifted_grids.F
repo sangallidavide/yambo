@@ -12,9 +12,9 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  !  i q.<nk|r|mk> =  \sum_i=1,3 q(i) <u_n(k+q0(i))|u_mk>/q0(i)
  !
  use units,               ONLY: HA2EV
- use pars,                ONLY: SP,cZERO,lchlen,schlen
+ use pars,                ONLY: SP,cZERO,schlen
  use drivers,             ONLY: l_sc_run
- use com,                 ONLY: msg,core_io_path,grid_paths
+ use com,                 ONLY: msg,grid_paths
  use stderr,              ONLY: intc,STRING_split
  use LIVE_t,              ONLY: live_timing
  use electrons,           ONLY: levels,n_spinor,n_sp_pol
@@ -27,7 +27,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  use DIPOLES,             ONLY: DIPOLE_t,DIP_iR,DIP_v,num_shifted_grids
  use vec_operate,         ONLY: degeneration_finder
  use wrapper,             ONLY: Vstar_dot_V
- use wave_func,           ONLY: wf_ng,wf_igk,WF,wf_ncx,WAVEs
+ use wave_func,           ONLY: wf_ng,wf_igk,WF,wf_ncx,WAVEs,WF_path
 #if defined _SC           
  use SC,                  ONLY: SC_bands
 #endif
@@ -45,7 +45,6 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  ! Saves
  !
  integer                      :: wf_ng_save
- character(lchlen)            :: core_io_path_save
  integer                      :: nkibz_save, wf_ncx_save, wf_ncx_shifted, nkibz_shifted
  integer                      :: wf_ng_eff, wf_ng_shifted
 #if defined _SC
@@ -60,7 +59,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  character(schlen)            :: grid_paths_vector(3)
  logical                      :: idir_not_done(3)
  integer                      :: ik,ik_mem,ic_wf,iv_wf,iv_wf_sh,i_grp,ic,iv,iv_sh,iq,n_LT_steps,&
-&                                i_spin,i_spinor,i_sp_pol,ir,grid_order(3),ic_min
+&                                i_spinor,i_sp_pol,ir,grid_order(3),ic_min
  integer                      :: first_el(Dip%ib_lim(1)-Dip%ib(1)+1),n_of_el(Dip%ib_lim(1)-Dip%ib(1)+1),n_deg_grp
  complex(SP)                  :: rho,DIP_rotate(Dip%ib(1):Dip%ib_lim(1),Dip%ib(1):Dip%ib_lim(1)),&
 &                                DIP_tmp(Dip%ib_lim(2):Dip%ib(2),Dip%ib(1):Dip%ib_lim(1))
@@ -152,9 +151,9 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
        !
        ir = grid_order(iq)
        !
-       core_io_path = trim(grid_paths_vector(iq))
+       WF_path(iq+1) = trim(grid_paths_vector(iq))
        !
-       call WF_load(WF_shifted,0,1,(/Dip%ib(1),Dip%ib_lim(1)/),(/ik,ik/),space='G',&
+       call WF_load(WF_shifted,0,1,(/Dip%ib(1),Dip%ib_lim(1)/),(/ik,ik/),ipath=iq+1,space='G',&
 &      title='-Oscillators/G space (shifted grid)',keep_states_to_load=.TRUE.)
        !
        wf_ng_eff = min(wf_ng_save,wf_ng_shifted)
@@ -279,8 +278,6 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
        !
      enddo      ! iq / ir
      !
-     core_io_path = trim(core_io_path_save)
-     !
      call WF_free(WF)
      !
    enddo        ! ik
@@ -303,8 +300,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
      ! so that all type components (like occupations) are 
      ! not rewritten.
      !
-     core_io_path = core_io_path_save
-     io_err(1)=io_DB1_selective_scan('all',trim(core_io_path),E_shift,Xk_shift)
+     io_err(1)=io_DB1_selective_scan('all',trim(WF_path(0)),E_shift,Xk_shift)
      !
      call set_parms(grid='  local', command='  reset')
      !
@@ -318,7 +314,6 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
        nkibz_save   = nkibz
        wf_ncx_save  = wf_ncx
        wf_ng_save   = wf_ng
-       core_io_path_save = core_io_path
 #if defined _SC       
        SC_bands_save     = SC_bands
 #endif 
@@ -330,7 +325,6 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
        wf_ncx_shifted = wf_ncx
        wf_ng_shifted  = wf_ng
      else if( grid.eq.'  local'.and. command.eq.'  reset') then
-       core_io_path = core_io_path_save
        wf_ng        = wf_ng_save
 #if defined _SC       
        SC_bands = SC_bands_save

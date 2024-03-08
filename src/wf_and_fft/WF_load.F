@@ -21,7 +21,7 @@
 !!
 !! @param[out]      WF                  Wave-function object
 !
-subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,&
+subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,ipath,&
 &                  space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,quiet)
  !
  ! Load and (eventually) FFTs the wavefunctions
@@ -36,7 +36,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  use FFT_m,         ONLY:fft_dim_loaded,fft_dim,fft_norm,fft_g_table,fft_size,&
 &                        fftw_plan,cufft_plan,fft_g_table_d
  use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,WF_buffer,rho_map,&
-&                        wf_ng,wf_norm_test,wf_ncx,io_WF,wf_b_indx,&
+&                        wf_ng,wf_norm_test,wf_ncx,io_WF,wf_b_indx,WF_path,&
 &                        wf_nb_io,wf_nb_to_load,wf_nb_io_groups,WAVEs,states_to_load
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
  use IO_m,          ONLY:OP_RD,NONE,VERIFY,RD,RD_CL,DUMP
@@ -56,7 +56,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
  integer               :: iG_in,iGo_max_in,bands_to_load(2),kpts_to_load(2)
  type(WAVEs), target   :: WF
- integer,     optional :: sp_pol_to_load(2),isymm
+ integer,     optional :: sp_pol_to_load(2),isymm,ipath
  character(*),optional :: space
  character(*),optional :: title
  logical,     optional :: impose_free_and_alloc
@@ -283,6 +283,8 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
    wfr_d => WF%r_d
    WFN = WF%N
  endif
+ !
+ if(present(ipath)) core_io_path=WF_path(ipath)
  !
  ! LOG the states loaded
  !
@@ -572,6 +574,8 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  endif
  !
 #endif
+ !
+ if(present(ipath)) core_io_path=WF_path(0)
  !
  if (.not.wf_norm_test) then
    if (QUIET_wf) call IO_and_Messaging_switch("+report +log ")

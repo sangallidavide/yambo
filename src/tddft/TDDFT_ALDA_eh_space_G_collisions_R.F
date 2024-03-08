@@ -117,7 +117,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical
 #endif
-     call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1)
+     call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif
@@ -128,7 +128,7 @@ subroutine TDDFT_ALDA_eh_space_G_collisions_R(iq,Xk,i_T_grp,NG,tddft_wf,mode,&
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical
 #endif
-     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1)
+     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,1)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif

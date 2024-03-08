@@ -14,7 +14,7 @@
 !!
 !! @param[out]      WF                  Wave-function object
 !
-subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_load,isymm)
+subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_load,isymm,ipath)
  !
  ! Load and (eventually) FFTs the wavefunctions
  !
@@ -27,7 +27,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  use interfaces,    ONLY:WF_free,WF_symm_kpoint_r,WF_symm_kpoint_g
  use FFT_m,         ONLY:fft_dim_loaded,fft_dim,fft_norm,fft_g_table,fft_size,&
 &                        fftw_plan,cufft_plan,fft_g_table_d
- use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,rho_map,&
+ use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,rho_map,WF_path,&
 &                        wf_ng,wf_norm_test,wf_ncx,io_WF,wf_b_indx,&
 &                        wf_nb_io,wf_nb_to_load,wf_nb_io_groups,WAVEs,states_to_load
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
@@ -46,7 +46,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
 #include<memory.h>
 #include<yambo_wfs.h>
  !
- integer               :: iG_in,iGo_max_in,bands_to_load(2),kpt_to_load,sp_pol_to_load(2),isymm
+ integer               :: iG_in,iGo_max_in,bands_to_load(2),kpt_to_load,sp_pol_to_load(2),isymm,ipath
  type(WAVEs), target   :: WF
  !
  ! Work Space
@@ -100,6 +100,8 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  endif
  !
  if (.not.WF%to_load) return
+ !
+ core_io_path=WF_path(ipath)
  !
  ! Memory allocation
  !
@@ -291,6 +293,9 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  !
  WF%state(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2))= &
 &         states_to_load(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2))
+ !
+ !
+ core_io_path=WF_path(1)
  !
  return
  !

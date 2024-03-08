@@ -436,7 +436,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      i_p   =Xk%sstar(i_p_bz,1)
      i_p_ref=i_p
      call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),&
-     &            space='R',title=trim(section_title)//" (kmq)",keep_states_to_load=.true.)
+     &            space='R',title=trim(section_title)//" (p)",keep_states_to_load=.true.)
      !
      i_pmq_bz=qindx_X(iq,i_k_bz,1)
      i_pmq   =Xk%sstar(i_p_bz,1)
