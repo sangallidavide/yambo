@@ -298,7 +298,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
      ! so that all type components (like occupations) are 
      ! not rewritten.
      !
-     io_err(1)=io_DB1_selective_scan('all',trim(WF_path(0)),E_shift,Xk_shift)
+     io_err(1)=io_DB1_selective_scan('all',trim(WF_path(1)),E_shift,Xk_shift)
      !
      call set_parms(grid='  local', command='  reset')
      !
