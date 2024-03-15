@@ -32,7 +32,10 @@ subroutine COLLISIONS_load(CHECK_EXISTENCE_ONLY)
 &                          GW_NEQ_COLL_element
 #endif
  !
- ! Define io_COLLs_header to handle either serial or parallel I/O
+ ! Inside collisions.h, io_COLLs_header is defined as either
+ ! - io_COLLISIONS        (serial I/O) or
+ ! - io_COLLISIONS_header (parallel I/O case)
+ !
 #include<collisions.h>
  !
  implicit none
