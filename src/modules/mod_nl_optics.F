@@ -104,10 +104,23 @@ module nl_optics
  !
  real(SP) :: NL_er(2)
  real(SP) :: NL_estep
+ real(SP) :: NL_ang_step
  integer  :: NL_bands(2)
  integer  :: NL_nbands
+ integer  :: n_angles
+ real(SP) :: NL_rot_axis(3)
+ real(SP) :: NL_initial_versor(3)
  integer  :: n_frequencies
- integer  :: n_freqs_todo
+ integer  :: n_runs_todo
+ integer  :: n_runs
+ !
+ logical  :: Loop_on_frequencies
+ logical  :: Loop_on_angles
+ !
+ ! Velocity gauge in indepdent particle
+ !     
+ logical :: l_velocity_IPA=.FALSE.
+ ! 
  !
  ! Pump and probe
  !
@@ -132,7 +145,7 @@ module nl_optics
  real(SP),     allocatable :: NL_J_t(:,:)
  complex(SP),  allocatable :: E_tot_t(:,:),E_ext_t(:,:), E_ks_t(:,:),V_bands_t(:,:,:,:,:)
  complex(SP)               :: E_tot(3),E_ext(3),E_ks(3)
- logical,      allocatable :: freqs_done(:)
+ logical,      allocatable :: runs_done(:)
  type(IO_desc)             :: NL_desc
  !
  contains
@@ -166,7 +179,7 @@ module nl_optics
        YAMBO_ALLOC(V_xc_0,(fft_size,n_spin))
      endif
      !
-     if(l_use_Hxc_collisions.or.l_pump_and_probe) then
+     if(eval_dG.or.l_pump_and_probe) then
        YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,1))
      endif
      !
@@ -244,8 +257,7 @@ module nl_optics
      YAMBO_FREE(E_tot_t)
      YAMBO_FREE(E_ext_t)
      YAMBO_FREE(E_ks_t)
-     YAMBO_FREE(V_bands_t)
-     !
+     !	
      if(l_use_Hxc_collisions.or.l_pump_and_probe) then
        YAMBO_FREE(dG_lesser)
      endif

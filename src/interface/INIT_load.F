@@ -80,7 +80,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #endif
 #if defined _NL
  use nl_optics,     ONLY:NL_bands,NL_damping,NL_correlation,NL_er,n_frequencies,NL_LRC_alpha, &
-&                        NL_verb_name
+&                        NL_verb_name,n_angles,NL_rot_axis 
 #endif 
 #if defined _NL | defined _SC
  use fields,        ONLY:Efield
@@ -518,8 +518,10 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'NLCorrelation','[NL] Correlation ("IPA/HARTREE/TDDFT/LRC/LRW/JGM/SEX") ',NL_correlation)
  call it(defs,'NLLrcAlpha',   '[NL] Long Range Correction',NL_LRC_alpha)
  call it(defs,'NLDamping',    '[NL] Damping (or dephasing)',NL_damping,unit=E_unit)
- call it(defs,'NLEnRange',    '[NL] Energy range',NL_er,E_unit)
- call it(defs,'NLEnSteps',    '[NL] Energy steps',n_frequencies)
+ call it(defs,'NLEnRange',    '[NL] Energy range (for loop on frequencies NLEnSteps/=0',NL_er,E_unit)
+ call it(defs,'NLAngSteps',   '[NL] Angular steps (if NLAngSteps/=0 field versor will be ignored)',n_angles)
+ call it(defs,'NLrotaxis',    '[NL] Rotation axis (for the loop on angles NLAngSteps/=0)',NL_rot_axis)
+ call it(defs,'NLEnSteps',    '[NL] Energy steps for the loop on frequencies',n_frequencies)
  call it('f',defs,'UseDipoles','[NL] Use Covariant Dipoles (just for test purpose)',verb_level=V_nl_optics)
  call it('f',defs,'FrSndOrd','[NL] Force second order in Covariant Dipoles',verb_level=V_nl_optics)
  call it('f',defs,'EvalCurrent','[NL] Evaluate the current')
@@ -712,7 +714,6 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! 
  contains 
    !
-   !
 #if defined _MPI 
    !
    subroutine CPU_structure_load()
@@ -877,7 +878,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
      !
      ! Bands
      !
-     bands=-1
+     bands=-1 
      do i1=1,11
        if(.not.(is_def(i1))) cycle
        if(i1< 6) tmp_bands=X(i1)%ib
