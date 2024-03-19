@@ -173,8 +173,16 @@ subroutine col_driver(bare_NG,q)
    !
    call cutoff_driver(q)
    q_norm(1)=q0_def_norm
+   !
+   ! Here I rescale bare_qpg and RIM_qpg by a constant dielectric
+   ! function due to the environment. A similar rescaling is also done
+   ! in the subroutine rim_integrate_w for RIM_W. However, since RIM_W
+   ! is not linear in q+G, the rescaling there is more involved
+   !
+   ! bare_qpg= q+G
    bare_qpg=bare_qpg*sqrt(eps_env)
-   RIM_qpg =RIM_qpg*sqrt(eps_env)
+   ! RIM_qpg= \int C/|q+G|**2
+   RIM_qpg =RIM_qpg/eps_env
    !
  endif
  !
