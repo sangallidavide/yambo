@@ -126,7 +126,7 @@ module fields
      enddo
    end function
    !
-   function small_a(T,E_field,order,envelop_only)
+   function small_a(T,dt,E_field,order,envelop_only)
      !
      ! The vector potential is generally written as
      !
@@ -143,11 +143,10 @@ module fields
      use pars,      ONLY:cI,cONE,cZERO,pi,schlen
      use wrapper,   ONLY:FADEVA
      use functions, ONLY:theta_function
-     use real_time, ONLY:RT_dyn_step
      !
      type(ext_field), intent(inout)   ::E_field
      !
-     real(SP), intent(in)  ::T
+     real(SP), intent(in)  ::T,dt
      integer,  intent(in)  ::order
      logical,  intent(in), optional :: envelop_only
      !
@@ -290,7 +289,7 @@ module fields
          !
          select case( trim(field_defs(1)) )
          case('FROM_FILE')
-           i_T=nint((T-T_0)/(RT_dyn_step/2._SP))+1
+           i_T=nint((T-T_0)/(dT/2._SP))+1
 	   if (i_T<=0.or.envelop_only_) then
              f_now=0
 	   else
@@ -306,15 +305,15 @@ module fields
            !
          case('RECT')
            if (order==0 ) f_now= Tloc
-           if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0) ! theta function
-           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1) ! delta function
+           if (order==1 ) f_now= theta_function(sigma-T,dT,0) ! theta function
+           if (order==2 ) f_now=-theta_function(sigma-T,dT,1) ! delta function
            !
          case('RECTSIN')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            if (order==0 ) f_now=-(f0t-1._SP)*W_field_m1
-           if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0)*f1t     ! theta function
-           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t  &  ! delta function
-                               &+theta_function(sigma-T,RT_dyn_step,0)*f0t*der_fac
+           if (order==1 ) f_now= theta_function(sigma-T,dT,0)*f1t     ! theta function
+           if (order==2 ) f_now=-theta_function(sigma-T,dT,1)*f1t  &  ! delta function
+                               &+theta_function(sigma-T,dT,0)*f0t*der_fac
            !
          case('SIN')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))

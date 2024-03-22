@@ -67,9 +67,9 @@ subroutine RT_Ext_fields(A,time,i_f)
  !
  do ikind=1,2
    !
-   A_of_t=small_a(Field_time,Efield(i_f),0,envelop_only=(ikind==1))
-   E_of_t=small_a(Field_time,Efield(i_f),1,envelop_only=(ikind==1))
-   J_of_t=small_a(Field_time,Efield(i_f),2,envelop_only=(ikind==1))
+   A_of_t=small_a(Field_time,RT_dyn_step,Efield(i_f),0,envelop_only=(ikind==1))
+   E_of_t=small_a(Field_time,RT_dyn_step,Efield(i_f),1,envelop_only=(ikind==1))
+   J_of_t=small_a(Field_time,RT_dyn_step,Efield(i_f),2,envelop_only=(ikind==1))
    !
    ! DEBUG <
    if (ikind==2.and.l_print_to_file) then
