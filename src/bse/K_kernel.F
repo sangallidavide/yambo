@@ -7,7 +7,7 @@
 !
 subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
- ! K = <2V-W> for n_spin=1
+ ! K = <2V-W> for n_spin=1; K=<V-W> for n_spin>1
  !
  use pars,          ONLY:SP,schlen,pi,cZERO,cI
  use LOGO,          ONLY:pickup_a_random

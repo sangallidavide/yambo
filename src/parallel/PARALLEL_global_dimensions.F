@@ -25,7 +25,7 @@ subroutine PARALLEL_global_dimensions(E,Xk,q,X,Dip,Do_dip_limits,ENVIRONMENT)
  use SC,            ONLY:SC_bands
 #endif
 #if defined _NL
- use nl_optics,     ONLY:n_frequencies
+ use nl_optics,     ONLY:n_runs
 #endif
 #if defined _RT
  use real_time,     ONLY:RT_bands
@@ -180,7 +180,7 @@ subroutine PARALLEL_global_dimensions(E,Xk,q,X,Dip,Do_dip_limits,ENVIRONMENT)
  if (ENVIRONMENT=="Self_Energy"                     ) PAR_QP_range=QP_n_states
  !
 #if defined _NL
- if (ENVIRONMENT=="Non_Linear"                      ) PAR_n_freqs =n_frequencies
+ if (ENVIRONMENT=="Non_Linear"                      ) PAR_n_freqs =n_runs
 #endif
  !
 end subroutine PARALLEL_global_dimensions

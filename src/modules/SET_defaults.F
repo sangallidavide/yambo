@@ -54,7 +54,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use descriptors,ONLY:IO_desc_reset
 #if defined _SLEPC && !defined _NL
  use BS_solvers, ONLY:BSS_slepc_extraction,BSS_slepc_ncv,BSS_slepc_tol,BSS_slepc_target_E,BSS_slepc_maxit,&
- &                    BSS_slepc_precondition,BSS_slepc_approach
+ &                    BSS_slepc_precondition,BSS_slepc_approach,BSS_slepc_matrix_format
 #endif
  use BS,         ONLY:BS_n_g_W,BS_eh_en,BS_identifier,BS_q,BS_eh_win,MAX_BSK_LIN_size,&
 &                     BS_K_dim,BS_not_const_eh_f,BSK_mode,l_BSE_kernel_complete,&
@@ -102,8 +102,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use plasma,     ONLY:PLASMA_redux_percent
 #endif
 #if defined _NL
- use nl_optics,  ONLY:NL_correlation,NL_er,n_frequencies,NL_damping,NL_LRC_alpha,         &
-&                     NL_verb_name,NL_bands,n_order,NL_desc
+ use nl_optics,  ONLY:NL_correlation,NL_er,n_frequencies,NL_damping,NL_LRC_alpha,NL_initial_versor,     &
+&                     NL_verb_name,NL_bands,NL_desc,n_angles,NL_rot_axis
  use fields,     ONLY:Efield,Efield_reset
 #endif
 #if defined _SC
@@ -487,6 +487,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  call IO_desc_reset(BSS_desc)
  !
 #if defined _SLEPC && !defined _NL
+ BSS_slepc_matrix_format='shell'
  BSS_slepc_approach='none'
  BSS_slepc_precondition='none'
  BSS_slepc_extraction='ritz'
@@ -694,8 +695,10 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  NL_bands      =(/0,0/)
  NL_correlation="IPA"
  NL_er         =(/-1._SP,-1._SP/)/HA2EV
- n_frequencies =1
- n_order    = 0
+ n_frequencies =0
+ n_angles      =0
+ NL_rot_axis   =(/0._SP,0._SP,0._SP/)
+ NL_initial_versor=(/0._SP,0._SP,0._SP/)
  NL_damping    =0.2_SP/HA2EV
  NL_LRC_alpha  =0._SP
  !
