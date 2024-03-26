@@ -36,53 +36,56 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
  l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
  !
+ VB_lims(1,:)=1
+ CB_lims(1,:)=1
+ VB_lims(2,:)=0
+ CB_lims(2,:)=0
  !
  if (l_X_magn) then
    !
    call get_spin_majority(Xen)
-   Nv=0
-   Nc=0
    !
-   ! N.B: in the magnons case I loop on both the resonant and
-   !      the anti-resonant transitions
+   ! 2024/02/28 DS
+   ! In the magnons case I loop on both the resonant and the anti-resonant transitions.
+   ! In the tag phys-magn-v0 I had coded an implementation where
+   ! the valence and conduction limits are selected as usually, doing a loop only on the resonant part.
+   ! In such implementation, the anti-resonant term is included via the opposite spin transitions.
+   ! Such implementation is significantly more complex, but also more efficient in distributing
+   ! WFs in memory over bands (see new changes in PARALLEL_global_indexes in the present branch)
+   ! The structure of such implementation is also more similar to the one in the BSE case
    !
    if (l_ares_T.or.l_ares_R) then
      do i_sp=1,n_sp_pol
        if(i_sp==i_spin_majority) cycle
        VB_lims(:,i_sp)=(/X%ib(1),X%ib(2)/)
        CB_lims(:,i_sp)=(/X%ib(1),X%ib(2)/)
-       Nc(i_sp)=X%ib(2)-X%ib(1)+1
-       Nv(i_sp)=X%ib(2)-X%ib(1)+1
      enddo
    else
      do i_sp=1,n_sp_pol
        if(i_sp==i_spin_majority) cycle
        c_sp_pol=i_sp
        v_sp_pol=mod(c_sp_pol,n_sp_pol)+1
-       Nv(i_sp)=Xen%nbm(v_sp_pol)-X%ib(1)+1
-       Nc(i_sp)=X%ib(2)-Xen%nbf(c_sp_pol)
-       VB_lims(:,i_sp)=(/X%ib(1),X%ib(1)+Nv(i_sp)-1/)
-       CB_lims(:,i_sp)=(/X%ib(2)-Nc(i_sp)+1,X%ib(2)/)
+       VB_lims(:,i_sp)=(/X%ib(1),Xen%nbm(v_sp_pol)/)
+       CB_lims(:,i_sp)=(/Xen%nbf(c_sp_pol)+1,X%ib(2)/)
      enddo
    endif
    !
  else
    !
    do i_sp=1,n_sp_pol
-     Nv(i_sp)=Xen%nbm(i_sp)-X%ib(1)+1
-     Nc(i_sp)=X%ib(2)-Xen%nbf(i_sp)
-     VB_lims(:,i_sp)=(/X%ib(1),X%ib(1)+Nv(i_sp)-1/)
-     CB_lims(:,i_sp)=(/X%ib(2)-Nc(i_sp)+1,X%ib(2)/)
+     VB_lims(:,i_sp)=(/X%ib(1),Xen%nbm(i_sp)/)
+     CB_lims(:,i_sp)=(/Xen%nbf(i_sp)+1,X%ib(2)/)
    enddo
    if (l_X_terminator) then
      CB_lims(1,:)=X%ib(1)
-     Nc=X%ib(2)-X%ib(1)+1
    endif
    !
  endif
  !
  N_tot=0
  do i_sp=1,n_sp_pol
+   Nv(i_sp)=VB_lims(2,i_sp)-VB_lims(1,i_sp)+1
+   Nc(i_sp)=CB_lims(2,i_sp)-CB_lims(1,i_sp)+1
    N_tot=N_tot+Nc(i_sp)*Nv(i_sp)
  enddo
  !
@@ -95,7 +98,6 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  !
  poles=0._SP 
  Ein_poles=0._SP
- !
  !
  X_eh_setup=0
  local_tresh=epsilon(1._SP)
