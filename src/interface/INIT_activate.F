@@ -281,7 +281,7 @@ subroutine INIT_activate()
    if (index(BSS_mode,'h')/=0)  call initactivate(1,'BSHayTrs BSHayTer BSHayItrIO BSHayItrMAX')
    if (index(BSS_mode,'s')/=0)  then
      call initactivate(1,'BSSNEig BSSEnTarget BSSSlepcApproach BSSSlepcPrecondition BSSSlepcExtraction')
-     call initactivate(1,'BSSSlepcMaxIt BSSSlepcNCV BSSSlepcTol BSSSlepcMatrix')
+     call initactivate(1,'BSSSlepcMaxIt BSSSlepcNCV BSSSlepcTol BSSSlepcMatrixFormat')
    endif
    !
    ! Special project dependent variables
@@ -545,7 +545,7 @@ subroutine INIT_activate()
 #if defined _NL
  if (l_nl_optics) then
    call initactivate(1,'FFTGvecs NLBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
-   if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps')
+   if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps NLrotaxis NLAngSteps')
    call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd EvalCurrent InducedField FrPolPerdic') 
    call initactivate(1,'Gauge RADLifeTime HARRLvcs EXXRLvcs') 
    call init_QP_ctl_switch('G')

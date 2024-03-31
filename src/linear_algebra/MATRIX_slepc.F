@@ -27,7 +27,7 @@ subroutine MATRIX_slepc(M_slepc,l_target_energy,n_eig,V_right,V_left,E_real,E_cm
  use stderr,        ONLY : intc
  use BS_solvers,    ONLY : BSS_slepc_extraction,BSS_slepc_ncv,BSS_slepc_maxit,&
  &                         BSS_slepc_tol,BSS_slepc_target_E,BSS_slepc_precondition,&
- &                         BSS_slepc_approach,BSS_slepc_matrix
+ &                         BSS_slepc_approach,BSS_slepc_matrix_format
  !
  use petscsys
  use petscmat
@@ -122,7 +122,7 @@ subroutine MATRIX_slepc(M_slepc,l_target_energy,n_eig,V_right,V_left,E_real,E_cm
  ! * Generalized-Davidson: EPSGD, RIGHT VECTORS ONLY
  !                       STPPRECOND + KSPPREONLY + PCJACOBY very fast for few eigenvectors
  !
- ! * Jacob-Davidson: EPSJD, NOT WORKING WITH KSP PREONLY
+ ! * Jacobi-Davidson: EPSJD, NOT WORKING WITH KSP PREONLY
  !                    STPPRECOND + KSPCG SUPER-SLOW + PCJACOBY super slow
  !
  ! Default
@@ -130,11 +130,15 @@ subroutine MATRIX_slepc(M_slepc,l_target_energy,n_eig,V_right,V_left,E_real,E_cm
  ! From user
  if(BSS_slepc_approach=="Krylov-Schur")          epskind=EPSKRYLOVSCHUR
  if(BSS_slepc_approach=="Generalized-Davidson")  epskind=EPSGD
- if(BSS_slepc_approach=="Jacob-Davidson")        epskind=EPSJD
+ if(BSS_slepc_approach=="Jacobi-Davidson")       epskind=EPSJD
  !if(BSS_slepc_approach=="Scalapack")             epskind=EPSSCALAPACK
  !if(BSS_slepc_approach=="ELPA")                  epskind=EPSELPA
  ! In case input is mispelled fallback to Krylov-Schur
  if (epskind==EPSKRYLOVSCHUR) BSS_slepc_approach="Krylov-Schur"
+ !
+ if (.not. (epskind==EPSKRYLOVSCHUR .or. epskind==EPSGD .or. epskind==EPSJD )) then
+   call error("wrong slepc approach in input "//trim(BSS_slepc_approach))
+ endif
  !
  call msg( 'sr', '[SLEPC] Approach                          ',BSS_slepc_approach)
  !
@@ -142,7 +146,7 @@ subroutine MATRIX_slepc(M_slepc,l_target_energy,n_eig,V_right,V_left,E_real,E_cm
  !
  l_precondition=BSS_slepc_precondition/="none"
  !
- if (l_precondition.and. .not.BSS_slepc_matrix) then
+ if (l_precondition.and. trim(BSS_slepc_matrix_format)=="shell") then
    !
    call warning("Preconditioning not compatible with shell matrix, disabled")
    BSS_slepc_precondition="none"
