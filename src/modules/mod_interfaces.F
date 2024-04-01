@@ -304,6 +304,14 @@ module interfaces
      type (WAVEs), target, intent(inout) :: WF
    end subroutine WF_symm_kpoint_g
    !
+   subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
+     use wave_func,     ONLY:WAVEs
+     use collision_el,  ONLY:elemental_collision
+     type(elemental_collision), target, intent(inout) :: isc
+     type(WAVEs), target, intent(in) :: WF_ik,WF_ok
+     logical,     intent(in) :: WF_load_bz
+   end subroutine DEV_SUB(scatter_Bamp)
+   !
  end interface
  !
  interface WF_shift_kpoint

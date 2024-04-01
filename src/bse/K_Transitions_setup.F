@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM DS IMA
 !
-subroutine K_Transitions_setup(iq,Ken,Xk,Dip,V_bands,C_bands)
+subroutine K_Transitions_setup(iq,Ken,Ken_shifted,Xk,Dip,V_bands,C_bands)
  !
  ! Filling of Transition groups
  !
@@ -41,7 +41,7 @@ subroutine K_Transitions_setup(iq,Ken,Xk,Dip,V_bands,C_bands)
  !
 #include<memory.h>
  !
- type(levels),    intent(in)   :: Ken
+ type(levels),    intent(in) :: Ken,Ken_shifted
  type(bz_samp),   intent(in) :: Xk
  type(DIPOLE_t),  intent(in) :: Dip
  integer,         intent(in) :: iq
@@ -128,7 +128,7 @@ subroutine K_Transitions_setup(iq,Ken,Xk,Dip,V_bands,C_bands)
                if (i_res_ares==1) then; ib1=iv; ib2=ic; endif
                if (i_res_ares==2) then; ib1=ic; ib2=iv; endif
                !
-               if (.not.K_Transition_check(Ken,Dip,iq,ik,ikp,ib1,ib2,i_sp_c,i_res_ares,&
+               if (.not.K_Transition_check(Ken,Ken_shifted,Dip,iq,ik,ikp,ib1,ib2,i_sp_c,i_res_ares,&
 &                                          E_eh,E_eh_SOC_corr,f_eh,f_eh_RES,f_eh_PL)) cycle
                !
                i_T_now=i_T_now+1
@@ -222,7 +222,7 @@ subroutine K_Transitions_setup(iq,Ken,Xk,Dip,V_bands,C_bands)
 end subroutine K_Transitions_setup
 !
 !
-subroutine K_Transitions_dimensions(iq,Ken,Xk,Dip,V_bands,C_bands)
+subroutine K_Transitions_dimensions(iq,Ken,Ken_shifted,Xk,Dip,V_bands,C_bands)
  !
  ! Out: 
  !
@@ -248,7 +248,7 @@ subroutine K_Transitions_dimensions(iq,Ken,Xk,Dip,V_bands,C_bands)
  !
 #include<memory.h>
  !
- type(levels),    intent(in) :: Ken
+ type(levels),    intent(in) :: Ken,Ken_shifted
  type(bz_samp),   intent(in) :: Xk
  type(DIPOLE_t),  intent(in) :: Dip
  integer,         intent(in) :: iq
@@ -308,7 +308,7 @@ subroutine K_Transitions_dimensions(iq,Ken,Xk,Dip,V_bands,C_bands)
              if (i_res_ares==1) then; ib1=iv; ib2=ic; endif
              if (i_res_ares==2) then; ib1=ic; ib2=iv; endif
              !
-             if (.not.K_Transition_check(Ken,Dip,iq,ik,ikp,ib1,ib2,i_sp_c,i_res_ares,&
+             if (.not.K_Transition_check(Ken,Ken_shifted,Dip,iq,ik,ikp,ib1,ib2,i_sp_c,i_res_ares,&
              &                            E_eh,E_eh_SOC_corr,f_eh,f_eh_RES,f_eh_PL)) cycle
              !
              BS_K_dim(i_res_ares)=BS_K_dim(i_res_ares)+1

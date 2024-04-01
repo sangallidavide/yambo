@@ -12,11 +12,11 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  use LIVE_t,        ONLY:live_timing
  use drivers,       ONLY:l_rpa_IP,l_bs_fxc
  use com,           ONLY:msg
- use R_lattice,     ONLY:bz_samp,d3k_factor,bare_qpg,q0_def_norm
+ use R_lattice,     ONLY:bz_samp,d3k_factor,q0_def_norm
  use DIPOLES,       ONLY:DIPOLE_t
  use stderr,        ONLY:intc
  use electrons,     ONLY:levels,spin_occ,spin,nel,n_sp_pol,n_spinor
- use X_m,           ONLY:Resp_ii,Joint_DOS,alpha_dim,eps_2_alpha,&
+ use X_m,           ONLY:Resp_ii,Joint_DOS,alpha_dim,eps_2_alpha,Q_plus_G_sq_modulus,&
 &                        X_drude_term,global_gauge,N_BS_E_sorted,i_G_shift,&
 &                        skip_cond_sum_rule,X_magnons,Resp_ij,X_dichroism
  use BS_solvers,    ONLY:Co_factor,diam_term_exact,para_term_w0,BSS_Wd,BSS_mode,BSS_uses_DbGd,FG_factor
@@ -29,6 +29,7 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
 &                        PAR_COM_Xk_ibz_INDEX
  use parser_m,      ONLY:parser
  use timing_m,      ONLY:timing
+ use wave_func,     ONLY:WF_shifted_grids
  use BS_solvers,    ONLY:B_Hall
  use PHOTOLUM,      ONLY:PL,PL_prefactor,PL_weights
  use units,         ONLY:SPEED_OF_LIGHT
@@ -87,7 +88,7 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
  !-------
  diam_term_exact=cONE*Co_factor*nel*real(Xk%nbz,SP)/spin_occ
  para_term_w0=cZERO
- if (trim(global_gauge)=='length') g_fac=cONE*Co_factor/bare_qpg(iq,i_G_shift)**2
+ if (trim(global_gauge)=='length') g_fac=cONE*Co_factor/Q_plus_G_sq_modulus
  dip_r=.true.
  dip_v=.false.
  if (trim(global_gauge)=='velocity') then

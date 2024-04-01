@@ -18,14 +18,16 @@
 ! [iii] The code wll proceed with the optics calculation only if  q[iq]||Q,
 ! otherwise skip the q-point.
 !
-integer function OPTICS_select_q_and_G(iq,q,X)
+integer function OPTICS_select_q_and_G(iq,q,X,mode)
  !
  use pars,           ONLY:SP,schlen
  use X_m,            ONLY:q_plus_G_direction,X_t,Q_Shift_Order,&
 &                         Q_plus_G_pt,Q_plus_G_sq_modulus 
- use R_lattice,      ONLY:bz_samp,g_vec,q_norm
+ use R_lattice,      ONLY:bz_samp,g_vec,q_norm,q0_def_norm
  use vec_operate,    ONLY:v_norm,v_is_zero,iku_v_norm
  use stderr,         ONLY:intc
+ use BS,             ONLY:BSqpts
+ use BS_solvers,     ONLY:BSS_q0
  use com,            ONLY:msg
  !
  implicit none
@@ -33,6 +35,7 @@ integer function OPTICS_select_q_and_G(iq,q,X)
  integer      ::iq
  type(X_t)    ::X
  type(bz_samp)::q
+ character(*),intent(in) :: mode
  !
  ! Work Space
  !
@@ -44,9 +47,24 @@ integer function OPTICS_select_q_and_G(iq,q,X)
  !
  ! IBZ q-point
  !
- if (iq==1) then ! Q_plus_G = q0/|q0|
-   Q_plus_G_pt=X%q0/v_norm(X%q0)
-   Q_plus_G_sq_modulus=q_norm(iq)**2
+ if (iq==1) then
+   if (mode=="X") then ! Q_plus_G = q0/|q0|
+     Q_plus_G_pt=X%q0/v_norm(X%q0)
+     Q_plus_G_sq_modulus=q_norm(iq)**2
+   else if (mode=="BSE") then
+     Q_plus_G_pt=BSqpts(:,1)
+     ! DS warning.
+     ! Here q_norm(1)=q0_def_norm. BSS_q0=q0_def_norm*field_direction unless using WF_shifted_grids
+     ! However, since Q_plus_G_sq_modulus is computed via iku_v_norm, the resut might be different
+     ! from q_norm(1)=q0_def_norm. This is why I have to use q_norm(iq) when not using WF_shifted_grids.
+     ! Indeed, in such case, BSS_q0 is not in iku but in cartesian coordinates. This should somehow be
+     ! fixed in the code.
+     if (v_norm(BSqpts(:,1)-BSS_q0)>1.E-7_SP) then 
+       Q_plus_G_sq_modulus=iku_v_norm(Q_plus_G_pt)**2
+     else
+       Q_plus_G_sq_modulus=    v_norm(Q_plus_G_pt)**2
+     endif
+   endif
  else ! Q_plus_G = q[iq] 
    Q_plus_G_pt=q%pt(iq,:)
    Q_plus_G_sq_modulus=iku_v_norm(Q_plus_G_pt)**2

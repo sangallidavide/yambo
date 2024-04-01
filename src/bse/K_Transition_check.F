@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM DS
 !
-logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
+logical function K_Transition_check(Ken,Ken_shifted,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
 &                                   E_eh,E_eh_SOC_corr,f_eh,f_eh_RES,f_eh_PL)
  !
  use pars,         ONLY:SP 
@@ -20,7 +20,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  !
  implicit none
  !
- type(levels),   intent(in) :: Ken
+ type(levels),   intent(in) :: Ken,Ken_shifted
  type(DIPOLE_t), intent(in) :: Dip
  integer,        intent(in) :: iq,ik,ikp,iv,ic,i_sp_c,i_res_ares
  real(SP),       intent(out):: E_eh,E_eh_SOC_corr(2/n_sp_pol),f_eh,f_eh_RES,f_eh_PL
@@ -35,7 +35,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  i_sp_v=i_sp_c
  if(l_BS_magnons) i_sp_v=mod(i_sp_c,n_sp_pol)+1
  !
- E_eh= Ken%E(ic,ik ,i_sp_c)-Ken%E(iv,ikp,i_sp_v)
+ E_eh=Ken%E(ic,ik ,i_sp_c)-Ken_shifted%E(iv,ikp,i_sp_v)
  if (     allocated(Ken%Eo)) Eo_eh= Ken%Eo(ic,ik ,i_sp_c)-Ken%Eo(iv,ikp,i_sp_v)
  if (.not.allocated(Ken%Eo)) Eo_eh= E_eh
  !

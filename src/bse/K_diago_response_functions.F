@@ -13,7 +13,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
  use pars,           ONLY:cZERO,cONE,cI,SP,pi
  use units,          ONLY:SPEED_OF_LIGHT
  use X_m,            ONLY:Resp_ii,Joint_DOS,BS_E_sorted,&
-&                         global_gauge,i_G_shift
+&                         global_gauge,i_G_shift,Q_plus_G_sq_modulus
  use electrons,      ONLY:n_sp_pol,n_spinor
  use frequency,      ONLY:w_samp
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index
@@ -22,7 +22,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
  use BS,             ONLY:BS_perturbative_SOC,BS_res_ares_n_mat,l_BS_abs,l_BS_jdos,l_BS_esort,&
 &                         BS_K_anti_resonant,l_BS_ares_from_res,BS_K_coupling
  use BS_solvers,     ONLY:BSS_n_eig,Co_factor
- use R_lattice,      ONLY:bare_qpg,q0_def_norm
+ use R_lattice,      ONLY:q0_def_norm
  use units,          ONLY:HA2EV
  use vec_operate,    ONLY:degeneration_finder,sort
  use BS_solvers,     ONLY:B_Hall,para_term_w0
@@ -57,7 +57,7 @@ subroutine K_diago_response_functions(iq,i_BS_mat,W,BS_E,BS_R_left_abs,BS_R_righ
  !
  if(l_BS_abs) para_term_w0(2)=cZERO
  !
- if (trim(global_gauge)=='length') g_fac=cONE*Co_factor/bare_qpg(iq,i_G_shift)**2
+ if (trim(global_gauge)=='length') g_fac=cONE*Co_factor/Q_plus_G_sq_modulus
  !
  if( BS_perturbative_SOC.and.n_sp_pol==1) n_SOC=2
  !

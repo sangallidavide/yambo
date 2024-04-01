@@ -16,7 +16,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  use com,           ONLY:msg
  use wave_func,     ONLY:WAVEs,WF_shifted_grids
  use stderr,        ONLY:STRING_match
- use interfaces,    ONLY:WF_load,WF_free
+ use interfaces,    ONLY:WF_load,WF_free,scatter_Bamp
  use electrons,     ONLY:levels,spin
  use X_m,           ONLY:X_t,global_gauge,i_G_shift
  use DIPOLES,       ONLY:DIPOLE_t,DIP_alloc,DIP_rotated
@@ -63,7 +63,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  ! Check if in 1st BZ or outside
  !
- i_G_shift=OPTICS_select_q_and_G(iq,q,X_oscillators)
+ i_G_shift=OPTICS_select_q_and_G(iq,q,X_oscillators,"BSE")
  if (i_G_shift<0) call error("wrong QShift in input")
  !
  ! The residuals of the BSE are <wf_k|e^{iqr}|wf_k+q>
@@ -76,10 +76,10 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
    if (WF_shifted_grids) then
      ikmq_bz =qindx_X(iq,1,1)
      ikmq=Xk%sstar(ikmq_bz,1)
-     call WF_load(WF_k,  1,maxval(qindx_X(:,:,2)),BS_bands,(/1,1/),&
-     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
-     call WF_load(WF_kmq,1,maxval(qindx_X(:,:,2)),BS_bands,(/ikmq,ikmq/),&
-     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.)
+     call WF_load(WF_k,  1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),&
+     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.,quiet=.false.)
+     call WF_load(WF_kmq,1,maxval(qindx_X(:,:,2)),BS_bands,(/1,Xk%nibz/),ipath=2,&
+     &   title='-Oscillators/R space/K_IP',keep_states_to_load=.true.,quiet=.false.)
      WF1=>WF_k
      WF2=>WF_kmq
    else
@@ -94,7 +94,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  BSS_Vnl_included=Dip%Vnl_included
  !
- if (iq==1.and.i_G_shift==1) then
+ if (iq==1.and.i_G_shift==1.and..not.WF_shifted_grids) then
    !
    BSS_P_dir=cross_product(BSS_Q_dir,BSS_E_dir)
    !
@@ -146,7 +146,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
      i_sp_pol_c = BS_T_grp(i_T_g)%table(i_T,4)
      i_sp_pol_v = BS_T_grp(i_T_g)%table(i_T,5)
      !
-     if(iq/=1.or.i_G_shift/=1) then
+     if(iq/=1.or.i_G_shift/=1.or.WF_shifted_grids) then
        !
        ok_bz=qindx_X(iq,ik_bz,1)
        iGo  =qindx_X(iq,ik_bz,2)
@@ -169,7 +169,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
      ! Absorption, KERR, PL, Dichroism
      if(l_BS_abs.or.l_BS_kerr.or.l_BS_photolum.or.l_BS_dichroism) then
        !
-       if(iq==1.and.i_G_shift==1) then
+       if(iq==1.and.i_G_shift==1.and..not.WF_shifted_grids) then
          DIP_expanded=-cI*DIP_rotated(ic,iv,ik_bz,i_sp_pol_c,DIP_kind,Xk)
          do i_dip=1,BS_dip_size
            DIP_projected(i_dip)=dot_product(BS_field_direction(:,i_dip),DIP_expanded)
@@ -191,7 +191,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
      !
      ! Dichroism
      if (l_BS_dichroism) then
-       if(iq==1.and.i_G_shift==1) then  
+       if(iq==1.and.i_G_shift==1.and..not.WF_shifted_grids) then  
          DIP_expanded=DIP_rotated(ic,iv,ik_bz,i_sp_pol_c,"DIP_L",Xk)
          do i_dip=1,BS_dip_size
            DIP_projected(i_dip)=dot_product(BS_field_direction(:,i_dip),DIP_expanded)
@@ -214,7 +214,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
        ! However to follow the same structure in K_IP.F fow WFs load / DIPOLE_IO here I keep it
        ! The implementation with scatter can be used to double check the spin dipoles
        !
-       if(iq==1.and.i_G_shift==1) then
+       if(iq==1.and.i_G_shift==1.and..not.WF_shifted_grids) then
          DIP_expanded   = DIP_rotated(ic,iv,ik_bz,i_sp_pol_c,"DIP_S",Xk)
        else
          call scatter_Bamp_spin(BSE_scatt,'x')
@@ -265,7 +265,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
  !
  ! CLEAN
  !
- if (iq==1.and.i_G_shift==1.and.io_DIP) then
+ if (iq==1.and.i_G_shift==1.and..not.WF_shifted_grids.and.io_DIP) then
    call DIP_alloc('DIP_iR')
    call DIP_alloc('DIP_P')
    call DIP_alloc('DIP_v')
@@ -280,7 +280,7 @@ subroutine K_dipoles(iq,Ken,Xk,q,X_oscillators,Dip)
    !
  endif
  !
- if(iq>1.or.i_G_shift>1) then
+ if(iq>1.or.i_G_shift>1.or.WF_shifted_grids) then
    call elemental_collision_free(BSE_scatt)
    call WF_free(WF_k,keep_states_to_load=.true.)
    if(WF_shifted_grids) call WF_free(WF_kmq,keep_states_to_load=.true.)

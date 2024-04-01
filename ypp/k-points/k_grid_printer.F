@@ -59,20 +59,20 @@ subroutine k_grid_printer(nk,k,coo_in,form,wk,coo_out)
      call K_transform(v,'iku')
    endif
    !
-   if (form=="Y") then
+   if (index(form,"Y")>0) then
      if(No_Weight) then
        write(ch,'(3(f12.'//trim(intc(f_format_length))//',1x,a,1x))') v(1),'|',v(2),'|',v(3)
      else
        write(ch,'(4(f12.'//trim(intc(f_format_length))//',1x,a,1x))') v(1),'|',v(2),'|',v(3),'|',weight
      endif
-     call msg("s",'      ',trim(ch))
-   else if (form=="PW") then
+     call msg("sr",'      ',trim(ch))
+   else if (index(form,"PW")>0) then
      write(ch,'(3(f12.'//trim(intc(f_format_length))//',1x),i1)') v(:),1
-     call msg("s",'      ',trim(ch))
-   else if (form=="none") then
+     call msg("sr",'      ',trim(ch))
+   else
      Vo(:3)=v
      if(.not.No_Weight) Vo(4)=weight
-     call msg("s","   k"//trim(intc(ik)),Vo)
+     call msg("sr","   k"//trim(intc(ik)),Vo)
    endif
    !
  enddo

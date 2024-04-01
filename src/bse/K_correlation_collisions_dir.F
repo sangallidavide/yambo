@@ -6,7 +6,7 @@
 ! Authors (see AUTHORS file for details): AM, DS
 ! 
 subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
-& WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,l_bs_corr_wf_in_loop)
+& WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,ipath,l_bs_corr_wf_in_loop)
  !
  ! This routine evaluates the correlation collisions:
  !
@@ -33,6 +33,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
  !
  integer,              intent(inout) :: i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref
  type (WAVEs), target, intent(inout) :: WF_k,WF_kmq,WF_p,WF_pmq
+ integer,              intent(in)    :: ipath
  logical,              intent(in)    :: l_bs_corr_wf_in_loop
  !
  ! Work Space
@@ -249,14 +250,14 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
            !$omp critical 
-           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,2)
+           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,ipath)
            !$omp end critical
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
            !$omp critical 
-           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,2)
+           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,ipath)
            !$omp end critical
          endif
          !

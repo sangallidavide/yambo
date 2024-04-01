@@ -211,14 +211,14 @@ subroutine k_grids(en,k,Xk,q)
      enddo
      !
      i2=0
-     do i1=1,3
+     do i1=1,size(U_q_shifts,1)
        !
-       if (v_norm(U_q_shifts(i1,:))>1.E-4.or.v_norm(U_q_shifts(i1,:))<1.E-6) then
-         q0 = U_q_shifts(i1,:)*1.E-4/v_norm(U_q_shifts(i1,:))
-         call msg("s","Renormalizing shift to :",v_norm(q0))
-       else 
-         q0 = U_q_shifts(i1,:)
+       if (v_norm(U_q_shifts(i1,:))>1.E-4) then
+         call warning("q norm bigger than 1.E-4")
+       else if (v_norm(U_q_shifts(i1,:))<1.E-6) then
+         call warning("q norm smaller than 1.E-6")
        endif
+       q0 = U_q_shifts(i1,:)
        !
        i2 = i2 + 1
        !
@@ -241,7 +241,7 @@ subroutine k_grids(en,k,Xk,q)
          !
        enddo
        !
-       call k_grid_printer(Xk%nibz,k_plus_q,trim(coo_out),"none")
+       call k_grid_printer(Xk%nibz,k_plus_q,trim(coo_out),"PW")
        !
      enddo
       !

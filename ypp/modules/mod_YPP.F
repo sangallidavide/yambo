@@ -42,7 +42,7 @@ module YPPm
  real(SP), allocatable :: U_k_pts(:,:)
  real(SP), allocatable :: U_q_pts(:,:)
  real(SP), allocatable :: U_interp_pts(:,:)
- real(SP)              :: U_q_shifts(3,3)
+ real(SP), allocatable :: U_q_shifts(:,:)
  ! 
  ! DOS/BANDS/SPECIAL-K/INTERP grids
  !

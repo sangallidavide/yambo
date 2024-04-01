@@ -31,7 +31,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &                        O_ng,BS_n_g_exch,BS_n_g_fxc,BS_identifier,BS_LiveTiming_steps,&
 &                        BS_K_dim,BS_K_is_ALDA,BS_cpl_K_exchange,&
 &                        BS_cpl_K_corr,K_EXCH_collision,K_CORR_collision,&
-&                        WF_phase,n_BS_blks,BS_blk,BS_T_grp,&
+&                        WF_phase,n_BS_blks,BS_blk,BS_T_grp,BSE_q_approach,&
 &                        BS_nT_grps,BS_blks_free,l_BS_ares_from_res,&
 &                        l_BSE_minimize_memory,l_BSE_restart,l_BSE_kernel_complete,&
 &                        BS_perturbative_SOC,BS_K_cutoff,BS_max_val,l_BS_magnons
@@ -79,7 +79,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &               iq_W_bz_last,ig_W_last,iq_W_bz_mq_last,ig_W_mq_last
  !
  integer    :: i_block,O_ng_shift,O_ng_exch,O_ng_tddft,iHxc,NG(2),NK(2),&
-&              ig_kmq,ig_pmq,ig_W_mq,iq_W_bz_mq,iq_W_mq,iq_W_s_mq,&
+&              ig_kmq,ig_pmq,ig_W_mq,iq_W_bz_mq,iq_W_mq,iq_W_s_mq,ipath,&
 &              bands_to_load(2),is_k(4),os_k(4),is_p(4),os_p(4)
  complex(SP):: Co,H_x,H_c,BS_mat_tmp
  complex(SP):: sqrt_f_itk,sqrt_f_itp
@@ -92,10 +92,10 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  logical    :: l_bs_exch,l_bs_corr,l_matrix_init,l_load_kernel,l_write_kernel,&
  &             l_skip_phases,l_std_alg,l_dir_alg,l_tddft_gsum,l_tddft_rsum 
  !
- ! New implementation. WFs are passed explicitly
+ ! New implementation. WFs are passed explicitly, and allows for shifted grids
  !
- integer              :: i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref
  type (WAVEs), target :: WF_k,WF_kmq,WF_p,WF_pmq
+ integer              :: i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref
  logical              :: l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_bs_corr_wf_in_loop
  !
  ! I/O
@@ -124,6 +124,11 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  ! K/S Table
  !
  call k_build_up_BZ_tables(Xk)
+ !
+ ! Finite q mode
+ !
+ if (trim(BSE_q_approach)=="Standard")      ipath=1
+ if (trim(BSE_q_approach)=="Shifted grids") ipath=2
  !
  ! Titles
  !========
@@ -428,7 +433,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    i_kmq_bz=qindx_X(iq,i_k_bz,1)
    i_kmq   =Xk%sstar(i_kmq_bz,1)
    i_kmq_ref=i_kmq
-   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),&
+   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),ipath=ipath,&
    &            space='R',title=trim(section_title)//" (kmq)",keep_states_to_load=.true.)
    !
    if (iHxc==3) then
@@ -441,7 +446,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      i_pmq_bz=qindx_X(iq,i_k_bz,1)
      i_pmq   =Xk%sstar(i_p_bz,1)
      i_pmq_ref=i_pmq
-     call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),&
+     call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),ipath=ipath,&
      &            space='R',title=trim(section_title)//" (pmq)",keep_states_to_load=.true.)
    endif
    !

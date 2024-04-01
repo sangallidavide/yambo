@@ -24,7 +24,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
  use collision_el,   ONLY:elemental_collision
  use D_lattice,      ONLY:idt_index
  use R_lattice,      ONLY:DEV_VAR(g_rot)
- use wave_func,      ONLY:WAVEs
+ use wave_func,      ONLY:WAVEs,WF_shifted_grids
  use pseudo,         ONLY:pp_is_uspp
  use FFT_m,          ONLY:fftw_plan,cufft_plan,fft_size,fft_dim,DEV_VAR(fft_g_table)
  use interfaces,     ONLY:WF_apply_symm
@@ -212,7 +212,8 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
    call PP_addus_rhotw_aug(isc)
    !
  endif
-
+ !
+ if (WF_shifted_grids) return
  !
  ! q=0, G=0 case
  !

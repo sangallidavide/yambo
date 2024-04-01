@@ -9,9 +9,8 @@ subroutine K_Haydock_response(iq,it,Cf_size,OBS,scheme,W,Af,Bf,Cf,reached_thresh
  !
  use pars,           ONLY:SP,cZERO,cONE,cI,pi
  use units,          ONLY:SPEED_OF_LIGHT
- use X_m,            ONLY:Resp_ii,Joint_DOS,global_gauge, &
+ use X_m,            ONLY:Resp_ii,Joint_DOS,global_gauge,Q_plus_G_sq_modulus, &
 &                         X_magnons,Resp_ij,X_dichroism,i_G_shift
- use R_lattice,      ONLY:bare_qpg
  use frequency,      ONLY:w_samp
  use BS,             ONLY:BSE_mode
  use BS_solvers,     ONLY:Co_factor,para_term_w0,Haydock_v0_mod,&
@@ -76,7 +75,7 @@ subroutine K_Haydock_response(iq,it,Cf_size,OBS,scheme,W,Af,Bf,Cf,reached_thresh
  !endif
  ! DEBUG >
  !
- if(trim(global_gauge)=='length')   gauge_factor=cONE*Co/bare_qpg(iq,i_G_shift)**2
+ if(trim(global_gauge)=='length')   gauge_factor=cONE*Co/Q_plus_G_sq_modulus
  if(trim(global_gauge)=='velocity') gauge_factor=cONE*Co
  !
  if (it > MIN_ITER.and.Haydock_terminator) UseTerminator = .true.

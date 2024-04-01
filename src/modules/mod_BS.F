@@ -30,6 +30,7 @@ module BS
  logical :: BS_K_has_been_calculated_loaded=.FALSE.
  character(schlen) :: BSE_L_kind
  character(schlen) :: BSE_mode
+ character(schlen) :: BSE_q_approach
  character(schlen) :: BSE_prop
  character(schlen) :: BSE_dipole_geometry="none"
  character(schlen) :: BSK_mode

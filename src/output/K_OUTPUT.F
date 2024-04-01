@@ -9,6 +9,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
  !
  use pars,           ONLY:pi,DP,SP,cI,cZERO,schlen
  use drivers,        ONLY:l_col_cut
+ use wave_func,      ONLY:WF_shifted_grids
  use frequency,      ONLY:w_samp
  use BS_solvers,     ONLY:BSS_desc,BSS_uses_GreenF,BSS_Vnl_included,BSS_n_freqs,K_diago_in_BS_mat,A_drude,B_Hall,&
 &                         diam_term_exact,para_term_w0,l_abs_prop_chi_bse,&
@@ -21,7 +22,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
 &                         BS_E_sorted_indx,X_magnons,i_G_shift,Q_plus_G_pt,Q_plus_G_sq_modulus,&
 &                         Resp_ii,Resp_ij,l_drude,skip_cond_sum_rule,X_drude_term,global_gauge
  use com,            ONLY:msg,com_compose_msg
- use R_lattice,      ONLY:bare_qpg,FineGd_desc,nkbz
+ use R_lattice,      ONLY:FineGd_desc,nkbz
  use electrons,      ONLY:spin_occ
  use DIPOLES,        ONLY:DIP_desc
  use PHOTOLUM,       ONLY:PL
@@ -99,7 +100,6 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
  if (X_do_obs("eps").or.X_do_obs("Alpha").or.X_do_obs("eel")) then
    !
    fac=eps_2_alpha/4._SP/pi
-   if (l_col_cut) fac=fac*bare_qpg(iq,i_G_shift)**2/Q_plus_G_sq_modulus
    !
    ! Resp = -vX
    do i_rsp=1,n_resp
@@ -124,11 +124,11 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
    endif
    !
    do i_rsp=1,n_resp
-     if(trim(global_gauge)=='length'  ) spectra(:,i_rsp)= spectra(:,i_rsp)/bare_qpg(iq,i_G_shift)**2
+     if(trim(global_gauge)=='length'  ) spectra(:,i_rsp)= spectra(:,i_rsp)/Q_plus_G_sq_modulus
      if(trim(global_gauge)=='velocity') spectra(:,i_rsp)= spectra(:,i_rsp)/ W%p(:)**2
      !
      if (X_do_obs("off").or.X_do_obs("beta")) then
-       if(trim(global_gauge)=='length'  ) spectra_ij(:,i_rsp)=spectra_ij(:,i_rsp)/bare_qpg(iq,i_G_shift)**2
+       if(trim(global_gauge)=='length'  ) spectra_ij(:,i_rsp)=spectra_ij(:,i_rsp)/Q_plus_G_sq_modulus
        if(trim(global_gauge)=='velocity') spectra_ij(:,i_rsp)=spectra_ij(:,i_rsp)/ W%p(:)**2
      endif
    enddo
@@ -424,7 +424,7 @@ subroutine K_OUTPUT(iq,W,WHAT,OBS)
      tmp_dru=cZERO
      ! ... Drude term (if l_drude is computed previously by X_drude call in K_IP.F)
      if (l_drude) then
-       tmp_dru(:,1)=-X_drude_term(:)*4._SP*pi/bare_qpg(iq,i_G_shift)**2
+       tmp_dru(:,1)=-X_drude_term(:)*4._SP*pi/Q_plus_G_sq_modulus
        tmp_dru(:,2)=tmp_dru(:,1)
        if(l_last_col) tmp_dru(:,3)=tmp_dru(:,1)
      endif

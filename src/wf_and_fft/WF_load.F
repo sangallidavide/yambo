@@ -575,7 +575,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
 #endif
  !
- if(present(ipath)) core_io_path=WF_path(0)
+ if(present(ipath)) core_io_path=WF_path(1)
  !
  if (.not.wf_norm_test) then
    if (QUIET_wf) call IO_and_Messaging_switch("+report +log ")

@@ -90,7 +90,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    ! Check if this q is compatible with the user defined direction in chartesian coordinates
    ! and if an additional RL vectors must be added
-   i_G_shift=OPTICS_select_q_and_G(iq,q,X)
+   i_G_shift=OPTICS_select_q_and_G(iq,q,X,"X")
    if (i_G_shift<0) cycle
    !
    ! In TDDFT with BS based kernel eps0 is non-sense

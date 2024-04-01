@@ -849,10 +849,13 @@ subroutine INIT_ypp(E,instr,FINALIZE)
        call PARSER_array(mode="write",VAR=field,DESC='Q points list',&
 &                        N=n_u_q_pts,M=3,R_v=U_q_pts)
      else if (field=="KShift") then
-       U_q_shifts=0.
-       if (N> 0) call PARSER_array(mode="read",VAR=field,N=min(N,3),M=3,R_v=U_q_shifts)
-       call PARSER_array(mode="write",VAR=field,DESC='K-grid shifts (max 3)',&
-&                        N=3,M=3,R_v=U_q_shifts)
+       if (N>0) then 
+         allocate(U_q_shifts(N,3))
+         U_q_shifts=0.
+         call PARSER_array(mode="read",VAR=field,N=N,M=3,R_v=U_q_shifts)
+       endif
+       call PARSER_array(mode="write",VAR=field,DESC='K-grid shifts',&
+&                        N=N,M=3,R_v=U_q_shifts)
      endif
      !
    end subroutine

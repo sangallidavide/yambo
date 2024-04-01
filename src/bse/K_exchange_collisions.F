@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM
 !
-subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs_exch_wf_in_loop)
+subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,ipath,l_bs_exch_wf_in_loop)
  !
  use pars,           ONLY:SP,cZERO
  use D_lattice,      ONLY:nsym,i_time_rev,sop_inv,sop_inv_d
@@ -15,6 +15,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs
  use R_lattice,      ONLY:g_rot,g_rot_d,qindx_X,bz_samp
  use stderr,         ONLY:STRING_match
  use electrons,      ONLY:n_sp_pol
+ use interfaces,     ONLY:scatter_Bamp
  use timing_m,       ONLY:timing
  use openmp,         ONLY:OPENMP_update,master_thread
  use collision_el,   ONLY:elemental_collision_free,elemental_collision_alloc
@@ -31,6 +32,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs
  !
  integer,              intent(inout) :: i_k_ref,i_p_ref
  type (WAVEs), target, intent(inout) :: WF_k,WF_p
+ integer,              intent(in)    :: ipath
  logical,              intent(in)    :: l_bs_exch_wf_in_loop
  !
  ! Work Space
@@ -102,7 +104,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,l_bs
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp critical 
 #endif
-     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,2)
+     call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,ipath)
 #if defined(__NOTNOW) && ! defined(_CUDA)
      !$omp end critical
 #endif

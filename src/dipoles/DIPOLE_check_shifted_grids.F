@@ -69,7 +69,7 @@ subroutine Dipole_check_shifted_grids( Xk_shift, Xk, iq, num_shifted_grid,q_mod,
  !
  if (iq>1) then
    if(.not. abs(q_mod(iq)-q_mod(iq-1))<1.E-5 ) &
-   & call error(' Shifts are not uniform between grid'//trim(intc(iq))//' and previous grid')
+   & call warning(' Shifts are not uniform between grid'//trim(intc(iq))//' and previous grid')
  endif
  !
 end subroutine Dipole_check_shifted_grids

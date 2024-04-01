@@ -10,7 +10,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use pars,           ONLY:IP
  use com,            ONLY:msg
  use stderr,         ONLY:intc,STRING_match
- use electrons,      ONLY:levels,n_sp_pol
+ use electrons,      ONLY:levels,n_sp_pol,E_duplicate,E_reset
  use frequency,      ONLY:w_samp,W_reset
  use X_m,            ONLY:X_t,X_duplicate,X_reset,X_OUTPUT_driver
  use DIPOLES,        ONLY:DIPOLE_t
@@ -19,14 +19,16 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  use BS_solvers,     ONLY:BSS_n_freqs,BSS_er,BSS_dr,BSS_mode,BSS_damp_reference,BSS_q0,BSS_uses_DbGd,&
 &                         BSS_Q_dir,BSS_E_dir
  use BS,             ONLY:BS_bands,BS_q,BS_n_g_exch,BS_res_K_corr,BS_n_g_W,BS_cpl_K_corr,&
-&                         BS_Blocks_and_Transitions_free,BSqpts,O_ng
+&                         BS_Blocks_and_Transitions_free,BSqpts,O_ng,BSE_q_approach
  use TDDFT,          ONLY:FXC_per_memstps,FXC_n_mem_freqs,FXC_is_retarded
  use drivers,        ONLY:l_rpa_IP,l_bs_fxc,l_bss
  use parallel_m,     ONLY:PAR_IND_WF_b_and_k,PAR_K_scheme,PARALLEL_default_mode
  use parallel_int,   ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
- use interfaces,     ONLY:eval_G_minus_G
+ use interfaces,     ONLY:eval_G_minus_G,io_DB1_selective_scan
+ use wave_func,      ONLY:WF_path,WF_shifted_grids
  use vec_operate,    ONLY:v_norm
- use R_lattice,      ONLY:bz_samp,qindx_B,qindx_X,qindx_B_max,qindx_free,G_m_G_maxval,q0_def_norm
+ use R_lattice,      ONLY:bz_samp,qindx_B,qindx_X,qindx_B_max,qindx_free,G_m_G_maxval,q0_def_norm,&
+ &                        bz_samp_reset,bz_samp_duplicate
  !
 #include<memory.h>
  !
@@ -37,6 +39,9 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  type(w_samp)  ::Xw
  !
  ! Work Space
+ !
+ type (levels) :: Ken_shifted
+ type (bz_samp):: Xk_shifted
  !
  type(X_t)         :: X_tddft,X_oscillators
  integer           :: iq,Max_G_m_G,iG_BSE,iGo_BSE,VB(2),CB(2)
@@ -64,6 +69,19 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
  BSS_E_dir(:) = BSS_E_dir(:)/v_norm(BSS_E_dir)
  BSS_Q_dir(:) = BSS_Q_dir(:)/v_norm(BSS_Q_dir)
  BSS_q0(:) = BSS_E_dir(:)*q0_def_norm
+ !
+ ! Finite q mode
+ !
+ if (trim(BSE_q_approach)=="Shifted grids") then
+   WF_shifted_grids=.true.
+   io_err=io_DB1_selective_scan('all',trim(WF_path(2)),Ken_shifted,Xk_shifted)
+   Ken_shifted%E=Ken_shifted%E-Ken%E_Fermi
+ else
+   call E_reset(Ken_shifted)
+   call E_duplicate(Ken,Ken_shifted)
+   call BZ_samp_reset(Xk_shifted)
+   call BZ_samp_duplicate(Xk,Xk_shifted)
+ endif
  !
  ! Energy points
  !===============
@@ -131,7 +149,10 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !===========================================
    call X_OUTPUT_driver("DEF INIT") 
    !
-   if (iq==1) BSqpts(:,iq) = BSS_q0
+   if (iq==1) then
+     if (.not.WF_shifted_grids) BSqpts(:,1) = BSS_q0
+     if (     WF_shifted_grids) BSqpts(:,1) = Xk_shifted%pt(1,:)-Xk%pt(1,:)
+   endif
    if (iq/=1) BSqpts(:,iq) = q%pt(iq,:)
    !
    call K_driver_init("loop-init",iq,Ken,Xk)
@@ -172,13 +193,13 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    call DIPOLE_dimensions(Ken,Dip,BS_bands,BSS_q0)
    !
    ! ... EH space (no parallelization)
-   call K_Transitions_dimensions(iq,Ken,Xk,Dip,VB,CB)
+   call K_Transitions_dimensions(iq,Ken,Ken_shifted,Xk,Dip,VB,CB)
    !
    !... Parallel distribution
    call PARALLEL_global_Response_T_transitions(Xk)
    !
    ! ... EH space (with parallelization) and Transition groups build-up
-   call K_Transitions_setup(iq,Ken,Xk,Dip,VB,CB)
+   call K_Transitions_setup(iq,Ken,Ken_shifted,Xk,Dip,VB,CB)
    !
    !... Blocks build-up
    if (.not.l_rpa_IP) call K_blocks()
@@ -206,7 +227,7 @@ subroutine K_driver(Xen,Ken,Xk,q,X_static_pp,Xw,Dip)
    !
    ! `TDDFT` SOLVER
    !
-   if (STRING_match(BSS_mode,'t')) then
+   if (l_bss.and.STRING_match(BSS_mode,'t')) then
      !
      call X_duplicate(X_static_pp,X_tddft) ! initialize X_tddft to X_static_pp
      !
