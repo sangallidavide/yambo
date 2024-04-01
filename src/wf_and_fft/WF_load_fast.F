@@ -130,7 +130,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  call io_control(ACTION=OP_RD,COM=NONE,MODE=VERIFY,SEC=(/1/),ID=ID)
  io_err=io_WF(ID)
  !
- call timing('WF_load_FFT',"start")
+ call timing('WF_load_Fast',"start")
  !
  WF%N=0
  do i_sp_pol=1,n_sp_pol
@@ -275,7 +275,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  !
  if (have_cuda .and. WF%space=='R') WF%r = WF%r_d
  !
- call timing('WF_load_FFT',"stop")
+ call timing('WF_load_Fast',"stop")
  !
  ! CLEAN
  !

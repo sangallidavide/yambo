@@ -42,7 +42,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &                        FXC_mode,tddft_wf_t,l_Fxc_from_Vxc
  use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind,WF_exx_fraction
- use wave_func,     ONLY:WAVEs,WF,rho_map,rho_map_thresh,rho_map_size
+ use wave_func,     ONLY:WAVEs,WF,rho_map,rho_map_thresh,rho_map_size,WF_shifted_grids
  use openmp,        ONLY:OPENMP_update,master_thread
  use timing_m,      ONLY:timing
  use parallel_m,    ONLY:myid,ncpu,PAR_K_scheme,PARALLEL_default_mode,master_cpu
@@ -96,7 +96,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !
  type (WAVEs), target :: WF_k,WF_kmq,WF_p,WF_pmq
  integer              :: i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref
- logical              :: l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_bs_corr_wf_in_loop
+ logical              :: l_bs_exch_wf_in_loop,l_bs_tddft_wf_in_loop,l_bs_corr_wf_in_loop,l_WF_in_loop
  !
  ! I/O
  !
@@ -165,9 +165,10 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  ! Oscillators Setup
  !===================
  !
+ l_wf_in_loop=(Xk%nbz>=1) .and. .not.trim(PARALLEL_default_mode)=="workload"
  if (l_bs_exch) then
    O_ng_exch =maxval(qindx_X(iq,:,2))
-   l_bs_exch_wf_in_loop= (Xk%nbz>=1).and..not.trim(PARALLEL_default_mode)=="workload"
+   l_bs_exch_wf_in_loop=l_wf_in_loop .or. WF_shifted_grids
    call msg('r','[BSE] Exchange components ',BS_n_g_exch)
  endif
  !
@@ -183,13 +184,13 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        call msg('s','[TDDFT] Fxc cutoff is forced by symmetry to be ',BS_n_g_fxc)
      endif
    endif
-   l_bs_tddft_wf_in_loop= (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload")
+   l_bs_tddft_wf_in_loop=l_wf_in_loop .or. WF_shifted_grids
    call msg('r','[BSE] ALDA        components ',BS_n_g_fxc)
  endif
  !
  if (l_bs_corr) then
    O_ng_shift=qindx_B_max
-   if (iq/=1 .and. n_spinor==2 .and. nsym>1) then
+   if ((iq/=1 .and. n_spinor==2 .and. nsym>1) .or. WF_shifted_grids) then
      ! Default is direct algorithm, unless imposed from input
      call parser('ImposeStdAlg',l_std_alg)
      l_dir_alg=.not.l_std_alg
@@ -199,7 +200,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      l_std_alg=.not.l_dir_alg
    endif
    call parser('SkipPhases',l_skip_phases)
-   l_bs_corr_wf_in_loop= (Xk%nbz>=1).and.(.not.trim(PARALLEL_default_mode)=="workload")
+   l_bs_corr_wf_in_loop=l_wf_in_loop .or. WF_shifted_grids
    call msg('r','[BSE] Correlation components ',(/BS_n_g_W,O_ng/))
  endif
  !
@@ -448,6 +449,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      i_pmq_ref=i_pmq
      call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),ipath=ipath,&
      &            space='R',title=trim(section_title)//" (pmq)",keep_states_to_load=.true.)
+     !
    endif
    !
  else
@@ -527,12 +529,12 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
      if (.not.allocated( BS_T_grp(i_Tgrp_k)%O_x) ) then
        call BS_exchange_oscillators_alloc(i_Tgrp_k)
        call K_exchange_collisions(iq,Xk,i_Tgrp_k,NG,WF_k,WF_kmq,&
-       &                  i_k_ref,i_kmq_ref,l_bs_exch_wf_in_loop)
+       &                  i_k_ref,i_kmq_ref,ipath,l_bs_exch_wf_in_loop)
      endif
      if (.not.allocated( BS_T_grp(i_Tgrp_p)%O_x) ) then
        call BS_exchange_oscillators_alloc(i_Tgrp_p)
        call K_exchange_collisions(iq,Xk,i_Tgrp_p,NG,WF_k,WF_kmq,&
-       &                  i_k_ref,i_kmq_ref,l_bs_exch_wf_in_loop)
+       &                  i_k_ref,i_kmq_ref,ipath,l_bs_exch_wf_in_loop)
      endif
    endif
    !
@@ -556,7 +558,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    if(iHxc==3) then
      if (l_std_alg) call K_correlation_collisions_std(iq,i_block,qindx_ID_frag,Xk,q)
      if (l_dir_alg) call K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
-     & WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,l_bs_corr_wf_in_loop)
+     & WF_k,WF_kmq,WF_p,WF_pmq,i_k_ref,i_kmq_ref,i_p_ref,i_pmq_ref,ipath,l_bs_corr_wf_in_loop)
    endif
    !
    call timing('X T_space Kernel sum',OPR='start')

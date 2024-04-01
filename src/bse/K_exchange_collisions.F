@@ -54,7 +54,8 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,WF_k,WF_p,i_k_ref,i_p_ref,ipat
  !$omp parallel default(shared), private( K_EXCH_collision, &
  !$omp &        i_T_el,i_k_bz,i_k,i_s, i_p_bz,i_p,i_sp, i_v,i_c,i_sp_c,i_sp_v, &
  !$omp &        i_T_grp_last_with_identity_sym, i_T_el_last_with_identity_sym, &
- !$omp &        i_T_grp_p, N_T_el_p, i_T_el_p, i_g1, i_g2, i_k_ref, i_p_ref)
+ !$omp &        i_T_grp_p, N_T_el_p, i_T_el_p, i_g1, i_g2), &
+ !$omp &        firstprivate(i_k_ref, i_p_ref), lastprivate(i_k_ref,i_p_ref)
 #endif
  !
  call OPENMP_update(master_thread)

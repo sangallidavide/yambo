@@ -108,12 +108,6 @@ subroutine K_Transitions_setup(iq,Ken,Ken_shifted,Xk,Dip,V_bands,C_bands)
          ikpbz=qindx_X(iq,ikbz,1)
          ikp  =Xk%sstar(ikpbz,1)
          !
-         ! Moreover I cannot move iv,ic loops insiede i_sp_pol and i_star loops
-         ! Otherwise runs with parallelization over eh fail
-         ! Having i_star inside the loops is likely what makes the distribution
-         ! of the algorithm with the qindx_B distributed in memory very slow
-         ! since i_k_bz and i_p_bz change at each iteration of the loop
-         !
          do iv=V_bands(1),V_bands(2)
            do ic=C_bands(1),C_bands(2)
              !

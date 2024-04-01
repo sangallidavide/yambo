@@ -40,7 +40,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
  !
  ! DEFINE BSK COMMON INDEXES
  !
- integer ::     i_k_bz,i_p_bz,i_k,i_p,i_kp_s,& 
+ integer ::     i_k_bz,i_p_bz,i_k,i_p,i_kp_s,&
 &               i_kmq_bz,i_pmq_bz,i_kmq,i_pmq,i_pmq_s,i_kp_mq_s,i_p_s,i_kmq_s,i_k_s,& 
 &               i_Tk,i_Tp,i_Tgrp_k,i_Tgrp_p,I_Tgrp_k_st,I_Tgrp_p_st,H_pos(2),& 
 &               i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,& 
@@ -190,26 +190,27 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
  !
  call BS_correlation_oscillators_alloc(i_block)
  !
-#if !defined _CUDA
+#if defined(__NOTNOW) && !defined _CUDA
  !$omp parallel default(shared), private(i_Tk,i_Tp, &
  !$omp &          i_kp_s,i_s_star,H_pos,&
  !$omp &          i_kmq,i_pmq,i_kp_mq_s,i_pmq_s,i_s_mq_star,i_p_s,i_kmq_s,i_k_s,&
  !$omp &          i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,&
- !$omp &          i_kmq_t,i_pmq_t,i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref, &
+ !$omp &          i_kmq_t,i_pmq_t, &
  !$omp &          i_p_bz_last,i_k_bz_last,iq_W_bz_last,ig_W_last, &
- !$omp &          K_CORR_collision)
+ !$omp &          K_CORR_collision), firstprivate(i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref), &
+ !$omp &          lastprivate(i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref)
 #endif
  !
  call OPENMP_update(master_thread)
  !
  call elemental_collision_alloc(K_CORR_collision,NG=O_ng, TITLE="CORR_COLL")
  !
- i_p_bz_last=0 ;  i_k_bz_last=0 ;  iq_W_bz_last=0 ;  ig_W_last=0 
+ i_p_bz_last=0 ;  i_k_bz_last=0 ;  iq_W_bz_last=0 ;  ig_W_last=0
  !
  select case (mode_now)
  case("R","A","F")
    !
-#if !defined _CUDA
+#if defined(__NOTNOW) && !defined _CUDA
    !$omp do collapse(2), schedule(dynamic)
 #endif
    do i_Tk=1,BS_T_grp(i_Tgrp_k)%size
@@ -235,30 +236,46 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
          !
          if (i_k_ref/=i_k) then
            i_k_ref=i_k
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp critical 
+#endif
            call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
-           !$omp critical 
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif 
            call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,1)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
-           !$omp critical 
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif 
            call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,ipath)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
-           !$omp critical 
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif
            call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,ipath)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          ! v->v', i.e. k-q -> p-q=k-q_W-q transitions
@@ -287,13 +304,13 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
        !
      enddo
    enddo
-#if !defined _CUDA
+#if defined(__NOTNOW) && !defined _CUDA
    !$omp end do
 #endif
    !
  case("C","Q")
    !
-#if !defined _CUDA
+#if defined(__NOTNOW) && !defined _CUDA
    !$omp do collapse(2), schedule(dynamic)
 #endif
    do i_Tk=1,BS_T_grp(i_Tgrp_k)%size
@@ -319,30 +336,46 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
          !
          if (i_k_ref/=i_k) then
            i_k_ref=i_k
-           !$omp critical 
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif
            call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
-           !$omp critical 
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif
            call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,1)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
-           !$omp critical 
-           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,2)
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif
+           call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,ipath)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
-           !$omp critical 
-           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,2)
+#if defined(__NOTNOW) && !defined _CUDA
+           !$omp critical
+#endif
+           call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,ipath)
+#if defined(__NOTNOW) && !defined _CUDA
            !$omp end critical
+#endif
          endif
          !
          ! v->c', i.e. k-q -> p-q=k-q_W-q transitions
@@ -372,7 +405,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
      enddo
    enddo
    !
-#if !defined _CUDA
+#if defined(__NOTNOW) && !defined _CUDA
    !$omp end do
 #endif
    !
@@ -380,7 +413,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
  !
  call elemental_collision_free(K_CORR_collision)
  !
-#if !defined _CUDA
+#if defined(__NOTNOW) && !defined _CUDA
  !$omp end parallel
 #endif
  !
