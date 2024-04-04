@@ -42,7 +42,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
 &                        FXC_mode,tddft_wf_t,l_Fxc_from_Vxc
  use xc_functionals,ONLY:V_xc,F_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_xc_functional,WF_kind,WF_exx_fraction
- use wave_func,     ONLY:WAVEs,WF,rho_map,rho_map_thresh,rho_map_size,WF_shifted_grids
+ use wave_func,     ONLY:WAVEs,WF,rho_map,rho_map_thresh,rho_map_size,WF_shifted_grids,&
+ &                       wf_frag_id,wf_nb_io_groups
  use openmp,        ONLY:OPENMP_update,master_thread
  use timing_m,      ONLY:timing
  use parallel_m,    ONLY:myid,ncpu,PAR_K_scheme,PARALLEL_default_mode,master_cpu
@@ -166,6 +167,12 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  !===================
  !
  l_wf_in_loop=(Xk%nbz>=1) .and. .not.trim(PARALLEL_default_mode)=="workload"
+ !
+ if (l_wf_in_loop) then
+   allocate(wf_frag_id(Xk%nibz,wf_nb_io_groups,2))
+   wf_frag_id=0
+ endif
+ !
  if (l_bs_exch) then
    O_ng_exch =maxval(qindx_X(iq,:,2))
    l_bs_exch_wf_in_loop=l_wf_in_loop .or. WF_shifted_grids
@@ -428,27 +435,27 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
    i_k_bz=BS_T_grp(1)%table(1,1)
    i_k   =Xk%sstar(i_k_bz,1)
    i_k_ref=i_k
-   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),&
-   &            space='R',title=trim(section_title)//" (k)",keep_states_to_load=.true.)
+   call WF_load(WF_k,NG(1),NG(2),BS_bands,(/i_k,i_k/),space='R',title=trim(section_title)//" (k)",&
+   &            keep_states_to_load=.true.,keep_fragments_open=.true.)
    !
    i_kmq_bz=qindx_X(iq,i_k_bz,1)
    i_kmq   =Xk%sstar(i_kmq_bz,1)
    i_kmq_ref=i_kmq
-   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),ipath=ipath,&
-   &            space='R',title=trim(section_title)//" (kmq)",keep_states_to_load=.true.)
+   call WF_load(WF_kmq,NG(1),NG(2),BS_bands,(/i_kmq,i_kmq/),space='R',title=trim(section_title)//" (kmq)",&
+   &            keep_states_to_load=.true.,keep_fragments_open=.true.,ipath=ipath)
    !
    if (iHxc==3) then
      i_p_bz=BS_T_grp(1)%table(1,1)
      i_p   =Xk%sstar(i_p_bz,1)
      i_p_ref=i_p
-     call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),&
-     &            space='R',title=trim(section_title)//" (p)",keep_states_to_load=.true.)
+     call WF_load(WF_p,NG(1),NG(2),BS_bands,(/i_p,i_p/),space='R',title=trim(section_title)//" (p)",&
+     &            keep_states_to_load=.true.,keep_fragments_open=.true.)
      !
      i_pmq_bz=qindx_X(iq,i_k_bz,1)
      i_pmq   =Xk%sstar(i_p_bz,1)
      i_pmq_ref=i_pmq
-     call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),ipath=ipath,&
-     &            space='R',title=trim(section_title)//" (pmq)",keep_states_to_load=.true.)
+     call WF_load(WF_pmq,NG(1),NG(2),BS_bands,(/i_pmq,i_pmq/),space='R',title=trim(section_title)//" (pmq)",&
+     &            keep_states_to_load=.true.,keep_fragments_open=.true.,ipath=ipath)
      !
    endif
    !
@@ -883,6 +890,8 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  l_matrix_init=.false.
  !
  enddo ! iHxc loop
+ !
+ if (allocated(wf_frag_id)) deallocate(wf_frag_id)
  !
 #if defined _PAR_IO
  if(BS_K_cutoff>0._SP) then

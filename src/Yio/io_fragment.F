@@ -3,16 +3,16 @@
 !
 ! Copyright (C) 2015 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM DS
 !
-subroutine io_fragment(ID,ID_frag,i_fragment,j_fragment,extension,ierr)
+subroutine io_fragment(ID,ID_frag,i_fragment,j_fragment,extension,ierr,keep_open)
  !
  ! This routine opens the fragment.
  !
  use pars,        ONLY:schlen
  use IO_int,      ONLY:io_connect,io_control
  use IO_m,        ONLY:io_file,io_mode,io_com,io_PAR_comm,io_PAR_cpu,&
-&                      io_sec,io_extension,read_is_on,write_is_on,&
+&                      io_sec,io_extension,read_is_on,write_is_on,io_action,&
 &                      OP_RD_CL,OP_APP_CL,io_type,io_folder,io_raw_extension
  use IO_m,        ONLY:frag_WF,frag_DIP,frag_RESPONSE,frag_QINDX,frag_HF,&
                        frag_SC,frag_RT,frag_ELPH,frag_BS_K,frag_DG
@@ -31,13 +31,18 @@ subroutine io_fragment(ID,ID_frag,i_fragment,j_fragment,extension,ierr)
  integer,      optional     :: j_fragment
  integer,      optional     :: ierr
  character(*), optional     :: extension
+ logical,      optional     :: keep_open
  !
  ! Work Space
  !
+ logical           :: keep_open_
  integer           :: ierr_,i_frag,ACT_NOW
  character(schlen) :: fragment_filename
  !
  if (present(ierr)) ierr=0
+ !
+ keep_open_=.false.
+ if (present(keep_open)) keep_open_=keep_open
  !
  ID_frag=ID
  !
@@ -68,8 +73,12 @@ subroutine io_fragment(ID,ID_frag,i_fragment,j_fragment,extension,ierr)
  call timing('io_fragment',OPR='start')
 #endif
  !
- if (read_is_on(ID))  ACT_NOW=OP_RD_CL
- if (write_is_on(ID)) ACT_NOW=OP_APP_CL
+ if (keep_open_) then
+   ACT_NOW=io_action(ID)
+ else
+   if (read_is_on(ID))  ACT_NOW=OP_RD_CL
+   if (write_is_on(ID)) ACT_NOW=OP_APP_CL
+ endif
  !
  if (     present(i_fragment)) i_frag=i_fragment
  if (.not.present(i_fragment)) i_frag=maxval(io_sec(ID,:))

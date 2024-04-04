@@ -37,11 +37,11 @@ subroutine TIMING_clock_write(obj,what)
  !
  do i_c=1,2
    effective_total_time(i_c) = total_time(i_c)
-   if (total_time(i_c)<1._DP) then
-     sec_str=" msec avg)"
-     effective_total_time(i_c)=total_time(i_c)*1000._DP
-   endif
    average_time(i_c)=effective_total_time(i_c) / REAL( call_number(i_c), DP )
+   if (average_time(i_c)<1._DP) then
+     sec_str=" msec avg)"
+     average_time(i_c)=average_time(i_c)*1000._DP
+   endif
  enddo
  !
  ! Log line

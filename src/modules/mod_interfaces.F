@@ -173,7 +173,7 @@ module interfaces
    end function
    !
   subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,ipath,&
-&                    space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,quiet)
+&                    space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,keep_fragments_open,quiet)
      use wave_func,       ONLY:WAVEs
      integer               :: iG_in,iGo_max_in,bands_to_load(2),kpts_to_load(2)
      type(WAVEs)           :: WF
@@ -184,6 +184,7 @@ module interfaces
      logical,     optional :: keep_fft
      logical     ,optional :: force_WFo
      logical     ,optional :: keep_states_to_load
+     logical     ,optional :: keep_fragments_open
      logical,     optional, intent(in) :: quiet
    end subroutine
    !

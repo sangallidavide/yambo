@@ -49,6 +49,7 @@ module wave_func
  !
  ! Bands block size
  !
+ integer, allocatable   :: wf_frag_id(:,:,:)
  integer                :: wf_nb_io
  integer                :: wf_nb_io_groups
  !
@@ -100,14 +101,23 @@ module wave_func
      use pars,       ONLY: SP
      integer            :: ID
      real(SP), optional :: wf_old(:,:,:,:)
-   end function
+   end function io_WF_old
    !
-   integer function io_WF(ID,wf,wf_d)
+   integer function io_WF(ID,wf,wf_d,ipath,keep_fragments_open)
      use pars,       ONLY: SP
-     integer            :: ID
+     integer, intent(in)           :: ID
+     integer, optional, intent(in) :: ipath
+     logical, optional, intent(in) :: keep_fragments_open
      complex(SP), optional :: wf(:,:,:)
      complex(SP), optional DEV_ATTR :: wf_d(:,:,:)
-   end function
+   end function io_WF
+   !
+   integer function io_WF_frag(ID_frag,wf,wf_d)
+     use pars,       ONLY: SP
+     integer, intent(in) :: ID_frag
+     complex(SP), optional  :: wf(:,:,:)
+     complex(SP), optional DEV_ATTR :: wf_d(:,:,:)
+   end function io_WF_frag
    !
    function WF_symm(ifft,isc)
      use pars,        ONLY: SP

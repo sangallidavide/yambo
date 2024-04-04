@@ -27,8 +27,8 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  use interfaces,    ONLY:WF_free,WF_symm_kpoint_r,WF_symm_kpoint_g
  use FFT_m,         ONLY:fft_dim_loaded,fft_dim,fft_norm,fft_g_table,fft_size,&
 &                        fftw_plan,cufft_plan,fft_g_table_d
- use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,rho_map,WF_path,&
-&                        wf_ng,wf_norm_test,wf_ncx,io_WF,wf_b_indx,&
+ use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,rho_map,WF_path,wf_frag_id,&
+&                        wf_ng,wf_norm_test,wf_ncx,io_WF_frag,wf_b_indx,&
 &                        wf_nb_io,wf_nb_to_load,wf_nb_io_groups,WAVEs,states_to_load
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
  use IO_m,          ONLY:OP_RD,NONE,VERIFY,RD,RD_CL,DUMP
@@ -52,7 +52,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  ! Work Space
  !
  integer          ::i_sp_pol,ikibz,ifrag,ib_grp,ib_to_load,ib,ib1,ib2,i_spinor,ic,ig,igfft,&
-&                   iG_max,iG_bounds_loaded(2),iGo_max,wf_grid_size,npwk,N
+&                   iG_max,iG_bounds_loaded(2),iGo_max,wf_grid_size,npwk,N,ACT_NOW
  real(SP)         ::mndp,mxdp,xk(3)
  complex(SP)      ::c
  complex(SP), allocatable :: wf_disk(:,:,:)
@@ -66,7 +66,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  !
  ! I/O
  !
- integer ::io_err,ID
+ integer ::io_err
  !
  ! Close iG/iGo_max to the nearest shell
  !
@@ -127,9 +127,6 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  YAMBO_ALLOC(wf_b_indx,(wf_nb_io))
  wf_b_indx=0
  !
- call io_control(ACTION=OP_RD,COM=NONE,MODE=VERIFY,SEC=(/1/),ID=ID)
- io_err=io_WF(ID)
- !
  call timing('WF_load_Fast',"start")
  !
  WF%N=0
@@ -169,11 +166,13 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
          YAMBO_ALLOC(wf_disk_d,(wf_ncx,n_spinor,wf_nb_to_load))
        endif
        !
-       call io_control(ACTION=RD,COM=NONE,SEC=(/ifrag+1,ib_grp/),ID=ID)
+       ACT_NOW=RD
+       if (wf_frag_id(ifrag,ib_grp,ipath)==0) ACT_NOW=OP_RD
+       call io_control(ACTION=ACT_NOW,COM=NONE,SEC=(/ifrag+1,ib_grp/),ID=wf_frag_id(ifrag,ib_grp,ipath))
        if (have_cuda) then
-         io_err=io_WF(ID,wf_disk,wf_disk_d)
+         io_err=io_WF_frag(wf_frag_id(ifrag,ib_grp,ipath),wf_disk,wf_disk_d)
        else
-         io_err=io_WF(ID,wf_disk)
+         io_err=io_WF_frag(wf_frag_id(ifrag,ib_grp,ipath),wf_disk)
        endif
        !
        do ib_to_load=1,wf_nb_to_load
@@ -277,11 +276,6 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  !
  call timing('WF_load_Fast',"stop")
  !
- ! CLEAN
- !
- call io_control(ACTION=RD_CL,COM=NONE,MODE=VERIFY,SEC=(/0/),ID=ID)
- io_err=io_WF(ID)
- !
  YAMBO_FREE(wf_b_indx)
  !
  YAMBO_FREE(wf_DP)
@@ -293,7 +287,6 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  !
  WF%state(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2))= &
 &         states_to_load(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2))
- !
  !
  core_io_path=WF_path(1)
  !

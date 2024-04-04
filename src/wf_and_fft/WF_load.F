@@ -22,7 +22,7 @@
 !! @param[out]      WF                  Wave-function object
 !
 subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load,isymm,ipath,&
-&                  space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,quiet)
+&                  space,title,impose_free_and_alloc,keep_fft,force_WFo,keep_states_to_load,keep_fragments_open,quiet)
  !
  ! Load and (eventually) FFTs the wavefunctions
  !
@@ -35,7 +35,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  use interfaces,    ONLY:WF_free,WF_symm_kpoint_r,WF_symm_kpoint_g
  use FFT_m,         ONLY:fft_dim_loaded,fft_dim,fft_norm,fft_g_table,fft_size,&
 &                        fftw_plan,cufft_plan,fft_g_table_d
- use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,WF_buffer,rho_map,&
+ use wave_func,     ONLY:wf_nc_k,wf_igk,wf_igk_d,WF_buffer,rho_map,wf_frag_id,&
 &                        wf_ng,wf_norm_test,wf_ncx,io_WF,wf_b_indx,WF_path,&
 &                        wf_nb_io,wf_nb_to_load,wf_nb_io_groups,WAVEs,states_to_load
  use IO_int,        ONLY:io_control,IO_and_Messaging_switch
@@ -63,6 +63,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  logical,     optional :: keep_fft
  logical,     optional :: force_WFo
  logical,     optional :: keep_states_to_load
+ logical     ,optional :: keep_fragments_open
  logical,     optional, intent(in) :: quiet
  !
  ! Work Space
@@ -71,10 +72,10 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  character(schlen)::wf_title
  integer          ::i_sp_pol,ikibz,ifrag,ib_grp,ib_to_load,ib,ib1,ib2,i_spinor,ic,ig,igfft,&
 &                   iG_max,iG_bounds_loaded(2),iGo_max,sp_pol_to_load_(2),wf_grid_size,&
-&                   npwk,N
+&                   npwk,N,ACT_NOW,ipath_
  real(SP)         ::mndp,mxdp,xk(3)
  complex(SP)      ::c
- logical          ::loaded_bounds_ok,free_and_alloc,compute_fft,buffer_is_ok,clean_up_states,&
+ logical          ::loaded_bounds_ok,free_and_alloc,compute_fft,buffer_is_ok,clean_up_states,close_fragments,&
                     force_WFo_,QUIET_wf,SIZE_msg
  complex(SP), allocatable :: wf_disk(:,:,:)
  complex(DP), allocatable :: wf_DP(:)
@@ -116,6 +117,12 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
  clean_up_states=.true.
  if (present(keep_states_to_load)) clean_up_states=.not.keep_states_to_load
+ !
+ close_fragments=.true.
+ if (present(keep_fragments_open)) close_fragments=.not.keep_fragments_open
+ !
+ ipath_=1
+ if (present(ipath)) ipath_=ipath
  !
  ! Imposed Freeing and Allocating of WF's...
  !
@@ -284,7 +291,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
    WFN = WF%N
  endif
  !
- if(present(ipath)) core_io_path=WF_path(ipath)
+ if(present(ipath)) core_io_path=WF_path(ipath_)
  !
  ! LOG the states loaded
  !
@@ -365,11 +372,15 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
            YAMBO_ALLOC(wf_disk_d,(wf_ncx,n_spinor,wf_nb_to_load))
          endif
          !
-         call io_control(ACTION=RD,COM=NONE,SEC=(/ifrag+1,ib_grp/),ID=ID)
+         ACT_NOW=RD
+         if (allocated(wf_frag_id)) then
+           if(wf_frag_id(ifrag,ib_grp,ipath_)==0.and..not.close_fragments) ACT_NOW=OP_RD
+         endif
+         call io_control(ACTION=ACT_NOW,COM=NONE,SEC=(/ifrag+1,ib_grp/),ID=ID)
          if (have_cuda) then
-           io_err=io_WF(ID,wf_disk,wf_disk_d)
+           io_err=io_WF(ID,wf_disk,wf_disk_d,ipath=ipath_,keep_fragments_open=.not.close_fragments)
          else
-           io_err=io_WF(ID,wf_disk)
+           io_err=io_WF(ID,wf_disk,ipath=ipath_,keep_fragments_open=.not.close_fragments)
          endif
          !
          if (pp_is_uspp) then
