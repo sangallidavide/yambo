@@ -192,14 +192,9 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
  !  Hzero (kinetic + potential)
  !=============================
  !
- ! [FP]
- if (l_use_p2_Vloc_becp) then 
-   call Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
- else
-   call Bare_Hamiltonian_as_E_ks_minus_Vxc(E,Xk,k)
- endif
+ if (     l_use_p2_Vloc_becp) call Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
+ if (.not.l_use_p2_Vloc_becp) call Bare_Hamiltonian_as_E_ks_minus_Vxc(E,Xk,k)
  l_use_p2_Vloc_becp=.false.
- ! [FP]
  !
  call OCCUPATIONS_Fermi(E,k,"E",mode="OCCUPATIONS") 
  !
@@ -312,6 +307,20 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
    YAMBO_ALLOC(H_nl_nm1,(SC_bands(1):SC_bands(2),SC_bands(1):SC_bands(2),QP_nk,n_sp_pol))
    H_nl_nm1=cZERO
  endif
+ !  
+ if (l_sc_is_libDFT) call SC_add_XC(X,Xw,Xk,E,k,q,1,V_xc_nm1,ELEC,HOLE,DELTA)
+ !
+ ! Total Energy 
+ !==============
+ !
+ call SC_Energy(E_total,E_tot_bands,E_tot_zero,E_tot_Hartree,E_tot_xc,E_Fermi,E,k,rho_n,0)
+ !
+ if (l_sc_V_is_local)  call msg('nr' ,'[DFT] Total Energy (no Ewald)       ',E_total*(/1._SP,2._SP/),"[Ha/Ry]")
+ if (l_sc_hartree)     call msg('r' ,'[DFT] Fermi shift part       [Ha/Ry]',E_Fermi*(/1._SP,2._SP/))
+ if (l_sc_hartree)     call msg('r' ,'[DFT] Bands Energy           [Ha/Ry]',E_tot_bands*(/1._SP,2._SP/))
+ if (l_sc_hartree)     call msg('r' ,'[DFT] T+V Energy             [Ha/Ry]',E_tot_zero*(/1._SP,2._SP/))
+ if (l_sc_hartree)     call msg('r' ,'[DFT] Hartree Energy         [Ha/Ry]',E_tot_Hartree*(/1._SP,2._SP/))
+ if (l_sc_is_libDFT)   call msg('rn','[DFT] xc Energy              [Ha/Ry]',E_tot_xc*(/1._SP,2._SP/))
  !
  do it_sc = 1, SC_iterations
    !
@@ -551,7 +560,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
      ! Total Energy 
      !==============
      !
-     call SC_Energy(E_total,E_tot_bands,E_tot_zero,E_tot_Hartree,E_tot_xc,E_Fermi,E,k,rho_n)
+     call SC_Energy(E_total,E_tot_bands,E_tot_zero,E_tot_Hartree,E_tot_xc,E_Fermi,E,k,rho_n,it_sc)
      !
      ! Convergences
      !==============
@@ -679,7 +688,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
  ! Hartree and xc Energy 
  !=======================
  !
- call SC_Energy(E_total,E_tot_bands,E_tot_zero,E_tot_Hartree,E_tot_xc,E_Fermi,E,k,rho_n)
+ call SC_Energy(E_total,E_tot_bands,E_tot_zero,E_tot_Hartree,E_tot_xc,E_Fermi,E,k,rho_n,it_sc)
  !
  if (l_SC_cycle) then
    !

@@ -70,15 +70,13 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
  character(schlen)  :: DIP_par_scheme
  character(schlen) :: Hsc_file,headings(6),msg_format
  character(lchlen) :: msg_to_dump
+ logical :: l_rho_not_ok,l_compute_rho
  !
  integer, external :: io_DIPOLES
  !
  ! Debug
  !
  logical :: l_scale_fermi,l_write_Hsc
- !
- !open(1, file='TEST_Hbare_real.dat')
- !open(2, file='TEST_Hbare_imag.dat')
  !
  Hzero   =cZERO
  Hext_nl =cZERO
@@ -99,7 +97,7 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
    headings=(/'is_pol','kpt   ','bnd1  ','bnd2  ','Re[H] ','Img[H]'/)
    call msg('o '//Hsc_file,'#',headings,INDENT=0,USE_TABS=.TRUE.)
    call msg('o '//Hsc_file,'#')
-   msg_format='(4I7,2F16.10)'
+   msg_format='(t006,i7,t025,i7,t044,i7,t063,i7,t082,f16.10,t101,f16.10)'
  endif
  !
  call timing('Bare_Hamiltonian_from_Scratch',OPR='start')
@@ -123,14 +121,37 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
  call DIPOLE_IO(k,E,Dip,'read',io_DIP_err,DIP_par_scheme)
  if (.not.allocated(P_square)) call error("[DIP] P_square not found")
  !
- ! Load WF, compute Vloc and becp and setup FFT
- !
+ ! WF Loading, compute Vloc and becp and setup FFT, density and magnetization
+ !=====================================================================
  ! (NB : this turns pp_is_uspp to .true., later on it is restored to .false.)
  ! (NB2: this calls vloc_alloc(), it is deallocated below) 
  ! (NB3: quantities in real space [vlocal and VHartree] require loading all occupied states)
  !=====================================================================
- WFbands=(/1,max(H_ref_bands(2),maxval(E%nbm))/)
+ WFbands=(/H_ref_bands(1),max(H_ref_bands(2),maxval(E%nbm))/)
  call WF_load(WF,WF_G_max,WF_Go_indx,WFbands,(/1,nkibz/),title='-vloc')
+ !
+ l_rho_not_ok=(.not.allocated(rho_n)).or.(size(rho_n)/=fft_size)
+ l_compute_rho=l_rho_not_ok
+#if defined _SC
+ l_compute_rho=l_compute_rho.or.l_sc_run
+#endif
+ !
+ if (l_rho_not_ok) call H_alloc_real_space()
+ !
+#if defined _RT
+ if(l_real_time) then
+   rho_n=rho_reference
+   if(n_spin>1) magn_n=magn_reference
+ endif
+#endif
+ !
+ if(l_compute_rho) then
+   call el_density_and_current(E,Xk,rho=rho_n,bands=H_ref_bands)
+   if(n_spin>1) call el_magnetization(E,Xk,magn_n,bands=H_ref_bands)
+ endif
+ !
+ ! V_hartree
+ call V_Hartree(rho_n,V_hartree_sc)
  !
  ! FFT of vloc into real space
  !
@@ -243,16 +264,6 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
        !
      endif
      !
-     ![DEBUG>]
-     !do ib1=H_ref_bands(1),H_ref_bands(2)
-      ! write(*,*) "P2= ", P_square(ib1,:,ik,i_sp_pol)/2._SP
-      ! write(*,*) "Hl= ", Hext_loc(ib1,:)/2._SP
-      ! write(*,*) "Hn= ", Hext_nl(ib1,:)/2._SP
-      ! if (l_scale_fermi) write(*,*) "Ef= ", Hzero(ib1,:,ik,i_sp_pol)
-      ! write(*,*) ""
-     !enddo
-     ![DEBUG<]
-     !
      ! Fill Hzero
      !
      ! Note: 0.5 factor in Hloc and Hnl is conversion from Ry to Ha
@@ -264,8 +275,6 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
                               +( conjg(P_square(:,:,ik,i_sp_pol)) + Hext_loc(:,:) + Hext_nl(:,:) )/2._SP
      !
      !
-     !write(1,*) "#Re H_bare (ik,i_sp_pol) ",ik,i_sp_pol
-     !write(2,*) "#Im H_bare (ik,i_sp_pol) ",ik,i_sp_pol
      if(l_write_Hsc) then
        do ib1=H_ref_bands(1),H_ref_bands(2)
          do ib2=H_ref_bands(1),H_ref_bands(2)
@@ -275,10 +284,6 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
          enddo
        enddo
      endif
-     !do ib1=H_ref_bands(1),H_ref_bands(2)
-     !  write(1,*) real(Hzero(ib1,:,ik,i_sp_pol))
-     !  write(2,*) aimag(Hzero(ib1,:,ik,i_sp_pol))
-     !enddo
      !
 #if defined _RT
      if(l_real_time) then
@@ -295,26 +300,6 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
  deallocate(vloc_full_r)
  !
  if(l_write_Hsc) call of_open_close(Hsc_file)
- !close(1)
- !close(2)
- !write(*,*) "End of Bare hamiltonian from scratch "
- !
- !
- ! Now calculating V_Hartree in real space. First density [including all valence states]...
- !
- if ((.not.allocated(rho_n)).or.(size(rho_n)/=fft_size)) call H_alloc_real_space()
- !
- call el_density_and_current(E,Xk,rho=rho_n,bands=(/1,H_ref_bands(2)/))
- !
-#if defined _SC
- if(l_sc_run) then
-   if(n_spin>1) call el_magnetization(E,Xk,magn_n,bands=(/1,H_ref_bands(2)/))
- endif
-#endif
- !
- ! ... then potential
- !
- call V_Hartree(rho_n,V_hartree_sc)
  !
  call timing('Bare_Hamiltonian_from_Scratch',OPR='stop')
  !
