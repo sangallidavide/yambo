@@ -116,7 +116,9 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
  call DIPOLE_dimensions(E,Dip,H_ref_bands,(/0._SP,0._SP,0._SP/))
  !
  DIP_par_scheme="K"
+#if defined _SC
  if(l_sc_run) DIP_par_scheme="SC"
+#endif
 
  call DIPOLE_IO(k,E,Dip,'read',io_DIP_err,DIP_par_scheme)
  if (.not.allocated(P_square)) call error("[DIP] P_square not found")
