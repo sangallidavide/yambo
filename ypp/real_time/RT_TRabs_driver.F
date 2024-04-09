@@ -406,7 +406,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
      if ( index(what,"EXC")>0 ) then
        i_shift=0
        if(l_EQ) i_shift=BSS_n_eig
-       do i_trans=i_shift+TRabs_Exc(1),i_shift+TRabs_Exc(2)
+       do i_trans=i_shift+1,i_shift+TRabs_Exc(2)-TRabs_Exc(1)+1
          if (.not.PX_bs%element_1D(i_trans-i_shift)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
          if(RES==cZERO) cycle
