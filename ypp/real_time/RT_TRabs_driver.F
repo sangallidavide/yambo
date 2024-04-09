@@ -18,7 +18,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  use RT_control,      ONLY:RT_apply,CARR_RT_IO_t
  use YPP_real_time,   ONLY:RT_conf,RT_time,TRabsDIP_dir,TRabsWHAT,TRabsDIP_plane,&
 &                          TRabs_RES_left,TRabs_RES_right,TRabsMODE,TRabs_E,Epsilon_ij,&
-&                          B_Hall,TRabs_lEPS,TRabs_EPS_label,TRabs_Exc_Pol,TRabs_N_Exc
+&                          B_Hall,TRabs_lEPS,TRabs_EPS_label,TRabs_Exc_Pol,TRabs_Exc
  use YPPm,            ONLY:DIPs,EXCITONS_n_user_states
  use X_m,             ONLY:global_gauge
  use IO_m,            ONLY:LOG
@@ -97,9 +97,10 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
  if (l_rt_carriers_in_use) call RT_time_configuration_setup("CARRIERS",CARR_RT_IO_t)
  !
  if (l_neq_exc) then
-   if(TRabs_N_Exc==0) TRabs_N_Exc=BSS_n_eig
-   if(TRabs_N_Exc> BSS_n_eig) then
-     TRabs_N_Exc=BSS_n_eig
+   if(TRabs_Exc(1)<=0) TRabs_Exc(1)=1
+   if(TRabs_Exc(2)==0) TRabs_Exc(2)=BSS_n_eig
+   if(TRabs_Exc(2)> BSS_n_eig) then
+     TRabs_Exc(2)=BSS_n_eig
      call warning(" Number of excitons in the sum reduced to"//trim(intc(BSS_n_eig)))
    endif
    RT_conf%T_n_steps=1
@@ -405,7 +406,7 @@ subroutine RT_transient_absorption(Xen,Xk,Xq)
      if ( index(what,"EXC")>0 ) then
        i_shift=0
        if(l_EQ) i_shift=BSS_n_eig
-       do i_trans=i_shift+1,i_shift+TRabs_N_Exc
+       do i_trans=i_shift+TRabs_Exc(1),i_shift+TRabs_Exc(2)
          if (.not.PX_bs%element_1D(i_trans-i_shift)) cycle
          RES=Co*( TRabs_RES_right(i_trans,I,1)*TRabs_RES_left(i_trans,J,1) )
          if(RES==cZERO) cycle

@@ -18,7 +18,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  use DIPOLES,         ONLY:DIP_rotated
  use LIVE_t,          ONLY:live_timing
  use YPP_real_time,   ONLY:TRabs_RES_left,TRabs_RES_right,TRabs_E,TRabs_Eeh_treshold,&
-&                          TRAbs_N_Exc,TRabs_lEPS,TRabs_EPS_label
+&                          TRabs_Exc,TRabs_lEPS,TRabs_EPS_label
  use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
  use YPPm,            ONLY:BS_E,EXCITONS_n_user_states,EXCITONS_user_indexes
@@ -128,7 +128,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
    !
    i_l_ref=EXCITONS_user_indexes(1)
    !
-   call live_timing("Computing inter/intra exciton dipoles",TRAbs_N_Exc)
+   call live_timing("Computing inter/intra exciton dipoles",TRabs_Exc(2)-TRabs_Exc(1)+1)
    !
    fileroot="YPP-TR_EE_res_"
    !
@@ -178,7 +178,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
      !
    endif
    !
-   do i_l=1,TRAbs_N_Exc
+   do i_l=TRabs_Exc(1),TRabs_Exc(2)
      !
      N_trans=N_trans+1
      TRabs_E(N_trans) = real(BS_E(i_l)-BS_E(i_l_ref),SP)

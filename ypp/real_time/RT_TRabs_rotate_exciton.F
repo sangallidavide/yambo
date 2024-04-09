@@ -37,8 +37,7 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
  use electrons,       ONLY:levels,spin,spin_occ
  use X_m,             ONLY:global_gauge
  use DIPOLES,         ONLY:DIP_rotated
- use YPP_real_time,   ONLY:TRabs_Eeh_treshold,&
-&                          TRabs_Exc_Pol,TRAbs_N_Exc
+ use YPP_real_time,   ONLY:TRabs_Eeh_treshold,TRabs_Exc_Pol
  use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
  use YPPm,            ONLY:BS_E,EXCITONS_n_user_states,EXCITONS_user_indexes

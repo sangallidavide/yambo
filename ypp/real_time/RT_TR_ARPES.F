@@ -35,7 +35,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
  use YPPm,            ONLY:BS_E,DIPs,EXCITONS_user_indexes   !,EXCITONS_n_user_states
  use YPPm,            ONLY:BANDS_path,BANDS_steps,CIRCUIT_k,BSiq  !,USER_k
  use YPP_interfaces,  ONLY:k_special
- use YPP_real_time,   ONLY:RT_conf,GreenF_T_and_W,TRAbs_N_exc
+ use YPP_real_time,   ONLY:RT_conf,GreenF_T_and_W,TRabs_Exc
  use parallel_m,      ONLY:PAR_IND_DIPk_ibz,PAR_IND_VAL_BANDS_DIP,PAR_IND_CON_BANDS_DIP,myid
  use parallel_int,    ONLY:PP_redux_wait,PARALLEL_global_indexes
  use electrons,       ONLY:levels,spin,n_sp_pol
@@ -153,7 +153,7 @@ subroutine RT_transient_ARPES(Xen,Xk,Xq)
    enddo
    !
    q_range = (/1,Xq%nibz/)
-   l_range= (/1,TRAbs_N_Exc/)
+   l_range= (/TRabs_Exc(1),TRabs_Exc(2)/)
    !
  endif
  !

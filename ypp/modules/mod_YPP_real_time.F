@@ -93,7 +93,7 @@ module YPP_real_time
  !
  ! (RT) TRabs
  !
- integer           :: TRabs_N_Exc=0
+ integer           :: TRabs_Exc(2)=0
  real(SP)          :: TRabs_Exc_pol(3)=0._SP
  real(SP)          :: TRabsDIP_dir(3)=0._SP
  real(SP)          :: TRabs_Eeh_treshold=1.E-5_SP/HA2EV
