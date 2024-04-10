@@ -121,11 +121,11 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
  call DIPOLE_IO(k,E,Dip,'read',io_DIP_err,DIP_par_scheme)
  if (.not.allocated(P_square)) call error("[DIP] P_square not found")
  !
+ ! - Compute becp needed for the non local part of the pseudo potential
+ call PP_compute_becp(H_ref_bands)
+ !
  ! WF Loading, compute Vloc and becp and setup FFT, density and magnetization
- !=====================================================================
- ! (NB : this turns pp_is_uspp to .true., later on it is restored to .false.)
- ! (NB2: this calls vloc_alloc(), it is deallocated below) 
- ! (NB3: quantities in real space [vlocal and VHartree] require loading all occupied states)
+ !             NB: quantities in real space [vlocal and VHartree] require loading all occupied states
  !=====================================================================
  WFbands=(/H_ref_bands(1),max(H_ref_bands(2),maxval(E%nbm))/)
  call WF_load(WF,WF_G_max,WF_Go_indx,WFbands,(/1,nkibz/),title='-vloc')
@@ -150,13 +150,11 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
    if(n_spin>1) call el_magnetization(E,Xk,magn_n,bands=H_ref_bands)
  endif
  !
- ! V_hartree
+ ! - V_hartree
  call V_Hartree(rho_n,V_hartree_sc)
  !
- ! FFT of vloc into real space
- !
+ ! - FFT of vloc into real space, it was computed in setup.F
  ! (NB: grid dimensions are determined by the FFT_setup previously run by WF_load)
- !=====================================================================
  allocate(vloc_full_r(fft_size))
  vloc_full_r=cZERO
  !

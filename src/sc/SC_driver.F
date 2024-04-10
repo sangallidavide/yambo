@@ -130,14 +130,12 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
  ! DIPOLES
  !=========
  !
- l_load_dipoles= (l_sc_exx.and.l_SC_cycle) .or. (SC_up_W_iters>0)
+ ! DS: At present loading of dipoles is done inside 
+ l_load_dipoles= (l_sc_exx.and.l_SC_cycle) .or. (SC_up_W_iters>0)! .or. l_use_p2_Vloc_becp
 #if defined _ELECTRIC
  l_load_dipoles=l_load_dipoles.or.l_sc_electric
 #endif
- ! [FP]
- call parser('BareHfromScratch', l_use_p2_Vloc_becp)
- !l_load_dipoles=l_load_dipoles.or.l_use_p2_Vloc_becp
- ! [FP]
+ !
  if ( l_load_dipoles ) then
    call DIPOLE_dimensions(E,Dip,SC_bands,(/0._SP,0._SP,0._SP/))
    call DIPOLE_IO(k,E,Dip,'read ',io_DIP_err,"SC")
@@ -194,7 +192,6 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
  !
  if (     l_use_p2_Vloc_becp) call Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
  if (.not.l_use_p2_Vloc_becp) call Bare_Hamiltonian_as_E_ks_minus_Vxc(E,Xk,k)
- l_use_p2_Vloc_becp=.false.
  !
  call OCCUPATIONS_Fermi(E,k,"E",mode="OCCUPATIONS") 
  !

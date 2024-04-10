@@ -3,7 +3,7 @@
 !
 ! Copyright (C) 2006 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM AF
+! Authors (see AUTHORS file for details): AM AF DS
 !
 !> @brief Load wave-function in different forms
 !!
@@ -28,10 +28,9 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
  use pars,          ONLY:SP,DP,schlen
  use com,           ONLY:msg,core_io_path,fat_log
- use vec_operate,   ONLY:c2a
  use stderr,        ONLY:intc
  use electrons,     ONLY:nel,n_spinor,n_sp_pol
- use R_lattice,     ONLY:nkibz,k_pt,b
+ use R_lattice,     ONLY:nkibz
  use interfaces,    ONLY:WF_free
  use FFT_m,         ONLY:fft_dim_loaded,fft_dim,fft_norm,fft_g_table,fft_size,&
 &                        fftw_plan,cufft_plan,fft_g_table_d
@@ -46,11 +45,8 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
 &                        SC_bands
  use global_XC,     ONLY:WF_kind,WF_xc_functional,WF_perturbation,global_XC_string
 #endif
- use pseudo,        ONLY:pp_is_uspp,becp,l_use_p2_Vloc_becp
- use qe_pseudo_m,   ONLY:vkb,tpiba
  use timing_m,      ONLY:timing
  use cuda_m,        ONLY:have_cuda
- use wvfct,         ONLY:npwx
  !
 #include<dev_defs.h>
 #include<memory.h>
@@ -72,9 +68,9 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  integer          ::i_sp_pol,ikibz,ifrag,ib_grp,ib_to_load,ib,ib1,ib2,i_spinor,ic,ig,igfft,&
 &                   iG_max,iG_bounds_loaded(2),iGo_max,sp_pol_to_load_(2),wf_grid_size,&
 &                   npwk
- real(SP)         ::mndp,mxdp,xk(3)
+ real(SP)         ::mndp,mxdp
  complex(SP)      ::c
- logical          ::loaded_bounds_ok,free_and_alloc,buffer_is_ok,clean_up_states,force_WFo_,QUIET_wf,SIZE_msg,do_becp
+ logical          ::loaded_bounds_ok,free_and_alloc,buffer_is_ok,clean_up_states,force_WFo_,QUIET_wf,SIZE_msg
  complex(SP), allocatable :: wf_disk(:,:,:)
  complex(DP), allocatable :: wf_DP(:)
  !
@@ -86,12 +82,6 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  ! I/O
  !
  integer ::io_err,ID
- !
- ! [FP]
- ! Setting logicals for becp computation
- do_becp=pp_is_uspp
- if (l_use_p2_Vloc_becp) do_becp=.true.
- ! [FP]
  !
  ! Close iG/iGo_max to the nearest shell
  !
@@ -180,7 +170,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
        !
        fft_dim=fft_dim_loaded
        fft_size=product(fft_dim)
-       if (.not.do_becp) return
+       return
      endif
    endif
    !
@@ -257,18 +247,17 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  !
 #endif
  !
- ! Init USPP if needed
- !
- call PP_uspp_init()
- !
  ! Memory allocation
  !
  call WF_alloc(WF)
  !
+ wf_grid_size=-1
  if (WF%space=='R')  wf_grid_size=fft_size
  if (WF%space=='G')  wf_grid_size=wf_ng
  if (WF%space=='C')  wf_grid_size=wf_ncx
  if (WF%space=='B')  wf_grid_size=wf_ncx
+ !
+ if (wf_grid_size==-1) call error(' [WF'//trim(wf_title)//'] Unknown space '//trim(WF%space) )
  !
  YAMBO_ALLOC(wf_DP,(wf_grid_size))
  !
@@ -313,20 +302,6 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
      !
      if (any( (/ikibz<WF%k(1), ikibz>WF%k(2)/) )) cycle
      !
-     ! USPP init
-     !
-     ! [FP]
-     if (do_becp) then
-       ! [FP]
-       !
-       call c2a(b,k_pt(ikibz,:),xk,mode="ki2c")
-       xk=xk/real(tpiba,SP)
-       !
-       npwk=wf_nc_k(ikibz)
-       call init_us_2(npwk,wf_igk(1:npwk,ikibz),xk,vkb)
-       !
-     endif
-     !
      ifrag=ikibz+(i_sp_pol-1)*nkibz
      !
      do ib_grp=1,wf_nb_io_groups
@@ -365,17 +340,6 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
          else
            io_err=io_WF(ID,wf_disk)
          endif
-         !
-         ! [FP]
-         if (do_becp) then
-            ! [FP] 
-            call PP_compute_becp( becp(ikibz,i_sp_pol), wf_nc_k(ikibz), wf_nb_to_load, wf_disk, wf_b_indx)
-         endif
-         !
-       else
-         !
-         !if (pp_is_uspp) call PP_compute_becp(becp(ikibz,i_sp_pol),WF_buffer)
-         if (pp_is_uspp) call error(" [PP] buffering not yet implemented")
          !
        endif
        !
