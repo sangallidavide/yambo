@@ -79,7 +79,7 @@ subroutine p2y_pseudo(k)
  l_Vnl=.true.
  if( all(atoms%pseudo(:)%nbeta==0) ) l_Vnl=.false. 
  !
- if(.not.l_Vnl.and..not.write_Vloc_Vnl) return
+ if((.not.l_Vnl).and.force_noPseudo) return
  !
  if(l_Vnl) then
    !
