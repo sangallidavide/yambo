@@ -138,7 +138,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  ! 2024/04/10 DS: error/warning should be changed, checking for lda+U, and not for l_Hbare
  if (l_Hbare.and..not.use_covariant_approach) then
    if(.not.exp_user) call error(' Set Covariant dipoles for BareH calculations or switch to expert user mode')
-   if(     exp_user) call warning(' Covariant dipoles should be used if you have non local terms in the Hamiltonian. Accepted in expert user mode')
+   if(     exp_user) call warning(' Covariant dipoles should be used with non local terms in the Hamiltonian')
  endif
  !
  call parser('PDirect'  ,Dip%force_v_g_space)
