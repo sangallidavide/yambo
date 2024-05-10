@@ -59,6 +59,7 @@ subroutine plot_interpolated_values(Xk,Xen,Ef,LOCAL_k,IDs,dims,nquantities,nfile
  call msg("s","Generating output for "//trim(basename)//" "//trim(int_kind))
  !
  ndims=dims(2)-dims(1)+1
+ n_points=1
  n_points_max=1
  !
 #if defined _YPP_SC
