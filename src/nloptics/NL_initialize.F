@@ -17,9 +17,11 @@ subroutine NL_initialize(E,k)
  use zeros,          ONLY:zero_dfl
  use com,            ONLY:msg
  use R_lattice,      ONLY:bz_samp,k_map
+ use X_m,            ONLY:global_gauge
  use fields,         ONLY:Efield,Efield_strength,n_ext_fields,n_ext_fields_max,EtoT
  use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field,l_NE_with_fields, &
-&                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime
+&                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime,&
+&                         l_velocity_gauge_corr,l_velocity_gauge_diam
  use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free,l_NE_with_fields,&
 &                         SAVE_Vb_history
  use nl_optics,      ONLY:l_use_DIPOLES,EULER,EULEREXP,RK2,RK4,RK2EXP,RK4EXP,HEUN,INVINT,Integrator,CRANK_NICOLSON, &
@@ -39,6 +41,7 @@ subroutine NL_initialize(E,k)
  !
  real(SP) :: Time,W_0,T_0,sigma 
  integer  :: i1,n_active_fields
+ logical  :: l_velocity_gauge_tmp
  !
  ! Parser
  ! ============
@@ -48,6 +51,12 @@ subroutine NL_initialize(E,k)
  call parser('EvalCurrent' ,         l_eval_CURRENT)
  call parser('FrPolPerdic' ,         l_P_periodic)
  call parser('SaveVbhistory',        SAVE_Vb_history)
+ call parser('VelGaugeNoDiam',       l_velocity_gauge_tmp)
+ !
+ l_velocity_gauge_corr=.false.
+ l_velocity_gauge_diam=.not.l_velocity_gauge_tmp
+ !
+ if (.not.l_eval_CURRENT) l_eval_CURRENT= trim(global_gauge)=="current"
  !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')

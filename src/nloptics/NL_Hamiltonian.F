@@ -105,7 +105,9 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
  !
  call RT_Ext_fields_sum(A_ext,Time)
  !
- A_tot=A_ext
+ A_tot%vecpot    =A_ext%vecpot    
+ A_tot%vecpot_vel=A_ext%vecpot_vel
+ A_tot%vecpot_acc=A_ext%vecpot_acc
  !
  E_ext=-A_ext%vecpot_vel/SPEED_OF_LIGHT
  !

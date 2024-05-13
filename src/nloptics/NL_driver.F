@@ -104,15 +104,9 @@ subroutine NL_driver(E,X,k,q,Dip)
  call qindx_free('ALL')
  !
  call DIP_alloc('P_square')
- if(l_use_DIPOLES) then
-   call DIP_alloc('DIP_S')
- else
-!    call DIP_alloc('DIP_R')
-   if(.not.l_eval_CURRENT) then
-     call DIP_alloc('DIP_R')
-     call DIP_alloc('DIP_v')
-   endif
- endif
+ ! Deallocate what is not needed
+ if(l_use_DIPOLES) call DIP_alloc('DIP_S')
+ if(.not.l_eval_CURRENT) call DIP_alloc('DIP_v')
  !
  ! WFs loading
  !=============
