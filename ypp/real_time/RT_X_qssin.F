@@ -48,8 +48,8 @@ subroutine RT_X_qssin
  YAMBO_ALLOC(E_t,(RT_conf%T_n_steps))
  do i_t=1,RT_conf%T_n_steps
    Field_time=(i_t-1)*RT_conf%delta_T-Efield(i_Probe)%t_initial
-   A_of_t =small_a(Field_time,Efield(i_Probe),0)
-   E_of_t =small_a(Field_time,Efield(i_Probe),1)
+   A_of_t =small_a(Field_time,RT_conf%delta_T,Efield(i_Probe),0)
+   E_of_t =small_a(Field_time,RT_conf%delta_T,Efield(i_Probe),1)
    theta  =theta_function(Field_time,RT_conf%delta_T,0)
    delta  =theta_function(Field_time,RT_conf%delta_T,1)
    select case(Efield(i_Probe)%ef_pol)

@@ -81,10 +81,10 @@ subroutine RT_X_LRR_real_field(en)
  do i_t=1,RT_conf%T_n_steps
    !
    Field_time=RT_time(i_t)-Efield(i_Probe)%t_initial
-   A_of_t =small_a(Field_time,Efield(i_Probe),0)
-   E_of_t =small_a(Field_time,Efield(i_Probe),1)
-   theta  =theta_function(Field_time,RT_time(2)-RT_time(1),0)
-   delta  =theta_function(Field_time,RT_time(2)-RT_time(1),1)
+   A_of_t =small_a(Field_time,RT_conf%delta_T,Efield(i_Probe),0)
+   E_of_t =small_a(Field_time,RT_conf%delta_T,Efield(i_Probe),1)
+   theta  =theta_function(Field_time,RT_conf%delta_T,0)
+   delta  =theta_function(Field_time,RT_conf%delta_T,1)
    !
    do i_field=1,n_fields
      Fac=Efield(i_Probe)%amplitude

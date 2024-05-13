@@ -17,7 +17,7 @@ subroutine NL_start_and_restart(E,k,Dip)
  ! [4] Initialize the bare Hartree and XC
  ! [5] Initialize the fields
  !
- use pars,           ONLY:cZERO,rZERO,cONE,SP
+ use pars,           ONLY:cZERO,rZERO,cONE,SP,lchlen
  use com,            ONLY:msg
  use units,          ONLY:AUT2FS
  use electrons,      ONLY:levels,n_sp_pol
@@ -35,8 +35,8 @@ subroutine NL_start_and_restart(E,k,Dip)
  use global_XC,      ONLY:WF_xc_functional,WF_kind
  use fields,         ONLY:A_tot,A_ext,A_vecpot_reset
  use parallel_m,     ONLY:master_cpu
- use nl_optics,      ONLY:Correlation,IPA,E_full,full_rho,V_bands,TDDFT,n_freqs_todo,NL_LRC_alpha,NL_bands, &
-&                         V_xc_0,NL_initial_P,l_use_DIPOLES,n_frequencies,freqs_done,JGM,E_xc_0,I_relax,l_use_DIPOLES, &
+ use nl_optics,      ONLY:Correlation,IPA,E_full,full_rho,V_bands,TDDFT,n_runs_todo,NL_LRC_alpha,NL_bands, &
+&                         V_xc_0,NL_initial_P,l_use_DIPOLES,n_runs,runs_done,JGM,E_xc_0,I_relax,l_use_DIPOLES,&
 &                         VAL_BANDS,l_eval_CURRENT,NL_initial_J,NL_P,l_pump_and_probe
  use IO_int,         ONLY:io_control
  use IO_m,           ONLY:OP_RD_CL,NONE,file_is_present,VERIFY,DUMP,REP
@@ -151,13 +151,12 @@ subroutine NL_start_and_restart(E,k,Dip)
    call msg('r ',' Initial <v>=<[Hloc,r]>  ',real(NL_initial_J(4:6)))
  endif
  !
- n_freqs_todo=n_frequencies
- YAMBO_ALLOC(freqs_done,(n_frequencies))
- freqs_done=.false.
- RESTART=.FALSE.
- !
  ! Restart
  ! ====================================
+ YAMBO_ALLOC(runs_done,(n_runs))
+ runs_done=.false.
+ !
+ RESTART=.FALSE.
  !
  if (.not.l_pump_and_probe) then
    !
@@ -167,17 +166,14 @@ subroutine NL_start_and_restart(E,k,Dip)
      io_NonLinear=io_NL("Nonlinear",ID)
      !
      if(io_NonLinear==0) then
-       do i_f=1,n_frequencies
-          if(file_is_present('Nonlinear_fragment_'//intc(i_f))) freqs_done(i_f)=.true.
+       do i_f=1,n_runs
+          if(file_is_present('Nonlinear_fragment_'//intc(i_f))) runs_done(i_f)=.true.
        enddo
-      endif
-      !
-      call PP_redux_wait(freqs_done,imode=3)
-      !
+     endif
+     !
    endif
    !
-   n_freqs_todo=n_frequencies-count(freqs_done)
-   if(n_freqs_todo/=n_frequencies) call msg('s','RESTART, remaining frequencies ',n_freqs_todo)
+   call PP_redux_wait(runs_done,imode=3)
    !
  else
    !
@@ -202,6 +198,9 @@ subroutine NL_start_and_restart(E,k,Dip)
    RESTART = io_err(RT_return_db_ID("V_bands"))==0.and.io_err(RT_return_db_ID("OBSERVABLES"))==0
    !
  endif
+ !
+ n_runs_todo=n_runs-count(runs_done)
+ if(n_runs_todo/=n_runs) call msg('s','RESTART, remaining frequencies/angles ',n_runs_todo)
  !
  if (l_pump_and_probe.and.RESTART) then
    !

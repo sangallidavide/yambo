@@ -3,8 +3,23 @@
 !
 ! Copyright (C) 2006 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM DS
+! Authors (see AUTHORS file for details): AM CA DS
 !
+! External fields:
+!
+! SIN:      E(t)=\theta(t) * sin(t)
+! SOFTSIN:  E(t)= (c*t^2 + b*t^3 + a*t^4 )* sin(t)  and 0 for t<=0
+! DELTA:    E(t)= \delta(t)
+! GAUSS:    E(t)= exp((t-t_o)^2/(2*sigma^2))
+! THETA:    E(t)= \theta(t)
+! RES:      E(t)= \theta(t)*exp(-i\omega t)
+! ANTIRES:  E(t)= \theta(t)*exp(i\omega t)
+! PULSE:    E(t)=(T-T_0 + sigma)**2 *(T-T_0 -sigma)**2/sigma**4 * cos(w t)
+! QSSIN:    E(t)= exp((t-t_o)^2/(2*sigma^2))*sin(w t)
+! SPULSE:   E(t)=((T-T_0)**2 - sigma**2)**2/sigma**4*cos(w t)
+! PHHG:     E(t)=sin^2(\pi*(T-T_0)/sigma)*cos( w * t) 
+! QSFIELD:  see below
+!      
 module fields
  !
  use pars,  ONLY:SP,DP,schlen,lchlen,pi, &
@@ -111,7 +126,7 @@ module fields
      enddo
    end function
    !
-   function small_a(T,E_field,order,envelop_only)
+   function small_a(T,dt,E_field,order,envelop_only)
      !
      ! The vector potential is generally written as
      !
@@ -128,17 +143,16 @@ module fields
      use pars,      ONLY:cI,cONE,cZERO,pi,schlen
      use wrapper,   ONLY:FADEVA
      use functions, ONLY:theta_function
-     use real_time, ONLY:RT_dyn_step
      !
      type(ext_field), intent(inout)   ::E_field
      !
-     real(SP), intent(in)  ::T
+     real(SP), intent(in)  ::T,dt
      integer,  intent(in)  ::order
      logical,  intent(in), optional :: envelop_only
      !
      ! Workspace
      !
-     real(SP)          ::damp_func,a,b,c
+     real(SP)          ::damp_func,a,b,c,sarg,WT,Tl
      complex(SP), dimension(2) :: small_a
      !
      integer           ::i1,i_fr,i_T,i_field,i_file,n_fields,n_freqs
@@ -275,7 +289,7 @@ module fields
          !
          select case( trim(field_defs(1)) )
          case('FROM_FILE')
-           i_T=nint((T-T_0)/(RT_dyn_step/2._SP))+1
+           i_T=nint((T-T_0)/(dT/2._SP))+1
 	   if (i_T<=0.or.envelop_only_) then
              f_now=0
 	   else
@@ -291,15 +305,15 @@ module fields
            !
          case('RECT')
            if (order==0 ) f_now= Tloc
-           if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0) ! theta function
-           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1) ! delta function
+           if (order==1 ) f_now= theta_function(sigma-T,dT,0) ! theta function
+           if (order==2 ) f_now=-theta_function(sigma-T,dT,1) ! delta function
            !
          case('RECTSIN')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
            if (order==0 ) f_now=-(f0t-1._SP)*W_field_m1
-           if (order==1 ) f_now= theta_function(sigma-T,RT_dyn_step,0)*f1t     ! theta function
-           if (order==2 ) f_now=-theta_function(sigma-T,RT_dyn_step,1)*f1t  &  ! delta function
-                               &+theta_function(sigma-T,RT_dyn_step,0)*f0t*der_fac
+           if (order==1 ) f_now= theta_function(sigma-T,dT,0)*f1t     ! theta function
+           if (order==2 ) f_now=-theta_function(sigma-T,dT,1)*f1t  &  ! delta function
+                               &+theta_function(sigma-T,dT,0)*f0t*der_fac
            !
          case('SIN')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
@@ -323,6 +337,23 @@ module fields
            if (order==-1) f_now=1._SP
            if (order==0 ) f_now=1._SP
            if (order> 0 ) f_now=0._SP
+           !
+         case('PHHG')
+           sarg=pi*(T-T_0)/sigma     
+           WT  =W_field*T
+           if(T-T_0<=0.0.or.T-T_0>=sigma.and.order>0) then
+             f_now=0.0
+           elseif(T-T_0>=sigma.and.order==0) then
+             Tl=sigma+T_0
+             WT  =W_field*Tl
+             f_now=-(sigma*sin(((sigma*W_field+2*pi)*Tl-2*pi*T_0)/sigma))/(4*(sigma*W_field+2*pi))  & 
+&              -(sigma*sin(((sigma*W_field-2*pi)*Tl+2*pi*T_0)/sigma))/(4*(sigma*W_field-2*pi))+sin(WT)/(2*W_field)
+           else
+             if (order==0 ) f_now=-(sigma*sin(((sigma*W_field+2*pi)*T-2*pi*T_0)/sigma))/(4*(sigma*W_field+2*pi)) &
+&              -(sigma*sin(((sigma*W_field-2*pi)*T+2*pi*T_0)/sigma))/(4*(sigma*W_field-2*pi))+sin(WT)/(2*W_field)
+             if (order==1 ) f_now=sin(sarg)**2*cos(WT)
+             if (order==2 ) f_now=(2*pi*cos(WT)*cos(sarg)*sin(sarg))/sigma-W_field*sin(WT)*sin(sarg)**2
+           endif
            !
          case('GAUSS')
            if (order==0 ) f_now= sigma_eff*sqrt(pi/2._SP)* ( erf( (T-T_0)/(sigma_eff*sqrt(2._SP)) )+1._SP )

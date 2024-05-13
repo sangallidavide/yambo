@@ -106,17 +106,19 @@ subroutine RT_Field_t_to_w(i_field)
  integer, intent(in) :: i_field
  !
  integer   :: i_t
- real(SP)  :: Field_time
+ real(SP)  :: Field_time,dT
  !
  ElField%title="Field"
  ElField%N    =6
- call RT_1D_Fourier_setup(ElField,RT_conf,6) 
+ call RT_1D_Fourier_setup(ElField,RT_conf,6)
+ !
+ dT=RT_conf%delta_T
  !
  do i_t=1,RT_conf%T_n_steps
    Field_time=RT_time(i_t)-Efield(i_field)%t_initial
-   ElField%F_t(i_t,1:2) =small_a(Field_time,Efield(i_field),0)
-   ElField%F_t(i_t,3:4) =small_a(Field_time,Efield(i_field),1)
-   ElField%F_t(i_t,5:6) =small_a(Field_time,Efield(i_field),2)
+   ElField%F_t(i_t,1:2) =small_a(Field_time,dT,Efield(i_field),0)
+   ElField%F_t(i_t,3:4) =small_a(Field_time,dT,Efield(i_field),1)
+   ElField%F_t(i_t,5:6) =small_a(Field_time,dT,Efield(i_field),2)
  enddo
  !
  call RT_print_Elfield(1,"time",Elfield)
