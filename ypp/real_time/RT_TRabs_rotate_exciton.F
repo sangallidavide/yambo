@@ -62,6 +62,10 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
  complex(SP)       :: DIP_rot(3),f_eh(2),DIP_dot,DIP_tmp(3)
  complex(SP), allocatable :: A_vec_tmp(:,:)
  !
+ if (EXCITONS_n_user_states>3) then
+   call msg("s","No rotation performed. Too many excitons selected in input ")
+   return 
+ endif
  !
  ! I need to select the exciton with the dipole in the direction asked from input
  !
@@ -107,15 +111,15 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
    DIP_ver(:,i_exc)=DIP_exc(:,i_exc)/v_norm_c(DIP_exc(:,i_exc))
  enddo
  !
+ if (EXCITONS_n_user_states==1) then
+   call msg("s","No rotation performed since exciton is not degenerate to anything ")
+   return 
+ endif
+ !
  if (EXCITONS_n_user_states==2) then
    DIP_ver(:,3) = cross_product(DIP_ver(:,1),DIP_ver(:,2))
    DIP_ver(:,3) = DIP_ver(:,3)/v_norm_c(DIP_ver(:,3))
    DIP_exc(:,3) = DIP_ver(:,3)*(v_norm_c(DIP_exc(:,1))+v_norm_c(DIP_exc(:,2)))/2._SP
- endif
- !
- if (EXCITONS_n_user_states==1) then
-   call msg("s","No rotation performed since exciton is not degenerate to anything ")
-   return 
  endif
  !
  call msg("s","checking initial dipoles relative modulus ")
