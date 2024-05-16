@@ -151,7 +151,6 @@ subroutine excitons_amplitudes(Xk,Xen,q,BS_E_degs,iq)
      !
      if (A_weight(neh)/maxval(A_weight)<EXCITON_weight_treshold) cycle
      !
-     print*,"neh", neh, "Sindx", S_indx(neh), "BSS", BSS_eh_table(S_indx(neh),5)
      ikbz = BSS_eh_table(S_indx(neh),1)
      iv = BSS_eh_table(S_indx(neh),2)
      ic = BSS_eh_table(S_indx(neh),3)
