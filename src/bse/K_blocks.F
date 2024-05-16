@@ -133,6 +133,10 @@ subroutine K_blocks( )
    YAMBO_ALLOC(BS_blk(iB)%mat,(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
    allocate(BS_blk(iB)%done(BS_blk(iB)%size(1),BS_blk(iB)%size(2)))
    BS_blk(iB)%mat=cZERO
+   if (BS_blk(iB)%coordinate(1)==BS_blk(iB)%coordinate(2)) then 
+     allocate(BS_blk(iB)%table(5,BS_blk(iB)%size(1)))
+     bs_blk(iB)%table=0
+   endif
    bs_blk(iB)%done(:,:)="f"
  enddo
  !
