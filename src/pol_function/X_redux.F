@@ -22,7 +22,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  use com,           ONLY:msg
  use drivers,       ONLY:l_bs_fxc,l_alda_fxc,l_lrc_fxc
  use LIVE_t,        ONLY:live_timing
- use parallel_int,  ONLY:PP_wait,PP_redux_wait,PP_bcast
+ use parallel_int,  ONLY:PP_wait,PP_redux_wait
  use parallel_m,    ONLY:PP_indexes,PP_indexes_reset,PAR_COM_X_WORLD_RL_resolved,PAR_COM_HOST,&
 &                        PAR_COM_X_WORLD,PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
  use R_lattice,     ONLY:bare_qpg, bare_qpg_d
@@ -32,7 +32,8 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  use wrapper,       ONLY:M_by_M
  use interfaces,    ONLY:LINEAR_ALGEBRA_driver,MATRIX_transfer
  use stderr,        ONLY:intc
- use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,i_G_shift,l_X_magn
+ use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,X_par_lower_triangle,X_redux_build_kernel,&
+&                        i_G_shift,l_X_magn
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits,&
 &                        l_Fxc_in_Xo
  use timing_m,      ONLY:timing
@@ -257,7 +258,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    ! - KERNEL is either 0 [ no tddft] or -[Xo*F_xc](g1,g2) [tddft]
    !
    ! The following call adds to KERNEL (delta_(g1,g2)-Xo(g1,g2)*v(g2))
-   call X_redux_build_kernel(KERNEL,BUFFER,Xo_rows,Xo_cols)
+   call X_redux_build_kernel(KERNEL,BUFFER,Xo_rows,Xo_cols,iw_par_buffer,compute_on_gpu,iq)
    !
    ! X(g,gp)=Sum_gpp[KERNEL]^-1_(g,gpp)*Xo(gpp,gp)
    !
@@ -332,9 +333,9 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  !
  call timing(what//' (procedure)',OPR='stop')
  !
- if(call_kind=="screening") call X_redux_X_par_micro()
+ if(call_kind=="screening") call X_redux_X_par_micro(X,Xw,what,X_par,X_low,BUFFER,PAR_n_freqs_global)
  !
- if(call_kind=="response")  call X_redux_X_par_macro()
+ if(call_kind=="response")  call X_redux_X_par_macro(Xw,X_par,BUFFER_SAVE,buffer_nfreq,PAR_n_freqs_global)
  !
  ! Clean-up of FREQ structure
  !==========
@@ -345,14 +346,18 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    YAMBO_FREE(BUFFER_SAVE)
  endif
  !
-contains
+end subroutine
    !
-   subroutine X_redux_build_kernel(KERNEL,Xo,Xo_rows,Xo_cols)
+   !
+   subroutine X_redux_build_kernel(KERNEL,Xo,Xo_rows,Xo_cols,iw_par_buffer,compute_on_gpu,iq)
      use R_lattice,     ONLY:bare_qpg, bare_qpg_d
-     use pars,          ONLY:pi,cONE
+     use pars,          ONLY:pi,cONE,SP
+     use matrix,        ONLY:PAR_matrix
+     use X_m,           ONLY:l_X_magn
      implicit none
      type(PAR_matrix), target :: KERNEL,Xo
-     integer, intent(in)      :: Xo_rows(2),Xo_cols(2)
+     integer, intent(in)      :: Xo_rows(2),Xo_cols(2),iq,iw_par_buffer
+     logical, intent(in)      :: compute_on_gpu
      integer :: ig1,ig2
      !
      complex(SP), pointer DEV_ATTR :: KERNEL_blc_d(:,:,:)
@@ -389,7 +394,28 @@ contains
    end subroutine X_redux_build_kernel
    !
    !
-   subroutine X_redux_X_par_micro()
+   subroutine X_redux_X_par_micro(X,Xw,what,X_par,X_low,BUFFER,PAR_n_freqs_global)
+     use matrix,        ONLY:PAR_matrix,MATRIX_reset
+     use frequency,     ONLY:w_samp
+     use X_m,           ONLY:X_t
+     use stderr,        ONLY:intc
+     use timing_m,      ONLY:timing
+     use parallel_int,  ONLY:PP_redux_wait,PP_bcast
+     use interfaces,    ONLY:MATRIX_transfer
+     use parallel_m,    ONLY:PAR_COM_X_WORLD_RL_resolved,PAR_COM_X_WORLD,&
+&                            PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
+     !
+     implicit none
+     !
+     type(PAR_matrix) :: X_par,X_low,BUFFER
+     type(X_t)        :: X
+     type(w_samp)     :: Xw
+     integer          :: PAR_n_freqs_global(PAR_COM_SLK_INDEX_local%n_CPU)
+     character(*)     :: what
+     !
+     ! Local variables
+     !
+     integer :: i_LA_pool,iw,iw_par,iw_X(1)
      !
      call timing(what//' (REDUX)',OPR='start')
      !
@@ -439,7 +465,25 @@ contains
    end subroutine X_redux_X_par_micro
    !
    !
-   subroutine X_redux_X_par_macro()
+   subroutine X_redux_X_par_macro(Xw,X_par,BUFFER_SAVE,buffer_nfreq,PAR_n_freqs_global)
+     use pars,          ONLY:cZERO,SP
+     use matrix,        ONLY:PAR_matrix,MATRIX_reset
+     use frequency,     ONLY:w_samp
+     use parallel_int,  ONLY:PP_redux_wait
+     use parallel_m,    ONLY:PAR_COM_X_WORLD_RL_resolved,&
+&                        PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
+     !
+#include<memory.h>
+     !
+     type(PAR_matrix) :: X_par
+     type(w_samp)     :: Xw
+     complex(SP)      :: BUFFER_SAVE(buffer_nfreq)
+     integer          :: buffer_nfreq
+     integer          :: PAR_n_freqs_global(PAR_COM_SLK_INDEX_local%n_CPU)
+     !
+     ! Local variables
+     !
+     integer :: i_LA_pool,iw,iw_par,iw_X(1)
      !
      call MATRIX_reset(X_par)
      YAMBO_ALLOC(X_par%blc,(1,1,Xw%n_freqs))
@@ -455,7 +499,7 @@ contains
          if (i_LA_pool==PAR_COM_SLK_INDEX_local%CPU_id+1.and.PAR_COM_SLK%CPU_id==0) then
            iw_X  = PAR_FREQS_index(iw_par)
            iw=iw_par
-           X_par%blc(1,1,iw_X)=BUFFER_SAVE(iw)
+           X_par%blc(1,1,iw_X(1))=BUFFER_SAVE(iw)
          endif
          !
        enddo
@@ -464,5 +508,3 @@ contains
      call PP_redux_wait(X_par%blc,COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
      !
    end subroutine X_redux_X_par_macro
-   !
-end subroutine
