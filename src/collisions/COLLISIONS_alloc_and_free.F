@@ -93,8 +93,8 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
    D(2,1:2)=COLL_bands
    D(3,1:2)=(/1,nkibz/)
    if (COLLISIONS_CV_only) then
-     D(1:2,3)=maxval(n_met_bands)
-     D(1:2,4)=minval(n_full_bands)
+     D(1:2,3)=minval(n_full_bands)
+     D(1:2,4)=maxval(n_met_bands)
    endif
    if (l_collision.and.l_alloc) then
      allocate(HXC_COLL_element(size_))
