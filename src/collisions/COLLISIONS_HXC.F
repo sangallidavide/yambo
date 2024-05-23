@@ -23,6 +23,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  use xc_functionals,ONLY:F_xc,V_xc,F_xc_mat,magn,XC_potential_driver
  use global_XC,     ONLY:WF_kind,WF_xc_functional
  use parallel_int,  ONLY:PP_redux_wait
+ use stderr,        ONLY:intc
  use parallel_m,    ONLY:PAR_IND_Q_bz,MPI_COMM_NULL,ncpu,myid,COMM_copy,yMPI_COMM,&
 &                        PAR_n_Bp_mat_elements,PAR_COM_QP_A2A,PAR_COM_QP_INDEX,PAR_COM_Q_INDEX,&
 &                        PAR_IND_Bp_mat,PAR_nQ_bz,PAR_COM_G_b_A2A,PAR_COM_G_b_index_global
@@ -54,7 +55,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  !
  integer                 :: i_coll,first_coll,last_coll,ig1,ig2,iqbz,iqibz,alloc_err,iqs,iGo_max,NG_max,NG_XC,LOCAL_COMM(2),&
 &                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,iB,&
-&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,i_steps,bands_to_load(2),n_colls,n_GmG
+&                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,i_steps,bands_to_load(2),n_colls,n_GmG,&
+&                           n_skip_colls,n_incl_colls
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
  !
  type(elemental_collision):: isc_XC,iscp_XC,isc_H,iscp_H
@@ -82,6 +84,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  !
  ! Setup
  !
+ n_skip_colls      = 0
+ n_incl_colls      = 0
  l_compute_screening  = index(H_potential,"COH")>0   .or. index(H_potential,"SEX")>0
  l_HXC_collisions     = COLLISIONS_HXC_local .or. COLLISIONS_HXC_MB 
  !
@@ -368,6 +372,9 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
    !
  enddo ! loop on i_coll
  !
+ if(n_skip_colls>0) call warning(" BSE conversion, ignored "//&
+ &     trim(intc(n_skip_colls))//"/"//trim(intc(n_incl_colls))//" collisions")
+ !
  call live_timing()
  !
  ! CLEAN
@@ -429,14 +436,22 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
      iB=mod(i_BSE-1,BS_K_dim(1))+1
      !
-     do jB=iB,iB+BS_K_dim(1),BS_K_dim(1)
-       allocate(BS_blk(jB)%mat (BS_blk(jB)%size(1),BS_blk(jB)%size(2)))
-       allocate(BS_blk(jB)%tam (BS_blk(jB)%zise(1),BS_blk(jB)%zise(2)))
-       BS_blk(jB)%mat=cZERO
-       BS_blk(jB)%tam=cZERO
-       call io_control(ACTION=RD,ID=ID_BS)
-       call read_BS_par_collisions(1,jB,ID_BS)
-     enddo
+     if (i_BSE>0) then
+       !
+       do jB=iB,iB+BS_K_dim(1),BS_K_dim(1)
+         allocate(BS_blk(jB)%mat (BS_blk(jB)%size(1),BS_blk(jB)%size(2)))
+         allocate(BS_blk(jB)%tam (BS_blk(jB)%zise(1),BS_blk(jB)%zise(2)))
+         BS_blk(jB)%mat=cZERO
+         BS_blk(jB)%tam=cZERO
+         call io_control(ACTION=RD,ID=ID_BS)
+         call read_BS_par_collisions(1,jB,ID_BS)
+       enddo
+       !
+     else
+       !DEBUG<
+       !write(*,*) "Block ignored ",i_k_bz_bse,i_m,i_n,i_sp,i_sp
+       !DEBUG>
+     endif
      !
      do i_q_fake=1,q%nbz
        !
@@ -460,6 +475,16 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            !
            i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
            j_BSE=BSS_eh_table_m1(i_p_bz_bse,i_mp,i_np,i_sp,i_sp)
+           !
+           if (i_BSE==0.or.j_BSE==0) then
+             n_skip_colls=n_skip_colls+1
+             !DEBUG<
+	     !if(j_BSE==0) write(*,*) "Transition ignored ",i_p_bz_bse,i_mp,i_np,i_sp,i_sp
+             !DEBUG>
+             cycle
+	   else
+	     n_incl_colls=n_incl_colls+1
+           endif
            !
            if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
              !
@@ -554,10 +579,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
      iB=mod(i_BSE-1,BS_K_dim(1))+1
      !
-     do jB=iB,iB+BS_K_dim(1),BS_K_dim(1)
-       deallocate(BS_blk(jB)%mat)
-       deallocate(BS_blk(jB)%tam)
-     enddo
+     if (i_BSE>0) then
+       do jB=iB,iB+BS_K_dim(1),BS_K_dim(1)
+         deallocate(BS_blk(jB)%mat)
+         deallocate(BS_blk(jB)%tam)
+       enddo
+     endif
      !
    end subroutine map_BSE_to_HXC_collisions
    !

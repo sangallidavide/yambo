@@ -81,6 +81,7 @@ module RT_control
  logical                 :: NEQ_Residuals=.FALSE.
  logical                 :: EQ_Transitions=.TRUE.
  logical                 :: EQ_NoOcc=.FALSE.
+ logical                 :: ALL_NoOcc=.FALSE.
  integer,      parameter :: N_RT_ctl_controls=3
  character(schlen)       :: RT_BSE_Occ_Mode="K"
  character(schlen)       :: RT_ctl_db(N_RT_ctl_controls)
