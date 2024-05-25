@@ -148,7 +148,7 @@ subroutine INIT_activate()
  !
  ! Kernels
  !
- if (l_em1s.or.l_em1d.or.l_X)      call initactivate(1,'Chimod ChiLinAlgMod')
+ if (l_em1s.or.l_em1d.or.l_X.or.l_mpa)      call initactivate(1,'Chimod ChiLinAlgMod')
  if (l_optics.and.l_chi)           call initactivate(1,'Chimod ChiLinAlgMod')
  if (l_optics.and.l_bse)           call initactivate(1,'BSKmod BSEmod Lkind')
  if (l_optics.and.l_bse.and.l_bss) call initactivate(1,'BSSmod')
@@ -279,7 +279,7 @@ subroutine INIT_activate()
    if (index(BSS_mode,'h')/=0)  call initactivate(1,'BSHayTrs BSHayTer BSHayItrIO BSHayItrMAX')
    if (index(BSS_mode,'s')/=0)  then
      call initactivate(1,'BSSNEig BSSEnTarget BSSSlepcApproach BSSSlepcPrecondition BSSSlepcExtraction')
-     call initactivate(1,'BSSSlepcMaxIt BSSSlepcNCV BSSSlepcTol BSSSlepcMatrix')
+     call initactivate(1,'BSSSlepcMaxIt BSSSlepcNCV BSSSlepcMPD BSSSlepcTol BSSSlepcMatrix')
    endif
    !
    ! Special project dependent variables
@@ -427,6 +427,7 @@ subroutine INIT_activate()
 #if defined  _ELPH 
    !
    if (l_elph_corr) then
+     call INIT_QP_ctl_switch('G')
      call initactivate(1,'DysSolver')
      call initactivate(1,'GphBRnge FANdEtresh DWdEtresh ElPhModes GDamping dScStep ExtendOut ElPhRndNq RandQpts')
      call initactivate(1,'GkkpDB WRgFsq NewtDchk OnMassShell')
@@ -511,6 +512,11 @@ subroutine INIT_activate()
 #endif
  !
 #if defined _RT
+ !
+ ! AM March 2024: the following line has been added in order to perform
+ ! e-p calculations on top of RT carriers distribution.
+ !
+ if (l_elph_corr) call INIT_RT_ctl_switch('G')
  !
  if (l_real_time) then
    !
