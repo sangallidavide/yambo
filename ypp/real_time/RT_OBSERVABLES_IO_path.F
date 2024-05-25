@@ -82,8 +82,9 @@ subroutine RT_OBSERVABLES_IO_paths(what,en)
 &         (trim(Probe_Keyword)=="none".and.index(trim(Probe_path(i_f)),trim(jobstr))>0)) then
          N_probes =N_probes+1
          i_f=i_f+1
-	 cycle
+         cycle
        else if ( index(trim(Probe_path(i_f)),trim(Pump_Keyword))>0 ) then
+         call msg('s',' Candidate pump found in ',trim(Probe_path(i_f)))
          Pump_path=Probe_path(i_f)
          N_pumps=1
        endif
@@ -117,6 +118,7 @@ subroutine RT_OBSERVABLES_IO_paths(what,en)
        call IO_desc_duplicate(RT_desc,Pump_RT_desc)
        if (N_pump_frequencies>1) call error('Pumps with multiple frequencies still not supported')
      else
+       call warning('Pump discarded due to IO_error in RT_OBSERVABLES') 
        N_pumps=0
      endif
    endif
