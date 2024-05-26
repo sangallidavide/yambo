@@ -9,11 +9,11 @@ integer function io_BS_PAR_init(iq,ID,mode)
  !
  use stderr,        ONLY:intc,real2ch,STRING_remove
  use com,           ONLY:msg
- use pars,          ONLY:IP,IPL,SP,schlen,lchlen,max_io_vars_open
+ use pars,          ONLY:IP,IPL,SP,IP_YIO,SP_YIO,schlen,lchlen,max_io_vars_open
  use BS,            ONLY:BS_K_dim,BS_H_dim,BS_IO_dim,BS_K_coupling,l_BSE_kernel_complete,&
 &                        BSK_IO_mode,MAX_BSK_LIN_size,BS_lin_size_compressed,BS_K_cutoff,     &
 &                        BS_res_ares_n_mat,l_BS_ares_from_res,BS_n_eh_spaces
- use IO_m,          ONLY:io_BS_K,io_file,write_is_on,read_is_on,YAMBO_DEF_CHUNK
+ use IO_m,          ONLY:io_BS_K,io_file,variable_exist,write_is_on,read_is_on,YAMBO_DEF_CHUNK
  use IO_int,        ONLY:io_connect,def_variable_bulk
  !
  implicit none
@@ -180,9 +180,10 @@ integer function io_BS_PAR_init(iq,ID,mode)
    enddo
  enddo
  !
- if(trim(mode)=="full" .or. trim(mode)=="compressed_mat") then
+ if( (trim(mode)=="full" .or. trim(mode)=="compressed_mat") .and. &
+ &    ( write_is_on(ID) .or. variable_exist(ID,"BS_TABLE"))  ) then
    dim_names(1:2,1)=[character(schlen) :: "n_transition_variables","BS_H_dim"]
-   call def_variable_bulk(ID,"BS_TABLE",max_io_vars_open,[5,BS_H_dim],SP,dim_names(1:2,1),par_io_kind='independent')
+   call def_variable_bulk(ID,"BS_TABLE",max_io_vars_open,[5,BS_H_dim],IP_YIO,dim_names(1:2,1),par_io_kind='independent')
  endif
  !
 end function io_BS_PAR_init
