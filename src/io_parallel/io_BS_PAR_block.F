@@ -17,7 +17,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  use stderr,        ONLY:STRING_remove
  use BS,            ONLY:BS_blk,BSK_IO_mode,MAX_BSK_LIN_size,n_BS_blks_min,BS_K_dim
  use timing_m,      ONLY:timing
- use IO_m,          ONLY:io_unit,netcdf_call,nf90_sync,&
+ use IO_m,          ONLY:io_unit,netcdf_call,nf90_sync,variable_exist,&
 &                        write_is_on,read_is_on,io_BS_K,YAMBO_CMPLX_NO_FILL
  use IO_int,        ONLY:io_variable_bulk
  !

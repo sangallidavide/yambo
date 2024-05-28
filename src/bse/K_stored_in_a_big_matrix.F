@@ -17,7 +17,7 @@ subroutine K_stored_in_a_big_matrix(i_BS_mat,iq,what)
  !
  !         Case 1                           Case 2                              Case 3                          Case 4
  !   l_BS_ares_from_res=.true.      l_BS_ares_from_res=.false.           l_BS_ares_from_res=.true.        l_BS_ares_from_res=.false.
- !   l_BS_ares_from_res=.false.     l_BSE_matrix_full=.false.            l_BSE_matrix_full=.true.         l_BSE_matrix_full=.true.
+ !   l_BSE_matrix_full=.false.      l_BSE_matrix_full=.false.            l_BSE_matrix_full=.true.         l_BSE_matrix_full=.true.
  !   coupling block is a square     coupling block maybe rectangular     coupling block is a square       coupling block maybe rectangular
  !
  !       (r r r c c c)                    (r r r c c)                        (r r r c c c)                    (r r r c c)
@@ -68,6 +68,12 @@ subroutine K_stored_in_a_big_matrix(i_BS_mat,iq,what)
    if(BS_blk(i_B)%mode=="Q") H_shift(1)=BS_K_dim(1)
    if(BS_blk(i_B)%mode=="A") H_shift(:)=BS_K_dim(1)
    !
+   ! Skip Q and A block
+   if (   l_BS_ares_from_res   .and. H_shift(1)>0) cycle
+   !
+   ! Skip Q block
+   if ((.not.l_BSE_kernel_full).and. H_shift(1)>H_shift(2)) cycle
+   !
    do i_r=1,BS_blk(i_B)%size(1)
      !
      H_pos(1)=BS_blk(i_B)%coordinate(1)+i_r-1
@@ -76,8 +82,13 @@ subroutine K_stored_in_a_big_matrix(i_BS_mat,iq,what)
        !
        H_pos(2)=BS_blk(i_B)%coordinate(2)+i_c-1
        !
-       ! The upper triangle only of each block
-       if (H_pos(1)>H_pos(2) .and. .not.l_BSE_kernel_full) cycle
+       if ( .not.l_BSE_kernel_full) then
+         ! The upper triangle only of the whole matrix
+         if( H_pos(1)+H_shift(1)>H_pos(2)+H_shift(2)) cycle
+         !
+         ! The upper triangle only of each block
+         if (l_BS_ares_from_res  .and.  H_pos(1)>H_pos(2)) cycle
+       endif
        !
        Mij=BS_blk(i_B)%mat(i_r,i_c)
        !
