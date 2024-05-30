@@ -227,7 +227,9 @@ module BS
    ! Matrix Block
    !--------------
    complex(SP), allocatable      :: mat(:,:)
-   character, allocatable        :: done(:,:)
+   character,   allocatable      :: done(:,:)
+   integer,     allocatable      :: table(:,:)
+   real(SP),    allocatable      :: E(:)
    !
    ! Oscillators...
    !

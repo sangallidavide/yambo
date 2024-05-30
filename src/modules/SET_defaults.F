@@ -54,7 +54,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use descriptors,ONLY:IO_desc_reset
 #if defined _SLEPC && !defined _NL
  use BS_solvers, ONLY:BSS_slepc_extraction,BSS_slepc_ncv,BSS_slepc_tol,BSS_slepc_target_E,BSS_slepc_maxit,&
- &                    BSS_slepc_precondition,BSS_slepc_approach,BSS_slepc_mpd,BSS_slepc_matrix_format
+ &                    BSS_slepc_precondition,BSS_slepc_approach,BSS_slepc_matrix_format,BSS_slepc_mpd
 #endif
  use BS,         ONLY:BS_n_g_W,BS_eh_en,BS_identifier,BS_q,BS_eh_win,MAX_BSK_LIN_size,&
 &                     BS_K_dim,BS_not_const_eh_f,BSK_mode,l_BSE_kernel_complete,&
@@ -79,7 +79,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     l_SC_nl_mix,SC_kind,SC_perturbation,SC_desc,SC_neq_kind,SC_last_coh_it
 #endif
 #if defined _SC || defined _RT || defined _QED || defined _NL
- use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff,COLLISIONS_CV_only
+ use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff,COLLISIONS_CV_only, &
+&                         COLLISIONS_load_SP,COLLISIONS_compr
  use hamiltonian,    ONLY:H_potential
 #endif
 #if defined _RT || defined _YPP_RT
@@ -549,7 +550,14 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 # else
  COLLISIONS_cutoff=0.0005_SP
 # endif
+ !
+#if defined _NL
+ COLLISIONS_cutoff=0.0005_SP
+#endif
+ !
  COLLISIONS_CV_only=.FALSE.
+ COLLISIONS_load_SP=.FALSE.
+ COLLISIONS_compr  =.FALSE.
  !
  H_potential="NONE"
  !
