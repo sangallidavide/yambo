@@ -233,6 +233,7 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
  if (io_X_err<0) then
    call deliver_IO_error_message(io_X_err,'PP/Em1s')
    call warning('Bethe Salpter section skipped. Impossible to build the kernel.')
+   call warning('Error reading the PP/Em1s database.')
    n_BS_blks=0
    call BS_blks_free(1)
    call BSS_MAGN_free( )
@@ -795,6 +796,27 @@ subroutine K_kernel(iq,Ken,Xk,q,X,Xw,W_bss)
        if (.not.l_matrix_init) BS_blk(i_block)%mat(i_Tk,i_Tp) = BS_blk(i_block)%mat(i_Tk,i_Tp)+BS_mat_tmp
        !
        if (l_write_kernel) BS_blk(i_block)%done(i_Tk,i_Tp)="t"
+       !
+       i_v_k=BS_T_grp(i_Tgrp_k)%table(i_Tk,2) 
+       i_c_k=BS_T_grp(i_Tgrp_k)%table(i_Tk,3) 
+       !
+       i_v_p=BS_T_grp(i_Tgrp_p)%table(i_Tp,2) 
+       i_c_p=BS_T_grp(i_Tgrp_p)%table(i_Tp,3) 
+       !
+       i_k_sp_pol_c=BS_T_grp(i_Tgrp_k)%table(i_Tk,4) 
+       i_p_sp_pol_c=BS_T_grp(i_Tgrp_p)%table(i_Tp,4) 
+       i_k_sp_pol_v=BS_T_grp(i_Tgrp_k)%table(i_Tk,5) 
+       i_p_sp_pol_v=BS_T_grp(i_Tgrp_p)%table(i_Tp,5) 
+
+       if (H_pos(1)==H_pos(2)) then
+         BS_blk(i_block)%table(:,i_Tk)=BS_T_grp(i_Tgrp_k)%table(i_Tk,:)
+         BS_blk(i_block)%E(i_Tk)      =BS_T_grp(i_Tgrp_k)%E(i_Tk,1)
+         if (mode_now=="C") then
+           ! Swap c and v
+           BS_blk(i_block)%table(2,i_Tk)=BS_T_grp(i_Tgrp_k)%table(i_Tk,3)
+           BS_blk(i_block)%table(3,i_Tk)=BS_T_grp(i_Tgrp_k)%table(i_Tk,2)
+         endif
+       endif
        !
      enddo   ! i_Tk
    enddo     ! i_Tp
