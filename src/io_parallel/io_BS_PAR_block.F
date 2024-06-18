@@ -32,8 +32,8 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  integer, parameter :: n_max_tot_vars=6  ! see io_BS_PAR_init
  !
  character(schlen)   :: BSK_IO_local
- logical             :: lwrite(3),file_sync
- integer             :: x1,x2,VAR_IDs(2),ID_table,stat,ID_now(2)
+ logical             :: lwrite(3),file_sync,do_table,do_energ
+ integer             :: x1,x2,VAR_IDs(2),ID_table,ID_energ,stat,ID_now(2)
  integer             :: n2,i1,i2,idx1,idx2,imax,i_rep(2),ilast
  integer(IPL)        :: idx
  !
@@ -46,6 +46,7 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  ! Get the type of block that we want to write 
  !
  ID_table=max_io_vars_open
+ ID_energ=max_io_vars_open-1
  select case(BS_blk(i_block)%mode)
  case("R")
    VAR_IDs=(/1,2/)
@@ -192,9 +193,13 @@ subroutine io_BS_PAR_block(iq,i_block,ID,mode)
  end select
  !
  if ((x1==x2.or.BS_blk(i_block)%size(2)==BS_K_dim(1)) .and. .not.trim(mode)=="matonly") then
-   if (  write_is_on(ID) .or. variable_exist(ID,"BS_TABLE") ) then
+   ! logicals for back compatibility
+   do_table=variable_exist(ID,"BS_TABLE").or.write_is_on(ID)
+   do_energ=variable_exist(ID,"BS_EH_ENERGIES").or.write_is_on(ID)
+   if ( do_table .or. do_energ ) then
      if (BS_blk(i_block)%mode=="C" .or. BS_blk(i_block)%mode=="A") x1=x1+BS_K_dim(1)
-     call io_variable_bulk(ID, ID_table,  I2=BS_blk(i_block)%table, IPOS=(/1,x1/) )
+     if(do_table) call io_variable_bulk(ID, ID_energ,  R1=BS_blk(i_block)%E,     IPOS=(/x1/) )
+     if(do_energ) call io_variable_bulk(ID, ID_table,  I2=BS_blk(i_block)%table, IPOS=(/1,x1/) )
    endif
  endif
  !

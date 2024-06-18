@@ -10,7 +10,7 @@ subroutine NL_initialize(E,k)
  use pars,           ONLY:SP,DP,pi
  use drivers,        ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_hartree
  use vec_operate,    ONLY:normalize_v,v_norm,cross_product
- use collision_ext,  ONLY:COLLISIONS_CV_only
+ use collision_ext,  ONLY:COLLISIONS_CV_only,COLLISIONS_load_SP,COLLISIONS_compr
  use hamiltonian,    ONLY:H_potential
  use units,          ONLY:AU2VMm1,AUT2FS,HA2EV
  use electrons,      ONLY:levels,n_sp_pol
@@ -45,6 +45,7 @@ subroutine NL_initialize(E,k)
  integer  :: i1,n_active_fields
  logical  :: l_velocity_gauge_tmp
  real(SP) :: Sampling_Time
+ logical  :: l_no_compress_COLL
  !
  ! Parser
  ! ============
@@ -55,14 +56,19 @@ subroutine NL_initialize(E,k)
  call parser('FrPolPerdic' ,         l_P_periodic)
  call parser('SaveVbhistory',        SAVE_Vb_history)
  call parser('VelGaugeNoDiam',       l_velocity_gauge_tmp)
+ call parser('NoComprCOLL',          l_no_compress_COLL)
  !
  l_velocity_gauge_corr=.false.
  l_velocity_gauge_diam=.not.l_velocity_gauge_tmp
+ !
+ COLLISIONS_load_SP =.not.l_no_compress_COLL
+ COLLISIONS_compr   =.not.l_no_compress_COLL
  !
  if (.not.l_eval_CURRENT) l_eval_CURRENT= trim(global_gauge)=="current"
  !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')
+ if(SP==DP.and.COLLISIONS_load_SP) call msg('sr','COLLISIONS in single precisions')
  !
  ! Velocity gauge mode
  ! =======================================
@@ -337,7 +343,17 @@ subroutine NL_initialize(E,k)
         call error("Unknow correlation in the response function")
  end select
  !
- if(eval_COLLISIONS.and.COLLISIONS_CV_only) call warning(' ONLY cv scattering in COLLISIONS! ')
+ if(eval_COLLISIONS) then
+   !      
+   if(COLLISIONS_CV_only) call warning(' ONLY cv scattering in COLLISIONS! ')
+   !
+   if(l_no_compress_COLL) then
+     call msg('sr','Full collisions in double-precision ')
+   else
+     call msg('sr','Compressed collisions in single-precision ')
+   endif
+ endif
+ !
  ! 
  H_potential = RT_potential
  !

@@ -7,11 +7,11 @@
 !
 integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  !
- use pars,          ONLY:schlen,IP,SP,IP_YIO,CR_YIO
+ use pars,          ONLY:schlen,IP,SP,DP,IP_YIO,CR_YIO
  use parallel_m,    ONLY:master_cpu
  use iso_c_binding, ONLY:C_LOC,C_F_POINTER
  use collision_ext, ONLY:COLLISIONS_element,COLLISIONS_group,LAST_COLL_sync,PAR_COLL_min,&
-&                        COLLISIONS_CV_only
+&                        COLLISIONS_CV_only,COLLISIONS_load_SP
  use IO_m,          ONLY:io_sec,io_status,IO_OUTDATED_DB,read_is_on,IO_mode,io_unit,&
 &                        VERIFY,io_extension,write_is_on,nf90_sync,netcdf_call,YAMBO_DEF_CHUNK
  use IO_int,        ONLY:io_connect,io_header,io_elemental,ver_is_gt_or_eq,io_fragment, &
@@ -112,6 +112,10 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
      if(io3 ) then
        call C_F_POINTER(C_LOC(COLL_element%v_c(:COLL_element%N)),tmp_link_complex,(/COLL_element%N,1/))
        call  io_variable_bulk(ID,2,C2=tmp_link_complex,IPOS=(/1,1,i_coll/))
+       if(SP==DP.and.COLLISIONS_load_SP) then
+         COLL_element%v_c_SP=cmplx(COLL_element%v_c)
+         YAMBO_FREE(COLL_element%v_c)
+       endif
        nullify(tmp_link_complex)
      endif
    endif

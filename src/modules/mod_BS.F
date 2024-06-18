@@ -203,6 +203,15 @@ module BS
    complex(SP), allocatable, device :: O_x_d(:,:)
 #endif
    !
+   ! TDDFT Oscillators
+   !
+   complex(SP), allocatable :: O_tddft_L(:,:,:,:)
+   complex(SP), allocatable :: O_tddft_R(:,:,:,:)
+#ifdef _CUDA
+   complex(SP), allocatable, device :: O_tddft_L_d(:,:,:,:)
+   complex(SP), allocatable, device :: O_tddft_R_d(:,:,:,:)
+#endif
+   !
  end type BS_T_group
  !
  type(BS_T_group), allocatable, target :: BS_T_grp(:)
@@ -233,6 +242,7 @@ module BS
    complex(SP), allocatable      :: mat(:,:)
    character, allocatable        :: done(:,:)
    integer, allocatable          :: table(:,:)
+   real(SP),    allocatable      :: E(:)
    !
    ! For collisions only
    !--------------------

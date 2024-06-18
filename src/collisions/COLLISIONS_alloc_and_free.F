@@ -7,13 +7,13 @@
 !
 subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
  !
- use pars,           ONLY:cZERO,rZERO
+ use pars,           ONLY:cZERO,rZERO,DP,SP
  use plasma,         ONLY:N_plasma_poles_global
  use R_lattice,      ONLY:nqbz,nkibz
  use electrons,      ONLY:n_met_bands,n_full_bands
  use parallel_m,     ONLY:PAR_nPlasma,PAR_nQ_bz
  use collision_ext,  ONLY:COLLISIONS_element,COH_COLL_element,HXC_COLL_element,GW_NEQ_COLL_element,&
-&                         COLL_bands,COLLISIONS_CV_only,&
+&                         COLL_bands,COLLISIONS_load_SP,COLLISIONS_CV_only,&
 &                         GW_NEQ_collisions,COH_collisions,HXC_collisions,P_collisions,COLLISIONS_group
 #if defined _QED
  use QP_m,           ONLY:QP_QED_ng
@@ -195,6 +195,7 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
            mem_size(3)=mem_size(3)+size(COLL_element(J)%v_r)
          endif
          if(l_complex) then
+<<<<<<< HEAD
            YAMBO_ALLOC(COLL_element(J)%v_c,(COLL_element(J)%N))
            COLL_element(J)%v_c=cZERO
            mem_size(4)=mem_size(4)+size(COLL_element(J)%v_c)
@@ -203,6 +204,24 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
        if (l_clean.and.(l_v1.or.l_all)) then
          YAMBO_FREE(COLL_element(J)%v_c)
          YAMBO_FREE(COLL_element(J)%v_r)
+=======
+           YAMBO_ALLOC(COLL(J)%v_c,(COLL(J)%N))
+           COLL(J)%v_c=cZERO
+           mem_size(4)=mem_size(4)+size(COLL(J)%v_c)
+           if(SP==DP.and.COLLISIONS_load_SP) then
+             YAMBO_ALLOC(COLL(J)%v_c_SP,(COLL(J)%N))
+             COLL(J)%v_c_SP=cZERO
+             mem_size(4)=mem_size(4)+size(COLL(J)%v_c_SP)
+           endif
+         endif
+       endif
+       if (l_clean.and.(l_v1.or.l_all)) then
+         YAMBO_FREE(COLL(J)%v_c)
+         if(SP==DP.and.allocated(COLL(J)%v_c_SP)) then
+            YAMBO_FREE(COLL(J)%v_c_SP)
+         endif
+         YAMBO_FREE(COLL(J)%v_r)
+>>>>>>> master
        endif
        if (l_alloc.and.(l_table.or.l_all)) then
          YAMBO_ALLOC(COLL_element(J)%table,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
