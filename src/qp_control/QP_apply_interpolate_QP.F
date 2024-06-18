@@ -112,7 +112,8 @@ subroutine QP_apply_interpolate_QP(i_ACTION,bands,en,k,qp)
     qp_interpolated%k(ik,:)=k%pt(ik,:)
     do iband=bands(1),bands(2)
        do i_spin=1,n_sp_pol
-         ic=ic+1
+	 !
+         if (DB_bands(1)<=iband .and. iband<=DB_bands(2)) ic=ic+1
          !
          call INTERPOLATION_nearest_E(En%Eo(iband,ik,i_spin),qp,E_diff(i_spin),i_qp,i_spin)
          call QP_transfer_nearest('Stnd_Gd')
@@ -265,7 +266,7 @@ subroutine QP_apply_interpolate_QP(i_ACTION,bands,en,k,qp)
        At_least_one_band_corrected=.TRUE.
        if(action_kind=="Stnd_Gd") QP_action(i_ACTION)%STATES_done(iband,ik,i_spin)=1
        !
-       if(action_kind=="Stnd_Gd")  then
+       if(action_kind=="Stnd_Gd" .and. DB_bands(1)<=iband .and. iband<=DB_bands(2)) then
          qp_interpolated%E_bare(ic)=en%Eo(iband,ik,i_spin)
          qp_interpolated%E(ic)=en%E(iband,ik,i_spin)
          qp_interpolated%Z(ic)=cZERO
