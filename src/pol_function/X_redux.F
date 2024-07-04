@@ -477,8 +477,8 @@ end subroutine
      !
      type(PAR_matrix) :: X_par
      type(w_samp)     :: Xw
-     complex(SP)      :: BUFFER_SAVE(buffer_nfreq)
      integer          :: buffer_nfreq
+     complex(SP)      :: BUFFER_SAVE(buffer_nfreq)
      integer          :: PAR_n_freqs_global(PAR_COM_SLK_INDEX_local%n_CPU)
      !
      ! Local variables
