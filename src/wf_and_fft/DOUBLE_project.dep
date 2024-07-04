@@ -33,6 +33,7 @@
  scatter_Bamp.o
  scatter_Bamp_incl.o
  scatter_Bamp_spin.o
+ scatter_Bamp_spin_tddft.o
  scatter_Bamp_using_the_gradient.o
  scatter_Gamp.o
  scatter_Gamp_incl.o
