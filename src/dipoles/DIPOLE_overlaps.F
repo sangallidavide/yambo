@@ -40,7 +40,6 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  integer           :: id,idx_kp(3),idx_k(3),shift(3),g0_idx(3,2)
  real(SP)          :: g0_length(3)
  !
- complex(SP), allocatable DEV_ATTR :: WF_shifted(:,:,:,:)
  complex(SP), allocatable DEV_ATTR :: WF_ik(:,:,:,:)
  complex(SP), allocatable DEV_ATTR :: WF_ikp(:,:,:,:)
  !
@@ -73,12 +72,12 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  !
  call PARALLEL_WF_index( )
  !
- !AMBO_ALLOC(WF_symm,(wf_ng_1st_BZ,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_shifted,(wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
+ YAMBO_ALLOC(WF_ikp,    (wf_ng_overlaps,n_spinor,1,n_sp_pol))
  YAMBO_ALLOC(WF_ik,     (wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
- YAMBO_ALLOC(WF_ikp,    (wf_ng_overlaps,n_spinor,Dip%ib(2),n_sp_pol))
  !
+!$OMP WORKSHARE
  DIP_S=cZERO
+!$OMP END WORKSHARE
  !
  call live_timing("Overlaps:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
  !
@@ -131,18 +130,17 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            if(WF_shifts(ikbzp,id)==2) shift(id)=0
          endif
          !
-         call WF_shift_kpoint((/1,Dip%ib(2)/),ikbzp,shift,Xk,WF_ikp)
-         !
-         call WF_free(WF)
-         !
-         do ib=1,Dip%ib(2)
-           if(.not.PAR_IND_VAL_BANDS_OVLP%element_1D(ib)) cycle
-           do ibp=1,Dip%ib(2)
-             if(.not.PAR_IND_CON_BANDS_OVLP%element_1D(ibp)) cycle
+         do ibp=1,Dip%ib(2) 
+           if(.not.PAR_IND_CON_BANDS_OVLP%element_1D(ibp)) cycle
+           call WF_shift_kpoint((/ibp,ibp/),ikbzp,shift,Xk,WF_ikp)
+           do ib=1,Dip%ib(2)
+             if(.not.PAR_IND_VAL_BANDS_OVLP%element_1D(ib)) cycle
              DIP_S(ib,ibp,id+(istep-1)*3,ikbz,i_sp_pol)= &
-             &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib,i_sp_pol),WF_ikp(:,:,ibp,i_sp_pol))
+             &  Vstar_dot_V(wf_ng_overlaps*n_spinor,WF_ik(:,:,ib,i_sp_pol),WF_ikp(:,:,1,i_sp_pol))
            enddo ! ibp
          enddo ! ib
+         !
+         call WF_free(WF)
          !
        enddo ! istep
      enddo ! idir
@@ -166,7 +164,6 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  wf_ng       =wf_ng_save
  wf_ng_1st_BZ=wf_ng_1st_BZ_save
  !
- YAMBO_FREE(WF_shifted)
  YAMBO_FREE(WF_ik)
  YAMBO_FREE(WF_ikp)
  !
