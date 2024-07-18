@@ -3,7 +3,7 @@
 !
 ! Copyright (C) 2009 The Yambo Team
 !
-! Authors (see AUTHORS file for details): DV DS
+! Authors (see AUTHORS file for details): DV DS FP
 !
 subroutine Bare_Hamiltonian_as_E_ks_minus_Vxc(E,Xk,k)
  !

@@ -3,7 +3,7 @@
 !
 ! Copyright (C) 2006 The Yambo Team
 !
-! Authors (see AUTHORS file for details): AM
+! Authors (see AUTHORS file for details): AM DS FP
 !
 subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  !
