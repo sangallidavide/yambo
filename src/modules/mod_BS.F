@@ -54,6 +54,7 @@ module BS
  logical :: l_BS_dichroism
  logical :: l_BS_optics
  logical :: l_BS_esort
+ logical :: l_BS_esort_indx
  !
  ! Dimensions
  !=============
@@ -227,7 +228,9 @@ module BS
    ! Matrix Block
    !--------------
    complex(SP), allocatable      :: mat(:,:)
-   character, allocatable        :: done(:,:)
+   character,   allocatable      :: done(:,:)
+   integer,     allocatable      :: table(:,:)
+   real(SP),    allocatable      :: E(:)
    !
    ! Oscillators...
    !

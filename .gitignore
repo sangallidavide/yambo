@@ -34,7 +34,6 @@ lib/archive/git.list
 *.save
 *.f90
 *.s
-*.swp*
 *dSYM
 *bk
 

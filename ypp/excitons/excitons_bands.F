@@ -186,6 +186,7 @@ subroutine excitons_bands(k,Xk,en,Xen,q)
    end subroutine print_interpolated_BANDS
    ! 
    subroutine print_built_in_BANDS()
+     implicit none
      !
      integer               :: i_point,n_points,n_points_max,iq_bz_grid,iq_ibz_grid
      real(SP)              :: value_k,values(EXCITONS_n_user_states+4)
