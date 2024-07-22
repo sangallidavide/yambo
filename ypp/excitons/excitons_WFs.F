@@ -151,8 +151,6 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
            iv    = BSS_eh_table(neh,2)
            ic    = BSS_eh_table(neh,3)
            i_sp_pol = spin(BSS_eh_table(neh,:))
-           i_sp_c=BSS_eh_table(S_indx(neh),4)
-           i_sp_v=BSS_eh_table(S_indx(neh),5)
            !
            ikibz = Xk%sstar(ikbz,1)
            is    = Xk%sstar(ikbz,2)
@@ -163,8 +161,6 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
              iv1    = BSS_eh_table(neh1,2)
              ic1    = BSS_eh_table(neh1,3)
              i_sp_pol1 = spin(BSS_eh_table(neh1,:))
-             i_sp_c1=BSS_eh_table(S_indx(neh),4)
-             i_sp_v1=BSS_eh_table(S_indx(neh),5)
              !
              ikibz1 = Xk%sstar(ikbz1,1)
              is1    = Xk%sstar(ikbz1,2)
@@ -177,8 +173,8 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
                  !      
                  B_coeff =  BS_mat(neh, i_l)* conjg(BS_mat(neh1, i_l))   
                  !
-                 WF1_ir=WF_symm(rindex(ir),(/iv, ikibz,is,i_sp_v/))
-                 WF2_ir=WF_symm(rindex(ir),(/iv1,ikibz1,is1,i_sp_v1/))
+                 WF1_ir=WF_symm(rindex(ir),(/iv, ikibz,is,i_sp_pol/))
+                 WF2_ir=WF_symm(rindex(ir),(/iv1,ikibz1,is1,i_sp_pol1/))
                  !
                  v2plot(ir) = v2plot(ir)+B_coeff*WF1_ir(1)*conjg(WF2_ir(1))
                  if(n_spinor==2) v2plot(ir) = v2plot(ir)+B_coeff*WF1_ir(2)*conjg(WF2_ir(2))
@@ -187,8 +183,8 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
                  !      
                  B_coeff =  conjg(BS_mat(neh, i_l))*BS_mat(neh1, i_l)   
                  !
-                 WF1_ir=WF_symm(rindex(ir),(/ic, ikibz,is,i_sp_c/))
-                 WF2_ir=WF_symm(rindex(ir),(/ic1,ikibz1,is1,i_sp_c1/))
+                 WF1_ir=WF_symm(rindex(ir),(/ic, ikibz,is,i_sp_pol/))
+                 WF2_ir=WF_symm(rindex(ir),(/ic1,ikibz1,is1,i_sp_pol1/))
                  !
                  v2plot(ir) = v2plot(ir)+B_coeff*conjg(WF1_ir(1))*WF2_ir(1)
                  if(n_spinor==2) v2plot(ir) = v2plot(ir)+B_coeff*conjg(WF1_ir(2))*WF2_ir(2)
