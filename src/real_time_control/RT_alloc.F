@@ -9,9 +9,6 @@ subroutine RT_alloc(en,what)
  !
  use pars,           ONLY:SP,cZERO
  use parallel_m,     ONLY:PAR_G_k_range
-#if defined _ELPH || defined _PHEL
- use ELPH,           ONLY:elph_branches
-#endif
  use drivers,        ONLY:l_use_Hxc_collisions
  use hamiltonian,    ONLY:H_alloc,H_QP_table_setup
  use FFT_m,          ONLY:fft_size
@@ -26,6 +23,13 @@ subroutine RT_alloc(en,what)
 &                         dG_lesser,G_lesser,MEM_pointer,G_MEM_steps,REF_V_xc_sc,REF_V_hartree_sc,rho_reference,&
 &                         magn_reference,RT_bands,RT_nk,l_RT_is_WFfree,l_RT_rotate_DM,&
 &                         l_velocity_gauge_corr
+#if defined _ELPH
+use drivers,        ONLY:l_rt_coh_phon
+use real_time,      ONLY:RT_coh_phonons
+#endif
+#if defined _ELPH || defined _PHEL
+ use ELPH,           ONLY:elph_branches
+#endif
  !
 #include<memory.h>
  !
@@ -80,6 +84,13 @@ subroutine RT_alloc(en,what)
      YAMBO_ALLOC(RT_Vnl_xc,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol))
      RT_Vnl_xc=(0._SP,0._SP)
    endif
+   !
+#if defined _ELPH
+   if(l_rt_coh_phon) then
+    YAMBO_ALLOC(RT_coh_phonons,(elph_branches(1):elph_branches(2),2))
+    RT_coh_phonons=cZERO
+  endif
+#endif
    !
    YAMBO_ALLOC(HARTREE0,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol))
    HARTREE0=cZERO

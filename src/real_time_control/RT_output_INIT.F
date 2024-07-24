@@ -56,11 +56,14 @@ subroutine RT_output_INIT( )
  call RT_FILE_add('energy',TITLES=(/"Time[fs]  ","dE_kin[eV]","dE_ion[eV]"/))
  if(     l_use_Hxc_collisions) call RT_FILE_add(TITLES=(/"dE_Hxc[eV]","dE_tot[eV]"/))
  if(.not.l_use_Hxc_collisions) call RT_FILE_add(TITLES=(/"dE_Har[eV]","dE_xc [eV]","dE_tot[eV]"/))
-! !
+ !
  call RT_FILE_add('carriers',TITLES=(/"Time[fs]"/))
  call RT_FILE_add(TITLES=(/"d(N_hole-N_elec)"/))
  call RT_FILE_add(TITLES=(/"dN_hole","dN_elec"/))
  if (l_elel_scatt.or.l_elph_scatt) call RT_FILE_add(TITLES=(/"T_hole [K]","T_elec [K]","Ef(h) [eV]","Ef(e) [eV]"/))
+ !
+ call RT_FILE_add('coh_phonons',TITLES=(/"Time[fs]"/))
+ call RT_FILE_add(TITLES=(/"mod1","mod2","mod3","mod4","mod5","mod6"/))
  !
  call RT_FILE_add('thermodynamics',&
 &  TITLES=(/"Time[fs]   ","dE   [eV]  ","dE(h)[eV]  ","dE(e)[eV]  ","dS   [eV/K]",&

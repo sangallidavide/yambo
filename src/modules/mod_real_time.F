@@ -187,6 +187,10 @@ module real_time
  complex(SP), allocatable :: G_lesser_reference(:,:,:)  ! Band, Band, K
  complex(SP), allocatable :: I1_matrix(:,:)
  !
+ ! Ehrenfest variables: atomic displacements and momenta
+ !
+ real(SP), allocatable :: RT_coh_phonons(:,:)
+ !
  ! RT_Hamiltonian
  !----------------
  !

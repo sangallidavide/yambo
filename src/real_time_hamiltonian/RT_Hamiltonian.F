@@ -38,7 +38,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  use wrapper_omp,    ONLY:M_plus_alpha_M_omp
  use electrons,      ONLY:levels,n_spinor,n_spin
  use FFT_m,          ONLY:fft_size
- use drivers,        ONLY:l_use_Hxc_collisions
+ use drivers,        ONLY:l_use_Hxc_collisions,l_rt_coh_phon
  use R_lattice,      ONLY:bz_samp,nXkibz
  use hamiltonian,    ONLY:V_hartree_sc,H_nl_sc,rho_n,magn_n,V_xc_sc
  use real_time,      ONLY:Ho_plus_Sigma,l_NE_with_fields,REF_V_xc_sc, &
@@ -92,7 +92,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  ! Local part computed in real space (V_xc_sc and V_Hartree_sc)
  !=============================================================
  !
- if ( (.not.l_use_Hxc_collisions .and. .not.trim(RT_Potential)=='IP') .or. &
+ if ( (.not.l_use_Hxc_collisions .and. .not.index(trim(RT_potential),'IP')>0) .or. &
 &     (.not.COLLISIONS_have_HARTREE .and. index(trim(RT_potential),"HARTREE")>0) ) then
    !
    ! Density & Magnetization (needed for VHartree and Vxc)
@@ -208,6 +208,22 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  !====================
  if (.not.l_RT_RWA) Ho_plus_Sigma=Ho_plus_Sigma+H_EQ
  !
+#if defined _ELPH
+ if (l_rt_coh_phon) then
+    !
+    ! Add the change induced in the potential by the ion displacement 
+    !----------------------
+    do ik=1,nXkibz
+      if (.not.PAR_IND_Xk_ibz%element_1D(ik)) cycle
+      call RT_add_g_x_term(ik,H_nl_sc)
+      do ik_RT =RTibz%k_range(ik,1),RTibz%k_range(ik,2)
+        call M_plus_alpha_M_omp(RT_nbands,cONE,H_nl_sc,Ho_plus_sigma(:,:,ik_RT,1))
+      enddo
+    enddo
+    !
+ endif
+#endif
+ !
  ! Pseudo potential terms needed for velocity gauge
  !==================================================
  if (l_velocity_gauge_corr) call Pseudo_Hamiltonian(k,E,.false.)
@@ -215,3 +231,34 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
  call timing('RT Hamiltonian',OPR='stop')
  !
 end subroutine RT_Hamiltonian
+!
+!
+#if defined _ELPH
+subroutine RT_add_g_x_term(ik,H_nl_sc)
+ !
+ use pars,              ONLY:SP,cZERO
+ use real_time,         ONLY:RT_coh_phonons,RT_bands
+ use ELPH,              ONLY:elph_branches,PH_freqs_sq,GKKP
+ !
+ implicit none
+ !
+ integer,      intent(in) :: ik
+ complex(SP), intent(out) :: H_nl_sc(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
+ !
+ ! Work Space
+ !
+ integer  :: ib,ibp,i_ph_mode
+ real(SP)    :: ph_E
+ complex(SP) :: elph_gkkp(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
+ !
+ H_nl_sc=cZERO
+ !
+ do i_ph_mode=elph_branches(1),elph_branches(2)
+   ph_E=sqrt(abs(PH_freqs_sq(1,i_ph_mode)))
+   if (abs(ph_E)<=0._SP) cycle
+   elph_gkkp=GKKP%dVc(i_ph_mode,RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),ik,1)/sqrt(2._SP*ph_E)
+   H_nl_sc=H_nl_sc+RT_coh_phonons(i_ph_mode,1)*elph_gkkp
+ enddo
+ !
+end subroutine RT_add_g_x_term
+#endif

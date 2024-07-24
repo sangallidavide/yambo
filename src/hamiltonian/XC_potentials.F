@@ -9,7 +9,8 @@ subroutine XC_potentials(POTENTIALS_string)
  !
  use pars,           ONLY:schlen
  use drivers,        ONLY:l_sc_ip,l_sc_hartree,l_sc_exx,l_sc_fock,l_sc_coh,l_sc_sex,l_sc_is_libDFT,&
-&                         l_sc_srpa,l_use_Hxc_collisions,l_use_COH_collisions,l_eval_collisions
+&                         l_sc_srpa,l_use_Hxc_collisions,l_use_COH_collisions,l_eval_collisions,&
+&                         l_rt_coh_phon
  use global_XC,      ONLY:H_SE_EXX,H_SE_FOCK,H_SE_COH,H_SE_SEX,H_SE_EXXC,H_SE_SRPA,H_SE_HARTREE, &
 &                         H_SE_LSEX,H_SE_LHF
  use hamiltonian,    ONLY:H_kind,H_xc_functional,l_sc_XC_is_local,l_sc_V_is_local
@@ -53,6 +54,11 @@ subroutine XC_potentials(POTENTIALS_string)
    if (STRING_same(trim(potentials(i_c)),'CVONLY')) then
      COLLISIONS_CV_only=.true.
      if (.not.index(POTENTIALS_string,'CVONLY')>0) POTENTIALS_string=trim(POTENTIALS_string)//" CVONLY"
+   endif
+   !
+   if (STRING_same(trim(potentials(i_c)),'CPH')) then
+    l_rt_coh_phon=.true.
+    if (.not.index(POTENTIALS_string,'CPH')>0) POTENTIALS_string=trim(POTENTIALS_string)//" CPH"
    endif
    !
    if (STRING_same(trim(potentials(i_c)),'IP')) then
@@ -159,7 +165,9 @@ subroutine XC_potentials(POTENTIALS_string)
      call warning("NULL SC potential! ")
    else if (STRING_same(trim(potentials(i_c)),'CVONLY')) then
      call warning("Only CV components included ")
-   else
+    else if (STRING_same(trim(potentials(i_c)),'CPH')) then
+      call warning("Experimental: coherent phonons dynamics ")
+    else
      call error("Unknown SC potential! ")
    endif
    !

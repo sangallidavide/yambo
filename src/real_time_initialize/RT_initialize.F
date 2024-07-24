@@ -8,7 +8,8 @@
 subroutine RT_initialize(E,k,q)
  !
  use drivers,        ONLY:l_use_collisions,l_elph_scatt,l_elel_scatt,l_sc_hartree,l_use_Hxc_collisions,&
-&                         l_sc_is_libDFT,l_sc_sex,l_sc_fock,l_elphoton_scatt,l_rt_carriers_in_use,l_phel_scatt
+&                         l_sc_is_libDFT,l_sc_sex,l_sc_fock,l_elphoton_scatt,l_rt_carriers_in_use,l_phel_scatt,&
+&                         l_rt_coh_phon
 #if defined _PHEL
  use drivers,        ONLY:l_phel_scatt
 #endif
@@ -323,7 +324,7 @@ subroutine RT_initialize(E,k,q)
  !
 #endif
  !
- l_RT_is_WFfree = (l_use_Hxc_collisions .or. trim(RT_potential)=="IP")   .and.     &
+ l_RT_is_WFfree = (l_use_Hxc_collisions .or. index(trim(RT_potential),"IP")>0)   .and.     &
 &                 (.not.eval_energy) .and. (.not.l_velocity_gauge_corr)  .and.     &
 &                 (COLLISIONS_have_HARTREE.or.index(trim(RT_potential),"HARTREE")==0)
  !
@@ -380,6 +381,7 @@ subroutine RT_initialize(E,k,q)
  !
  call msg( 'r','Hxc approximation          ',trim(RT_potential))
  !
+ if (l_rt_coh_phon)        call msg( 'r','Coherent phonons dynamics  ',l_rt_coh_phon)
  if (l_elph_scatt)         call msg( 'r','El-Ph         scattering   ',l_elph_scatt)
 #if defined _PHEL
  if (l_phel_scatt)         call msg( 'r','Ph-El         scattering   ',l_phel_scatt)

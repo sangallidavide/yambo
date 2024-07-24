@@ -10,9 +10,13 @@ subroutine RT_ELPH_initialize(E,k,q)
  use parser_m,       ONLY:parser
  use real_time,      ONLY:RT_bands
  use electrons,      ONLY:levels
- use drivers,        ONLY:l_elph_scatt,l_phel_scatt
+ use drivers,        ONLY:l_elph_scatt,l_phel_scatt,l_rt_coh_phon
  use R_lattice,      ONLY:bz_samp
- use ELPH,           ONLY:PH_freqs_sq,PH_W_debye,GKKP_ep_sq,GKKP_pe_sq,l_GKKP_expanded_DB_exists,elph_nQ
+ use IO_int,         ONLY:io_control
+ use IO_m,           ONLY:OP_RD_CL,DUMP,REP
+ use ELPH_intfcs,    ONLY:ELPH_alloc
+ use ELPH,           ONLY:PH_freqs_sq,PH_W_debye,GKKP_ep_sq,GKKP_pe_sq,l_GKKP_expanded_DB_exists,elph_nQ,&
+ &                        GKKP
  !
 #include<memory.h>
  !
@@ -21,13 +25,15 @@ subroutine RT_ELPH_initialize(E,k,q)
  !
  ! Work Space
  !
- logical             ::l_use_Debye_E
+ logical             :: l_use_Debye_E
+ integer             :: ID_gkkp,io_err
+ integer, external   :: io_ELPH
  !
  call section('=','El-Ph matrix elements')
  !                 ---------------------
  ! Logicals
  !==========
- if (.not.l_elph_scatt.and..not.l_phel_scatt) return
+ if (.not.(l_elph_scatt.or.l_phel_scatt.or.l_rt_coh_phon)) return
  !
  call parser('UseDebyeE'   , l_use_Debye_E)
  !
@@ -52,6 +58,16 @@ subroutine RT_ELPH_initialize(E,k,q)
  !=====================
  if (l_phel_scatt) call ELPH_databases_load(GKKP_pe_sq,E,k,q,RT_bands,(/1,elph_nQ/),"Q-IBZ K-BZ Q-sym","dressed-dressed")
  !
+ ! Q=0 databases for coherent phonon dynamics
+ !=====================
+ if (l_rt_coh_phon) then
+  !
+  call ELPH_alloc("dV",GKKP=GKKP)
+  call io_control(ACTION=OP_RD_CL,COM=REP,MODE=DUMP,SEC=(/1,2/),ID=ID_gkkp)
+  io_err=io_ELPH(ID_gkkp,'gkkp_expanded')                                
+  !
+ endif
+ !
  ! Test of the effect of using a single optical mode
  !                               ===================
  !
@@ -64,7 +80,9 @@ subroutine RT_ELPH_initialize(E,k,q)
  !                 -------------------
  call ELPH_acoustic_phonon_properties(q)
  !
+#if defined _ELPH_SCATT
  call RT_ELPH_Q_weights(q)
+#endif
  !
  ! THETA matrix indexes
  !======================
