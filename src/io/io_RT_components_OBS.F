@@ -13,8 +13,12 @@ subroutine io_RT_components_OBS(ID,what)
  use electrons,   ONLY:n_spin
  use real_time,   ONLY:l_NE_with_fields,NE_i_time
  use netcdf,      ONLY:NF90_UNLIMITED
- use RT_control,  ONLY:J_cache,P_cache,Ms_cache,Ml_cache,A_cache,&
+ use RT_control,  ONLY:J_cache,P_cache,Ms_cache,Ml_cache,A_cache,CPH_cache,&
 &                      CACHE_OBS_steps_now,OBS_RT_IO_t,RT_do_IO
+#if defined _ELPH
+ use drivers,     ONLY:l_rt_coh_phon
+ use ELPH,        ONLY:elph_branches
+#endif
  !
 #include<memory.h>
  !
@@ -51,6 +55,14 @@ subroutine io_RT_components_OBS(ID,what)
      call def_variable_bulk(ID,"A_tot",8,VAR_SZ,SP,dim_names=dim_names,silent=.true.)
    endif
    !
+#if defined _ELPH
+   if(l_rt_coh_phon) then
+     VAR_SZ(1:3)    = (/elph_branches(2)-elph_branches(1)+1,2,NF90_UNLIMITED/)
+     dim_names(1:3) = [character(schlen) :: 'branch','xp','time']
+     call def_variable_bulk(ID,"Coh_Phonons",9,VAR_SZ(1:3),SP,dim_names=dim_names(1:3),silent=.true.)
+   endif
+#endif
+   !
  case('FILL')
    !
    if(write_is_on(ID)) then
@@ -60,6 +72,7 @@ subroutine io_RT_components_OBS(ID,what)
    else if(read_is_on(ID)) then
      CACHE_SZ=CACHE_OBS_steps_now
      IPOS    =1
+     write(*,*) "CACHE_SZ= ",CACHE_SZ
    endif
    !
    if (RT_do_IO("JP")) then
@@ -75,6 +88,12 @@ subroutine io_RT_components_OBS(ID,what)
    if(l_NE_with_fields) then
      call io_variable_bulk(ID,8,C3=A_cache(:,:,1:CACHE_SZ),IPOS=(/1,1,1,IPOS/))
    endif
+   !
+#if defined _ELPH
+   if(l_rt_coh_phon) then
+     call io_variable_bulk(ID,9,R3=CPH_cache(:,:,1:CACHE_SZ),IPOS=(/1,1,IPOS/))
+   endif
+#endif
    !
  end select
  !

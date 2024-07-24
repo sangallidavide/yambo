@@ -11,7 +11,7 @@ subroutine RT_databases_IO(E,DO_IT)
  use RT_control,     ONLY:RT_carriers_object,J_cache,P_cache,Ms_cache,Ml_cache,A_cache,OBS_RT_IO_t,&
 &                         Gless_RESTART_RT_IO_t,CARR_RT_IO_t,CACHE_OBS_steps_now,CACHE_OBS_steps,    &
 &                         SAVE_G_history,NE_i_start_time,CACHE_OBS_last_point,Gless_RT_IO_t,RT_DB_ID,&
-&                         RT_return_db_ID,RT_DB_name
+&                         RT_return_db_ID,RT_DB_name,CPH_cache
 #if defined _ELPH_ITERATIVE
  use RT_lifetimes,   ONLY:l_RT_iterative_ELPH_lifetimes
 #endif
@@ -29,6 +29,10 @@ subroutine RT_databases_IO(E,DO_IT)
 #else
  use real_time,      ONLY:RTibz
  use parallel_m,     ONLY:PAR_IND_Xk_ibz,ncpu,myid
+#endif
+#if defined _ELPH
+ use drivers,        ONLY:l_rt_coh_phon
+ use real_time,      ONLY:RT_coh_phonons
 #endif
 #if defined _ELPH_ITERATIVE
  use RT_iterative,   ONLY:THETA_matrix
@@ -88,6 +92,11 @@ subroutine RT_databases_IO(E,DO_IT)
        A_cache(1:3,2,CACHE_OBS_steps_now)=A_tot%vecpot_vel
        A_cache(1:3,3,CACHE_OBS_steps_now)=A_tot%vecpot_acc
      endif
+#if defined _ELPH
+     if(l_rt_coh_phon) then
+       CPH_cache(:,:,CACHE_OBS_steps_now)=RT_coh_phonons
+     endif
+#endif
      !
      if (RT_do_it('OBS').or.DO_IT) then
        !

@@ -9,6 +9,10 @@ module RT_control
  !
  use pars,       ONLY:SP,lchlen,schlen,rZERO
  use units,      ONLY:AUT2FS
+ use drivers,    ONLY:l_rt_coh_phon
+#if defined _ELPH
+ use ELPH,       ONLY:elph_branches
+#endif
  use real_time,  ONLY:l_NE_dynamics,l_NE_with_fields,l_elph_scatt
  !
 #include<memory.h>
@@ -70,6 +74,7 @@ module RT_control
  complex(SP), allocatable    :: Ms_cache(:,:,:)
  complex(SP), allocatable    :: Ml_cache(:,:,:)
  complex(SP), allocatable    :: A_cache(:,:,:)
+ real(SP),    allocatable    :: CPH_cache(:,:,:)
  !
  ! TD-ABS and RT-BSE [yambo]
  !
@@ -210,6 +215,12 @@ module RT_control
          YAMBO_ALLOC(A_cache,(3,3,CACHE_OBS_steps))
          A_cache=cZERO
        endif
+#if defined _ELPH
+       if (l_rt_coh_phon) then
+         YAMBO_ALLOC(CPH_cache,(elph_branches(1):elph_branches(2),2,CACHE_OBS_steps))
+         CPH_cache=rZERO
+       endif
+#endif
        !
      endif
      !
@@ -245,6 +256,7 @@ module RT_control
        YAMBO_FREE(Ms_cache)
        YAMBO_FREE(Ml_cache)
        YAMBO_FREE(A_cache)
+       YAMBO_FREE(CPH_cache)
      endif
      if(trim(what)=="times" .or. trim(what)=="all") then
        YAMBO_FREE(OBS_RT_IO_t%Time)

@@ -194,7 +194,7 @@ subroutine RT_output(what,VALUES,TIME,E)
        data_to_dump(2:4) = VALUES(1:3)
        if(RT_EE_life%active.or.RT_EP_emit_life%active) data_to_dump(5:8) = VALUES(4:7)
       case('coh_phonons')
-        data_to_dump(2:7) = VALUES(1:6)
+        data_to_dump(2:N+1) = VALUES(1:N)
       case('thermodynamics')
        data_to_dump(2: 4) = VALUES(1:3)*HA2EV
        data_to_dump(5: 7) = VALUES(4:6)*HA2EV/HA2KEL

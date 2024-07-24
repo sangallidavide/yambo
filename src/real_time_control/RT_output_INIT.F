@@ -13,19 +13,22 @@ subroutine RT_output_INIT( )
  use RT_output_m,    ONLY:RT_FILE_add,YPP_append,N_MAX_RT_X_order
  use electrons,      ONLY:n_spin
  use com,            ONLY:msg
- use drivers,        ONLY:l_use_Hxc_collisions,l_elel_scatt,l_elph_scatt
+ use drivers,        ONLY:l_use_Hxc_collisions,l_elel_scatt,l_elph_scatt,l_rt_coh_phon
  use stderr,         ONLY:intc
  use RT_lifetimes,   ONLY:l_RT_lifetimes_Tfit,RT_EP_abs_life
  use RT_control,     ONLY:l_project_spin_dipoles
  use C_driver,       ONLY:code_bin
  use timing_m,       ONLY:timing
+#if defined _ELPH
+ use ELPH,           ONLY:elph_branches
+#endif
  !
  implicit none
  !
  ! Work space
  !
  integer                  :: i_f,i_fp,i_c,i_order,il
- character(schlen)        :: dumb_ch
+ character(schlen)        :: dumb_ch,vec_ch(100)
  character(2)             :: chart_string(3)
  !
  call msg('s','Output files definition ...')
@@ -62,8 +65,17 @@ subroutine RT_output_INIT( )
  call RT_FILE_add(TITLES=(/"dN_hole","dN_elec"/))
  if (l_elel_scatt.or.l_elph_scatt) call RT_FILE_add(TITLES=(/"T_hole [K]","T_elec [K]","Ef(h) [eV]","Ef(e) [eV]"/))
  !
- call RT_FILE_add('coh_phonons',TITLES=(/"Time[fs]"/))
- call RT_FILE_add(TITLES=(/"mod1","mod2","mod3","mod4","mod5","mod6"/))
+#if defined _ELPH
+ if (l_rt_coh_phon) then
+   call RT_FILE_add('coh_phonons',TITLES=(/"Time[fs]"/))
+   i_c=0
+   do il=max(4,elph_branches(1)),elph_branches(2)
+     i_c=i_c+1
+     vec_ch(i_c)="mode_"//trim(intc(il))
+   enddo
+   call RT_FILE_add(TITLES=vec_ch(1:i_c))
+ endif
+#endif
  !
  call RT_FILE_add('thermodynamics',&
 &  TITLES=(/"Time[fs]   ","dE   [eV]  ","dE(h)[eV]  ","dE(e)[eV]  ","dS   [eV/K]",&

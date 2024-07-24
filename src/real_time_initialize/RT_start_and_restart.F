@@ -49,6 +49,9 @@ subroutine RT_start_and_restart(E,k,q)
  use parallel_m,     ONLY:PAR_G_k_range,PAR_IND_Xk_ibz
  use parallel_int,   ONLY:PP_wait,PP_redux_wait
  use RT_output_m,    ONLY:RT_desc,TIME_STEP_desc,Gr_desc
+#if defined _ELPH
+ use drivers,        ONLY:l_rt_coh_phon
+#endif
  !
 #include<memory.h>
  !
@@ -191,6 +194,10 @@ subroutine RT_start_and_restart(E,k,q)
    do i_mem=1,G_MEM_steps
      G_lesser(:,:,:,i_mem)=G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2))+dG_lesser(:,:,:,i_mem)
    enddo
+   !
+#if defined _ELPH
+   if(l_rt_coh_phon) call error("Restart not working with coherent phonons")
+#endif
    !
 #if defined _ELPH_ITERATIVE
    if (l_RT_iterative_ELPH_lifetimes) then

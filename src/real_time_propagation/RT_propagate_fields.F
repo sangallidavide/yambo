@@ -169,7 +169,7 @@ subroutine RT_propagate_coherent_phonons(X_ph_old,X_ph_new,G_inp,T_step)
   ! This routine is used to propagate the coherent phonons,
   ! e.g. equations (13) of E. Perfetti, K. Wu, and G. Stefanucci, NPJ 8, 40 (2024)
   !
-  use pars,           ONLY:SP
+  use pars,           ONLY:SP,cZERO,cI
   use R_lattice,      ONLY:nXkibz
   use drivers,        ONLY:l_rt_coh_phon
   use ELPH,           ONLY:elph_branches,PH_freqs_sq,GKKP
@@ -186,7 +186,7 @@ subroutine RT_propagate_coherent_phonons(X_ph_old,X_ph_new,G_inp,T_step)
   ! Workspace
   !
   complex(SP) :: elph_gkkp
-  real(SP)    :: ph_E
+  real(SP)    :: ph_E,g_times_rho
   integer     :: i_ph_modes,ik,ib,ibp
   !
   if (.not.l_rt_coh_phon) return
@@ -196,16 +196,17 @@ subroutine RT_propagate_coherent_phonons(X_ph_old,X_ph_new,G_inp,T_step)
   do i_ph_modes=elph_branches(1),elph_branches(2)
     ph_E=sqrt(PH_freqs_sq(1,i_ph_modes))
     if (abs(ph_E)<=0._SP) cycle
-    X_ph_new(i_ph_modes,1)=X_ph_old(i_ph_modes,1)+ph_E*X_ph_old(i_ph_modes,2)*T_step
-    X_ph_new(i_ph_modes,2)=X_ph_old(i_ph_modes,2)-ph_E*X_ph_old(i_ph_modes,1)*T_step
+    g_times_rho=cZERO
     do ik=1,nXkibz
       do ib=RT_bands(1),RT_bands(2)
         do ibp=RT_bands(1),RT_bands(2)
           elph_gkkp=GKKP%dVc(i_ph_modes,ib,ibp,ik,1)/sqrt(2._SP*ph_E)
-          X_ph_new(i_ph_modes,2)=X_ph_new(i_ph_modes,2)+elph_gkkp*G_inp(ib,ibp,ik)*T_step
+          g_times_rho=g_times_rho-real(cI*G_inp(ib,ibp,ik)*elph_gkkp,SP)
         enddo
       enddo
     enddo
+    X_ph_new(i_ph_modes,1)=X_ph_old(i_ph_modes,1)+ ph_E*X_ph_old(i_ph_modes,2)             *T_step
+    X_ph_new(i_ph_modes,2)=X_ph_old(i_ph_modes,2)-(ph_E*X_ph_old(i_ph_modes,1)-g_times_rho)*T_step
   enddo
   !
 end subroutine RT_propagate_coherent_phonons
