@@ -54,6 +54,7 @@ subroutine Bare_Hamiltonian_from_Scratch(E,Xk,k,Dip)
 #endif
 #if defined _RT
  use drivers,        ONLY:l_real_time
+ use real_time,      ONLY:rho_reference,magn_reference
 #endif
 #include<dev_defs.h>
 #include<memory.h>
