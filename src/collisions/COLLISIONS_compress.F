@@ -11,8 +11,10 @@
 subroutine COLLISIONS_compress(COLL)
  !
  use pars,            ONLY:SP,DP,SP6,cZERO
- use collision_ext,   ONLY:COLLISIONS_element,COLL_bands,COLLISIONS_cutoff
+ use collision_ext,   ONLY:COLLISIONS_element,COLL_bands,COLLISIONS_cutoff,&
+ &                         COLLISIONS_CV_only
  use R_lattice,       ONLY:nXkibz
+ use electrons,       ONLY:n_met_bands,n_full_bands
  !
 #include<memory.h>
  !
@@ -44,6 +46,9 @@ subroutine COLLISIONS_compress(COLL)
    do ibp=COLL_bands(1),COLL_bands(2)
      do ib=COLL_bands(1),COLL_bands(2)
        !
+       if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp> maxval(n_met_bands) ) ) cycle
+       if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
+       !    
        ic=ic+1
        !
        if(l_coll_SP)      COLL%v3_c(ib,ibp,i_kmq)=cmplx(COLL%v_c_SP(ic),kind=SP)
@@ -72,12 +77,11 @@ subroutine COLLISIONS_compress(COLL)
    do ibp=COLL_bands(1),COLL_bands(2)
      do ib=COLL_bands(1),COLL_bands(2)
        !
-       if(COLL%table(ib,ibp,i_kmq)=='t') then
-         ic=ic+1
-         if(l_coll_SP)      COLL%v_c_SP(ic)=cmplx(COLL%v3_c(ib,ibp,i_kmq),kind=SP6)
-         if(.not.l_coll_SP) COLL%v_c(ic)   =COLL%v3_c(ib,ibp,i_kmq)
-         !
-       endif
+       if(.not.COLL%table(ib,ibp,i_kmq)=='t') cycle
+       !
+       ic=ic+1
+       if(l_coll_SP)      COLL%v_c_SP(ic)=cmplx(COLL%v3_c(ib,ibp,i_kmq),kind=SP6)
+       if(.not.l_coll_SP) COLL%v_c(ic)   =COLL%v3_c(ib,ibp,i_kmq)
        !
      enddo
    enddo
