@@ -8,7 +8,7 @@
 subroutine K_driver_init(what,iq,Ken,Xk)
  !
  use R_lattice,    ONLY:bz_samp
- use electrons,    ONLY:levels,n_sp_pol,n_spinor
+ use electrons,    ONLY:levels,n_sp_pol,n_spinor,n_spin
  use parser_m,     ONLY:parser
  use parallel_m,   ONLY:PARALLEL_default_mode
  use stderr,       ONLY:STRING_match
@@ -19,12 +19,15 @@ subroutine K_driver_init(what,iq,Ken,Xk)
 &                       BS_perturbative_SOC,l_BS_magnons,l_BS_photolum,l_BSE_kernel_full,&
 &                       BS_cpl_K_exchange,BS_n_g_exch,BS_res_K_exchange,BS_K_coupling,BS_res_ares_n_mat,&
 &                       BS_n_eh_spaces,l_BS_ares_from_res,BS_bands,BS_K_anti_resonant
- use TDDFT,        ONLY:FXC_is_retarded,FXC_n_g_corr
+ use TDDFT,        ONLY:FXC_is_retarded,FXC_n_g_corr,l_Fxc_from_Vxc
  use drivers,      ONLY:l_col_cut,l_rpa_IP,l_alda_fxc,l_bs_fxc
  use D_lattice,    ONLY:i_time_rev,i_space_inv,l_3D
 #if defined _RT
  use drivers,      ONLY:l_rt_carriers_in_use
  use RT_control,   ONLY:NEQ_Kernel,EQ_Transitions,EQ_NoOcc,ALL_NoOcc,NEQ_Residuals,RT_BSE_Occ_Mode
+#endif
+#if defined _CUDA
+ use TDDFT,        ONLY:FXC_mode
 #endif
  !
  implicit none
@@ -36,7 +39,7 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  !
  ! Work Space
  !
- logical :: l_flag,l_slepc_special
+ logical :: l_flag,l_slepc_special,l_Fxc_Libxc
  !
  ! Defaults
  !==========
@@ -167,6 +170,16 @@ subroutine K_driver_init(what,iq,Ken,Xk)
  & call error('set Lkind = DEFAULT or BAR or FULL')
  !
  BS_K_is_ALDA=l_alda_fxc
+ if (l_alda_fxc) then
+   call parser('FxcLibxc',l_Fxc_Libxc)
+   l_Fxc_from_Vxc=(n_spin==1).and..not.l_Fxc_Libxc
+ endif
+#if defined _CUDA
+ if ( BS_K_is_alda.and. index(FXC_mode,"G-")>0 ) then
+   call warning(" Tddft with G-integrals is not GPU ported. Fallback to R-integrals")
+   FXC_mode="R-def"
+ endif
+#endif
  BS_dip_size=1
  !
  ! Memory saving

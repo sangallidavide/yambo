@@ -21,7 +21,8 @@ subroutine NL_start_and_restart(E,k,Dip)
  use com,            ONLY:msg
  use units,          ONLY:AUT2FS
  use electrons,      ONLY:levels,n_sp_pol
- use real_time,      ONLY:rho_reference,RT_time_status,NE_i_time,RT_step,RT_dyn_step,NE_steps
+ use real_time,      ONLY:rho_reference,RT_time_status,NE_i_time,RT_step,RT_dyn_step,NE_steps,&
+&                         eval_HARTREE,eval_DFT
  use RT_control,     ONLY:Vbands_RT_IO_t,OBS_RT_IO_t,OUTPUT_RT_IO_t,CACHE_OBS_INTERVAL_time,&
 &                         N_RT_databases,NE_i_start_time,RT_return_db_ID,RT_DB_ID,RT_DB_name,&
 &                         RT_control_alloc,RT_control_free
@@ -76,7 +77,7 @@ subroutine NL_start_and_restart(E,k,Dip)
    forall(i1=1:E%nbf(n_sp_pol)) V_bands(i1,i1,:,i_sp_pol)=cONE
  enddo
  !
- if(Correlation/=IPA.and..not.COLLISIONS_have_HARTREE) then
+ if(Correlation/=IPA.and..not.COLLISIONS_have_HARTREE.and.(eval_HARTREE.or.eval_DFT)) then
    !  
    call NL_build_valence_bands(E,V_bands,VAL_BANDS,1)
    call el_density_vbands(E,k,full_rho,VAL_BANDS)

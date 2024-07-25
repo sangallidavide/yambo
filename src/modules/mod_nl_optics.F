@@ -61,6 +61,9 @@ module nl_optics
  !
  real(SP),    allocatable :: full_rho(:)       ! density of all bands from 1:SC_bands(2)
  !
+ ! Sigma sex at equilibrium (for oscillators)
+ complex(SP), allocatable :: Sigma_SEX_EQ(:,:,:,:)
+ !
  ! Integrator Variables
  !
  integer, parameter :: EULER    = 1
@@ -96,8 +99,11 @@ module nl_optics
  integer, parameter :: LRCW   = 6
  integer, parameter :: HF     = 7
  integer, parameter :: SEX    = 8
+ integer, parameter :: LSEX   = 9
+ integer, parameter :: LHF    = 10
  !
  logical :: eval_COLLISIONS
+ logical :: eval_OSCLL
  logical :: eval_dG
  !
  ! Non-linear spectra parameters
@@ -138,6 +144,7 @@ module nl_optics
  !
  logical  :: l_use_DIPOLES   ! Use standard dipoles (valid only for linear response)
  logical  :: l_eval_CURRENT  ! Evaluate current using the commutator v=[H,r] and the IP formulation
+ logical  :: l_test_OSCLL    ! Test collisions built using OSCLLs vs standard Collisions
  !
  ! IO variables
  !
@@ -179,13 +186,13 @@ module nl_optics
        YAMBO_ALLOC(V_xc_0,(fft_size,n_spin))
      endif
      !
-     if(eval_dG.or.l_pump_and_probe) then
-       YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,1))
-     endif
-     !
      if(l_use_Hxc_collisions) then
        YAMBO_ALLOC(RT_Vnl_xc,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,n_sp_pol))
      endif          
+     !
+     if(eval_dG.or.l_pump_and_probe) then
+       YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,1))
+     endif
      !
      ! Reference energies
      !
@@ -225,6 +232,10 @@ module nl_optics
      YAMBO_ALLOC(I_relax,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),maxval(en%nbf),PAR_Xk_nibz,n_sp_pol))
      YAMBO_ALLOC(Ho_plus_Sigma,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),PAR_Xk_nibz,n_sp_pol))
      !
+     if(Correlation==LSEX.or.Correlation==LHF) then
+       YAMBO_ALLOC(Sigma_SEX_EQ,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),n_sp_pol,PAR_Xk_nibz))
+     endif          
+     !
    end subroutine NL_alloc_k_distributed
    !
    subroutine NL_free
@@ -258,12 +269,11 @@ module nl_optics
      YAMBO_FREE(E_ext_t)
      YAMBO_FREE(E_ks_t)
      !	
-     if(l_use_Hxc_collisions.or.l_pump_and_probe) then
-       YAMBO_FREE(dG_lesser)
-     endif
-     !
      if(l_use_Hxc_collisions) then
        YAMBO_FREE(RT_Vnl_xc)
+     endif
+     if(eval_dG.or.l_pump_and_probe) then
+       YAMBO_FREE(dG_lesser)
      endif
      !
    end subroutine NL_free
