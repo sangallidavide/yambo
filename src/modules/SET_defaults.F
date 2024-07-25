@@ -54,12 +54,12 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use descriptors,ONLY:IO_desc_reset
 #if defined _SLEPC && !defined _NL
  use BS_solvers, ONLY:BSS_slepc_extraction,BSS_slepc_ncv,BSS_slepc_tol,BSS_slepc_target_E,BSS_slepc_maxit,&
- &                    BSS_slepc_precondition,BSS_slepc_approach
+ &                    BSS_slepc_precondition,BSS_slepc_approach,BSS_slepc_matrix_format,BSS_slepc_mpd
 #endif
  use BS,         ONLY:BS_n_g_W,BS_eh_en,BS_identifier,BS_q,BS_eh_win,MAX_BSK_LIN_size,&
 &                     BS_K_dim,BS_not_const_eh_f,BSK_mode,l_BSE_kernel_complete,&
 &                     BS_K_is_ALDA,BSE_mode,BSE_prop,BSE_L_kind,BS_K_cutoff,BS_perturbative_SOC,BSK_IO_mode
- use TDDFT,      ONLY:FXC_type,FXC_n_g_corr,ALDA_cut_scheme,&
+ use TDDFT,      ONLY:FXC_type,FXC_n_g_corr,FXC_mode,&
 &                     FXC_per_memstps,FXC_LRC_alpha,FXC_PF_alpha,FXC_LRC_beta,FXC_SVD_digits,&
 &                     FXC_is_retarded,TDDFT_mode
  use ACFDT,      ONLY:ACFDT_n_lambda,ACFDT_n_freqs,ACFDT_E_range
@@ -79,7 +79,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 &                     l_SC_nl_mix,SC_kind,SC_perturbation,SC_desc,SC_neq_kind,SC_last_coh_it
 #endif
 #if defined _SC || defined _RT || defined _QED || defined _NL
- use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff,COLLISIONS_CV_only
+ use collision_ext,  ONLY:COLLISIONS_naming,COLLISIONS_cutoff,COLLISIONS_CV_only, &
+&                         COLLISIONS_load_SP,COLLISIONS_compr
  use hamiltonian,    ONLY:H_potential
 #endif
 #if defined _RT || defined _YPP_RT
@@ -102,8 +103,8 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  use plasma,     ONLY:PLASMA_redux_percent
 #endif
 #if defined _NL
- use nl_optics,  ONLY:NL_correlation,NL_er,n_frequencies,NL_damping,NL_LRC_alpha,         &
-&                     NL_verb_name,NL_bands,n_order,NL_desc
+ use nl_optics,  ONLY:NL_correlation,NL_er,n_frequencies,NL_damping,NL_LRC_alpha,NL_initial_versor,     &
+&                     NL_verb_name,NL_bands,NL_desc,n_angles,NL_rot_axis
  use fields,     ONLY:Efield,Efield_reset
 #endif
 #if defined _SC
@@ -440,7 +441,7 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  BSK_IO_mode='2D_standard'
  l_BSE_kernel_complete=.false.
  TDDFT_mode=' '
- ALDA_cut_scheme="none"
+ FXC_mode="G-def"
  BSS_Wd=cZERO
  l_drude=.false.
  BS_K_dim=0
@@ -473,11 +474,13 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  call IO_desc_reset(BSS_desc)
  !
 #if defined _SLEPC && !defined _NL
+ BSS_slepc_matrix_format='shell'
  BSS_slepc_approach='none'
  BSS_slepc_precondition='none'
  BSS_slepc_extraction='ritz'
  BSS_slepc_maxit=0
  BSS_slepc_ncv=0
+ BSS_slepc_mpd=0
  BSS_slepc_tol=1E-6_SP
  BSS_slepc_target_E=0._SP
 #endif
@@ -540,7 +543,14 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
 # else
  COLLISIONS_cutoff=0.0005_SP
 # endif
+ !
+#if defined _NL
+ COLLISIONS_cutoff=0.0005_SP
+#endif
+ !
  COLLISIONS_CV_only=.FALSE.
+ COLLISIONS_load_SP=.FALSE.
+ COLLISIONS_compr  =.FALSE.
  !
  H_potential="NONE"
  !
@@ -680,8 +690,10 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  NL_bands      =(/0,0/)
  NL_correlation="IPA"
  NL_er         =(/-1._SP,-1._SP/)/HA2EV
- n_frequencies =1
- n_order    = 0
+ n_frequencies =0
+ n_angles      =0
+ NL_rot_axis   =(/0._SP,0._SP,0._SP/)
+ NL_initial_versor=(/0._SP,0._SP,0._SP/)
  NL_damping    =0.2_SP/HA2EV
  NL_LRC_alpha  =0._SP
  !
