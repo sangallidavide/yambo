@@ -19,9 +19,7 @@ subroutine io_RT_components_G_lesser(ID,T_size)
 &                         NE_i_time,RT_dyn_step,RT_step,i_MEM_now,i_MEM_prev,i_MEM_old, &
 &                         H_EQ,l_RT_RWA,RTibz,Ho_plus_sigma
  use netcdf,         ONLY:NF90_UNLIMITED
-#if defined _PAR_IO
  use parallel_m,     ONLY:PAR_G_k_range
-#endif
  !
  implicit none
  !
@@ -38,16 +36,15 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  !
  ! Variables SIZE and strings...
  !-------------------------------
- VAR_SZ(1:4)=(/2,RT_nbands,RT_nbands,1/)
- dim_names(1:4)  =[character(schlen) :: 'complex', 'RT_nbands','RT_nbands','k_fragment']
- dim_name_ibz ='k_fragment'
- IPOS(1:4)=1
-#if defined _PAR_IO
+ VAR_SZ(1:3)=(/2,RT_nbands,RT_nbands/)
+ dim_names(1:3)  =[character(schlen) :: 'complex', 'RT_nbands','RT_nbands']
+ IPOS(1:3)=1
+ !
  VAR_SZ(4)    = RT_nk
  dim_names(4) ='RT_nk'
  IPOS(4)      =PAR_G_k_range(1)
  dim_name_ibz ='nkibz'
-#endif
+ !
  VAR_SZ(5)    = G_MEM_steps
  dim_names(5) ='G_MEM_steps'
  if (RT_do_IO("G_lesser_K_section")) then
@@ -59,12 +56,8 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  !----------
  i_sp_pol=1
  ik = maxval(io_sec(ID,:))-2
- k_range      =(/ik,ik/)
- G_IO_steps   =1
-#if defined _PAR_IO
  k_range      =PAR_G_k_range
  G_IO_steps   =Gless_RT_IO_t%INTERVAL_steps/nint(RT_dyn_step/RT_step)
-#endif
  ! 
  ! Variables...
  !--------------
@@ -72,13 +65,6 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  Sigma_var_name="Delta_Sigma"
  ROT_var_name="H_rotation"
  H_var_name="H_equilibrium"
-#if !defined _PAR_IO
- G_var_name="dG_lesser_K"//trim(intc(ik))//"_SP_POL"//trim(intc(i_sp_pol))
- ikibz=RTibz%k_map(ik)
- Sigma_var_name="Delta_Sigma_K"//trim(intc(ikibz))//"_SP_POL"//trim(intc(i_sp_pol))
- H_var_name="H_equilibrium_K"//trim(intc(ikibz))//"_SP_POL"//trim(intc(i_sp_pol))
- ROT_var_name="H_rotation_K"//trim(intc(ikibz))//"_SP_POL"//trim(intc(i_sp_pol))
-#endif
  ! 
  ! H_sig/H_rot...
  !----------------
@@ -92,15 +78,11 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  ! 
  ! Variable Definitions...
  !-------------------------
-#if defined _PAR_IO 
  if( NE_i_time==NE_i_start_time.or..not.l_real_time) then
-#endif
    call def_variable_bulk(ID,trim(G_var_name),4,VAR_SZ,SP,dim_names=dim_names,par_io_kind='collective',silent=.true.)
    if (l_H_sig) then
      TMP_VAR_SZ=1
-#if defined _PAR_IO 
      TMP_VAR_SZ=nkibz
-#endif
      call def_variable_bulk(ID,trim(Sigma_var_name),5,(/VAR_SZ(:3),TMP_VAR_SZ,VAR_SZ(5)/),SP,&
 &                           dim_names=(/dim_names(:3),dim_name_ibz,dim_names(5)/),par_io_kind='collective',silent=.true.)   
    endif
@@ -108,9 +90,7 @@ subroutine io_RT_components_G_lesser(ID,T_size)
 &                                      dim_names=dim_names(1:4),par_io_kind='collective',silent=.true.)
    if (l_H_EQ) call def_variable_bulk(ID,trim(H_var_name),7,VAR_SZ(1:4),SP,&
 &                                     dim_names=dim_names(1:4),par_io_kind='collective',silent=.true.)
-#if defined _PAR_IO 
  endif
-#endif
  !
  ! Variable I/O...
  !-----------------
@@ -139,13 +119,9 @@ subroutine io_RT_components_G_lesser(ID,T_size)
        if(.not.l_RT_RWA) Delta_Sigma(:,:,ikibz,1:1)=Ho_plus_sigma(:,:,ik,1:1)-H_EQ(:,:,ik,1:1)
      enddo
    endif
-#if defined _PAR_IO
    IPOS(4)=PAR_G_k_range_ibz(1)
-#endif
    call io_variable_bulk(ID,5,C4=Delta_Sigma,IPOS=IPOS)
-#if defined _PAR_IO
    IPOS(4)=PAR_G_k_range(1)
-#endif
    if(read_is_on(ID)) then
      do ip=PAR_G_k_range_ibz(1),PAR_G_k_range_ibz(2)
        ikibz=RTibz%k_map(ip)

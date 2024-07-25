@@ -80,6 +80,10 @@ subroutine RT_driver(E,X,k,q,Dip)
 if (l_phel_scatt)                   sec_title=trim(sec_title)//'+ph-el'
 #endif
  !
+#if !defined _PAR_IO
+ call error("Serial I/O removed from yambo_rt. Parallel I/O is mandatory.")
+#endif
+ !
  ! Potential
  !===========
  call XC_potentials(H_potential)

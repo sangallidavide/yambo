@@ -16,8 +16,10 @@ subroutine io_RT_components_OBS(ID,what)
  use RT_control,  ONLY:J_cache,P_cache,Ms_cache,Ml_cache,A_cache,CPH_cache,&
 &                      CACHE_OBS_steps_now,OBS_RT_IO_t,RT_do_IO
 #if defined _ELPH
- use drivers,     ONLY:l_rt_coh_phon
- use ELPH,        ONLY:elph_branches
+ use IO_int,       ONLY:io_connect,io_disconnect
+ use real_time,    ONLY:RT_coh_phonons
+ use drivers,      ONLY:l_rt_coh_phon
+ use ELPH,         ONLY:elph_branches
 #endif
  !
 #include<memory.h>
@@ -25,7 +27,7 @@ subroutine io_RT_components_OBS(ID,what)
  integer,      intent(in) :: ID
  character(*), intent(in) :: what
  !
- integer           :: VAR_SZ(4),CACHE_SZ,IPOS
+ integer           :: VAR_SZ(4),CACHE_SZ,IPOS,io_restart
  character(schlen) :: dim_names(4)
  !
  select case(WHAT)
@@ -72,7 +74,6 @@ subroutine io_RT_components_OBS(ID,what)
    else if(read_is_on(ID)) then
      CACHE_SZ=CACHE_OBS_steps_now
      IPOS    =1
-     write(*,*) "CACHE_SZ= ",CACHE_SZ
    endif
    !
    if (RT_do_IO("JP")) then
@@ -93,6 +94,18 @@ subroutine io_RT_components_OBS(ID,what)
    if(l_rt_coh_phon) then
      call io_variable_bulk(ID,9,R3=CPH_cache(:,:,1:CACHE_SZ),IPOS=(/1,1,IPOS/))
    endif
+   !
+  case('RESTART')
+   !
+   io_restart=io_connect(desc="RT_OBSERVABLES",type=2,ID=ID)
+   VAR_SZ(1:3)    = (/elph_branches(2)-elph_branches(1)+1,2,NF90_UNLIMITED/)
+   dim_names(1:3) = [character(schlen) :: 'branch','xp','time']
+   IPOS           = OBS_RT_IO_t%N
+   call def_variable_bulk(ID,"Coh_Phonons",9,VAR_SZ(1:3),SP,dim_names=dim_names(1:3),silent=.true.)
+   call io_variable_bulk(ID,9,R3=CPH_cache(:,:,1:1),IPOS=(/1,1,IPOS/))
+   RT_coh_phonons(:,:)=CPH_cache(:,:,1)
+   call io_disconnect(ID=ID)
+   !
 #endif
    !
  end select

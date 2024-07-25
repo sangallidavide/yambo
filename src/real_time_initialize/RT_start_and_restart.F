@@ -178,16 +178,8 @@ subroutine RT_start_and_restart(E,k,q)
    !
    i_db=RT_return_db_ID("G_lesser_RESTART_K_section")
    !
-#if defined _PAR_IO
    call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/3/),MODE=DUMP,ID=RT_DB_ID(i_db))
    io_err(i_db)=io_RT_components('G_lesser_RESTART_K_section',RT_DB_ID(i_db))
-#else
-   do ik=PAR_G_k_range(1),PAR_G_k_range(2)
-     IO_ACT=manage_action(OP_IF_START_RD_CL_IF_END,ik,PAR_G_k_range(1),PAR_G_k_range(2))
-     call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/ik+2/),MODE=DUMP,ID=RT_DB_ID(i_db))
-     io_err(i_db)=io_RT_components('G_lesser_RESTART_K_section',RT_DB_ID(i_db))
-   enddo
-#endif
    !
    ! The G_lesser must be now rebuild from the reference (T=0) and latest dG components
    !
@@ -196,7 +188,11 @@ subroutine RT_start_and_restart(E,k,q)
    enddo
    !
 #if defined _ELPH
-   if(l_rt_coh_phon) call error("Restart not working with coherent phonons")
+   if(l_rt_coh_phon) then
+     i_db=RT_return_db_ID("OBSERVABLES")
+     call io_control(ACTION=OP_RD_CL,COM=NONE,SEC=(/3/),MODE=DUMP,ID=RT_DB_ID(i_db))
+     call io_RT_components_OBS(RT_DB_ID(i_db),'RESTART')
+   endif
 #endif
    !
 #if defined _ELPH_ITERATIVE

@@ -73,7 +73,7 @@ integer function io_RT_components(what,ID)
  !
  ! Work Space
  character(schlen)     ::db_name
- integer               ::ik,db_kind,T_size,G_IO_steps,ID_frag
+ integer               ::ik,db_kind,T_size,G_IO_steps
  logical               ::loading_carr_before_neq
  integer, external     ::variables_RT_dynamic
  !
@@ -164,16 +164,6 @@ integer function io_RT_components(what,ID)
  !
  ! 3rd SECTION
  !=============
- if (RT_do_IO("K_SECTION")) then
-#if defined _PAR_IO
-   ID_frag=ID
-#else
-   ! === deal with K-fragments ===
-   ik = max(1,maxval(io_sec(ID,:))-2)
-   call io_fragment(ID,ID_frag,i_fragment=ik)
-#endif
- endif
- !
 #if defined _ELPH_ITERATIVE
  !
  ! ELPH Kernel THETA Matrix 
@@ -182,15 +172,15 @@ integer function io_RT_components(what,ID)
    !
    ! This should be replaced by call THETA_IO
    !
-   call def_variable_bulk(ID_frag,"RT_THETA_K"//trim(intc(ik)),4,(/2,2*nqbz*ph_modes,RT_nbands,RT_nbands/),SP)
-   call  io_variable_bulk(ID_frag,4,C3=THETA_matrix(:,:,:,ik))
+   call def_variable_bulk(ID,"RT_THETA_K"//trim(intc(ik)),4,(/2,2*nqbz*ph_modes,RT_nbands,RT_nbands/),SP)
+   call  io_variable_bulk(ID,4,C3=THETA_matrix(:,:,:,ik))
  endif
  !
 #endif
  !
  ! Lesser Green Function
  !=======================
- if (RT_do_IO("ANY_G")) call io_RT_components_G_lesser(ID_frag,T_size)
+ if (RT_do_IO("ANY_G")) call io_RT_components_G_lesser(ID,T_size)
  !
  ! Carrier components
  !====================
@@ -212,9 +202,6 @@ integer function io_RT_components(what,ID)
  !
  ! End
  !=====
-#if !defined _PAR_IO
- if (RT_do_IO("K_SECTION")) call io_fragment_disconnect(ID,ID_frag)
-#endif
 1 call io_disconnect(ID=ID)
  call timing('io_RT_components',OPR='stop')
  !
