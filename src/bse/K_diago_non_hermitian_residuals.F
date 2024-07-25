@@ -23,7 +23,7 @@ subroutine K_diago_non_hermitian_residuals(BS_E,BS_R_left,BS_R_right,BS_V_left,B
  use parallel_int,   ONLY:PP_redux_wait,PARALLEL_index 
  use LIVE_t,         ONLY:live_timing
  use X_m,            ONLY:global_gauge
- use BS,             ONLY:BS_H_dim
+ use BS,             ONLY:BS_H_dim,l_BS_res_from_E,BS_not_const_eh_f
  use BS_solvers,     ONLY:BSS_dipoles_opt,BSS_eh_E,BSS_eh_Z,BSS_eh_f,BSS_n_eig
  !
  implicit none
@@ -40,6 +40,9 @@ subroutine K_diago_non_hermitian_residuals(BS_E,BS_R_left,BS_R_right,BS_V_left,B
  !
  complex(SP) :: tmp_res(BS_H_dim)
  complex(SP) :: BS_R_tmp(BSS_n_eig)       
+ !
+ if (l_BS_res_from_E.and.BS_not_const_eh_f) &
+ & call error(" To be fixed, since sqrt of BSS_eh_f takes a conjg and it should not")
  !
  call PP_indexes_reset(px)
  call PARALLEL_index(px,(/BSS_n_eig/))

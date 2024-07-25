@@ -21,7 +21,7 @@ subroutine K_diago_hermitian_residuals(i_BS_mat,BS_E_real,BS_R_left,BS_R_right)
  use X_m,            ONLY:global_gauge
  use BS_solvers,     ONLY:BSS_dipoles_opt,BSS_eh_E,BSS_eh_Z,BSS_eh_f_RES,&
                           BS_mat,BSS_n_eig
- use BS,             ONLY:BS_K_dim, l_BS_res_from_E
+ use BS,             ONLY:BS_K_dim,l_BS_res_from_E,BS_not_const_eh_f
  !
  implicit none
  !
@@ -35,7 +35,8 @@ subroutine K_diago_hermitian_residuals(i_BS_mat,BS_E_real,BS_R_left,BS_R_right)
  integer              ::i_lambda,i_range(2)
  complex(SP)          ::tmp_res(BS_K_dim(i_BS_mat))
  !
- if (l_BS_res_from_E) call error(" Not coded, since sqrt of BSS_eh_f takes a conjg and it should not")
+ if (l_BS_res_from_E.and.BS_not_const_eh_f) &
+ & call error(" To be fixed, since sqrt of BSS_eh_f takes a conjg and it should not")
  !
  call PP_indexes_reset(px)
  call PARALLEL_index(px,(/BSS_n_eig/))

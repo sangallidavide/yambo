@@ -15,7 +15,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
  use BS,           ONLY:BS_not_const_eh_f,BS_perturbative_SOC,BS_eh_en,&
                         l_BS_magnons,l_BS_photolum,l_BS_res_from_E
 #if defined _RT
- use drivers,      ONLY:l_rt_carriers_in_use
+ use drivers,      ONLY:l_rt_carriers_in_use,l_rpa_IP
  use RT_control,   ONLY:NEQ_Residuals,NEQ_Kernel,EQ_Transitions,EQ_NoOcc
 #endif
  !
@@ -143,7 +143,7 @@ logical function K_Transition_check(Ken,Dip,iq,ik,ikp,iv,ic,i_sp_c,i_res_ares,&
 #if defined _RT
  !
  ! In case of population inversion, it may be problematic if f_eh>0. and f_eh_RES<0.
- if ( f_eh_REF*f_eh<0._SP .or. f_eh_REF*f_eh_RES<0._SP ) then
+ if ( (f_eh_REF*f_eh<0._SP .or. f_eh_REF*f_eh_RES<0._SP) .and. .not.l_rpa_IP) then
     call error(' I cannot split the R and K BSE contribution.'//&
 &              ' ACTION: Use the same occupations in K and R.')
  endif
