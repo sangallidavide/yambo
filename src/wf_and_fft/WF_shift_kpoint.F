@@ -48,7 +48,7 @@ subroutine DEV_SUB_ALT(WF_shift_kpoint)(b_to_shift,ikbz,i_sp_pol,wf_shift,Xk,WF_
      g0_idx_val=k_map%g0_idx(id,WF_shift(id))
      !
 #if defined _CUDA
-     !$cuf kernel do(4) <<<*,*>>>
+     !$cuf kernel do(3) <<<*,*>>>
 #endif
      do i_b=b_to_shift(1),b_to_shift(2)
      do i_spinor=1,n_spinor

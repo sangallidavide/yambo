@@ -10,7 +10,7 @@ subroutine DEV_SUB_ALT(WF_symm_kpoint)(b_to_load,ikbz,i_sp_pol,Xk,WF_k_out)
  ! INCLUDED in: WF_symm_kpoint_incl.F 
  !
  use pars,          ONLY:SP,cZERO
- use electrons,     ONLY:n_spinor
+ use electrons,     ONLY:n_sp_pol,n_spinor
  use wave_func,     ONLY:WF,wf_ng,wf_ng_1st_BZ
  use R_lattice,     ONLY:bz_samp,DEV_VAR(g_rot)
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),i_time_rev,nsym
@@ -36,47 +36,48 @@ subroutine DEV_SUB_ALT(WF_symm_kpoint)(b_to_load,ikbz,i_sp_pol,Xk,WF_k_out)
  !
  if(is==idt_index) then
    !  
-   do ib=b_to_load(1),b_to_load(2)
-     !
-     iwf=WF%index(ib,ik,i_sp_pol)
-     call dev_memcpy(WF_k_out(:wf_ng,:,ib),DEV_VAR(WF%c)(:,:,iwf))
-     !
-   enddo
+     do ib=b_to_load(1),b_to_load(2)
+       !
+       iwf=WF%index(ib,ik,i_sp_pol)
+       call dev_memcpy(WF_k_out(:wf_ng,:,ib),DEV_VAR(WF%c)(:,:,iwf))
+       !
+     enddo
    !
  else
    !
-   do ib=b_to_load(1),b_to_load(2)
-     !
-     iwf=WF%index(ib,ik,i_sp_pol)
-     !
-     if (n_spinor==1) then
+     do ib=b_to_load(1),b_to_load(2)
        !
+       iwf=WF%index(ib,ik,i_sp_pol)
+       !
+       if (n_spinor==1) then
+         !
 #ifdef _CUDA_LOC
-       !$cuf kernel do(2) <<<*,*>>>
+         !$cuf kernel do(2) <<<*,*>>>
 #endif
-       do i_spinor=1,n_spinor
-       do i_g=1,wf_ng
-         WF_k_out(DEV_VAR(g_rot)(i_g,is),i_spinor,ib)=WF_p(i_g,i_spinor,iwf)
-       enddo
-       enddo
-       !
-     else
-       !
+         do i_spinor=1,n_spinor
+         do i_g=1,wf_ng
+           WF_k_out(DEV_VAR(g_rot)(i_g,is),i_spinor,ib)=WF_p(i_g,i_spinor,iwf)
+         enddo
+         enddo
+         !
+       else
+         !
 #ifdef _CUDA_LOC
          !$cuf kernel do(1) <<<*,*>>>
 #endif
-       do i_g=1,wf_ng
-         WF_k_out(DEV_VAR(g_rot)(i_g,is),1,ib)=DEV_VAR(spin_sop)(1,1,is)*WF_p(i_g,1,iwf)+ &
-&                                                         DEV_VAR(spin_sop)(1,2,is)*WF_p(i_g,2,iwf)
-         WF_k_out(DEV_VAR(g_rot)(i_g,is),2,ib)=DEV_VAR(spin_sop)(2,1,is)*WF_p(i_g,1,iwf)+ &
-&                                                         DEV_VAR(spin_sop)(2,2,is)*WF_p(i_g,2,iwf)
-       enddo
-     endif
-     !
-   enddo
+         do i_g=1,wf_ng
+           WF_k_out(DEV_VAR(g_rot)(i_g,is),1,ib)=DEV_VAR(spin_sop)(1,1,is)*WF_p(i_g,1,iwf)+ &
+&                                                DEV_VAR(spin_sop)(1,2,is)*WF_p(i_g,2,iwf)
+           WF_k_out(DEV_VAR(g_rot)(i_g,is),2,ib)=DEV_VAR(spin_sop)(2,1,is)*WF_p(i_g,1,iwf)+ &
+&                                                DEV_VAR(spin_sop)(2,2,is)*WF_p(i_g,2,iwf)
+         enddo
+       endif
+       !
+     enddo
    !
    if(is>nsym/(1+i_time_rev)) call dev_conjg(WF_k_out)
    !
  endif
  !
 end subroutine DEV_SUB_ALT(WF_symm_kpoint)
+
