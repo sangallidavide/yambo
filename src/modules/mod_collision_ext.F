@@ -33,6 +33,7 @@ module collision_ext
  logical :: COLLISIONS_HXC_MB=.FALSE.
  logical :: COLLISIONS_HXC_use_TDDFT=.FALSE.
  logical :: COLLISIONS_CV_only=.FALSE.
+ logical :: COLLISIONS_from_BSE=.FALSE.
  logical :: COLLISIONS_load_SP=.FALSE.  ! Force loading of collision in single precision
  logical :: COLLISIONS_compr  =.FALSE. ! If parallel-io is used collisions in memory are compressed
  !

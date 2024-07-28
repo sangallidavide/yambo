@@ -30,7 +30,7 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
  use wave_func,      ONLY:WF
  use hamiltonian,    ONLY:H_potential,H_kind
  use global_XC,      ONLY:QP_SE_GW_NEQ,QP_SE_GW_QED
- use collision_ext,  ONLY:COLLISIONS_parallel_SC_structure,COLLISIONS_group,&
+ use collision_ext,  ONLY:COLLISIONS_parallel_SC_structure,COLLISIONS_group,COLLISIONS_from_BSE,&
 &                        COH_collisions,HXC_collisions,P_collisions,GW_NEQ_collisions,COLLISIONS_naming
  use X_m,            ONLY:X_t
  use plasma,         ONLY:EH_gas
@@ -129,7 +129,9 @@ subroutine COLLISIONS_eval(E,X,k,xk,q,Xw)
    if(l_use_Hxc_collisions) call CHECK_and_ALLOC(HXC_collisions)
    if(l_use_COH_collisions) call CHECK_and_ALLOC(COH_collisions)
    !
-   if (l_use_Hxc_collisions) then
+   if (.not.COLLISIONS_from_BSE) IO_err_BS=-1
+   !
+   if (l_use_Hxc_collisions.and.COLLISIONS_from_BSE) then
      !
      ! Check if I can use the BSE kernel for the collisions
      !
