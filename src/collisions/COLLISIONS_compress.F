@@ -41,7 +41,8 @@ subroutine COLLISIONS_compress(COLL)
  !
  ic=0
  !
- COLL%table='t'
+ COLL%table='f'
+ !
  do i_kmq=1,nXkibz
    do ibp=COLL_bands(1),COLL_bands(2)
      do ib=COLL_bands(1),COLL_bands(2)
@@ -51,10 +52,10 @@ subroutine COLLISIONS_compress(COLL)
        !    
        ic=ic+1
        !
-       if(l_coll_SP)      COLL%v3_c(ib,ibp,i_kmq)=cmplx(COLL%v_c_SP(ic),kind=SP)
-       if(.not.l_coll_SP) COLL%v3_c(ib,ibp,i_kmq)=COLL%v_c(ic)
+       if(     l_coll_SP) COLL%v3_c(ib,ibp,i_kmq)=cmplx(COLL%v_c_SP(ic),kind=SP)
+       if(.not.l_coll_SP) COLL%v3_c(ib,ibp,i_kmq)=      COLL%v_c(ic)
        !
-       if(abs(COLL%v3_c(ib,ibp,i_kmq))<COLLISIONS_max*COLLISIONS_cutoff)  COLL%table(ib,ibp,i_kmq)='f'
+       if(abs(COLL%v3_c(ib,ibp,i_kmq))>=COLLISIONS_max*COLLISIONS_cutoff) COLL%table(ib,ibp,i_kmq)='t'
        !
      enddo
    enddo

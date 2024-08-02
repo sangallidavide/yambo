@@ -32,6 +32,7 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
 &                         l_pump_and_probe,eval_OSCLL,l_test_OSCLL,LSEX,LHF,Sigma_SEX_EQ
  use real_time,      ONLY:RT_step,NE_steps,NE_i_time,NE_time,RT_nbands,RT_bands, &
                           eval_DFT,eval_HARTREE,RT_P,RT_ind_J
+ use RT_control,     ONLY:RT_NAN_found
  use IO_m,           ONLY:io_COLLs
  use parallel_int,   ONLY:PARALLEL_global_indexes,PARALLEL_WF_distribute,PARALLEL_WF_index
  use parallel_m,     ONLY:PAR_IND_freqs,PAR_IND_freqs_ID,PAR_IND_Xk_ibz,PAR_Xk_ibz_index
@@ -339,7 +340,7 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
      !
      call live_timing(steps=1)
      !
-     l_dynamics_is_over= (NE_i_time>=NE_steps) .or. stop_now(.false.)
+     l_dynamics_is_over= (NE_i_time>=NE_steps) .or. stop_now(.false.) .or. RT_NAN_found
      !
    enddo
    !

@@ -545,9 +545,9 @@ subroutine SET_defaults(INSTR,IND,OD,COM_DIR)
  COLLISIONS_cutoff=0.0005_SP
 # endif
  !
-#if defined _NL
+# if defined _NL
  COLLISIONS_cutoff=0.0005_SP
-#endif
+# endif
  !
  COLLISIONS_CV_only=.FALSE.
  COLLISIONS_load_SP=.FALSE.

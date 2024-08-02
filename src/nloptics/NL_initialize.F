@@ -61,6 +61,7 @@ subroutine NL_initialize(E,k)
  call parser('SaveVbhistory',        SAVE_Vb_history)
  call parser('VelGaugeNoDiam',       l_velocity_gauge_tmp)
  call parser('NoComprCOLL',          l_no_compress_COLL)
+ call parser('UseDipoles',           l_use_DIPOLES)
  !
  l_velocity_gauge_corr=.false.
  l_velocity_gauge_diam=.not.l_velocity_gauge_tmp
