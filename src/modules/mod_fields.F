@@ -258,25 +258,21 @@ module fields
      do i_field=1,n_fields
        do i_fr=1,n_freqs
          !
+         W_field=field_frequency(E_field,i_fr)
+         if(W_field> 0._SP) W_field_m1=1._SP/W_field
+         if(W_field==0._SP) W_field_m1=0._SP
+         der_fac=W_field+2._SP*c_sigma_chirp*(Tloc-T_0)
+         !
+         ! The frequency shift is applied in two cases
+         ! (i n_fields=2) to have a circular polarized pulse, and
+         WtimesT=W_field*(Tloc-T_0)+fr_shift(i_field)
+         ! each frequency has a different initial phase
+         if(l_multi_phase) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
+         if(chirp>0._SP) WtimesT=WtimesT+c_sigma_chirp*(Tloc-T_0)**2._SP
+         !
          if (envelop_only_) then
-           W_field=0._SP
-           W_field_m1=0._SP
-           der_fac=0._SP
-           WtimesT=fr_shift(i_field)
            f0t=cONE ; f1t=cONE
          else
-           W_field=field_frequency(E_field,i_fr)
-           if(W_field> 0._SP) W_field_m1=1._SP/W_field
-           if(W_field==0._SP) W_field_m1=0._SP
-           der_fac=W_field+2._SP*c_sigma_chirp*(Tloc-T_0)
-           !
-           ! The frequency shift is applied in two cases
-           ! (i n_fields=2) to have a circular polarized pulse, and
-           WtimesT=W_field*(Tloc-T_0)+fr_shift(i_field)
-           ! each frequency has a different initial phase
-           if(l_multi_phase) WtimesT=WtimesT+(i_fr-1)/real(n_freqs-1,SP)*(fr_shift(mod(i_field,2)+1)-fr_shift(i_field))
-           if(chirp>0._SP) WtimesT=WtimesT+c_sigma_chirp*(Tloc-T_0)**2._SP
-           !
            ! CONTROL RES / ANTIRES case
            cos_wt=cos(WtimesT) ; sin_wt=sin(WtimesT); exp_iwt=cos_wt+cI*sin_wt
            ! f1t=-f0t'
