@@ -66,11 +66,6 @@ subroutine NL_initialize(E,k)
  l_velocity_gauge_corr=.false.
  l_velocity_gauge_diam=.not.l_velocity_gauge_tmp
  !
- COLLISIONS_load_SP =.not.l_no_compress_COLL
- COLLISIONS_compr   =.not.l_no_compress_COLL
- !
- if (.not.l_eval_CURRENT) l_eval_CURRENT= trim(global_gauge)=="current"
- !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')
  !
