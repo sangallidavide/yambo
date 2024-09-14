@@ -386,6 +386,7 @@ module fields
            if (order==2 ) f_now=(-der_fac*f1t-f1t/sigma**2                           &
                           &             -der_fac*(T-T_0)*f1t/sigma**2                    &
                           &             -(T-T_0)*(der_fac*f0t-(T-T_0)*f1t/sigma**2)/sigma**2)*EXPf
+	   f_now=f_now/der_fac
            !
          case('PULSE')
            if (chirp>0._SP) call error("chirp not implemented with "//trim(field_defs(1)))
