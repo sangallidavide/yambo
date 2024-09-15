@@ -29,7 +29,8 @@ subroutine RT_Ext_fields(A,time,i_f)
  use units,          ONLY:SPEED_OF_LIGHT,FS2AUT
  use real_time,      ONLY:RT_dyn_step,NE_i_time
  use functions,      ONLY:theta_function
- use fields,         ONLY:Efield,small_a,gauge_field,A_vecpot_reset,&
+ use fields_int,     ONLY:small_a
+ use fields,         ONLY:Efield,gauge_field,A_vecpot_reset,&
 &                         compute_envelop,compute_intensity
  !
  implicit none

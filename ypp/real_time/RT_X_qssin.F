@@ -12,7 +12,8 @@ subroutine RT_X_qssin
  use units,          ONLY:HA2EV,SVCMm12VMm1,AU2VMm1
  use com,            ONLY:error
  use RT_control,     ONLY:RT_output
- use fields,         ONLY:Efield,small_a
+ use fields,         ONLY:Efield
+ use fields_int,     ONLY:small_a
  use functions,      ONLY:theta_function
  use LIVE_t,         ONLY:live_timing
  !

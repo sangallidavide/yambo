@@ -98,7 +98,8 @@ subroutine RT_Field_t_to_w(i_field)
  !
  use units,          ONLY:FS2AUT
  use pars,           ONLY:SP,schlen
- use fields,         ONLY:Efield,small_a
+ use fields_int,     ONLY:small_a
+ use fields,         ONLY:Efield
  use YPP_real_time,  ONLY:RT_conf,ElField,RT_time
  !
  implicit none

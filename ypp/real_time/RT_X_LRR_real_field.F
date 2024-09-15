@@ -19,7 +19,8 @@ subroutine RT_X_LRR_real_field(en)
  use vec_operate,    ONLY:v_norm
  use RT_control,     ONLY:RT_output
  use real_time,      ONLY:l_RT_induced_field
- use fields,         ONLY:Efield,small_a_frequency,small_a
+ use fields,         ONLY:Efield
+ use fields_int,     ONLY:small_a_frequency,small_a
  use com,            ONLY:of_open_close,msg
  use functions,      ONLY:theta_function
  use parser_m,       ONLY:parser
