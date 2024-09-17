@@ -17,6 +17,5 @@
  RT_build_T1_and_T2.o
  RT_occupations_eval.o
  RT_propagate_fields.o
- RT_small_a.o
  RT_time_step_update.o
 
