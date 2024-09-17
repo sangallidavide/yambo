@@ -16,5 +16,6 @@
  RT_apply_RWA.o
  RT_occupations_eval.o
  RT_propagate_fields.o
+ RT_small_a.o
  RT_time_step_update.o
 
