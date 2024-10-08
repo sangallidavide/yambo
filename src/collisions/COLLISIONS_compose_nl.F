@@ -30,12 +30,25 @@ subroutine COLLISIONS_compose_nl(G_in)
  integer           :: i_coll,ib,ibp,i_k,i_k_NL,i_kmq,i_comp,i_coll_mem,i_spin
  integer           :: i_n,i_m
  complex(SP)       :: COLL
+ logical           :: do_collisions(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2)),coll_sp
  !
  if(.not.l_sc_fock.and..not.l_sc_coh.and..not.l_sc_sex.and..not.l_sc_exx.and..not.l_sc_hartree) return
  !
 #if defined _TIMING
  call timing('NL COLL_compose',OPR='start')
 #endif
+ !
+ do_collisions=.false.
+ coll_sp=COLLISIONS_load_SP
+ !
+ do ibp=COLL_bands(1),COLL_bands(2)
+   do ib=COLL_bands(1),COLL_bands(2)
+     if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp>maxval(n_met_bands) )  ) cycle
+     if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
+     if ( .not. HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=="t") cycle
+     do_collisions(ib,ibp)=.true.
+   enddo
+ enddo
  !
  RT_Vnl_xc=cZERO
  !
@@ -58,18 +71,17 @@ subroutine COLLISIONS_compose_nl(G_in)
       do ibp=COLL_bands(1),COLL_bands(2)
        do ib=COLL_bands(1),COLL_bands(2)
          !
-         if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp> maxval(n_met_bands) ) ) cycle
-         if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
+         if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='f') cycle
          !
-         if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=="t") then
-           if(COLLISIONS_load_SP) then
-             COLL=cmplx(HXC_COLL_element(i_coll_mem)%v_c_SP(i_comp),kind=SP)
-           else
-             COLL=cmplx(HXC_COLL_element(i_coll_mem)%v_c(i_comp),kind=SP)
-           endif
-           RT_Vnl_xc(i_n,i_m,i_k_NL,i_spin)=RT_Vnl_xc(i_n,i_m,i_k_NL,i_spin)-cI*COLL*G_in(ib,ibp,i_kmq)
-           i_comp=i_comp+1
+	 if ( .not.do_collisions(ib,ibp) ) cycle
+	 !
+         if(coll_sp) then
+           COLL=cmplx(HXC_COLL_element(i_coll_mem)%v_c_SP(i_comp),kind=SP)
+         else
+           COLL=cmplx(HXC_COLL_element(i_coll_mem)%v_c(i_comp),kind=SP)
          endif
+         RT_Vnl_xc(i_n,i_m,i_k_NL,i_spin)=RT_Vnl_xc(i_n,i_m,i_k_NL,i_spin)-cI*COLL*G_in(ib,ibp,i_kmq)
+         i_comp=i_comp+1
          !
        enddo
      enddo
