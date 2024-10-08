@@ -72,8 +72,8 @@ subroutine COLLISIONS_compose_nl(G_in)
          !
          if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='f') cycle
          !
-	 if ( .not.do_collisions(ib,ibp) ) cycle
-	 !
+         if ( .not.do_collisions(ib,ibp) ) cycle
+         !
          if(coll_sp) then
            COLL=cmplx(HXC_COLL_element(i_coll_mem)%v_c_SP(i_comp),kind=SP)
          else
