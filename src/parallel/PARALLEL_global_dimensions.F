@@ -90,7 +90,9 @@ subroutine PARALLEL_global_dimensions(E,Xk,q,ENVIRONMENT)
 #if defined _PHEL
  if (ENVIRONMENT=="Phonon_Self_Energy")        PAR_Q_ibz_range=PH_Q
 #endif
+ !
  if (ENVIRONMENT=="Self_Energy"       ) then
+   PAR_n_G_vectors= X_ng
 #if defined _SC
    if (l_sc_run.and.&
 &      any( (/P_collisions%N,COH_collisions%N,HXC_collisions%N/)> 0))  &
@@ -153,6 +155,11 @@ subroutine PARALLEL_global_dimensions(E,Xk,q,ENVIRONMENT)
  ! QP states
  !-----------
  if (ENVIRONMENT=="Self_Energy"                     ) PAR_QP_range=QP_n_states
+ !
+ ! Oscillators
+#if defined _NL || defined _RT
+ if (ENVIRONMENT=="Oscillators"                     ) PAR_n_bands =COLL_bands
+#endif
  !
 #if defined _NL
  if (ENVIRONMENT=="Non_Linear"                      ) PAR_n_freqs =n_runs

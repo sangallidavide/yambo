@@ -7,7 +7,7 @@
 !
 module memory
  !
- use pars,          ONLY:SP,schlen,IP,IPL,DP,LP,N_MEM_max,N_MEM_SAVE_max,&
+ use pars,          ONLY:SP,schlen,IP,IPL,DP,LP,SP6,N_MEM_max,N_MEM_SAVE_max,&
 &                        N_MEM_shelf_max,N_MEM_LIBs_max,N_MEM_max_element_components
  use openmp,        ONLY:master_thread
  use iso_c_binding, ONLY:c_int
@@ -93,6 +93,8 @@ module memory
 #ifndef _DOUBLE
 &                             MEM_rd1, MEM_rd2, MEM_rd3, MEM_rd4, MEM_rd5,                  &
 &                             MEM_cd1, MEM_cd2, MEM_cd3, MEM_cd4, MEM_cd5, MEM_cd6,         &
+#else
+                              MEM_c1_s,                                                     &
 #endif
 &                             MEM_l1,  MEM_l2,  MEM_l3,  MEM_l4,  MEM_l5,  MEM_l6,          &
 &                             MEM_lp1,          MEM_lp3,                                    &
@@ -348,7 +350,9 @@ module memory
    subroutine MEM_c3(name,c)
      character(*)::name
      complex(SP) ::c(:,:,:)
-     call MEM_manager_alloc(name,size(c,KIND=IPL),2*kind(c(1,1,1)),HOST_)
+     integer(IPL) ::Sz 
+     Sz = size(c,1,KIND=IPL)*size(c,2,KIND=IPL)*size(c,3,KIND=IPL)
+     call MEM_manager_alloc(name,Sz,2*kind(c(1,1,1)),HOST_)
    end subroutine
    subroutine MEM_c4(name,c)
      character(*)::name
@@ -365,6 +369,13 @@ module memory
      complex(SP) ::c(:,:,:,:,:,:)
      call MEM_manager_alloc(name,size(c,KIND=IPL),2*kind(c(1,1,1,1,1,1)),HOST_)
    end subroutine
+#ifdef _DOUBLE
+   subroutine MEM_c1_s(name,c)
+     character(*)::name
+     complex(SP6) ::c(:)
+     call MEM_manager_alloc(name,size(c,KIND=IPL),2*kind(c(1)),HOST_)
+   end subroutine
+#endif
 #ifndef _DOUBLE
    subroutine MEM_cd1(name,c)
      character(*)::name
