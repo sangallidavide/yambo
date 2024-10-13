@@ -91,7 +91,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
    enddo
  endif
  !
- call build_inverse_eh_table(Xk%nbz)
+ call build_inverse_BS_eh_table(Xk%nbz)
  !
  ! Exciton part
  !

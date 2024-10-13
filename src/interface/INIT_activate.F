@@ -105,7 +105,8 @@ subroutine INIT_activate()
  if (l_nl_optics) then
    call CPU_activate("NL")
    call CPU_activate("DIP")
-   call initactivate(1,'DIP_Threads NL_Threads')
+   call CPU_activate("OSCLL")
+   call initactivate(1,'DIP_Threads NL_Threads OSCLL_Threads')
  endif
 #endif
  !
@@ -123,7 +124,7 @@ subroutine INIT_activate()
  !
  !Setup
  !
- if (l_setup) call initactivate(1,'MaxGvecs Gthresh K_grids IkSigLim IkXLim NoDiagSC')
+ if (l_setup) call initactivate(1,'MaxGvecs Gthresh K_grids IkSigLim IkXLim NoDiagSC EvalMagn')
 #if defined  _ELPH 
  if (l_setup) call initactivate(1,'BSEscatt')
 #endif
@@ -149,7 +150,7 @@ subroutine INIT_activate()
  !
  ! Kernels
  !
- if (l_em1s.or.l_em1d.or.l_X)      call initactivate(1,'Chimod ChiLinAlgMod')
+ if (l_em1s.or.l_em1d.or.l_X.or.l_mpa)      call initactivate(1,'Chimod ChiLinAlgMod')
  if (l_optics.and.l_chi)           call initactivate(1,'Chimod ChiLinAlgMod')
  if (l_optics.and.l_bse)           call initactivate(1,'BSKmod BSEmod Lkind')
  if (l_optics.and.l_bse.and.l_bss) call initactivate(1,'BSSmod')
@@ -168,7 +169,7 @@ subroutine INIT_activate()
    if(l_bs_fxc) call initactivate(1,'FxcGRLc FxcSVdig FxcRetarded')
    !
    ! ALDA/LRC Tddft
-   if (l_alda_fxc) call initactivate(1,'FxcGRLc FxcLibxc FxcCutScheme UseNLCC')
+   if (l_alda_fxc) call initactivate(1,'FxcGRLc FxcLibxc FxcMode UseNLCC')
    if (l_lrc_fxc)  call initactivate(1,'LRC_alpha LRC_beta')
    if (l_pf_fxc)   call initactivate(1,'PF_alpha')
    !
@@ -206,7 +207,7 @@ subroutine INIT_activate()
    !
    ! Dipoles & Gauges
    !
-   call initactivate(1,'DipApproach DipComputed DipPDirect ShiftedPaths Gauge AnHall')
+   call initactivate(1,'DipApproach DipComputed DipPDirect ShiftedPaths Gauge')
    !
  endif
  !
@@ -220,7 +221,7 @@ subroutine INIT_activate()
    if(l_td_hf.or.l_td_sex) call initactivate(1,'BSENGBlk')
    if(l_td_sex)            call initactivate(1,'WehDiag WehCpl')
    if(l_alda_fxc) then
-     call initactivate(1,'BSENGfxc FxcLibxc FxcCutScheme')
+     call initactivate(1,'BSENGfxc FxcLibxc FxcMode')
      if( (WF_exx_fraction>0.) .or. (WF_exx_screening>0.) ) call initactivate(1,'BSENGBlk WehDiag WehCpl')
    endif
    !
@@ -228,7 +229,8 @@ subroutine INIT_activate()
    ! Special case: The BSE equation is used to build up the BSE_Fxc kernel.
    if (l_bs_fxc) then
      call initactivate(1,'FxcGRLc FxcSVdig FxcRetarded FxcMEStps')
-     call initactivate(1,'BLongDir BEnRange BDmRange BEnSteps')
+     call initactivate(1,'BLongDir QPropDir BEnRange BDmRange BEnSteps')
+     !call initactivate(1,'EFieldDir QPropDir BEnRange BDmRange BEnSteps')
    endif
    !
  endif
@@ -244,7 +246,7 @@ subroutine INIT_activate()
    call INIT_RT_ctl_switch('R')
 #endif
    !
-   call initactivate(1,'NoCondSumRule MetDamp AnHall')
+   call initactivate(1,'NoCondSumRule MetDamp')
    !
 #if defined _NL || defined _SC
    call initactivate(1,'EvPolarization FrSndOrd')
@@ -266,7 +268,8 @@ subroutine INIT_activate()
  !
  if (l_optics.and.l_bse.and.l_bss.or.(l_bse.and.l_rpa_IP)) then
    !
-   call initactivate(1,'BEnRange BDmRange BDmERef BEnSteps BLongDir')
+   call initactivate(1,'BEnRange BDmRange BDmERef BEnSteps BLongDir QPropDir')
+   !call initactivate(1,'BEnRange BDmRange BDmERef BEnSteps EFieldDir QPropDir')
    call initactivate(1,'BSEprop BSEdips')
    !
    ! Special case: the BSE_Fxc kernel has been constructed
@@ -280,7 +283,7 @@ subroutine INIT_activate()
    if (index(BSS_mode,'h')/=0)  call initactivate(1,'BSHayTrs BSHayTer BSHayItrIO BSHayItrMAX')
    if (index(BSS_mode,'s')/=0)  then
      call initactivate(1,'BSSNEig BSSEnTarget BSSSlepcApproach BSSSlepcPrecondition BSSSlepcExtraction')
-     call initactivate(1,'BSSSlepcMaxIt BSSSlepcNCV BSSSlepcTol BSSSlepcMatrix')
+     call initactivate(1,'BSSSlepcMaxIt BSSSlepcNCV BSSSlepcMPD BSSSlepcTol BSSSlepcMatrixFormat')
    endif
    !
    ! Special project dependent variables
@@ -424,6 +427,7 @@ subroutine INIT_activate()
 #if defined  _ELPH 
    !
    if (l_elph_corr) then
+     call INIT_QP_ctl_switch('G')
      call initactivate(1,'DysSolver')
      call initactivate(1,'GphBRnge FANdEtresh DWdEtresh ElPhModes GDamping dScStep ExtendOut ElPhRndNq RandQpts')
      call initactivate(1,'GkkpDB WRgFsq NewtDchk OnMassShell')
@@ -450,12 +454,12 @@ subroutine INIT_activate()
  !
  ! Exciton-phonon Self-energy
  !
- if (l_EXCPH_gkkp)     call initactivate(1,'ELPhExcStates ELPhExcSum ExcPhKind LoutPath FANdEtresh EkpqShFact LDamping')
- if (l_EXCPH_gkkp)     call initactivate(1,'ConstElph AbsElph AbsExc HoleContributionOnly ElectronContributionOnly')
+ if (l_EXCPH_gkkp)     call initactivate(1,'ELPhExcStates ELPhExcSum LoutPath FANdEtresh EkpqShFact LDamping')
+ if (l_EXCPH_gkkp)     call initactivate(1,'ConstElph AbsElph AbsExc HoleContributionOnly ElectronContributionOnly MaxKShells')
  if (l_EXCPH_lifetime) call initactivate(1,'BoseTemp ElPhModes EXCTemp AlphaQ ExcPhOffDiago')
  if (l_EXCPH_lifetime) call initactivate(1,'NoMatrxEl KeepDeg ')
  if (l_EXCPH_optics)  then
-   call initactivate(1,'EXCTemp AlphaQ PLqres DbGdOnlyPh DbGdWEIGHTs NoMatrxEl EnRngeXd DmRngeXd ETStpsXd')
+   call initactivate(1,'EXCTemp AlphaQ ElPhModes PLqres DbGdOnlyPh DbGdWEIGHTs NoMatrxEl EnRngeXd DmRngeXd ETStpsXd')
    call initactivate(1,'EXCPHdEtresh DbGdOnlyPh DbGdWEIGHTs NoMatrxEl EnRngeXd DmRngeXd ETStpsXd')
  endif
  !
@@ -520,6 +524,11 @@ subroutine INIT_activate()
  !
 #if defined _RT
  !
+ ! AM March 2024: the following line has been added in order to perform
+ ! e-p calculations on top of RT carriers distribution.
+ !
+ if (l_elph_corr) call INIT_RT_ctl_switch('G')
+ !
  if (l_real_time) then
    !
    call INIT_QP_ctl_switch('G')
@@ -555,9 +564,10 @@ subroutine INIT_activate()
 #if defined _NL
  if (l_nl_optics) then
    call initactivate(1,'FFTGvecs NLBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
-   if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps')
-   call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd EvalCurrent InducedField FrPolPerdic') 
-   call initactivate(1,'Gauge RADLifeTime HARRLvcs EXXRLvcs') 
+   call initactivate(1,'TestOSCLL')
+   if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps NLrotaxis NLAngSteps')
+   call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd NoComprCOLL EvalCurrent InducedField FrPolPerdic') 
+   call initactivate(1,'TestOSCLL Gauge RADLifeTime HARRLvcs EXXRLvcs CORRLvcs') 
    call init_QP_ctl_switch('G')
  endif
  !

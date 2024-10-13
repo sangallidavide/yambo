@@ -25,10 +25,11 @@ module parallel_int
  integer, private   :: local_type
  !
  interface PP_redux_wait
-   module procedure l1share,                                           &
+   module procedure l1share,l0share,                                   &
 &                   i0share, i1share, i2share,i3share,                 &
 &                   r0share, r1share, r2share,r3share,r4share,         &
 &                   c0share, c1share, c2share,c3share,c4share,c5share, &
+&                                     c2share_x,                       &
 #if ! defined _DOUBLE
 &                   d0share, d1share, d2share,d3share,                 &
 &                   dc0share,dc1share,dc2share,                        &
@@ -169,6 +170,38 @@ module parallel_int
    !==========
    ! PP_redux
    !==========
+   !
+   subroutine l0share(array,imode,COMM)
+     logical   :: array
+     integer, optional :: imode,COMM
+#if defined _MPI
+     integer ::omode,LOCAL_COMM
+     integer ::dimensions(1),dimension ! Work Space
+     logical :: larray    ! Work Space
+     if (ncpu==1) return
+     !
+     if (present(COMM)) then
+       LOCAL_COMM=COMM
+     else
+       LOCAL_COMM=mpi_comm_world
+     endif
+     if (LOCAL_COMM==comm_default_value) return
+     call mpi_barrier(LOCAL_COMM,i_err)
+     if (present(imode)) then
+       if (imode==1) omode=MPI_LOR
+       if (imode==2) omode=MPI_LAND
+       if (imode==3) omode=mpi_lor
+       if (imode==4) omode=mpi_land
+     else
+       omode=MPI_LOR
+     endif
+     larray=.FALSE.
+     call mpi_allreduce(array,larray,1,mpi_logical,omode,LOCAL_COMM,i_err)
+     array=larray
+     call mpi_barrier(LOCAL_COMM,i_err)
+#endif
+   end subroutine
+   !
    subroutine l1share(array,imode,COMM)
      logical   :: array(:)
      integer, optional :: imode,COMM
@@ -721,6 +754,39 @@ module parallel_int
      call mpi_allreduce(array(1,1),larray,dimension,local_type,mpi_sum,LOCAL_COMM,i_err)
      array=reshape(larray,dimensions)
      deallocate(larray)
+     call mpi_barrier(LOCAL_COMM,i_err)
+#endif
+   end subroutine
+
+   subroutine c2share_x(array,in_place,COMM)
+     complex(SP):: array(:,:)
+     logical, intent(IN) :: in_place 
+     integer, optional :: COMM
+#if defined _MPI
+     integer::dimensions(2),dimension,LOCAL_COMM  ! Work Space
+     if (ncpu==1) return
+     !
+     if (.not.in_place) then
+       if (      present(COMM)) call c2share(array,COMM)
+       if (.not. present(COMM)) call c2share(array)
+       return
+     endif
+     !
+     if (present(COMM)) then
+       LOCAL_COMM=COMM
+     else
+       LOCAL_COMM=mpi_comm_world
+     endif
+     if (LOCAL_COMM==comm_default_value) return
+     !
+     local_type=MPI_COMPLEX
+     if (SP==DP) local_type=MPI_DOUBLE_COMPLEX
+     !
+     call mpi_barrier(LOCAL_COMM,i_err)
+     dimensions=shape(array)
+     if( any(dimensions<1) ) return
+     dimension=product(dimensions)
+     call mpi_allreduce(MPI_IN_PLACE,array,dimension,local_type,mpi_sum,LOCAL_COMM,i_err)
      call mpi_barrier(LOCAL_COMM,i_err)
 #endif
    end subroutine

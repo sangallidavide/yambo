@@ -12,10 +12,7 @@ ifeq ($(wildcard config/mk/global/defs.mk),config/mk/global/defs.mk)
 endif
 include lib/archive/package.list
 #
-INT_LIBS      = slatec math77 local
-ifeq ($(do_p2y),yes)
- INT_LIBS+=qe_pseudo
-endif
+INT_LIBS      = qe_pseudo slatec math77 local
 YAMBO_INT_LIBS= Yio 
 YLIBDRIVER    = interface main options 
 YLIBDRIVER_LD = _Ydriver_options _Ydriver_interface _Ydriver_main 
@@ -27,14 +24,14 @@ YLIBIO_LD     = $(YLIBIO)
 #
 BASIC_LIBS   = driver tools modules memory allocations matrices linear_algebra parallel parser communicate output common timing Yio io $(IO_MODE) \
                xc_functionals interface stop_and_restart wf_and_fft bz_ops coulomb
-BASIC_LIBS_LD= tools memory allocations communicate modules matrices linear_algebra bz_ops parallel parser output common timing Yio io $(IO_MODE) \
+BASIC_LIBS_LD= tools memory allocations communicate modules matrices linear_algebra common bz_ops parallel parser output timing Yio io $(IO_MODE) \
                xc_functionals interface stop_and_restart wf_and_fft coulomb
 
 MAIN_LIBS    = $(BASIC_LIBS) interpolate qp_control setup tddft dipoles pol_function qp acfdt bse
 MAIN_LIBS_LD = $(BASIC_LIBS_LD) interpolate qp_control setup tddft dipoles pol_function qp acfdt bse
 
 PJ_PHLIBS    = $(BASIC_LIBS) interpolate qp_control setup tddft dipoles pol_function el-ph exc-ph qp acfdt bse
-PJ_PHLIBS_LD = $(BASIC_LIBS_LD) interpolate qp_control setup tddft dipoles pol_function el-ph exc-ph qp acfdt bse
+PJ_PHLIBS_LD = $(BASIC_LIBS_LD) interpolate qp_control setup tddft dipoles pol_function el-ph bse exc-ph qp acfdt
 
 PJ_SCLIBS    = $(MAIN_LIBS) collisions hamiltonian sc
 PJ_SCLIBS_LD = $(MAIN_LIBS_LD) hamiltonian collisions sc

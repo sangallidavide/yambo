@@ -24,12 +24,13 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
  integer,       intent(in)   :: first_state,nstates
  integer,       intent(in)   :: iq,isq,igq
  integer,       intent(inout):: ID
- complex(SP),   intent(out)  :: EXC_WFs(BS_H_dim,nstates)
+ complex(SP),   intent(out)  :: EXC_WFs(BS_H_dim,first_state:nstates)
  integer,       intent(in)   :: S_index(BSS_n_eig)
  logical,       intent(in)   :: l_min_mem
  !
  ! Work space
  !
+ logical                 :: t_rev
  integer :: iexc,il,ik,istark,isk,ikbz,ipbz,ipmqbz,ipmqg0,iv1,ic1,iv2,ic2,&
  &          i_v1_bnd,i_v1_grp,i_c1_bnd,i_c1_grp,i_v2_bnd,i_v2_grp,i_c2_bnd,i_c2_grp,&
  &          ikmqbz,ikmqg0,iqbz,i_sp_pol,ip,ipmq,istarp,istarpmq,i1,i2,&
@@ -38,12 +39,14 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
  complex(SP), allocatable :: WF_phases_cc(:,:,:,:,:),WF_phases_vv(:,:,:,:,:)
  !
  if(isq==idt_index) then
-   do iexc=1,nstates
-     il=S_index(iexc+first_state-1)
+   do iexc=first_state,nstates
+     il=S_index(iexc)
      EXC_WFs(:,iexc)=BS_mat(:,il)
    enddo
    return
  endif
+ !
+ t_rev= (isq>nsym/(i_time_rev+1))
  !
  iqbz=qpt%k_table(iq,isq)
  !
@@ -91,6 +94,8 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
        ip    =Xk%sstar(ipbz,1)
        istarp=Xk%sstar(ipbz,3)
        !
+       if (ip/=ik) call error("WF_phases: rotation of ik got a different ip in the IBZ")
+       !
        ! (R)^-1 k_BZ - q_IBZ = p_BZ - q_IBZ
        ipmqbz=qindx_X(iq,ipbz,1)
        ipmqg0=qindx_X(iq,ipbz,2)
@@ -126,8 +131,8 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
          !
        endif
        !
-       do iexc=1,nstates
-         il=S_index(iexc+first_state-1)
+       do iexc=first_state,nstates
+         il=S_index(iexc)
          !
          do iv1 = BS_bands(1),BS_bands(2) 
            !
@@ -172,7 +177,8 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
                    phase_cc=      WF_phases(i_c1_bnd,i_c2_bnd,i_c1_grp,isq,i2)
                  endif
                  !
-                 EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+BS_mat(neh2,il)*phase_vv*phase_cc
+                 if(.not.t_rev) EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+      BS_mat(neh2,il) *phase_vv*phase_cc
+                 if(     t_rev) EXC_WFs(neh1,iexc)=EXC_WFs(neh1,iexc)+conjg(BS_mat(neh2,il))*phase_vv*phase_cc
                  !
                enddo
              enddo
@@ -191,9 +197,5 @@ subroutine EXC_WF_symm_qpoint(Xk,qpt,first_state,nstates,iq,isq,igq,&
      !
    enddo
  enddo
- !
- !! take care of time reversal if needed
- !!
- !if(isymm>nsym/(1+i_time_rev)) call dev_conjg(WF_p)
  !
 end subroutine EXC_WF_symm_qpoint
