@@ -78,7 +78,7 @@ subroutine OEP_ApplySigmaCSX(X,Xw,E,k,q,U_csx)
  ! should it be NG=maxval(G_m_G)? In the old version of the code,
  !   isc%ngrho=maxval(G_m_G)
  ! was set few lines before. However the call to elemental owrites it
- call elemental_collision_alloc(isc,TITLE="OEP_SigmaCSX",NG=X%ng,NG_GAMP=(/X%ng,X%ng/))
+ call elemental_collision_alloc(isc,TITLE="OEP_SigmaCSX",NG=X%ng,GAMP_NG=(/X%ng,X%ng/))
  YAMBO_ALLOC(local_u,(fft_size))
  YAMBO_ALLOC(u,(X%ng))
  YAMBO_ALLOC(u_rs,(fft_size))
