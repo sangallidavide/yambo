@@ -422,9 +422,9 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
 #endif
      if (l_gw0.and.l_elel_corr) call initactivate(1,'HF_and_locXC')
      !
-     if (any((/l_em1s,l_em1d,l_X,l_optics,l_ppa/)))   call initactivate(1,'dipoles')
+     if (any((/l_em1s,l_em1d,l_X,l_optics,l_ppa,l_mpa/)))   call initactivate(1,'dipoles')
      if (l_ppa)    call initactivate(1,'em1d')
-     if (l_mpa)    call initactivate(1,'dipoles')
+     if (l_mpa)    call initactivate(1,'em1d')
      if (l_gw0.and..not.any((/l_ppa,l_cohsex,l_HF_and_locXC,l_mpa,&
 &                                     l_elph_corr,l_phel_corr,l_elphoton_corr/))) call initactivate(1,'em1d dipoles')
      if (l_cohsex) call initactivate(1,'em1s dipoles')
@@ -489,10 +489,6 @@ integer function INIT(en,q,k,X,Xw,Dip,instr,lnstr,CLOSE_Gs,FINALIZE)
    end subroutine LOCAL_setup_before_input_IO
    !
    subroutine LOCAL_after_input_IO
-     !
-     ! q0 renormalization
-     !
-     BSS_q0(:) = BSS_q0(:)*q0_def_norm/v_norm( BSS_q0)
      !
      if (len_trim(BSE_mode)==0                ) BSE_mode="retarded"
      if (STRING_same(trim(BSE_mode),"causal") ) BSE_mode="retarded"

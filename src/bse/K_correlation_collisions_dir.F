@@ -14,7 +14,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
  use D_lattice,     ONLY:nsym
  use R_lattice,     ONLY:qindx_X,bz_samp
  use BS,            ONLY:O_ng,BS_bands,BS_res_K_corr,BS_blk,&
-&                        BS_oscillators_alloc,K_CORR_collision,BS_T_grp,&
+&                        K_CORR_collision,BS_T_grp,&
 &                        BS_K_dim,l_BS_ares_from_res
  use electrons,     ONLY:n_sp_pol
  use collision_el,  ONLY:elemental_collision_free,elemental_collision_alloc
@@ -95,13 +95,11 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
    enddo
  enddo
  !
- YAMBO_ALLOC(BS_blk(i_block)%O_table1,(nsym,nsym,N_kmq,N_pmq,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol))
- YAMBO_ALLOC(BS_blk(i_block)%O_table2,(nsym,nsym,N_kmq,N_pmq,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol))
+ YAMBO_ALLOC(BS_blk(i_block)%O_table,(nsym,nsym,N_kmq,N_pmq,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol))
  allocate(O_todo_table(nsym,nsym,N_kmq,N_pmq,BS_bands(1):BS_bands(2),BS_bands(1):BS_bands(2),n_sp_pol))
  !
  BS_blk(i_block)%N_oscillators=0
- BS_blk(i_block)%O_table1=0
- BS_blk(i_block)%O_table2=0
+ BS_blk(i_block)%O_table=0
  O_todo_table=.false.
  !
  i_p_bz_last=0 ;  i_k_bz_last=0 ;  iq_W_bz_last=0 ;  ig_W_last=0 
@@ -177,7 +175,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
    !
  end select
  !
- call BS_oscillators_alloc(.FALSE.,0,.TRUE.,i_block)
+ call BS_correlation_oscillators_alloc(i_block)
  !
 #if !defined _CUDA
  !$omp parallel default(shared), private(i_Tk,i_Tp, &
@@ -382,10 +380,8 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
      integer, intent(in) :: iB,iki,iko,ibi,ibo,i_sp_pol,i_s_ki,i_s_ko
      !
      if( O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol) ) return
-     !
      BS_blk(iB)%N_oscillators=BS_blk(iB)%N_oscillators+1 
-     BS_blk(iB)%O_table1(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
-     BS_blk(iB)%O_table2(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=iB
+     BS_blk(iB)%O_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=BS_blk(iB)%N_oscillators
      O_todo_table(i_s_ki,i_s_ko,iki,iko,ibi,ibo,i_sp_pol)=.true.
      !
    end subroutine
@@ -402,7 +398,7 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q)
      isc%os=(/ibo,iko,i_s_ko,i_sp_pol_o/)
      isc%qs=(/1,iq_W_in,1/)
      !
-     iB_oscillator = BS_blk(iB)%O_table1(i_s_ki,i_s_ko,ikit,ikot,ibi,ibo,i_sp_pol_i)
+     iB_oscillator = BS_blk(iB)%O_table(i_s_ki,i_s_ko,ikit,ikot,ibi,ibo,i_sp_pol_i)
      !
      call DEV_SUB(scatter_Bamp)(isc)
      call dev_memcpy( DEV_VAR(BS_blk(iB)%O_c)(:,iB_oscillator), DEV_VAR(isc%rhotw) )
