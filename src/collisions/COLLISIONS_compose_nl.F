@@ -45,7 +45,6 @@ subroutine COLLISIONS_compose_nl(G_in)
    do ib=COLL_bands(1),COLL_bands(2)
      if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp>maxval(n_met_bands) )  ) cycle
      if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
-     if ( .not. HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=="t") cycle
      do_collisions(ib,ibp)=.true.
    enddo
  enddo
