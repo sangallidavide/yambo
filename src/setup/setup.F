@@ -44,7 +44,7 @@ subroutine setup(en,q,Xen,Ken,k,Xk)
  !use IO_m,           ONLY:netcdf_call
 #endif
  !
-#include <memory.h>
+#include <y_memory.h>
  !
  ! For I/O debug, see below
 #if defined _HDF5_IO

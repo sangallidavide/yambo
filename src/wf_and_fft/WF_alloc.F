@@ -1,4 +1,4 @@
-!
+  !
 ! License-Identifier: GPL
 !
 ! Copyright (C) 2013 The Yambo Team
@@ -11,9 +11,11 @@ subroutine WF_alloc(WF,k_extrema_only)
  use wave_func,     ONLY:WAVEs,states_to_load,wf_ng,wf_ncx,rho_map_size
  use electrons,     ONLY:n_spinor
  use parallel_int,  ONLY:PARALLEL_live_message
- use cuda_m,        ONLY:have_cuda
+ use gpu_m,         ONLY:have_gpu
+ use devxlib,       ONLY:devxlib_memset_d
  !
-#include<memory.h>
+#include<dev_defs.h>
+#include<y_memory.h>
 #include<yambo_wfs.h>
  !
  type(WAVEs)           :: WF
@@ -62,22 +64,23 @@ subroutine WF_alloc(WF,k_extrema_only)
  !
  if (WF%space=='R')  then
    YAMBO_ALLOC(WF%r,(wf_grid_size,n_spinor,WF%N))
-   WF%r=wfcmplx(cZERO,kind=SP)
-   if (have_cuda) then
-     YAMBO_ALLOC_MOLD(WF%r_d,WF%r)
-     WF%r_d=wfcmplx(cZERO,kind=SP)
+   if (have_gpu) then
+     YAMBO_ALLOC_GPU(DEV_VAR(WF%r),(wf_grid_size,n_spinor,WF%N))
    endif
+   WF%r=wfcmplx(cZERO,kind=SP)
+   if (have_gpu) call devxlib_memset_d(DEV_VAR(WF%r),cZERO)
  else
    YAMBO_ALLOC(WF%c,(wf_grid_size,n_spinor,WF%N))
-   WF%c=cZERO
-   if (have_cuda) then
-     YAMBO_ALLOC_MOLD(WF%c_d,WF%c)
-     WF%c_d=cZERO
+   if (have_gpu) then
+     YAMBO_ALLOC_GPU(DEV_VAR(WF%c),(wf_grid_size,n_spinor,WF%N))
    endif
+   WF%c=cZERO
+   if (have_gpu) call devxlib_memset_d(DEV_VAR(WF%c),cZERO)
  endif
  !
  YAMBO_ALLOC(WF%index,(WF%b(2),WF%k(2),WF%sp_pol(2)))
  !AMBO_ALLOC(WF%index,(WF%b(1):WF%b(2),WF%k(1):WF%k(2),WF%sp_pol(1):WF%sp_pol(2)))
+ !
  WF%index=0
  !
 end subroutine

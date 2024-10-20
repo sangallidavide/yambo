@@ -23,7 +23,7 @@ subroutine eval_Gradient(f,f_gradient,spinor_size,f_type)
  use R_lattice,     ONLY:g_vec,ng_vec
  use wave_func,     ONLY:wf_ng,rho_map,rho_map_size
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  integer,          intent(in) ::spinor_size
  complex(SP),      intent(in) ::f(rho_map_size,spinor_size)

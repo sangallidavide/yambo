@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS AF
 !
-subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
+subroutine DEV_SUB(WF_apply_symm)(isc,WF_symm)
  !
  ! INCLUDED in: WF_apply_symm_incl.F 
  !
@@ -16,7 +16,7 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  use parallel_m,    ONLY:myid
  use electrons,     ONLY:n_spinor
  use D_lattice,     ONLY:nsym,DEV_VAR(spin_sop),i_time_rev,idt_index
- use deviceXlib_m
+ use devxlib,       ONLY:devxlib_memcpy_d2d,devxlib_conjg
  !
 #include<yambo_wfs.h>
  !
@@ -42,7 +42,12 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  !
  if(isc(3)==idt_index) then
    !
-   call dev_memcpy(WF_symm,cmplx(WF_p,kind=SP))
+   ! dev2dev copy
+#ifdef _GPU_LOC   
+   call devxlib_memcpy_d2d(WF_symm,cmplx(WF_p,kind=SP))
+#else
+   WF_symm=WF_p
+#endif
    return
    !
  endif
@@ -51,19 +56,29 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
  !
  if(n_spinor==1) then
    !
+   !DEV_ACC_DEBUG data present(WF_p,WF_symm,fft_rot_r)
+   !DEV_ACC parallel loop
    !DEV_CUF kernel do(1) <<<*,*>>>
+   !DEV_OMPGPU target map(present,alloc:WF_p,WF_symm,fft_rot_r)
+   !DEV_OMPGPU teams loop
    !DEV_OMP parallel do default(shared), private(ifft,ifftp)
    do ifft = 1, fft_size
      ifftp=DEV_VAR(fft_rot_r)(ifft,isymm)
      WF_symm(ifft,1)=cmplx(WF_p(ifftp,1),kind=SP)
    enddo
+   !DEV_OMPGPU end target
+   !DEV_ACC_DEBUG end data
    !
  endif
  !
  if (n_spinor==2) then
    !
+   !DEV_ACC_DEBUG data present(WF_p,WF_symm,fft_rot_r,spin_sop)
+   !DEV_ACC parallel loop
    !DEV_CUF kernel do(1) <<<*,*>>>
-   !DEV_OMP parallel do default(shared), private(ifftp)
+   !DEV_OMPGPU target map(present,alloc:WF_p,WF_symm,fft_rot_r,spin_sop)
+   !DEV_OMPGPU teams loop
+   !DEV_OMP parallel do default(shared), private(ifft,ifftp)
    do ifft = 1, fft_size
      ifftp=DEV_VAR(fft_rot_r)(ifft,isymm)
      WF_symm(ifft,1)=DEV_VAR(spin_sop)(1,1,isymm)*cmplx(WF_p(ifftp,1),kind=SP)+ &
@@ -71,11 +86,18 @@ subroutine DEV_SUB_ALT(WF_apply_symm)(isc,WF_symm)
      WF_symm(ifft,2)=DEV_VAR(spin_sop)(2,1,isymm)*cmplx(WF_p(ifftp,1),kind=SP)+ &
                      DEV_VAR(spin_sop)(2,2,isymm)*cmplx(WF_p(ifftp,2),kind=SP)
    enddo
+   !DEV_OMPGPU end target
+   !DEV_ACC_DEBUG end data
    !
  endif
  !
  ! take care of time reversal if needed
  !
- if(isc(3)>nsym/(i_time_rev+1)) call dev_conjg(WF_symm)
+#ifdef _GPU_LOC
+ if(isc(3)>nsym/(i_time_rev+1)) call devxlib_conjg(WF_symm)
+#else
+ if(isc(3)>nsym/(i_time_rev+1)) WF_symm=conjg(WF_symm)
+#endif
  !
-end subroutine DEV_SUB_ALT(WF_apply_symm)
+end subroutine DEV_SUB(WF_apply_symm)
+
