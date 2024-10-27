@@ -5,6 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): AM AF 
 !
+#include<dev_defs.h>
+!
 subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  !
  ! Here we solve the Dyson equation using a combination of Serial(SER)/Parallel(PAR)/SLK environments.
@@ -37,11 +39,12 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits,&
 &                        l_Fxc_in_Xo
  use timing_m,      ONLY:timing
- use cuda_m
- use deviceXlib_m
+ use devxlib,       ONLY:devxlib_memset_d,devxlib_memcpy_h2d,devxlib_memcpy_d2d,&
+                         devxlib_memcpy_d2h
+ use devxlib_async, ONLY:devxlib_async_synchronize
+ use gpu_m
  !
-#include<dev_defs.h>
-#include<memory.h>
+#include<y_memory.h>
  !
  type(PAR_matrix) :: X_par,X_low,X_alda_up,X_alda_dn
  type(X_t)        :: X
@@ -59,30 +62,41 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
  logical          :: compute_on_gpu
  type(PAR_matrix) :: K_FXC
- type(PAR_matrix), target      :: BUFFER,BUFFER2,KERNEL
- complex(SP), pointer DEV_ATTR :: BUFFER_blc_d(:,:,:)
+ type(PAR_matrix), target      :: BUFFER,BUFFER2,KERNEL,Xo
  complex(SP), allocatable      :: BUFFER_SAVE(:)
+ complex(SP), pointer DEV_ATTR :: BUFFER_p(:,:,:)
+ complex(SP), pointer DEV_ATTR :: KERNEL_p(:,:,:)
+ complex(SP), pointer DEV_ATTR :: Xo_p(:,:,:)
  !
- ! Setup 
+ ! Setup
  !
  call timing(what//' (procedure)',OPR='start')
  !
- ! Barrier... 
+ ! Barrier...
  !
  call PP_wait(COMM=PAR_COM_X_WORLD%COMM)
  !
  ! compute X on GPU if compiled with GPU support,
  ! unless GPU-usage is switch-off from input
- ! 
+ !
  ! Main logic:
  ! if SLK are present .and. ncpu_SLK >1 .and. CUDA => SLK on CPU
  ! otherwise a problem is obtained since SLK doesn't work on GPU yet
  !
- compute_on_gpu=have_cuda.and.X_use_gpu
+ compute_on_gpu=have_gpu.and.X_use_gpu
  !
- if (PAR_COM_SLK%n_CPU>=4.and.have_cuda) compute_on_gpu=.false.
+ if (PAR_COM_SLK%n_CPU>=4.and.have_gpu) compute_on_gpu=.false.
  !
- if (have_cuda) call msg('s','[LA] '//what//' compute_on_gpu ',compute_on_gpu )
+ ! AF_FIX: openacc + GPU linalg should be enabled
+ if (have_openacc) compute_on_gpu=.false.
+ !
+ ! AMD-GPUs + GPU linalg not yet implemented
+ if (have_hip) compute_on_gpu=.false.
+ !
+ ! Intel-GPUs + GPU linalg not yet implemented
+ if (have_mklgpu) compute_on_gpu=.false.
+ !
+ if (have_gpu) call msg('s','[LA] '//what//' compute_on_gpu ',compute_on_gpu )
  !
  if (.not.X_use_lin_sys) call warning("X inversion implementaiton to be finlized")
  !
@@ -123,10 +137,10 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
 #endif
  !
  if (compute_on_gpu) then
-   YAMBO_ALLOC(KERNEL%blc_d,(KERNEL%BLCrows(1):KERNEL%BLCrows(2),KERNEL%BLCcols(1):KERNEL%BLCcols(2),1))
-   YAMBO_ALLOC(BUFFER%blc_d,(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
-   call dev_memset(KERNEL%blc_d,cZERO)
-   call dev_memset(BUFFER%blc_d,cZERO)
+   YAMBO_ALLOC_GPU(DEV_VAR(KERNEL%blc),(KERNEL%BLCrows(1):KERNEL%BLCrows(2),KERNEL%BLCcols(1):KERNEL%BLCcols(2),1))
+   YAMBO_ALLOC_GPU(DEV_VAR(BUFFER%blc),(BUFFER%BLCrows(1):BUFFER%BLCrows(2),BUFFER%BLCcols(1):BUFFER%BLCcols(2),buffer_nfreq))
+   call devxlib_memset_d(DEV_VAR(KERNEL%blc),cZERO)
+   call devxlib_memset_d(DEV_VAR(BUFFER%blc),cZERO)
  endif
  !
  if(call_kind=="response") then
@@ -203,11 +217,12 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    ! [2] SER/SLK Solver
    ! ==================
    !
-   iw         = PAR_FREQS_index(iw_par)
+   iw = PAR_FREQS_index(iw_par)
+   BUFFER_p => DEV_VAR(BUFFER%blc)
    !
    if (.not.(l_alda_fxc.and.l_Fxc_in_Xo)) then
-     KERNEL%blc = cZERO
-     if (compute_on_gpu) call dev_memset(KERNEL%blc_d,cZERO)
+     KERNEL_p => DEV_VAR(KERNEL%blc)
+     if (compute_on_gpu) call devxlib_memset_d(KERNEL_p,cZERO)
    endif
    !
    Xo_cols(:)=BUFFER%cols(:)
@@ -215,7 +230,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    !
    if (FXC_SVD_digits>0) INV_MODE=SVD_INV
    !
-   ! TDDFT Kernel. Different procedure depending on the kernel 
+   ! TDDFT Kernel. Different procedure depending on the kernel
    !
    ! Kind: BS,ALDA,LRC.
    !
@@ -247,10 +262,10 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    endif
    !
    if (compute_on_gpu) then
-     if (l_bs_fxc.or.l_lrc_fxc.or.l_alda_fxc) call dev_memcpy(KERNEL%blc_d,KERNEL%blc)
+     if (l_bs_fxc.or.l_lrc_fxc.or.l_alda_fxc) call devxlib_memcpy_h2d(KERNEL_p,KERNEL%blc)
      ! This may not be needed since BUFFER is already sincronized later
      ! It was needed previously when using Xo
-     call dev_memcpy(BUFFER%blc_d(:,:,BUFFER%I),BUFFER%blc(:,:,BUFFER%I))
+     call devxlib_memcpy_h2d(BUFFER_p(:,:,BUFFER%I),BUFFER%blc(:,:,BUFFER%I))
    endif
    !
    ! A this point
@@ -262,6 +277,9 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    !
    ! X(g,gp)=Sum_gpp[KERNEL]^-1_(g,gpp)*Xo(gpp,gp)
    !
+   ! on input:  Xo irreducible polarizability
+   ! on output: Xo is overwritten
+   !
    if (X_use_lin_sys) then
      !
      ! Linear System
@@ -271,6 +289,8 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    else
      !
      ! Matrix Inversion + Matmul
+     !
+     if (compute_on_gpu) call error("[LA] inversion+matmul not available on GPUs")
      !
      call LINEAR_ALGEBRA_driver(INV,M_slk=KERNEL)
      !
@@ -290,17 +310,21 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
      !
      if (compute_on_gpu) then
         !
-        BUFFER_blc_d => BUFFER%blc_d
-        !
-        !$cuf kernel do(2)
+        !DEV_ACC_DEBUG data present(Xo_p,bare_qpg)
+        !DEV_ACC parallel loop collapse(2)
+        !DEV_CUF kernel do(2)
+        !DEV_OMPGPU target map(present,alloc:Xo_p,bare_qpg)
+        !DEV_OMPGPU teams loop collapse(2)
         do ig2=Xo_cols(1),Xo_cols(2)
           do ig1=Xo_rows(1),Xo_rows(2)
-            BUFFER_blc_d(ig1,ig2,BUFFER%I)=BUFFER_blc_d(ig1,ig2,BUFFER%I)*4._SP*pi/bare_qpg_d(iq,ig1)/bare_qpg_d(iq,ig2)
+            BUFFER_p(ig1,ig2,BUFFER%I)=BUFFER_p(ig1,ig2,BUFFER%I)*4._SP*pi/DEV_VAR(bare_qpg)(iq,ig1)/DEV_VAR(bare_qpg)(iq,ig2)
           enddo
         enddo
+        !DEV_OMPGPU end target
+        !DEV_ACC_DEBUG end data
         !
-        call dev_stream_sync(stream_default)
-        call dev_memcpy_async(BUFFER%blc(:,:,BUFFER%I),BUFFER%blc_d(:,:,BUFFER%I), stream_d2h)
+        !call devxlib_async_synchronize(async_d2h)
+        call devxlib_memcpy_d2h(BUFFER%blc(:,:,BUFFER%I),BUFFER_p(:,:,BUFFER%I), async_d2h)
         !
      else
         !
@@ -322,7 +346,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    !
  enddo
  !
- call dev_stream_sync(stream_d2h)
+ !call devxlib_async_synchronize(async_d2h)
  !
  if (PAR_n_freqs>0) call live_timing()
  !
@@ -350,7 +374,7 @@ end subroutine
    !
    !
    subroutine X_redux_build_kernel(KERNEL,Xo,Xo_rows,Xo_cols,iw_par_buffer,compute_on_gpu,iq)
-     use R_lattice,     ONLY:bare_qpg, bare_qpg_d
+     use R_lattice,     ONLY:bare_qpg, DEV_VAR(bare_qpg)
      use pars,          ONLY:pi,cONE,SP
      use matrix,        ONLY:PAR_matrix
      use X_m,           ONLY:l_X_magn
@@ -358,24 +382,31 @@ end subroutine
      type(PAR_matrix), target :: KERNEL,Xo
      integer, intent(in)      :: Xo_rows(2),Xo_cols(2),iq,iw_par_buffer
      logical, intent(in)      :: compute_on_gpu
+     !
      integer :: ig1,ig2
      !
-     complex(SP), pointer DEV_ATTR :: KERNEL_blc_d(:,:,:)
-     complex(SP), pointer DEV_ATTR :: Xo_blc_d(:,:,:)
+     complex(SP), pointer DEV_ATTR :: KERNEL_p(:,:,:)
+     complex(SP), pointer DEV_ATTR :: Xo_p(:,:,:)
      !
      if (compute_on_gpu) then
        !
-       KERNEL_blc_d=>KERNEL%blc_d(:,:,:)
-       Xo_blc_d    => Xo%blc_d(:,:,:)
+       KERNEL_p => DEV_VAR(KERNEL%blc)(:,:,:)
+       Xo_p     => DEV_VAR(Xo%blc)(:,:,:)
        !
-       !$cuf kernel do(2) <<<*,*>>>
+       !DEV_ACC_DEBUG data present(KERNEL_p,Xo_p,bare_qpg)
+       !DEV_ACC parallel loop collapse(2)
+       !DEV_CUF kernel do(2) <<<*,*>>>
+       !DEV_OMPGPU target map(present,alloc:KERNEL_p,Xo_p,bare_qpg)
+       !DEV_OMPGPU teams loop collapse(2)
        do ig2=Xo_cols(1),Xo_cols(2)
          do ig1=Xo_rows(1),Xo_rows(2)
-           if (.not.l_X_magn) KERNEL_blc_d(ig1,ig2,1)=KERNEL_blc_d(ig1,ig2,1) &
-           &                      -Xo_blc_d(ig1,ig2,iw_par_buffer)*4._SP*pi/bare_qpg_d(iq,ig2)**2
-           if (ig1==ig2) KERNEL_blc_d(ig1,ig1,1)=KERNEL_blc_d(ig1,ig1,1)+cONE
+           if (.not.l_X_magn) KERNEL_p(ig1,ig2,1)=KERNEL_p(ig1,ig2,1) &
+           &                  -Xo_p(ig1,ig2,iw_par_buffer)*4._SP*pi/DEV_VAR(bare_qpg)(iq,ig2)**2
+           if (ig1==ig2) KERNEL_p(ig1,ig1,1)=KERNEL_p(ig1,ig1,1)+cONE
          enddo
        enddo
+       !DEV_OMPGPU end target
+       !DEV_ACC_DEBUG end data
        !
      else
        !
@@ -387,7 +418,6 @@ end subroutine
            if (ig1==ig2) KERNEL%blc(ig1,ig1,1)=KERNEL%blc(ig1,ig1,1)+cONE
          enddo
        enddo
-       !$omp end parallel do
        !
      endif
      !
@@ -473,7 +503,7 @@ end subroutine
      use parallel_m,    ONLY:PAR_COM_X_WORLD_RL_resolved,&
 &                        PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
      !
-#include<memory.h>
+#include<y_memory.h>
      !
      type(PAR_matrix) :: X_par
      type(w_samp)     :: Xw

@@ -22,7 +22,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
  &                       BS_E,BS_E_SOC_corr,BS_R_PL,Xbsk,MAGNON_Res_threshold,&
  &                       l_magnons
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp) ::Xk,k
  type(levels)  ::Xen,en

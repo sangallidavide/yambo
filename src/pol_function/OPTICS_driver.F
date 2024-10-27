@@ -29,7 +29,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use interfaces,    ONLY:WF_load,WF_free,X_irredux
  use matrix,        ONLY:MATRIX_reset
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels)  :: Xen
  type(bz_samp) :: Xk,q

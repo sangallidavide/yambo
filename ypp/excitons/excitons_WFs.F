@@ -30,7 +30,7 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
  use wrapper,       ONLY:V_dot_V
  use vec_operate,   ONLY:c2a
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp)     :: Xk
  integer           :: BS_E_degs(BSS_n_eig),iq,i_sp_v,i_sp_c,i_sp_v1,i_sp_c1,S_indx(BS_H_dim)
@@ -307,7 +307,7 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
    subroutine expand_grid()
      !
      use FFT_m,       ONLY:fft_size
-#include<memory.h>
+#include<y_memory.h>
      ! 
      ! Work Space
      !
