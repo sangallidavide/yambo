@@ -267,6 +267,7 @@ subroutine X_irredux(iq,what,X_par,X_low,Xen,Xk,Xw,X,Dip)
  !
  lwork=ngrho
  if (l_X_terminator) lwork=2*ngrho
+ if (l_tddft)        lwork=2*ngrho
  !
  YAMBO_ALLOC_GPU(work,(lwork))
  !

@@ -94,6 +94,10 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,work,lwork,Xo_
  if (l_X_terminator) rhotw_save2 => work(ngrho+1:2*ngrho)
  if (l_tddft) rhotw_save_tddft => work(ngrho+1:2*ngrho)
  !
+ X_ng=X%ng
+ Xo_scatt_rhotw_p => DEV_VAR(Xo_scatt%rhotw)
+ if (l_tddft) Xo_scatt_rhotw_tddft_p => DEV_VAR(Xo_scatt%rhotw_tddft)
+ !
  loop_bare_grid: do i_bg = 1,bare_grid_N(i_cg)
    !
    n_poles=n_poles+1
@@ -288,7 +292,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,work,lwork,Xo_
        do ig2=X_rows(1),X_rows(2)
          ! lower part
          ROWS=(/max(ig2+1,X_cols(1)),X_cols(2)/)
-         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*conjg(Xo_scatt%rhotw_tddft(ig2)),&
+         call V_plus_alpha_V(ROWS(2)-ROWS(1)+1,-Z_eh_occ*conjg(Xo_scatt_rhotw_tddft_p(ig2)),&
          & conjg(Xo_scatt_rhotw_p(ROWS(1):ROWS(2))),oX_res(ROWS(1):ROWS(2),ig2))
        enddo
      !else
