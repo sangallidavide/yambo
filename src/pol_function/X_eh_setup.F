@@ -15,7 +15,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  use frequency,     ONLY:ordered_grid_index
  use parallel_m,    ONLY:PAR_IND_CON_BANDS_X,PAR_IND_Xk_bz,PAR_IND_VAL_BANDS_X
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels)  ::Xen 
  type(bz_samp) ::Xk
@@ -26,7 +26,8 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  ! Work Space
  !
  integer :: ik_bz,i_sym,ik,ik_m_q,iv,ic,i_sp,c_sp_pol,v_sp_pol,i_pole,N_tot, &
- &          Nv(n_sp_pol),Nc(n_sp_pol),VB_lims(2,n_sp_pol),CB_lims(2,n_sp_pol)
+ &          Nv(n_sp_pol),Nc(n_sp_pol),VB_lims(2,n_sp_pol),CB_lims(2,n_sp_pol), &
+ &          i_res_ares,ib1,ib2,n_res_ares
  logical :: MPI_logicals_on,l_XTerm_vv
  logical :: l_res,l_ares_T,l_ares_R
  real(SP):: E_eh,E_in,f_eh,local_tresh
@@ -118,9 +119,9 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
          if (MPI_logicals_on) then
            if (.not.PAR_IND_CON_BANDS_X(X%whoami)%element_1D(ic)) cycle 
          endif
-	 !
-	 if (i_res_ares==1) then ; ib1=iv ; ib2=ic ; endif
-	 if (i_res_ares==2) then ; ib1=ic ; ib2=iv ; endif
+         !
+         if (i_res_ares==1) then ; ib1=iv ; ib2=ic ; endif
+         if (i_res_ares==2) then ; ib1=ic ; ib2=iv ; endif
          !
          i_sym  =qindx_X(iabs(iq),ik_bz,1)
          ik     =Xk%sstar(ik_bz,1) 
@@ -180,6 +181,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
        enddo
      enddo
    enddo
+ enddo
  enddo
  !
  minmax_ehe=(/max(minval(poles(:X_eh_setup))-0.1_SP,0._SP),maxval(poles(:X_eh_setup))+0.1_SP/)

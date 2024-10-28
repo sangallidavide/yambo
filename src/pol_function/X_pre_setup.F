@@ -19,7 +19,7 @@ subroutine X_pre_setup(Xen,Xk,X)
  use parallel_m,    ONLY:PAR_COM_WORLD
  use stderr,        ONLY:intc
  use parser_m,      ONLY:parser
- use cuda_m,        ONLY:have_cuda
+ use gpu_m,         ONLY:have_gpu
  !
  implicit none
  !
@@ -85,6 +85,7 @@ subroutine X_pre_setup(Xen,Xk,X)
  if (l_col_cut) then
    if ( trim(X%ordering) == 'Ta' )  X%ordering='T'
    if ( trim(X%ordering) == 'Ra' .or. trim(X%ordering) == 'r' )  X%ordering='R'
+   call warning(" Anti/Resonant ordering not compatible with Coulomb cutoff ")
  endif
  !
  ! Transfer the GF's ordering 
@@ -97,11 +98,11 @@ subroutine X_pre_setup(Xen,Xk,X)
  ! Dyson solver
  !
  X_use_lin_sys=.true.
- X_use_gpu=have_cuda
+ X_use_gpu=have_gpu
  if (index(Chi_linalg_mode,"INVERSION")>0) X_use_lin_sys=.false.
  if (index(Chi_linalg_mode,"LIN_SYS")>0  ) X_use_lin_sys=.true.
  if (index(Chi_linalg_mode,"CPU")>0      ) X_use_gpu=.false.
- if (index(Chi_linalg_mode,"GPU")>0      ) X_use_gpu=.true..and.have_cuda
+ if (index(Chi_linalg_mode,"GPU")>0      ) X_use_gpu=.true..and.have_gpu
  !
  ! Copy of X dimension for Parallel default environment solver
  !

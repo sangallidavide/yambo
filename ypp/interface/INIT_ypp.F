@@ -51,8 +51,8 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  use pars,           ONLY:SP
 #endif
 #if defined _YPP_ELPH
- use YPP_ELPH,       ONLY:l_gkkp,l_gkkp_db,l_gkkp_dg,l_gkkp_plot,l_ph_ass_dos,l_phonons,l_atomic_amplitude, &
-&                         l_eliashberg
+ use YPP_ELPH,       ONLY:l_phonons,l_atomic_amplitude,l_eliashberg,l_gkkp,l_gkkp_db,l_gkkp_dg,l_gkkp_plot,&
+&                         l_ph_ass_dos,l_phonons
 #endif
 #if defined _YAML_OUTPUT
  use pars,           ONLY:logfile_index,repfile_index
@@ -60,7 +60,7 @@ subroutine INIT_ypp(E,instr,FINALIZE)
  use yaml_output,    ONLY:yaml_close_stream
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels)     ::E
  character(*)     ::instr
@@ -522,8 +522,6 @@ subroutine INIT_ypp(E,instr,FINALIZE)
 #if defined _YPP_SC
  if (l_mean_potential) call initactivate(1,"PotValue")
 #endif
- !
- if (l_fix_syms.and.n_spinor==2.and.i_time_rev==0) call initactivate(1,"ExpandSymm")
  !
  if (l_fix_syms) call initactivate(1,"Efield1 Efield2 BField Bpsi Btheta RmAllSymm RmTimeRev RmSpaceInv GvecsCut KeepKGrid")
  !

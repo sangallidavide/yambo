@@ -23,7 +23,7 @@ subroutine plot_interpolated_values(Xk,Xen,Ef,LOCAL_k,IDs,dims,nquantities,nfile
  use YPP_real_time,  ONLY:GreenF_T_and_W
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp),    intent(in)  :: Xk,LOCAL_k
  type(levels),     intent(in)  :: Xen
@@ -59,6 +59,7 @@ subroutine plot_interpolated_values(Xk,Xen,Ef,LOCAL_k,IDs,dims,nquantities,nfile
  call msg("s","Generating output for "//trim(basename)//" "//trim(int_kind))
  !
  ndims=dims(2)-dims(1)+1
+ n_points=1
  n_points_max=1
  !
 #if defined _YPP_SC
@@ -292,7 +293,7 @@ subroutine define_grid_map(Xk,Local_k,Grid_to_path_map,n_points_max)
  use R_lattice,      ONLY:bz_samp
  use vec_operate,    ONLY:v_norm,iku_v_norm
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp),  intent(in)  :: Xk,LOCAL_k
  integer,        intent(out) :: Grid_to_path_map(LOCAL_k%nbz,Xk%nbz)

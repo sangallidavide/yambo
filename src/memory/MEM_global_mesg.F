@@ -12,7 +12,7 @@ subroutine MEM_global_mesg(what,xkind,HOST_SIZE)
  use stderr,       ONLY:real2ch
  use units,        ONLY:Kilobyte
  use LIVE_t,       ONLY:LIVE_message
- use memory,       ONLY:mem_string
+ use y_memory,     ONLY:mem_string
  !
  implicit none
  !

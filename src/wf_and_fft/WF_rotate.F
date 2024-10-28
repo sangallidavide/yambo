@@ -5,6 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): AM DS
 !
+#include<dev_defs.h>
+ !
 subroutine WF_rotate(ik,i_sp_pol,WFo,wf_size,space)
  !
  ! <r|n'>= <m|n'><r|m>
@@ -19,7 +21,8 @@ subroutine WF_rotate(ik,i_sp_pol,WFo,wf_size,space)
  use pars,           ONLY:SP
  use wave_func,      ONLY:WAVEs,WF
  use hamiltonian,    ONLY:H_rotation,H_ref_bands
- use cuda_m,         ONLY:have_cuda
+ use gpu_m,          ONLY:have_gpu
+ use devxlib,        ONLY:devxlib_memcpy_h2d
  !
  implicit none
  !
@@ -63,7 +66,7 @@ subroutine WF_rotate(ik,i_sp_pol,WFo,wf_size,space)
      enddo
      !$omp end parallel do
      !
-     if (have_cuda) WF%c_d(:,:,i_wf) = WF%c(:,:,i_wf)
+     if (have_gpu) call devxlib_memcpy_h2d(DEV_VAR(WF%c)(:,:,i_wf), WF%c(:,:,i_wf))
      !
    else if(space=="R") then
      !
@@ -75,7 +78,7 @@ subroutine WF_rotate(ik,i_sp_pol,WFo,wf_size,space)
      enddo
      !$omp end parallel do
      !
-     if (have_cuda) WF%r_d(:,:,i_wf) = WF%r(:,:,i_wf)
+     if (have_gpu) call devxlib_memcpy_h2d(DEV_VAR(WF%r)(:,:,i_wf), WF%r(:,:,i_wf))
      !
    endif
    !

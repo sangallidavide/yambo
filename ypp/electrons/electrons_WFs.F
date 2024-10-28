@@ -35,7 +35,7 @@ subroutine electrons_WFs(Xen)
  use R_lattice,      ONLY:nkibz
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
 #include<yambo_wfs.h>
  !
  type(levels)  ::Xen
