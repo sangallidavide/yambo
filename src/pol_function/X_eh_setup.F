@@ -25,22 +25,55 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  !
  ! Work Space
  !
- integer :: ik_bz,i_sym,ik,ik_m_q,iv,ic,Nv(n_sp_pol),Nc(n_sp_pol),i_sp,c_sp_pol,v_sp_pol,i_pole,ic_min,Nc_XTerm(n_sp_pol),N_tot
+ integer :: ik_bz,i_sym,ik,ik_m_q,iv,ic,i_sp,c_sp_pol,v_sp_pol,i_pole,N_tot, &
+ &          Nv(n_sp_pol),Nc(n_sp_pol),VB_lims(2,n_sp_pol),CB_lims(2,n_sp_pol)
  logical :: MPI_logicals_on,l_XTerm_vv
+ logical :: l_res,l_ares_T,l_ares_R
  real(SP):: E_eh,E_in,f_eh,local_tresh
  real(SP), allocatable :: poles(:),Ein_poles(:)
  !
- do i_sp=1,n_sp_pol
-   Nv(i_sp)=Xen%nbm(i_sp)-X%ib(1)+1
-   Nc(i_sp)=X%ib(2)-Xen%nbf(i_sp)
- enddo
+ l_res   = X%ordering=="R".or.X%ordering=="T".or.X%ordering=="r"
+ l_ares_T= X%ordering=="T".or.X%ordering=="Ta"
+ l_ares_R= X%ordering=="R".or.X%ordering=="Ra"
  !
- Nc_XTerm=0
- if (l_X_terminator) Nc_XTerm=Nv
+ VB_lims(1,:)=1
+ CB_lims(1,:)=1
+ VB_lims(2,:)=0
+ CB_lims(2,:)=0
+ !
+ n_res_ares=1
+ !
+ if (l_X_magn) then
+   !
+   call get_spin_majority(Xen)
+   !
+   if (l_ares_T.or.l_ares_R) n_res_ares=2
+   !
+   do i_sp=1,n_sp_pol
+     if(i_sp==i_spin_majority) cycle
+     c_sp_pol=i_sp
+     v_sp_pol=mod(c_sp_pol,n_sp_pol)+1
+     VB_lims(:,i_sp)=(/X%ib(1),Xen%nbm(v_sp_pol)/)
+     CB_lims(:,i_sp)=(/Xen%nbf(c_sp_pol)+1,X%ib(2)/)
+   enddo
+   !
+ else
+   !
+   do i_sp=1,n_sp_pol
+     VB_lims(:,i_sp)=(/X%ib(1),Xen%nbm(i_sp)/)
+     CB_lims(:,i_sp)=(/Xen%nbf(i_sp)+1,X%ib(2)/)
+   enddo
+   if (l_X_terminator) then
+     CB_lims(1,:)=X%ib(1)
+   endif
+   !
+ endif
  !
  N_tot=0
  do i_sp=1,n_sp_pol
-   N_tot=N_tot+Nv(i_sp)*(Nc(i_sp)+Nc_XTerm(i_sp))
+   Nv(i_sp)=VB_lims(2,i_sp)-VB_lims(1,i_sp)+1
+   Nc(i_sp)=CB_lims(2,i_sp)-CB_lims(1,i_sp)+1
+   N_tot=N_tot+Nc(i_sp)*Nv(i_sp)
  enddo
  !
  YAMBO_ALLOC(poles,(Xk%nbz*N_tot))
@@ -53,18 +86,18 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
  poles=0._SP 
  Ein_poles=0._SP
  !
- if (l_X_magn) call get_spin_majority(Xen)
- !
  X_eh_setup=0
  local_tresh=epsilon(1._SP)
  !
- do c_sp_pol=1,n_sp_pol
+ do i_res_ares=1,n_res_ares
+ !
+ do i_sp=1,n_sp_pol
    !
-   v_sp_pol = c_sp_pol
+   c_sp_pol = i_sp
+   v_sp_pol = i_sp
    !
    if (l_X_magn.and.n_sp_pol==2) then
-     ! Here I consider both the resonant and the anti-resonant contribution
-     ! So, at variance with the BSE case, I loop on both spin channels
+     if(c_sp_pol==i_spin_majority) cycle
      v_sp_pol=mod(c_sp_pol,n_sp_pol)+1
    endif
    !
@@ -74,21 +107,20 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
        if (.not.PAR_IND_Xk_bz%element_1D(ik_bz)) cycle 
      endif
      !
-     do iv=X%ib(1),X%ib(1)+Nv(v_sp_pol)-1
+     do iv=VB_lims(1,i_sp),VB_lims(2,i_sp)
        !
        if (MPI_logicals_on) then
          if (.not.PAR_IND_VAL_BANDS_X(X%whoami)%element_1D(iv)) cycle 
        endif
        !
-       ! setting terminator bnd range
-       ic_min = X%ib(2)-Nc(c_sp_pol)+1
-       if (l_X_terminator) ic_min=X%ib(1) 
-       !
-       do  ic=ic_min,X%ib(2)
+       do ic=CB_lims(1,i_sp),CB_lims(2,i_sp)
          !
          if (MPI_logicals_on) then
            if (.not.PAR_IND_CON_BANDS_X(X%whoami)%element_1D(ic)) cycle 
          endif
+	 !
+	 if (i_res_ares==1) then ; ib1=iv ; ib2=ic ; endif
+	 if (i_res_ares==2) then ; ib1=ic ; ib2=iv ; endif
          !
          i_sym  =qindx_X(iabs(iq),ik_bz,1)
          ik     =Xk%sstar(ik_bz,1) 
@@ -100,7 +132,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
            E_eh=X_term_E-Xen%E(iv,ik_m_q,v_sp_pol)       
          else
            l_XTerm_vv=.FALSE.
-           E_eh=Xen%E(ic,ik,c_sp_pol)-Xen%E(iv,ik_m_q,v_sp_pol)
+           E_eh=Xen%E(ib2,ik,c_sp_pol)-Xen%E(ib1,ik_m_q,v_sp_pol)
          endif 
          !
          E_in=Xen%E(iv,ik_m_q,v_sp_pol)
@@ -130,10 +162,10 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
          ! when the terminator  is off 
          !
          if (.not.l_XTerm_vv) f_eh=Xen%f(iv,ik_m_q,v_sp_pol)*(spin_occ-Xen%f(ic,ik,c_sp_pol))/spin_occ
-         if (     l_XTerm_vv) f_eh=Xen%f(iv,ik_m_q,v_sp_pol)*Xen%f(ic,ik,c_sp_pol)/spin_occ
-         if (      l_X_magn ) f_eh=Xen%f(iv,ik_m_q,v_sp_pol)-Xen%f(ic,ik,c_sp_pol)/spin_occ
+         if (     l_XTerm_vv) f_eh= Xen%f(iv,ik_m_q,v_sp_pol)*Xen%f(ic,ik,c_sp_pol) /spin_occ
+         if (      l_X_magn ) f_eh=(Xen%f(iv,ik_m_q,v_sp_pol)-Xen%f(ic,ik,c_sp_pol))/spin_occ
          !
-         if (f_eh<local_tresh)  cycle  
+         if (abs(f_eh)<local_tresh)  cycle
          !                                                              
          if (any((/abs(E_eh)<X%ehe(1),abs(E_eh)>X%ehe(2).and.X%ehe(2)>0._SP/))) cycle
          !
