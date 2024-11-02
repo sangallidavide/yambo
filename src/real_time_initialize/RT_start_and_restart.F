@@ -54,7 +54,7 @@ subroutine RT_start_and_restart(E,k,q)
  use drivers,        ONLY:l_rt_coh_phon
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels)      :: E
  type(bz_samp)     :: k,q
@@ -172,7 +172,7 @@ subroutine RT_start_and_restart(E,k,q)
    call RT_control_free("all")
    call RT_control_alloc("all")
    !
-   YAMBO_FREE(RT_TIME_status)
+   !AMBO_FREE(RT_TIME_status)
    !
    ! I use G_lesser(:,:,:) to reconstruct everything
    ! Note that the databases must be loaded at the RESTART time (NE_time)

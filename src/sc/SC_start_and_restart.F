@@ -36,7 +36,7 @@ subroutine SC_start_and_restart(X,E,Xk,Dip)
  use descriptors,    ONLY:IO_desc_reset
  use pseudo,         ONLY:l_use_p2_Vloc_becp 
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels) ::E
  type(X_t)    ::X(2)  ! Xx Em1s

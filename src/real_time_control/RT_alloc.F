@@ -31,7 +31,7 @@ use real_time,      ONLY:RT_coh_phonons
  use ELPH,           ONLY:elph_branches
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels), intent(in) :: en
  character(*), intent(in) :: what

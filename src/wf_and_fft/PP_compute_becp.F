@@ -72,7 +72,7 @@ subroutine PP_compute_becp_k(becp, npwk, bands, ikibz, i_sp_pol, WF)
  use qe_pseudo_m,   ONLY:nkb,vkb,bec_type,is_allocated_bec_type,&
 &                        allocate_bec_type,calbec
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  ! vars
  !
