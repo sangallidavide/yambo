@@ -62,7 +62,7 @@ subroutine rim_integrate_w(iq,qr,N_out,em1_anis,Xw)
  ! The final goal is to resale RIM_W. However, since RIM_W
  ! is not linear in q+G, I need to rescale vslab
  !
- vslab=vslab/sqrt(eps_env)
+ !vslab=vslab/sqrt(eps_env)
  !
  ! q /= 0 all terms
  !
@@ -111,7 +111,7 @@ subroutine rim_integrate_w(iq,qr,N_out,em1_anis,Xw)
      if (slab_vplane1 < 1.e-5) then
        vslab(i1,1) = sqrt(4._DP*pi*(1.-exp(-q0_def_norm*lcut))/q0_def_norm**2)
        ! Again, rescaling of vslab due to epsilon environment
-       vslab(i1,1) = vslab(i1,1)/sqrt(eps_env)
+       !vslab(i1,1) = vslab(i1,1)/sqrt(eps_env)
        RIM_acc = RIM_acc + rfac*f_coeff(1,1,1,1,iw)*(4*pi*lcut)**2
        RIM_acc_anis = RIM_acc_anis + rfac*f_coeff(1,1,1,1,iw)*(4*pi*lcut)**2 &
 &                       *0.5_SP*(em1_anis(idir(2))+em1_anis(idir(3)))
@@ -122,7 +122,7 @@ subroutine rim_integrate_w(iq,qr,N_out,em1_anis,Xw)
      vslab2=4._DP*pi*(1.-exp(-slab_vplane1*lcut))
      ! Again, rescaling of vslab due to environment.
      ! Notice that here this is not the sqrt.
-     vslab2 = vslab2/eps_env
+     !vslab2 = vslab2/eps_env
      !
      !Evaluate interpolation function
      func = f_coeff(1,1,1,1,iw)*exp(-sqrt((f_coeff(2,1,1,1,iw)*(qr(2,i1)+a(2,1)/a(1,1)*qr(1,i1)))**2+&
