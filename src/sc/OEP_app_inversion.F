@@ -38,7 +38,7 @@ subroutine OEP_app_inversion(E,k,Vkli,Vslt,U,rho)
  !
  ! I/O
  !
-#include<memory.h>
+#include<y_memory.h>
 #include<yambo_wfs.h>
  !
  real(SP),    intent(out):: Vkli(fft_size)

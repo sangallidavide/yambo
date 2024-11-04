@@ -28,7 +28,7 @@ subroutine LSEX_potential(q,X,Xw)
  use stderr,              ONLY:intc
  use parallel_int,        ONLY:PP_wait
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp), intent(in) :: q
  type(w_samp)              :: Xw
@@ -50,7 +50,7 @@ subroutine LSEX_potential(q,X,Xw)
  isc%iqref =0
  !
  call elemental_collision_free(isc)
- call elemental_collision_alloc(isc,NG=X%ng,NG_GAMP=(/X%ng,X%ng/),TITLE="Wlr") 
+ call elemental_collision_alloc(isc,NG=X%ng,GAMP_NG=(/X%ng,X%ng/),TITLE="Wlr") 
  !
  call X_ALLOC_elemental('X',(/X%ng,X%ng,1/))
  ! 

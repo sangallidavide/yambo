@@ -39,7 +39,7 @@ subroutine K_Transitions_setup(iq,Ken,Ken_shifted,Xk,Dip,V_bands,C_bands)
  use RT_control,   ONLY:EQ_Transitions,EQ_NoOcc
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels),    intent(in) :: Ken,Ken_shifted
  type(bz_samp),   intent(in) :: Xk
@@ -240,7 +240,7 @@ subroutine K_Transitions_dimensions(iq,Ken,Ken_shifted,Xk,Dip,V_bands,C_bands)
  use RT_control,   ONLY:EQ_Transitions,EQ_NoOcc
 #endif
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels),    intent(in) :: Ken,Ken_shifted
  type(bz_samp),   intent(in) :: Xk
