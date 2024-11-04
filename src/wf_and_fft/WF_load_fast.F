@@ -5,6 +5,8 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
+#include<dev_defs.h>
+!
 !> @brief Load wave-function in different forms using the already allocated memory
 !!
 !! @param[in]       bands_to_load               bands range 
@@ -40,10 +42,9 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  use pseudo,        ONLY:pp_is_uspp,becp
  use qe_pseudo_m,   ONLY:vkb,tpiba
  use timing_m,      ONLY:timing
- use cuda_m,        ONLY:have_cuda
+ use gpu_m,         ONLY:have_gpu
  !
-#include<dev_defs.h>
-#include<memory.h>
+#include<y_memory.h>
 #include<yambo_wfs.h>
  !
  integer               :: iG_in,iGo_max_in,bands_to_load(2),kpt_to_load,sp_pol_to_load(2),isymm,ipath
@@ -112,7 +113,7 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
  !
  YAMBO_ALLOC(wf_DP,(wf_grid_size))
  !
- if (have_cuda) then
+ if (have_gpu) then
    YAMBO_ALLOC(wf_DP_d,(wf_grid_size))
    wfr_d => WF%r_d
    WFN = WF%N
@@ -162,18 +163,14 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
        if (wf_nb_to_load==0) cycle
        !
        YAMBO_ALLOC(wf_disk,(wf_ncx,n_spinor,wf_nb_to_load))
-       if (have_cuda) then
+       if (have_gpu) then
          YAMBO_ALLOC(wf_disk_d,(wf_ncx,n_spinor,wf_nb_to_load))
        endif
        !
        ACT_NOW=RD
        if (wf_frag_id(ifrag,ib_grp,ipath)==0) ACT_NOW=OP_RD
        call io_control(ACTION=ACT_NOW,COM=NONE,SEC=(/ifrag+1,ib_grp/),ID=wf_frag_id(ifrag,ib_grp,ipath))
-       if (have_cuda) then
-         io_err=io_WF_frag(wf_frag_id(ifrag,ib_grp,ipath),wf_disk,wf_disk_d)
-       else
-         io_err=io_WF_frag(wf_frag_id(ifrag,ib_grp,ipath),wf_disk)
-       endif
+       io_err=io_WF_frag(wf_frag_id(ifrag,ib_grp,ipath),wf_disk)
        !
        do ib_to_load=1,wf_nb_to_load
          !
@@ -265,14 +262,14 @@ subroutine WF_load_fast(WF,iG_in,iGo_max_in,bands_to_load,kpt_to_load,sp_pol_to_
    enddo        ! i_k
  enddo          ! i_sp_pol
  !
- if (have_cuda .and. WF%space/='R') WF%c_d = WF%c
+ if (have_gpu .and. WF%space/='R') WF%c_d = WF%c
  !
  if (isymm>1) then
    if (WF%space=='R') call WF_symm_kpoint_r(WF%b,WF%k(1),isymm,WF)
    if (WF%space=='G') call WF_symm_kpoint_g(WF%b,WF%k(1),isymm,WF)
  endif
  !
- if (have_cuda .and. WF%space=='R') WF%r = WF%r_d
+ if (have_gpu .and. WF%space=='R') WF%r = WF%r_d
  !
  call timing('WF_load_Fast',"stop")
  !

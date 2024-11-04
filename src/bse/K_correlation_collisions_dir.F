@@ -196,8 +196,8 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
  !DEV_OMP &          i_v_k,i_v_p,i_c_k,i_c_p,i_k_sp_pol_c,i_p_sp_pol_c,i_k_sp_pol_v,i_p_sp_pol_v,iq_W,&
  !DEV_OMP &          i_kmq_t,i_pmq_t, &
  !DEV_OMP &          i_p_bz_last,i_k_bz_last,iq_W_bz_last,ig_W_last, &
- !DEV_OMP &          K_CORR_collision), firstprivate(i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref), &
- !DEV_OMP &          lastprivate(i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref)
+ !DEV_OMP &          K_CORR_collision) !!!, &
+ !!!DEV_OMP & firstprivate(i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref), lastprivate(i_k_ref,i_p_ref,i_kmq_ref,i_pmq_ref)
  !
  call OPENMP_update(master_thread)
  !
@@ -314,28 +314,28 @@ subroutine K_correlation_collisions_dir(iq,i_block,qindx_ID_frag,Xk,q,NG,&
            i_k_ref=i_k
            !DEV_OMP critical 
            call WF_load_fast(WF_k,NG(1),NG(2),BS_bands,i_k,(/1,n_sp_pol/),1,1)
-	   !DEV_OMP end critical 
+           !DEV_OMP end critical 
          endif
          !
          if (i_p_ref/=i_p) then
            i_p_ref=i_p
            !DEV_OMP critical 
            call WF_load_fast(WF_p,NG(1),NG(2),BS_bands,i_p,(/1,n_sp_pol/),1,1)
-	   !DEV_OMP end critical 
+           !DEV_OMP end critical 
          endif
          !
          if (i_kmq_ref/=i_kmq) then
            i_kmq_ref=i_kmq
            !DEV_OMP critical 
            call WF_load_fast(WF_kmq,NG(1),NG(2),BS_bands,i_kmq,(/1,n_sp_pol/),1,ipath)
-	   !DEV_OMP end critical 
+           !DEV_OMP end critical 
          endif
          !
          if (i_pmq_ref/=i_pmq) then
            i_pmq_ref=i_pmq
            !DEV_OMP critical 
            call WF_load_fast(WF_pmq,NG(1),NG(2),BS_bands,i_pmq,(/1,n_sp_pol/),1,ipath)
-	   !DEV_OMP end critical 
+           !DEV_OMP end critical 
          endif
          !
          ! v->c', i.e. k-q -> p-q=k-q_W-q transitions

@@ -30,7 +30,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,work,lwork,n
  use vec_operate,   ONLY:v_norm,sort
  use collision_el,  ONLY:elemental_collision
  use wave_func,     ONLY:WAVEs,WF_load_bz
- use devxlib,       ONLY:devxlib_memcpy_d2d,devxlib_conjg,devxlib_memset_d
+ use devxlib,       ONLY:devxlib_memcpy_d2d,devxlib_conjg_d,devxlib_memset_d
  !
  implicit none
  !
@@ -61,9 +61,6 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,work,lwork,n
  integer      :: ngrho,p_sorted(bare_grid_N(i_cg)),p_index(bare_grid_N(i_cg))
  integer      :: ig1,ig2,ik,ik_new,is,is_wf,ikp,ikp_new,ikbz,ikpbz,i_spin,i_pole,&
 &                isp,isp_wf,iv,ic,isave(4),s_poles,n_poles,i_bg,ig_start,ROWS(2)
- integer      :: ngrho
- integer      :: ig1,ig2,ik,is,ikp,ikbz,ikpbz,i_spin,&
-&                isp,iv,ic,isave(4),n_poles,i_bg,ig_start,ROWS(2)
  !
  ! DIPOLES
  !
@@ -198,7 +195,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,work,lwork,n
        !DEV_ACC_DEBUG end data
        !
        if (is>nsym/(i_time_rev+1)) then
-         call devxlib_conjg( Xo_scatt_rhotw_p )
+         call devxlib_conjg_d( Xo_scatt_rhotw_p )
        endif
          !
        endif
@@ -323,7 +320,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,Xo_res,Xo_scatt,work,lwork,n
      !DEV_ACC_DEBUG end data
      !
      if (is>nsym/(i_time_rev+1)) then
-       call devxlib_conjg(Xo_scatt_rhotw_p)
+       call devxlib_conjg_d(Xo_scatt_rhotw_p)
      endif
        !
      endif

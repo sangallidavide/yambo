@@ -15,7 +15,7 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,isymm,WF)
  use wave_func,     ONLY:wf_ng,wf_ng_1st_BZ
  use R_lattice,     ONLY:bz_samp,DEV_VAR(g_rot)
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),i_time_rev,nsym
- use devxlib,       ONLY:devxlib_conjg,devxlib_memcpy_d2d,devxlib_memset_d
+ use devxlib,       ONLY:devxlib_conjg_d,devxlib_memcpy_d2d,devxlib_memset_d
  !
  implicit none
  !
@@ -29,8 +29,8 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,isymm,WF)
  !
  WF_p => DEV_VAR(WF%c)
  !
-#if defined _GPU_LOC
- call devxlib_memset_d(WF_k_out,cZERO)
+#if defined _GPU
+ call devxlib_memset_d(WF_k_tmp,cZERO)
 #else
  WF_k_tmp=cZERO
 #endif
@@ -70,9 +70,9 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,isymm,WF)
      endif
      !
 #if defined _GPU
-     call devxlib_memcpy_d2d(WF_p(:,:,iwf),WF_k_tmp(:,:,ib,i_sp_pol))
+     call devxlib_memcpy_d2d(WF_p(:,:,i_wf),WF_k_tmp(:,:,ib,i_sp_pol))
 #else
-     WF_p(:,:,iwf)=WF_k_tmp(:,:,ib,i_sp_pol)
+     WF_p(:,:,i_wf)=WF_k_tmp(:,:,ib,i_sp_pol)
 #endif
      !
    enddo
@@ -80,10 +80,10 @@ subroutine WF_symm_kpoint_g(b_to_load,ik,isymm,WF)
  !
  ! take care of time reversal if needed
  !
-#ifdef _GPU_LOC
- if(is>nsym/(1+i_time_rev)) call devxlib_conjg(WF_p)
+#if defined _GPU
+ if(isymm>nsym/(1+i_time_rev)) call devxlib_conjg_d(WF_p)
 #else
- if(is>nsym/(1+i_time_rev)) WF_p=conjg(WF_p)
+ if(isymm>nsym/(1+i_time_rev)) WF_p=conjg(WF_p)
 #endif
  !
 end subroutine WF_symm_kpoint_g

@@ -320,7 +320,7 @@ module interfaces
      logical,     intent(in) :: WF_load_bz
    end subroutine DEV_SUB(scatter_Bamp)
    !
-   subroutine WF_shift_kpoint_gpu(b_to_shift,nb_to_shift,ikbz,i_sp_pol,wf_shift,WF_k_out)
+   subroutine WF_shift_kpoint_gpu(b_to_shift,nb_to_shift,ikbz,i_sp_pol,wf_shift,Xk,WF_k_out)
      use pars,          ONLY:SP
      use electrons,     ONLY:n_spinor
      use wave_func,     ONLY:wf_ng_1st_BZ,wf_ng_overlaps

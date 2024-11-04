@@ -139,7 +139,6 @@ integer function io_WF_frag(ID_frag,wf)
  implicit none
  integer,       intent(in) :: ID_frag
  complex(SP),   optional   :: wf(:,:,:)
- complex(SP),   optional   :: wf_d(:,:,:)
  !
  integer                   :: i_sp_pol,ik,ifrag,ib_grp,ib_block,n_blocks,ib_lim(3,wf_nb_io)
  character(schlen)         :: VAR_NAME

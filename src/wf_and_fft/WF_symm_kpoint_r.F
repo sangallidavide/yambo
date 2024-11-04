@@ -15,7 +15,7 @@ subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF)
  use FFT_m,         ONLY:DEV_VAR(fft_rot_r),fft_size
  use R_lattice,     ONLY:bz_samp
  use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),i_time_rev,nsym
- use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
+ use devxlib,       ONLY:devxlib_conjg_d,devxlib_memcpy_d2d
  !
  implicit none
  !
@@ -31,7 +31,11 @@ subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF)
  !
  WF_p => DEV_VAR(WF%r)
  !
+#if defined _GPU
+ call devxlib_memset_d(WF_k_tmp,cZERO)
+#else
  WF_k_tmp=cZERO
+#endif
  !
  do i_sp_pol=1,n_sp_pol
    do ib=b_to_load(1),b_to_load(2)
@@ -40,7 +44,7 @@ subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF)
      !
      if (n_spinor==1) then
        !
-#ifdef _CUDA
+#ifdef _GPU
        !$cuf kernel do(1) <<<*,*>>>
 #else
        !$omp parallel do default(shared), private(ifft)
@@ -51,7 +55,7 @@ subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF)
        !
      else
        !
-#ifdef _CUDA
+#ifdef _GPU
        !$cuf kernel do(1) <<<*,*>>>
 #else
        !$omp parallel do default(shared), private(ifft)
@@ -65,13 +69,17 @@ subroutine WF_symm_kpoint_r(b_to_load,ik,isymm,WF)
        !
      endif
      !
-     call dev_memcpy(WF_p(:,:,i_wf),WF_k_tmp(:,:,ib,i_sp_pol))
+     call devxlib_memcpy_d2d(WF_p(:,:,i_wf),WF_k_tmp(:,:,ib,i_sp_pol))
      !
    enddo
  enddo
  !
  ! take care of time reversal if needed
  !
- if(isymm>nsym/(i_time_rev+1)) call dev_conjg(WF_p)
+#if defined _GPU
+ if(isymm>nsym/(1+i_time_rev)) call devxlib_conjg_d(WF_p)
+#else
+ if(isymm>nsym/(1+i_time_rev)) WF_p=conjg(WF_p)
+#endif
  !
 end subroutine WF_symm_kpoint_r

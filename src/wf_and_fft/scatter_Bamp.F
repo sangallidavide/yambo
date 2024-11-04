@@ -61,11 +61,6 @@ subroutine DEV_SUB(scatter_Bamp)(isc,WF_ik,WF_ok,WF_load_bz)
    os(3)=1
  endif
  !
- have_cuda_loc=.false.
-#ifdef _CUDA_LOC
- have_cuda_loc=.true.
-#endif
- !
  ! |ib ik_is i_sp>
  call DEV_SUB(WF_apply_symm)(is,WF_ik,WF_symm_i_p)
  !

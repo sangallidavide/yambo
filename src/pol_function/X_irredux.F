@@ -77,7 +77,7 @@ subroutine X_irredux(iq,what,X_par,Xen,Xk,Xw,X,Dip)
  !
  character(schlen)    :: live_t_string
  integer              :: ig1,ig_row,ig_col,ig_row_transp,ig_col_transp,iw,n_poles,i_cg,i_bg,mutexid,ngrho,ngshift,&
-&                        X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err
+&                        X_cols_transp(2),X_rows1,X_rows2,X_cols1,X_cols2,X_rows1_l,X_rows2_l,X_nrows_l,io_err,&
 &                        is,ik_last,ikmq_last,ik,ikmq,ikmq_bz,ikl
  logical              :: force_bare_X_G,Drude_pole,skip_WF_load
  real(SP)             :: minmax_ehe(2,PAR_COM_X_WORLD%n_CPU),cutoff

@@ -529,6 +529,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
      call msg('rns', '[WF] Rotating the WFs')
      if (WF%space=='R') call WF_symm_kpoint_r(WF%b,WF%k(1),isymm,WF)
      if (WF%space=='G') call WF_symm_kpoint_g(WF%b,WF%k(1),isymm,WF)
+   endif
  endif
  !
  if (have_gpu .and. WF%space=='R') then

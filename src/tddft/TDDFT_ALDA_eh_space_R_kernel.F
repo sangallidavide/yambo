@@ -69,8 +69,8 @@ function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
  l_use_rho_map=allocated(rho_map)
  !
  !
- call WF_apply_symm(is,WF_symm1_p)
- call WF_apply_symm(os,WF_symm2_p)
+ call WF_apply_symm(is,WF,WF_symm1_p)
+ call WF_apply_symm(os,WF,WF_symm2_p)
  !
  if(n_spinor==1) rhotwr1_p(:)=conjg(WF_symm1_p(:,1))*WF_symm2_p(:,1)
  !
@@ -94,8 +94,8 @@ function TDDFT_ALDA_eh_space_R_kernel(is,os,isp,osp,tddft_wf,mode) result(H_x)
    osp_loc=(/isp(1),osp(2),osp(3),isp(4)/)
  endif
  !
- call WF_apply_symm(isp_loc,WF_symm1_p)
- call WF_apply_symm(osp_loc,WF_symm2_p)
+ call WF_apply_symm(isp_loc,WF,WF_symm1_p)
+ call WF_apply_symm(osp_loc,WF,WF_symm2_p)
  !
  if( n_spin==1 ) then
    if (     l_use_rho_map) rhotwr2_p(:)=F_xc_mat(rho_map(:),1,1,1,1)*WF_symm1_p(:,1)*conjg(WF_symm2_p(:,1))
