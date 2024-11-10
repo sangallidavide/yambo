@@ -134,10 +134,13 @@ module wave_func
      !
      if (allocated(WF_in%c)) then
        YAMBO_ALLOC_MOLD(WF_out%c,WF_in%c)
+       WF_out%c=WF_in%c
      endif
      if (allocated(WF_in%r)) then
        YAMBO_ALLOC_MOLD(WF_out%r,WF_in%r)
+       WF_out%r=WF_in%r
      endif
+     !
      lpres=have_gpu.and.devxlib_mapped(DEV_VAR(WF_in%c))
 #ifdef _GPU
      if (lpres) then
