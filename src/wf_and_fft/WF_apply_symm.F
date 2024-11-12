@@ -46,7 +46,7 @@ subroutine DEV_SUB(WF_apply_symm)(isc,WF_symm)
 #ifdef _GPU_LOC   
    call devxlib_memcpy_d2d(WF_symm,cmplx(WF_p,kind=SP))
 #else
-   WF_symm=WF_p
+   WF_symm=cmplx(WF_p,kind=SP)
 #endif
    return
    !
