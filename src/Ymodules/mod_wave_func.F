@@ -30,6 +30,12 @@ module wave_func
    complex(SP),   allocatable DEV_ATTR :: c_d(:,:,:)
  end type WAVEs
  !
+#if defined _GAMMA_ONLY
+ real(SP), parameter    :: wfZERO=0._SP
+#else
+ complex(SP), parameter :: wfZERO=cmplx(0._SP,0._SP)
+#endif
+ !
  ! Buffered WFs
  !
  type (WAVEs), save :: WF_buffer
