@@ -719,7 +719,6 @@ CUDA_check
 MEM_profile_check
 TIME_profile_check
 KEEP_OBJS_check
-GAMMA_ONLY_check
 DP_check
 with_devxlib_branch
 DEVXLIB_info
@@ -843,10 +842,6 @@ internal_blas
 FLIBS
 YDB_dir
 GIT
-with_ydriver_branch
-DRIVER_INCS
-Ydriver_check
-Ydriver_LIB
 MPI_LIB_DIR
 MPI_INC_DIR
 MPI_LIBS
@@ -928,8 +923,6 @@ MKMF_PREFIX
 def_memory_profile
 def_uspp
 def_time_profile
-def_gamma_only
-enable_gamma_only
 build_precision
 def_dp
 enable_dp
@@ -989,7 +982,6 @@ enable_keep_objects
 enable_keep_src
 enable_keep_extlibs
 enable_dp
-enable_gamma_only
 enable_time_profile
 enable_uspp
 enable_memory_profile
@@ -1008,7 +1000,6 @@ with_mpi_libs
 with_mpi_path
 with_mpi_libdir
 with_mpi_includedir
-with_ydriver_branch
 enable_ydb
 with_blas_libs
 enable_int_linalg
@@ -1747,7 +1738,6 @@ Optional Features:
   --enable-keep-src       Keep preprocessed.f90 file. Default is yes.
   --enable-keep-extlibs   Keep downloaded packages as tar.gz . Default is yes.
   --enable-dp             Double-precision build. Default is no.
-  --enable-gamma-only     Gamma only build. Default is no.
   --enable-time-profile   Extended timing profile of specific sections.
                           Default is yes.
   --enable-uspp           Enable Ultrasoft PP support
@@ -1804,8 +1794,6 @@ Optional Packages:
   --with-mpi-path=<path>        Path to the MPI install directory
   --with-mpi-libdir=<path>      Path to the MPI lib directory
   --with-mpi-includedir=<path>  Path to the MPI include directory
-  --with-ydriver-branch=<branch>
-                                Use the <branch> of the ydriver repository.
   --with-blas-libs=<libs>       Use BLAS libraries <libs>
   --with-lapack-libs=<libs>     Use LAPACK libraries <libs>
   --with-fft-libs=<libs>        Link to FFT libraries
@@ -3366,8 +3354,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 SVERSION="5"
 SSUBVERSION="3"
 SPATCHLEVEL="0"
-SREVISION="24096"
-SHASH="ab58e1d526"
+SREVISION="24100"
+SHASH="e614487aa8"
 
 
 
@@ -3517,20 +3505,6 @@ if test x"$enable_dp" = "xno" ; then def_dp="";          build_precision="single
 if test x"$enable_dp" = "xyes"; then def_dp="-D_DOUBLE"; build_precision="double"; fi
 if test x"$build_precision" = "x"; then as_fn_error $? "Non correct specification of compilation precision" "$LINENO" 5; fi
 
-
-
-#
-# ============================================================================
-# VERSION for gamma only case
-# Check whether --enable-gamma_only was given.
-if test ${enable_gamma_only+y}
-then :
-  enableval=$enable_gamma_only;
-fi
-
-def_gamma_only=""
-if test x"$enable_gamma_only" = "x";    then enable_gamma_only="no";   fi
-if test x"$enable_gamma_only" = "xyes"; then def_gamma_only="-D_GAMMA_ONLY";  fi
 
 
 #
@@ -4732,15 +4706,6 @@ then :
 fi
 
 fi
-
-#
-# License-Identifier: GPL
-#
-# Copyright (C) 2016 The Yambo Team
-#
-# Authors (see AUTHORS file for details): AM
-#
-
 
 #
 #  General
@@ -10608,34 +10573,6 @@ ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
-
-# ============================================================================
-# Yambo Libs
-
-
-DRIVER_INCS="-I$PWD/lib/yambo/Ydriver/include/ -I$PWD/include/driver"
-#
-
-# Check whether --with-ydriver-branch was given.
-if test ${with_ydriver_branch+y}
-then :
-  withval=$with_ydriver_branch;
-else $as_nop
-  with_ydriver_branch=none
-fi
-
-#
-if test x"$with_ydriver_branch" = "xnone"; then
- Ydriver_check="D";
- Ydriver_LIB="Download"
-else
- Ydriver_check="G";
- Ydriver_LIB="GIT, branch $with_ydriver_branch"
-fi
-
-
-
-
 
 # ============================================================================
 # YDB/YAMBOpy
@@ -16642,9 +16579,6 @@ LIBS="$acx_devxlib_save_LIBS"
 DP_check="-"
 if test "$enable_dp" = "yes" ; then DP_check="X"; fi
 #
-GAMMA_ONLY_check="-"
-if test "$enable_gamma_only" = "yes" ; then GAMMA_ONLY_check="X"; fi
-#
 KEEP_OBJS_check="-"
 if test "$enable_keep_objects" = "yes" ; then KEEP_OBJS_check="X"; fi
 #
@@ -16829,7 +16763,6 @@ if test "$hdf5" = "yes" ; then
   fi
 fi
 #
-
 
 
 
