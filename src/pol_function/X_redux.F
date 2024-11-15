@@ -218,6 +218,8 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    ! ==================
    !
    iw = PAR_FREQS_index(iw_par)
+   KERNEL%blc = cZERO
+   !
    BUFFER_p => DEV_VAR(BUFFER%blc)
    !
    if (.not.(l_alda_fxc.and.l_Fxc_in_Xo)) then
