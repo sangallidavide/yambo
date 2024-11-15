@@ -210,7 +210,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,work,lwork,Xo_
          enddo
          !
          if (is>nsym/(i_time_rev+1)) then
-           call devxlib_conjg( DEV_VAR(Xo_scatt%rhotw_tddft) )
+           call devxlib_conjg_d( DEV_VAR(Xo_scatt%rhotw_tddft) )
          endif
        endif
        !
