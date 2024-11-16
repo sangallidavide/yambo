@@ -30,6 +30,12 @@ module wave_func
    complex(SP),   allocatable DEV_ATTR :: c_d(:,:,:)
  end type WAVEs
  !
+#if defined _GAMMA_ONLY
+ real(SP), parameter    :: wfZERO=0._SP
+#else
+ complex(SP), parameter :: wfZERO=cmplx(0._SP,0._SP)
+#endif
+ !
  ! Buffered WFs
  !
  type (WAVEs), save :: WF_buffer
@@ -152,10 +158,13 @@ module wave_func
      !
      if (allocated(WF_in%c)) then
        YAMBO_ALLOC_MOLD(WF_out%c,WF_in%c)
+       WF_out%c=WF_in%c
      endif
      if (allocated(WF_in%r)) then
        YAMBO_ALLOC_MOLD(WF_out%r,WF_in%r)
+       WF_out%r=WF_in%r
      endif
+     !
      lpres=have_gpu.and.devxlib_mapped(DEV_VAR(WF_in%c))
 #ifdef _GPU
      if (lpres) then
