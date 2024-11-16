@@ -206,6 +206,19 @@ module X_m
      integer, optional :: DIM(:)
    end subroutine
    !
+   subroutine X_ALLOC_parallel(NG,NW,mode,X_par,X_low)
+    !
+    use pars,          ONLY:IPL
+    use matrix,        ONLY:PAR_matrix
+    !
+    integer          :: NG,NW
+    integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
+    character(*)     :: mode
+    type(PAR_matrix) :: X_par
+    type(PAR_matrix), optional :: X_low
+    !
+   end subroutine X_ALLOC_parallel   
+   !
    subroutine X_redux_build_kernel(KERNEL,Xo,Xo_rows,Xo_cols,iw_par_buffer,compute_on_gpu,iq)
      use matrix,        ONLY:PAR_matrix
      implicit none

@@ -39,7 +39,7 @@ subroutine QP_real_axis(X,Xen,Xk,en,k,q,qp,Xw,Dip,GW_iter)
  use QP_m,          ONLY:QP_t,QP_n_G_bands,QP_dSc_steps,QP_Sc,QP_n_states,QP_G_damp,QP_table,QP_dSc_delta,&
 &                        QP_W,QP_solver,QP_W_er,QP_W_dr,QP_n_W_freqs,QP_Sc_steps,&
 &                        QP_n_W_freqs_redux,e2et,h2ht
- use X_m,           ONLY:X_ALLOC_elemental,X_mat,X_t,X_par
+ use X_m,           ONLY:X_ALLOC_elemental,X_alloc_parallel,X_mat,X_t,X_par
  use functions,     ONLY:bose_decay
  use R_lattice,     ONLY:qindx_S,bz_samp
  use D_lattice,     ONLY:nsym,i_space_inv,i_time_rev,mag_syms
@@ -340,8 +340,12 @@ subroutine QP_real_axis(X,Xen,Xk,en,k,q,qp,Xw,Dip,GW_iter)
      endif
      !
      if (l_life) then
+       if (X_range(2)-X_range(1)/=X_life_W(iqibz)%n_freqs) &
+       & call error("X_range(2)-X_range(1)/=X_life_W(iqibz)%n_freqs")
        call X_delta_part(X%ng,X_life_W(iqibz)%n_freqs,X_mat(:,:,X_range(1):X_range(2)),scattering_main%gamp)
      else
+       if (X_range(2)-X_range(1)/=Xw%n_freqs) &
+       & call error("X_range(2)-X_range(1)/=Xw%n_freqs")
        call X_delta_part(X%ng,Xw%n_freqs,X_mat(:,:,X_range(1):X_range(2)),scattering_main%gamp)
      endif
      !
@@ -363,7 +367,7 @@ subroutine QP_real_axis(X,Xen,Xk,en,k,q,qp,Xw,Dip,GW_iter)
    ! TO BE completed (avoiding reference to X_mat in the following)
    !
    if (.not. allocated(X_par) ) allocate(X_par(1))
-   call X_ALLOC_parallel(X_par(1),X%ng,Xw%n_freqs,"X")
+   call X_ALLOC_parallel(X%ng,Xw%n_freqs,"X",X_par(1))
    !
    ! Useful when GPU porting will be introduced
    ! X_blc_p=> DEV_VAR(X_par%blc)

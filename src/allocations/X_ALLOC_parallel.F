@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM
 !
-subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
+subroutine X_ALLOC_parallel(NG,NW,mode,X_par,X_low)
  !
  use pars,          ONLY:cZERO
  use parallel_m,    ONLY:COMM_copy,PAR_COM_RL_INDEX,PAR_COM_RL_A2A,PAR_COM_HOST
@@ -18,10 +18,11 @@ subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
 #include<dev_defs.h>
 #include<y_memory.h>
  !
- type(PAR_matrix) :: X_par,X_low
  integer          :: NG,NW
  integer(IPL)     :: HOST_SIZE(3),TMP_SIZE(3)
  character(*)     :: mode
+ type(PAR_matrix) :: X_par
+ type(PAR_matrix), optional :: X_low
  !
  ! Work Space
  !
@@ -56,6 +57,8 @@ subroutine X_ALLOC_parallel(X_par,X_low,NG,NW,mode)
  !DEV_ACC update device(X_cols)
  !
  if (l_XUP.and.(.not.X_FILL_UP_matrix_only.or.l_tddft).and.X_par%INTER_comm%n_CPU>1) then
+   !
+   if (.not.present(X_low)) call error("X_ALLOC_parallel: X_low not present")
    !
    call MATRIX_reset(X_low)
    !DEV_ACC enter data copyin(X_low)

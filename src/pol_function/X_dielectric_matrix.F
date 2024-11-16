@@ -15,7 +15,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
  use X_m,           ONLY:X_t,X_ALLOC_elemental,self_detect_E_range,X_poles,l_recalculate_X,l_write_disk_Xo,&
 &                        l_X_terminator,X_terminator_Kind,X_mat,X_par,X_par_lower_triangle,&
 &                        X_DbGd_nkpt_at_q,use_X_DbGd,X_DbGd_nkpt_at_q_table,X_Double_Grid_setup,&
-&                        n_OPTICAL_dir_to_eval,X_par_average,l_X_abs
+&                        n_OPTICAL_dir_to_eval,X_par_average,l_X_abs,X_ALLOC_parallel
  use LIVE_t,        ONLY:live_timing
  use stderr,        ONLY:intc
  use frequency,     ONLY:w_samp
@@ -305,7 +305,7 @@ integer function X_dielectric_matrix(Xen,Xk,q,X,Xw,Dip,SILENT_MODE)
    !
    do iq_dir=1,n_OPTICAL_dir_to_eval
      !
-     call X_ALLOC_parallel(X_par(iq_mem),X_par_lower_triangle(1),X%ng,Xw%n_freqs,"XUP")
+     call X_ALLOC_parallel(X%ng,Xw%n_freqs,"XUP",X_par(iq_mem),X_par_lower_triangle(1))
      !
      if (n_OPTICAL_dir_to_eval>1) call X_AVERAGE_setup("DIR-LOOP",iq_dir,X%q0)
      if (n_OPTICAL_dir_to_eval>1) X_what="("//trim(intc(iq_dir))//" of "//trim(intc(n_OPTICAL_dir_to_eval))//")"

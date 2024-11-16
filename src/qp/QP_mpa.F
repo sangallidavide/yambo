@@ -31,7 +31,7 @@ subroutine QP_mpa(X,Xk,E,k,q,qp,Xw,GW_iter)
  &                       io_RESPONSE,io_MULTIPOLE,deliver_IO_error_message
  use QP_m,          ONLY:QP_t,QP_n_G_bands,QP_Sc_steps,QP_dSc_steps,QP_solver,&
 &                        QP_Sc,QP_n_states,QP_G_damp,QP_table,QP_dSc_delta
- use X_m,           ONLY:X_ALLOC_elemental,X_t,X_par
+ use X_m,           ONLY:X_ALLOC_elemental,X_ALLOC_parallel,X_t,X_par
  use wave_func,     ONLY:WF
  use R_lattice,     ONLY:qindx_S,bz_samp,RIM_W_ng,RIM_W
  use D_lattice,     ONLY:nsym,i_time_rev,i_space_inv,mag_syms
@@ -218,7 +218,7 @@ subroutine QP_mpa(X,Xk,E,k,q,qp,Xw,GW_iter)
  if (.not.allocated(X_par).and.io_RESPONSE) then
    allocate(X_par(1))
  endif
- if (io_RESPONSE) call X_ALLOC_parallel(X_par(1),X%ng,2*X%mpa_npoles,"X")
+ if (io_RESPONSE) call X_ALLOC_parallel(X%ng,2*X%mpa_npoles,"X",X_par(1))
  !
  YAMBO_ALLOC(W_,(QP_dSc_steps))
  YAMBO_ALLOC(dc,(QP_dSc_steps))

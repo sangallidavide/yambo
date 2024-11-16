@@ -45,7 +45,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  use QP_m,          ONLY:QP_solver,QP_t,QP_n_G_bands,QP_dSc_steps,QP_Sc_steps,QP_table,l_QP_symmetrize,&
 &                        QP_Sc,QP_n_states,QP_G_damp,QP_table,QP_dSc_delta,GW_terminator_E,&
 &                        COHSEX_use_empties,l_GW_terminator,GW_terminator_Kind,QP_states_simmetrize
- use X_m,           ONLY:X_ALLOC_elemental,X_par,X_t
+ use X_m,           ONLY:X_ALLOC_elemental,X_ALLOC_parallel,X_par,X_t
  use wave_func,     ONLY:WF
  use R_lattice,     ONLY:qindx_S,bz_samp,DEV_VAR(G_m_G),G_m_G_maxval,nqibz,RIM_W_E,&
 &                        RIM_W_is_diagonal,RIM_W_ng,DEV_VAR(RIM_W)
@@ -247,10 +247,10 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  endif
  !
  if (l_sc_coh.or.l_sc_sex.or.l_cohsex.or.l_sc_srpa) then
-   if (io_RESPONSE) call X_ALLOC_parallel(X_par(1),X%ng,1,"X")
+   if (io_RESPONSE) call X_ALLOC_parallel(X%ng,1,"X",X_par(1))
    YAMBO_ALLOC(dc,(2))
  else
-   if (io_RESPONSE) call X_ALLOC_parallel(X_par(1),X%ng,2,"X")
+   if (io_RESPONSE) call X_ALLOC_parallel(X%ng,2,"X",X_par(1))
    YAMBO_ALLOC(W_,(QP_dSc_steps))
    YAMBO_ALLOC(dc,(QP_dSc_steps))
  endif
