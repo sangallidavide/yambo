@@ -16,7 +16,7 @@ subroutine COLLISIONS_compress(COLL)
  use R_lattice,       ONLY:nXkibz
  use electrons,       ONLY:n_met_bands,n_full_bands
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(COLLISIONS_element), intent(inout) :: COLL
  !
