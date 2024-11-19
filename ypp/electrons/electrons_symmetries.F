@@ -23,7 +23,7 @@ subroutine electrons_symmetries(Xk,Xen,blim,klim)
  use com,            ONLY:msg,of_open_close
  use LIVE_t,         ONLY:live_timing
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels) :: Xen
  type(bz_samp):: Xk

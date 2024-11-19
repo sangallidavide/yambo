@@ -27,7 +27,7 @@ subroutine excitons_symmetries(iq,Xen,Xk,qpt,BS_E)
  use com,            ONLY:msg,of_open_close
  use LIVE_t,         ONLY:live_timing
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  integer, intent(in) :: iq
  type(bz_samp)       :: Xk,qpt

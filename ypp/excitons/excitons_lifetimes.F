@@ -43,7 +43,7 @@ subroutine excitons_lifetimes(Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  !
  ! implicit none 
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels)       :: Xen
  type(bz_samp)      :: Xk,Xq
