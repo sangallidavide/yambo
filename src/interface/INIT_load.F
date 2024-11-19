@@ -100,9 +100,10 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #if defined _SCALAPACK
  use SLK_m,         ONLY:SLK_test_H_dim
 #endif
+ use gpu_m,         ONLY:GPU_test_dim
  use PHOTOLUM,      ONLY:PL_weights
 #if defined _MEM_CHECK
- use memory,        ONLY:MEM_treshold
+ use y_memory,      ONLY:MEM_treshold
 #endif
 #if defined _PHEL
  use PHEL,          ONLY:PH_Self_Energy_mode,PH_DbGd_points,PH_Q,PHEL_broad_factor,PHEL_fit_Energies
@@ -558,6 +559,10 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'SLKdim',  '[SLK] Matrix Dimension',SLK_test_H_dim)
 #endif
  !
+ ! GPU test
+ !
+ call it(defs,'GPUdim',  '[GPU] Matrix Dimension',GPU_test_dim)
+ !
 #if defined _SC
  call it(defs,'Hamiltonian',   '[MAG] Hamiltonian kind [pauli,landau,all]',MAG_hamiltonian_type,protect=.FALSE.)
  call it(defs,'B_Field',       '[MAG] Magnetic field modulus',MAG_B,unit=Bfield_unit)
@@ -780,7 +785,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
        if (i_s==2) possible_fields='(q,g,k,c,v)' ! X_and_IO
        if (i_s==3) possible_fields='(q,g,k,c,v)' ! X
        if (i_s==4) possible_fields='(k,eh,t)'    ! BS
-       if (i_s==5) possible_fields='(q,qp,b)'    ! SE
+       if (i_s==5) possible_fields='(q,g,qp,b)'  ! SE
        if (i_s==6) possible_fields='(k,b,q,qp)'  ! RT
        if (i_s==7) possible_fields='(p,d) '      ! SLK
        if (i_s==8) possible_fields='(w,k) '      ! NL
