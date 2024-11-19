@@ -12,7 +12,7 @@ subroutine SERIAL_SVD(n,M,mode,SVD_digits)
  use linear_algebra, ONLY:LINEAR_ALGEBRA_error,SV_decomposition,&
 &                         LINEAR_ALGEBRA_WS_reset,LALGEBRA_WS
  use timing_m,       ONLY:timing
-#include<memory.h>
+#include<y_memory.h>
  !
  integer,     intent(in)    :: n
  complex(SP), intent(inout) :: M(n,n)
