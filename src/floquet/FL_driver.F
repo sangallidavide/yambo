@@ -56,7 +56,7 @@ subroutine FL_driver(E,X,k,q,Dip)
 &                         PAR_COM_freqs_INDEX,PAR_COM_Xk_bz_INDEX,PAR_COM_Xk_ibz_INDEX,myid,master_cpu
  use collision_ext,  ONLY:COLLISIONS_have_HARTREE
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  ! Notice that E is never changed!
  !
