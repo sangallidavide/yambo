@@ -95,6 +95,7 @@ void options_ypp(struct options_struct options[],int *i_opt)
  options[*i_opt].short_desc="Mean Potential";
  strcpy(options[*i_opt].long_desc[0],"<string>=(h)artree,(f)ock,(coh),(sex),(cohsex),(exx),(exxc),(srpa),(d)ef,(ip)");
  options[*i_opt].long_opt= "potential";
+ strcpy(options[*i_opt].long_desc[0],"<string>=(h)artree,(f)ock,(coh),(sex),(cohsex),(exx),(exxc),(srpa),(d)ef,(ip)");
  options[*i_opt].short_opt='v';
  options[*i_opt].bin="ypp_sc";
  options[*i_opt].yambo_string="MeanPot";
