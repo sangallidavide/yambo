@@ -147,7 +147,7 @@ subroutine K_exchange_collisions(iq,Xk,i_T_grp,NG,l_bs_exch_wf_in_loop)
        do i_g1=2,BS_n_g_exch
          i_g2=DEV_VAR(g_rot)(i_g1,i_s_m1)
          gphase = cmplx(cos(g_phs_d(i_g1,i_s)),sin(g_phs_d(i_g1,i_s)))
-         O_x_d(i_g1,i_T_el) = O_x_sym_d(i_g2,i_T_el_last_with_identity_sym)*gphase
+         O_x_p(i_g1,i_T_el) = O_x_sym_p(i_g2,i_T_el_last_with_identity_sym)*gphase
        enddo
        !DEV_ACC_DEBUG end data
        !

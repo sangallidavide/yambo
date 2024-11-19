@@ -143,15 +143,11 @@ subroutine DIPOLE_overlaps(Xk,Dip)
 	 !
          call WF_symm_kpoint_g((/1,Dip%ib(2)/),ikp,i_sp_pol,isp,1,WF)
          !
-         ! shift to be fixed
-         !call WF_shift_kpoint_gpu((/1,Dip%ib(2)/),ikbzp,i_sp_pol,shift,Xk,WF_ikp)
-         !
-         call WF_free(WF)
-         !
          do ibp=1,Dip%ib(2)
            if(.not.PAR_IND_CON_BANDS_OVLP%element_1D(ibp)) cycle
            !
-           call WF_shift_kpoint_gpu((/ibp,ibp/),1,ikbzp,i_sp_pol,shift,Xk,WF_symm,WF_ikp)
+           ! shift to be fixed
+           !call WF_shift_kpoint_gpu((/ibp,ibp/),1,ikbzp,i_sp_pol,shift,Xk,WF_symm,WF_ikp)
            !
            do ib=1,Dip%ib(2)
              if(.not.PAR_IND_VAL_BANDS_OVLP%element_1D(ib)) cycle

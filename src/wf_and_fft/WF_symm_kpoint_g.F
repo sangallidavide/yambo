@@ -213,7 +213,6 @@ subroutine WF_symm_kpoint_g_ssop(b_to_load,ik,i_sp_pol,isymm,ig0,ssop,WF)
   use vec_operate,   ONLY:c2a
   use R_lattice,     ONLY:DEV_VAR(g_rot),DEV_VAR(G_m_G),&
   &                       k_pt,rl_sop,g_vec
-  use deviceXlib_m,  ONLY:dev_conjg,dev_memcpy
   use D_lattice,     ONLY:idt_index,DEV_VAR(spin_sop),sop_inv, &
   &                       dl_sop,i_time_rev,nsym
   !

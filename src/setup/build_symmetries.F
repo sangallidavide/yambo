@@ -17,7 +17,7 @@ subroutine build_symmetries()
 &                         symmetry_equiv_atoms,pure_rotation
  use R_lattice,      ONLY:rl_sop
  !
-#include <memory.h>
+#include <y_memory.h>
  !
  integer           :: i1,i2,i3,is,iclass,jclass,ich,len_class(12),max_len
  character(5)      :: vec_ch(12)

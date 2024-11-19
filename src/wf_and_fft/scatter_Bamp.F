@@ -164,7 +164,7 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
      isc%rhotw(ig)= conjg(cmplx(isc%rho_tw_rs(igr),kind=SP))
    enddo
  else
-   !$omp parallel do default(shared), private(ig,igr,gphase)
+   !$omp parallel do default(shared), private(ig,igr,igs,gphase)
    do ig = 1, isc%ngrho
      igr=g_rot(ig,qs)
      igs=fft_g_table(igr,iGo)
@@ -194,11 +194,11 @@ subroutine DEV_SUB(scatter_Bamp)(isc)
  else
    !
    !DEV_ACC_DEBUG data present(rhotw_p,rho_tw_rs_p,fft_g_table,g_rot)
-   !DEV_ACC parallel loop private(igr)
+   !DEV_ACC parallel loop private(igr,igs)
    !DEV_CUF kernel do(1) <<<*,*>>>
    !DEV_OMPGPU target map(present,alloc:rhotw_p,rho_tw_rs_p,fft_g_table,g_rot)
    !DEV_OMPGPU teams loop
-   !DEV_OMP parallel do default(shared), private(ig),igr
+   !DEV_OMP parallel do default(shared), private(ig,igr,igs)
    do ig = 1, isc_ngrho
      igr=DEV_VAR(g_rot)(ig,qs)
      igs=DEV_VAR(fft_g_table)(igr,iGo)

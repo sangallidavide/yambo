@@ -52,12 +52,12 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
  !DEV_ACC_DEBUG data present(O_c_d_iO1,G_m_G,g_rot,O1,O2)
  !DEV_ACC parallel loop private(i_g2,i_g3,i_g4,gphase)
  !DEV_CUF kernel do(1) <<<*,*>>>
- !DEV_OMP parallel do default(shared), private(i_g1,i_g2,i_g3,ig_4,gphase)
+ !DEV_OMP parallel do default(shared), private(i_g1,i_g2,i_g3,i_g4,gphase)
  do i_g1=1,BS_n_g_W
    i_g2=DEV_VAR(G_m_G)(i_g1,ig_W  )
    i_g3=DEV_VAR(g_rot)(i_g1,iq_W_s)
    i_g4=DEV_VAR(G_m_G)(i_g3,ig_W  )
-   gphase=cmplx(cos(g_phs_d(i_g2,iq_W_s_m1)   ),sin(g_phs(i_g2,iq_W_s_m1)   ))
+   gphase=cmplx(cos(DEV_VAR(g_phs)(i_g2,iq_W_s_m1)   ),sin(DEV_VAR(g_phs)(i_g2,iq_W_s_m1)   ))
    O1(i_g1)=O_c_d_iO1(i_g4)*conjg(gphase)
  enddo
  !DEV_OMP end parallel do
@@ -66,12 +66,12 @@ function K_correlation_kernel_dir(i_block,i_p,i_pmq,                            
  !DEV_ACC_DEBUG data present(O_c_d_iO2,G_m_G,g_rot,O1,O2)
  !DEV_ACC parallel loop private(i_g2,i_g3,i_g4,gphase)
  !DEV_CUF kernel do(1) <<<*,*>>>
- !DEV_OMP parallel do default(shared), private(i_g1,i_g2,i_g3,ig_4,gphase)
+ !DEV_OMP parallel do default(shared), private(i_g1,i_g2,i_g3,i_g4,gphase)
  do i_g1=1,BS_n_g_W
    i_g2=DEV_VAR(G_m_G)(i_g1,ig_W_mq  )
    i_g3=DEV_VAR(g_rot)(i_g1,iq_W_s_mq)
    i_g4=DEV_VAR(G_m_G)(i_g3,ig_W_mq  )
-   gphase=cmplx(cos(g_phs_d(i_g2,iq_W_s_mq_m1)),sin(g_phs(i_g2,iq_W_s_mq_m1)))
+   gphase=cmplx(cos(DEV_VAR(g_phs)(i_g2,iq_W_s_mq_m1)),sin(DEV_VAR(g_phs)(i_g2,iq_W_s_mq_m1)))
    O2(i_g1)=O_c_d_iO2(i_g4)*conjg(gphase)
  enddo
  !DEV_OMP end parallel do
