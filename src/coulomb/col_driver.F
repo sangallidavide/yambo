@@ -182,9 +182,9 @@ subroutine col_driver(bare_NG,q)
    ! is not linear in q+G, the rescaling there is more involved
    !
    ! bare_qpg= q+G
-   bare_qpg=bare_qpg*sqrt(eps_env)
+   if (allocated(bare_qpg)) bare_qpg=bare_qpg*sqrt(eps_env)
    ! RIM_qpg= \int C/|q+G|**2
-   RIM_qpg =RIM_qpg/eps_env
+   if (allocated(RIM_qpg)) RIM_qpg =RIM_qpg/eps_env
    !
  endif
  !
