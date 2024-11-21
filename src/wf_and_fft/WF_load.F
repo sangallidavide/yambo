@@ -78,11 +78,7 @@ subroutine WF_load(WF,iG_in,iGo_max_in,bands_to_load,kpts_to_load,sp_pol_to_load
  real(SP)         ::mndp,mxdp
  complex(SP)      ::c
  logical          ::loaded_bounds_ok,free_and_alloc,buffer_is_ok,clean_up_states,&
-<<<<<<< HEAD
                     k_extrema_only_,force_WFo_,QUIET_wf,SIZE_msg
-=======
-		    k_extrema_only_,force_WFo_,QUIET_wf,SIZE_msg,do_becp
->>>>>>> phys-gw-from-bareH
  complex(SP), allocatable :: wf_disk(:,:,:)
  complex(DP), allocatable :: wf_DP(:)
  !
