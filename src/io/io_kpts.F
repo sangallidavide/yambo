@@ -20,7 +20,7 @@ integer function io_kpts(k,Xk,q,io_db)
 &                         def_variable_bulk,io_variable_bulk
  use timing_m,       ONLY:timing
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp)::k,q,Xk
  integer      ::io_db

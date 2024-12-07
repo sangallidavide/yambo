@@ -337,7 +337,7 @@ subroutine set_BS_blks(Xk)
 &                       BSK_IO_mode,l_BSE_kernel_full
  use R_lattice,    ONLY:bz_samp
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(bz_samp), intent(in) :: Xk
  !

@@ -32,7 +32,7 @@ subroutine RT_fields()
  use fields,         ONLY:Efield
  use stderr,         ONLY:STRING_split
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  ! Work Space
  !

@@ -17,7 +17,7 @@ subroutine NL_start_and_restart(E,k,Dip)
  ! [4] Initialize the bare Hartree and XC
  ! [5] Initialize the fields
  !
- use pars,           ONLY:cZERO,rZERO,cONE,SP,lchlen
+ use pars,           ONLY:cZERO,rZERO,cONE,SP
  use com,            ONLY:msg
  use units,          ONLY:AUT2FS
  use electrons,      ONLY:levels,n_sp_pol
