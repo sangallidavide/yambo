@@ -41,13 +41,14 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
  !
  ! Work Space
  !
- logical                      :: l_use_comm,l_check
+ logical                      :: l_use_comm,l_check,l_last_done
  logical, allocatable         :: element_1D_spin(:)
- integer                      :: ik,ic_wf,iv_wf,i_wf,ic,iv,ib,ifrag,pp_dim_yambo,pp_dim_atom,&
-&                                i_sp_pol,N_elements_todo,ik_mem,ic_min,is,ia,pp_range(2),npp,npp_tab
+ integer                      :: ik,ic_wf,iv_wf,ic,iv,ib,ifrag,pp_dim_yambo,pp_dim_atom,&
+&                                i_sp_pol,N_elements_todo,ik_mem,ic_min,is,ia,pp_range(2),npp,npp_tab,&
+&                                i_wf_ranges(2),b_ranges(2,2),i1,n_wf,n_blocks
  complex(SP), allocatable          :: kbv(:,:,:,:)
  complex(SP), allocatable DEV_ATTR :: kbv_d(:,:,:,:)
- complex(SP), allocatable DEV_ATTR :: XX(:,:,:,:,:)
+ complex(SP), allocatable DEV_ATTR :: XX(:,:,:,:)
  complex(SP)                  :: rho_spinor(3,n_spinor,n_spinor),rho(3),P2
  real(SP)                     :: Ev_m_Ev_KS,Dipole_Energy_treshold
  logical                      :: LT_msg=.FALSE.
@@ -118,11 +119,11 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
    YAMBO_ALLOC(kbv,(wf_ncx,n_spinor,4,pp_dim_atom))
    !
    if (have_gpu) then
-     YAMBO_ALLOC_GPU(XX,(n_spinor,n_spinor,4,pp_dim_yambo,Dip%ib(1):Dip%ib(2)))
+     YAMBO_ALLOC_GPU(XX,(n_spinor,4,pp_dim_yambo,Dip%ib(1):Dip%ib(2)))
      YAMBO_ALLOC_GPU(DEV_VAR(kbv),(wf_ncx,n_spinor,4,pp_dim_atom))
      call devxlib_memset_d(DEV_VAR(kbv),cZERO)
    else
-     YAMBO_ALLOC(XX,(n_spinor,n_spinor,4,pp_dim_yambo,Dip%ib(1):Dip%ib(2)))
+     YAMBO_ALLOC(XX,(n_spinor,4,pp_dim_yambo,Dip%ib(1):Dip%ib(2)))
    endif
    !
    ! Eo    are always the eigenvalues consistent with the WFs
@@ -145,6 +146,42 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
  ! Main loop over k in IBZ
  !
  if (N_elements_todo>0) call live_timing(trim(g_space_obs)//" [g-space]",N_elements_todo)
+ !
+ ! check band ranges
+ b_ranges=-1
+ !
+ ! valence band
+ l_last_done=.false.
+ do ib=Dip%ib(1),Dip%ib_lim(1)
+   if( .not.PAR_IND_VAL_BANDS_DIP%element_1D(ib) ) then
+     if(b_ranges(1,1)/=-1) l_last_done=.true.
+     cycle
+   endif
+   if (l_last_done) call error("valence band parallelization is not contiguous")
+   if (b_ranges(1,1)==-1) b_ranges(1,1)=ib
+   b_ranges(2,1)=ib
+ enddo
+ !
+ ! conduction band
+ l_last_done=.false.
+ do ib=Dip%ib_lim(2),Dip%ib(2)
+   if( .not.PAR_IND_CON_BANDS_DIP%element_1D(ib) ) then
+     if(b_ranges(1,2)/=-1) l_last_done=.true.
+     cycle
+   endif
+   if (l_last_done) call error("conduction band parallelization is not contiguous")
+   if (b_ranges(1,2)==-1) b_ranges(1,2)=ib
+   b_ranges(2,2)=ib
+ enddo
+ !
+ ! Avoid overlap and define number of blocks
+ !
+ if (b_ranges(2,1)+1>b_ranges(1,2)) then
+   n_blocks=1
+   b_ranges(2,1)=b_ranges(2,2)
+ else
+   n_blocks=2
+ endif
  !
  do i_sp_pol=1,n_sp_pol
    !
@@ -177,6 +214,9 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
      !
      if (l_use_comm) then
        !
+       call timing('DIPOLE_g_space_proj',OPR='start')
+       !
+       n_wf=size(WF%c,3)
        npp=0
        npp_tab=0
        pp_range(2)=0
@@ -193,27 +233,23 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
            if (npp==0) cycle
            !
            pp_range(2)=pp_range(1)+npp-1
-           !
+	   !
            if (have_gpu) call devxlib_memcpy_h2d(DEV_VAR(kbv),kbv)
-           !
-           do ib=Dip%ib(1),Dip%ib(2)
+	   !
+           ! Loop over valence and conduction
+           do i1=1,n_blocks
              !
-             if( ib<=Dip%ib_lim(1) ) then
-               l_check= .not.(PAR_IND_VAL_BANDS_DIP%element_1D(ib).or.PAR_IND_CON_BANDS_DIP%element_1D(ib))
-             else
-               l_check= .not.PAR_IND_CON_BANDS_DIP%element_1D(ib)
-             endif
-             if ( l_check ) cycle
+             i_wf_ranges=(/WF%index(b_ranges(1,i1),ik,i_sp_pol),WF%index(b_ranges(2,i1),ik,i_sp_pol)/)
              !
-             i_wf=WF%index(ib,ik,i_sp_pol)
-             !
-             call DIPOLE_kb_project(pp_range,Dip%ib,ib,i_wf,wf_ncx,size(WF%c,3),npp,&
+             call DIPOLE_kb_project(pp_range,Dip%ib,b_ranges(:,i1),i_wf_ranges,wf_ncx,n_wf,npp,&
              &                      pp_dim_atom,pp_dim_yambo,DEV_VAR(WF%c),DEV_VAR(kbv),XX)
              !
            enddo
            !
          enddo
        enddo
+       !
+       call timing('DIPOLE_g_space_proj',OPR='stop')
        !
      endif
      !
