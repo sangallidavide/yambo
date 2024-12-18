@@ -74,6 +74,43 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
  enddo
  N_elements_todo=N_elements_todo*n_sp_pol*PAR_IND_DIPk_ibz%n_of_elements(PAR_IND_DIPk_ibz_ID+1)
  !
+ ! check band ranges
+ !==================
+ b_ranges=-1
+ !
+ ! valence band
+ l_last_done=.false.
+ do ib=Dip%ib(1),Dip%ib_lim(1)
+   if( .not.PAR_IND_VAL_BANDS_DIP%element_1D(ib) ) then
+     if(b_ranges(1,1)/=-1) l_last_done=.true.
+     cycle
+   endif
+   if (l_last_done) call error("valence band parallelization is not contiguous")
+   if (b_ranges(1,1)==-1) b_ranges(1,1)=ib
+   b_ranges(2,1)=ib
+ enddo
+ !
+ ! conduction band
+ l_last_done=.false.
+ do ib=Dip%ib_lim(2),Dip%ib(2)
+   if( .not.PAR_IND_CON_BANDS_DIP%element_1D(ib) ) then
+     if(b_ranges(1,2)/=-1) l_last_done=.true.
+     cycle
+   endif
+   if (l_last_done) call error("conduction band parallelization is not contiguous")
+   if (b_ranges(1,2)==-1) b_ranges(1,2)=ib
+   b_ranges(2,2)=ib
+ enddo
+ !
+ ! Avoid overlap and define number of blocks
+ !
+ if (b_ranges(2,1)+1>b_ranges(1,2)) then
+   n_blocks=1
+   b_ranges(2,1)=b_ranges(2,2)
+ else
+   n_blocks=2
+ endif
+ !
  ! Synchronize some memory
 #ifdef _GPU
  YAMBO_FREE_GPU(DEV_VAR(g_vec))
@@ -146,42 +183,6 @@ subroutine DIPOLE_g_space(Xen,Xk,Dip)
  ! Main loop over k in IBZ
  !
  if (N_elements_todo>0) call live_timing(trim(g_space_obs)//" [g-space]",N_elements_todo)
- !
- ! check band ranges
- b_ranges=-1
- !
- ! valence band
- l_last_done=.false.
- do ib=Dip%ib(1),Dip%ib_lim(1)
-   if( .not.PAR_IND_VAL_BANDS_DIP%element_1D(ib) ) then
-     if(b_ranges(1,1)/=-1) l_last_done=.true.
-     cycle
-   endif
-   if (l_last_done) call error("valence band parallelization is not contiguous")
-   if (b_ranges(1,1)==-1) b_ranges(1,1)=ib
-   b_ranges(2,1)=ib
- enddo
- !
- ! conduction band
- l_last_done=.false.
- do ib=Dip%ib_lim(2),Dip%ib(2)
-   if( .not.PAR_IND_CON_BANDS_DIP%element_1D(ib) ) then
-     if(b_ranges(1,2)/=-1) l_last_done=.true.
-     cycle
-   endif
-   if (l_last_done) call error("conduction band parallelization is not contiguous")
-   if (b_ranges(1,2)==-1) b_ranges(1,2)=ib
-   b_ranges(2,2)=ib
- enddo
- !
- ! Avoid overlap and define number of blocks
- !
- if (b_ranges(2,1)+1>b_ranges(1,2)) then
-   n_blocks=1
-   b_ranges(2,1)=b_ranges(2,2)
- else
-   n_blocks=2
- endif
  !
  do i_sp_pol=1,n_sp_pol
    !
