@@ -45,7 +45,8 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  use QP_m,          ONLY:QP_solver,QP_t,QP_n_G_bands,QP_dSc_steps,QP_Sc_steps,QP_table,l_QP_symmetrize,&
 &                        QP_Sc,QP_n_states,QP_G_damp,QP_table,QP_dSc_delta,GW_terminator_E,&
 &                        COHSEX_use_empties,l_GW_terminator,GW_terminator_Kind,QP_states_simmetrize
- use X_m,           ONLY:X_ALLOC_elemental,X_par,X_t
+ use ALLOC,         ONLY:X_ALLOC_elemental
+ use X_m,           ONLY:X_ALLOC_parallel,X_par,X_t
  use wave_func,     ONLY:WF
  use R_lattice,     ONLY:qindx_S,bz_samp,DEV_VAR(G_m_G),G_m_G_maxval,nqibz,RIM_W_E,&
 &                        RIM_W_is_diagonal,RIM_W_ng,DEV_VAR(RIM_W)
@@ -59,7 +60,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  use SC,            ONLY:it_now,it_to_start
 #endif
  use devxlib,       ONLY:devxlib_memcpy_h2d,devxlib_memcpy_d2h,&
-&                        devxlib_memcpy_d2d,devxlib_memset_d,devxlib_conjg
+&                        devxlib_memcpy_d2d,devxlib_memset_d,devxlib_conjg_d
  use gpu_m,         ONLY:have_gpu
  !
  use drivers,       ONLY:Finite_Tel
@@ -247,15 +248,16 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
  endif
  !
  if (l_sc_coh.or.l_sc_sex.or.l_cohsex.or.l_sc_srpa) then
-   if (io_RESPONSE) call X_ALLOC_parallel(X_par(1),X%ng,1,"X")
+   if (io_RESPONSE) call X_ALLOC_parallel(X%ng,1,"X",X_par(1))
    YAMBO_ALLOC(dc,(2))
  else
-   if (io_RESPONSE) call X_ALLOC_parallel(X_par(1),X%ng,2,"X")
+   if (io_RESPONSE) call X_ALLOC_parallel(X%ng,2,"X",X_par(1))
    YAMBO_ALLOC(W_,(QP_dSc_steps))
    YAMBO_ALLOC(dc,(QP_dSc_steps))
  endif
- YAMBO_ALLOC(local_rhotw,(X%ng))
- YAMBO_ALLOC(conjg_iscp_rhotw,(X%ng))
+ YAMBO_ALLOC_GPU(local_rhotw,(X%ng))
+ YAMBO_ALLOC_GPU(conjg_iscp_rhotw,(X%ng))
+
  !
  ! Elemental Collisions
  !====================== 
@@ -546,7 +548,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
          !
          if (X_is_TR_rotated) then
            !
-           !DEV_ACC_DEBUG data present(G_m_G,isc_rhotw_p)
+           !DEV_ACC_DEBUG data present(G_m_G,isc_rhotw_p,X_blc_p)
            !DEV_ACC parallel loop collapse(2) private(ctmp) reduction(+:dp_dummy_r,dp_dummy_i)
            !DEV_CUF kernel do(2)
            !DEV_OMPGPU target map(present,alloc:G_m_G,isc_rhotw_p) &
@@ -572,7 +574,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
            !
          else
            !
-           !DEV_ACC_DEBUG data present(G_m_G,isc_rhotw_p)
+           !DEV_ACC_DEBUG data present(G_m_G,isc_rhotw_p,X_blc_p)
            !DEV_ACC parallel loop collapse(2) private(ctmp) reduction(+:dp_dummy_r,dp_dummy_i)
            !DEV_CUF kernel do(2)
            !DEV_OMPGPU target map(present,alloc:G_m_G,isc_rhotw_p) &
@@ -653,7 +655,7 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
        endif
        !conjg_iscp_rhotw=conjg(iscp%rhotw)
        call devxlib_memcpy_d2d(conjg_iscp_rhotw,iscp_rhotw_p)
-       call devxlib_conjg(conjg_iscp_rhotw)
+       call devxlib_conjg_d(conjg_iscp_rhotw)
        !
        dc=cZERO
        !
@@ -695,11 +697,11 @@ subroutine QP_ppa_cohsex(X,Xk,E,k,q,qp,Xw,GW_iter)
            dp_dummy_i = 0.0_DP
            dp_dummy = 0.0_DP
            !
-           !DEV_ACC_DEBUG data present(X_blc_p,RIM_W,isc_gamp_p,isc_rhotw_p,iscp_rhotw_p)
+           !DEV_ACC_DEBUG data present(X_blc_p,RIM_W,isc_gamp_p,conjg_iscp_rhotw,isc_rhotw_p,iscp_rhotw_p)
            !DEV_ACC parallel  loop collapse(2) private(PPA_E,PPA_R,l_RIM_W_g,bose_PPA_E,ctmp) &
            !DEV_ACC                reduction(+:dp_dummy_r,dp_dummy_i)
            !DEV_CUF kernel do(2)
-           !DEV_OMPGPU target map(present,alloc:X_blc_p,RIM_W,isc_gamp_p,isc_rhotw_p,iscp_rhotw_p) &
+           !DEV_OMPGPU target map(present,alloc:X_blc_p,RIM_W,isc_gamp_p,conjg_iscp_rhotw,isc_rhotw_p,iscp_rhotw_p) &
            !DEV_OMPGPU &      map(tofrom:dp_dummy_r,dp_dummy_i)
            !DEV_OMPGPU teams  loop collapse(2) private(PPA_E,PPA_R,l_rim_W_g,bose_PPA_E,ctmp) &
            !DEV_OMPGPU &           reduction(+:dp_dummy_r,dp_dummy_i)

@@ -30,7 +30,8 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
 &                         LINEAR_ALGEBRA_driver,OCCUPATIONS_Fermi
  use H_interfaces,   ONLY:V_real_space_to_H
  use com,            ONLY:msg
- use X_m,            ONLY:X_t,current_iq,X_ALLOC_elemental
+ use ALLOC,          ONLY:X_ALLOC_elemental
+ use X_m,            ONLY:X_t,current_iq
  use DIPOLES,        ONLY:DIPOLE_t
  use LIVE_t,         ONLY:LIVE_message
  use stderr,         ONLY:intc,real2ch,log_as_a_file
@@ -390,7 +391,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
          ! I/O [H_nl_sc]
          !
          IO_ACT=manage_action(WR_CL_IF_END,i_frag,1,QP_nk*n_sp_pol)
-	 call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/i_frag+1/),ID=ID(3))
+         call io_control(ACTION=IO_ACT,COM=NONE,SEC=(/i_frag+1/),ID=ID(3))
          io_V=io_SC_components('V',E,ID(3))
          !
          ! Mixing for non-local self-energies
@@ -518,7 +519,7 @@ subroutine SC_driver(X,Xw,Xk,E,k,q,Dip)
          !
          current_iq=0
          call IO_and_Messaging_switch("-report")
-         io_X_err=X_dielectric_matrix(E,Xk,q,X(2),Xw(2),Dip,.true.)
+         io_X_err=X_dielectric_matrix(E,Xk,q,X(2),Xw(2),Dip,.TRUE.,.TRUE.)
          call IO_and_Messaging_switch("+report")
          !
          ! Reload and rotate wave-functions if W is updated

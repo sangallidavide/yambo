@@ -8,7 +8,7 @@
 subroutine WF_alloc(WF,k_extrema_only)
  !
  use pars,          ONLY:cZERO,SP
- use wave_func,     ONLY:WAVEs,states_to_load,wf_ng,wf_ncx,rho_map_size
+ use wave_func,     ONLY:WAVEs,wfZERO,states_to_load,wf_ng,wf_ncx,rho_map_size
  use electrons,     ONLY:n_spinor
  use parallel_int,  ONLY:PARALLEL_live_message
  use gpu_m,         ONLY:have_gpu
@@ -67,8 +67,8 @@ subroutine WF_alloc(WF,k_extrema_only)
    if (have_gpu) then
      YAMBO_ALLOC_GPU(DEV_VAR(WF%r),(wf_grid_size,n_spinor,WF%N))
    endif
-   WF%r=wfcmplx(cZERO,kind=SP)
-   if (have_gpu) call devxlib_memset_d(DEV_VAR(WF%r),cZERO)
+   WF%r=wfcmplx(wfZERO,kind=SP)
+   if (have_gpu) call devxlib_memset_d(DEV_VAR(WF%r),wfZERO)
  else
    YAMBO_ALLOC(WF%c,(wf_grid_size,n_spinor,WF%N))
    if (have_gpu) then

@@ -82,10 +82,10 @@ subroutine X_pre_setup(Xen,Xk,X)
  ! only calculation is meaningless because of the dependence 
  ! of the alpha from X
  !
- if (l_col_cut) then
+ if (l_col_cut .and. trim(X%ordering)=='Ta' .or. trim(X%ordering)=='Ra' .or. trim(X%ordering)=='r') then
    if ( trim(X%ordering) == 'Ta' )  X%ordering='T'
    if ( trim(X%ordering) == 'Ra' .or. trim(X%ordering) == 'r' )  X%ordering='R'
-   call warning(" Anti/Resonant ordering not compatible with Coulomb cutoff ")
+   call warning(" Anti/Resonant only ordering not compatible with Coulomb cutoff, set to "//trim(X%ordering))
  endif
  !
  ! Transfer the GF's ordering 

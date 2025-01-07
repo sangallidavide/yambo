@@ -18,7 +18,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
  use R_lattice,     ONLY:bz_samp
  use DIPOLES,       ONLY:DIPOLE_t
  use X_m,           ONLY:X_t,X_par,X_fxc,X_Double_Grid_setup,X_par_lower_triangle,&
-&                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,use_X_DbGd,&
+&                        X_DbGd_nkpt_at_q,X_DbGd_nkpt_at_q_table,use_X_DbGd,X_ALLOC_parallel,&
 &                        l_X_abs,l_X_kerr,l_X_magn,Chi_prop,i_G_shift,Q_plus_G_sq_modulus
  use parallel_int,  ONLY:PP_wait,PP_redux_wait,PARALLEL_global_indexes,PARALLEL_WF_index,PARALLEL_WF_distribute
  use parallel_m,    ONLY:PAR_IND_Q_ibz,PAR_COM_Q_A2A,PAR_COM_RL_INDEX,PAR_IND_CON_BANDS_X,&
@@ -71,7 +71,7 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    !
    ! PARALLEL indexes
    !==================
-   call PARALLEL_global_indexes(Xen,Xk,q,"Response_G_space",X=X)
+   call PARALLEL_global_indexes(Xen,Xk,q,"Response_G_space",X=X,X_all_bands=(l_X_magn.and.X%ordering/="r"))
    !
    ! WF distribution 
    !=================
@@ -115,9 +115,9 @@ subroutine OPTICS_driver(Xen,Xk,q,wv,X,Dip)
    ! Response function parallel allocation
    call X_half_mat_check(Xen,Xk,wv)
    !
-   call X_ALLOC_parallel(X_par(1),X_par_lower_triangle(1),X%ng,wv%n_freqs,"XUP")
+   call X_ALLOC_parallel(X%ng,wv%n_freqs,"XUP",X_par(1),X_par_lower_triangle(1))
    if (l_alda_fxc.and.l_Fxc_in_Xo) &
-   & call X_ALLOC_parallel(X_par(2),X_par_lower_triangle(2),X%ng,wv%n_freqs,"XUP-TDDFT")
+   & call X_ALLOC_parallel(X%ng,wv%n_freqs,"XUP-TDDFT",X_par(2),X_par_lower_triangle(2))
    !
    Macroscopic_CPU=X_par(1)%rows(1)<=i_G_shift.and.i_G_shift<=X_par(1)%rows(2).and.&
 &                  X_par(1)%cols(1)<=i_G_shift.and.i_G_shift<=X_par(1)%cols(2)

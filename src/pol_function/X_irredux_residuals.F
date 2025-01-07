@@ -18,7 +18,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
  !
  use pars,          ONLY:SP,cZERO,cONE,cI
  use wrapper,       ONLY:V_plus_alpha_V
- use DIPOLES,       ONLY:DIPOLE_t,DIP_rotated
+ use DIPOLES,       ONLY:DIPOLE_t
  use X_m,           ONLY:X_t,X_poles_tab,l_X_terminator,X_cols,X_rows,drude_n_states,&
 &                        l_X_abs,l_X_magn,global_gauge
  use electrons,     ONLY:levels,spin_occ
@@ -29,7 +29,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
  use R_lattice,     ONLY:qindx_X,bz_samp,q0_def_norm
  use vec_operate,   ONLY:v_norm
  use collision_el,  ONLY:elemental_collision
- use devxlib,       ONLY:devxlib_memcpy_d2d,devxlib_conjg,devxlib_memset_d
+ use devxlib,       ONLY:devxlib_memcpy_d2d,devxlib_conjg_d,devxlib_memset_d
  !
  implicit none
  !
@@ -65,7 +65,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
  !
  ! DIPOLES
  !
- complex(SP)  :: DIP_projected,field_dir(3)
+ complex(SP)  :: DIP_projected,field_dir(3),DIP_bare(3)
  !
  field_dir=Dip%q0/v_norm(Dip%q0)*q0_def_norm
  !
@@ -195,7 +195,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
        !DEV_ACC_DEBUG end data
        !
        if (is>nsym/(i_time_rev+1)) then
-         call devxlib_conjg( Xo_scatt_rhotw_p )
+         call devxlib_conjg_d( Xo_scatt_rhotw_p )
        endif
        !
        if (l_tddft) then
@@ -207,7 +207,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
          enddo
          !
          if (is>nsym/(i_time_rev+1)) then
-           call devxlib_conjg( DEV_VAR(Xo_scatt%rhotw_tddft) )
+           call devxlib_conjg_d( DEV_VAR(Xo_scatt%rhotw_tddft) )
          endif
        endif
        !
@@ -217,7 +217,8 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
      !
      if(l_X_abs) then
        !
-       DIP_projected=dot_product(field_dir,DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_iR",Xk))
+       call DIPOLE_rotate(ic,iv,ikbz,c_sp_pol,"DIP_iR",Xk,DIP_bare)
+       DIP_projected=dot_product(field_dir,DIP_bare)
        !
        ! 2022/05/11 DS & AF
        ! Note: lim (q->0) <psi_nk+q | e-^{-i*q*r} | psi_nk > = <psi_nk   | 1 | psi_nk > = 1._SP
@@ -248,7 +249,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
      ! However WFs are not loadd for X%ng==1, and the following is needed
      if(l_X_magn.and.X%ng==1) then
        ! iG=1 case
-       DIP_spin = DIP_rotated(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk)
+       call DIPOLE_rotate(ic,iv,ikbz,c_sp_pol,"DIP_S",Xk,DIP_spin)
        if(i_comp==1) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)+cI*DIP_spin(2))
        if(i_comp==2) DEV_VAR(Xo_scatt%rhotw)(1)=-0.5*conjg(DIP_spin(1)-cI*DIP_spin(2))
      endif
@@ -320,7 +321,6 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
    !DEV_ACC_DEBUG end data
    !
 #else
-   !
    !DEV_OMP parallel do default(shared), private(ig2,ROWS)
    do ig2=X_cols(1),X_cols(2)
      ROWS=(/X_rows(1),min(ig2,X_rows(2))/)
@@ -375,7 +375,7 @@ subroutine X_irredux_residuals(Xen,Xk,X,Dip,i_cg,iq,what,Xo_scatt,i_comp,work,lw
      !DEV_ACC_DEBUG end data
      !
      if (is>nsym/(i_time_rev+1)) then
-       call devxlib_conjg(Xo_scatt_rhotw_p)
+       call devxlib_conjg_d(Xo_scatt_rhotw_p)
      endif
      !
 #ifdef _GPU

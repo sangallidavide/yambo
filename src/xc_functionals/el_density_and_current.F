@@ -230,7 +230,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
          !
          do i_dir=1,3
            do i_spinor=1,n_spinor
-             if (size(WF%r(:,i_spinor,i_wf))<fft_size) then
+             if (wf_rspace_size<fft_size) then
                do ifft=1,rho_map_size
                  J_no_sym(rho_map(ifft),i_dir)=J_no_sym(rho_map(ifft),i_dir)+E%f(ib,ik,i_sp_pol)*&
                  &   kw*aimag(WF%r(ifft,i_spinor,i_wf)*WF_der(ifft,i_spinor,i_dir))

@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): AM DS
 !
-subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre_defined)
+subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre_defined,X_all_bands)
  !
  ! LOGICALS
  use parallel_m,    ONLY:l_par_X_T,l_par_RT,l_par_SE,l_par_X_G,l_par_X_G_finite_q,&
@@ -21,11 +21,10 @@ subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre
  ! WORLDS
  use parallel_m,    ONLY:PAR_COM_WORLD,PAR_COM_X_WORLD,PAR_COM_X_WORLD_RL_resolved,COMM_copy
  use parallel_int,  ONLY:PARALLEL_index,PARALLEL_live_message
- use DIPOLES,       ONLY:DIPOLE_t
- use X_m,           ONLY:X_t,l_X_terminator
+ use DIPOLES,       ONLY:DIPOLE_t,DIPOLES_reset,DIPOLES_duplicate
+ use X_m,           ONLY:X_t,l_X_terminator,X_reset,X_duplicate
  use electrons,     ONLY:levels
  use R_lattice,     ONLY:bz_samp
- use pars,          ONLY:SP
  !
 #include<y_memory.h>
  !
@@ -34,22 +33,32 @@ subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre
  character(*)               ::ENVIRONMENT
  type(X_t),     optional    ::X
  type(DIPOLE_t),optional    ::Dip
- logical,       optional    ::RESET,Dip_limits_pre_defined
+ logical,       optional    ::RESET,Dip_limits_pre_defined,X_all_bands
  !
  ! Work Space
  !
- logical              :: Do_dip_limits
- integer              :: X_type
+ logical              :: Do_dip_limits,X_all_bands_
+ integer              :: X_type,bands_loc(2)
  character(8)         :: MORE
+ ! 
+ type(X_t)      :: X_loc
+ type(DIPOLE_t) :: Dip_loc
  !
- !========================
- ! Response function kind
- !========================
- X_type=1
- if (present(X))                      X_type=X%whoami
+ !===========================
+ ! Response function pre-sets
+ !===========================
+ X_all_bands_=.false.
+ if (present(X_all_bands)) X_all_bands_=X_all_bands
+ !
+ call X_reset(X_loc,1)
+ if (present(X)) then
+   call X_duplicate(X,X_loc)
+   X_loc%whoami=X%whoami
+ endif
+ !
+ X_type=X_loc%whoami
  if (ENVIRONMENT=="Response_T_space") X_type=5
  !
- MORE=""
  !========
  ! Resets
  !========
@@ -60,6 +69,22 @@ subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre
    endif
  else
    call PARALLEL_global_reset(ENVIRONMENT,X_type)
+ endif
+ !
+ !===========================
+ ! Dipoles function pre-sets
+ !===========================
+ call DIPOLES_reset(Dip_loc)
+ if (present(Dip)) call DIPOLES_duplicate(Dip,Dip_loc)
+ !
+ MORE=""
+ !
+ if (present(Dip)) then
+   Do_dip_limits=.TRUE.
+   if (present( Dip_limits_pre_defined )) then
+     Do_dip_limits=.not.Dip_limits_pre_defined
+   endif
+   if (trim(Dip%approach)=="Shifted grids") MORE="_SHIFTED"
  endif
  !
  !========
@@ -99,30 +124,7 @@ subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre
  ! Dimensions
  !============
  !
- if (present(X)) PAR_X_ib=X%ib
- if (present(X)) PAR_X_iq=X%iq
- !
- if (present(Dip)) then
-   Do_dip_limits=.TRUE.
-   if (present( Dip_limits_pre_defined )) then
-     Do_dip_limits=.not.Dip_limits_pre_defined
-   endif
-   if (Do_dip_limits) then
-     if (Dip%bands_ordered.or.Dip%Energy_treshold<0._SP) then
-       Dip%ib_lim(1)=maxval(E%nbm)
-       Dip%ib_lim(2)=minval(E%nbf)+1
-       if (l_X_terminator) Dip%ib_lim(2)=Dip%ib(1)
-     else
-       Dip%ib_lim(1)=Dip%ib(2)
-       Dip%ib_lim(2)=Dip%ib(1)
-     endif
-   endif
-   PAR_Dip_ib=Dip%ib
-   PAR_Dip_ib_lim=Dip%ib_lim
-   if (trim(Dip%approach)=="Shifted grids") MORE="_SHIFTED"
- endif
- !
- call PARALLEL_global_dimensions(E,Xk,q,ENVIRONMENT)
+ call PARALLEL_global_dimensions(E,Xk,q,X_loc,Dip_loc,Do_dip_limits,ENVIRONMENT)
  !
  !==========
  ! DEFAULTS
@@ -163,37 +165,32 @@ subroutine PARALLEL_global_indexes(E,Xk,q,ENVIRONMENT,X,Dip,RESET,Dip_limits_pre
    !
    ! Response functions conduction bands
    !
-   if (l_X_terminator) then
-       call PARALLEL_index(PAR_IND_CON_BANDS_X(X_type),(/PAR_n_c_bands(2)/),low_range=(/PAR_n_v_bands(1)/),&
-&                          COMM=PAR_COM_CON_INDEX_X(X_type),CONSECUTIVE=.TRUE.,NO_EMPTIES=.TRUE.)
-   else
-       call PARALLEL_index(PAR_IND_CON_BANDS_X(X_type),(/PAR_n_c_bands(2)/),low_range=(/PAR_n_c_bands(1)/),&
-&                          COMM=PAR_COM_CON_INDEX_X(X_type),CONSECUTIVE=.TRUE.,NO_EMPTIES=.TRUE.)
-   endif
+   bands_loc=PAR_n_c_bands
+   if (l_X_terminator.or.X_all_bands_) bands_loc=PAR_X_ib
+   !
+   call PARALLEL_index(PAR_IND_CON_BANDS_X(X_type),(/bands_loc(2)/),low_range=(/bands_loc(1)/),&
+&                        COMM=PAR_COM_CON_INDEX_X(X_type),CONSECUTIVE=.TRUE.,NO_EMPTIES=.TRUE.)
    !
    PAR_IND_CON_BANDS_X_ID(X_type)=PAR_COM_CON_INDEX_X(X_type)%CPU_id
    !
-   if (l_X_terminator) then
-       call PARALLEL_live_message("CON bands",ENVIRONMENT=ENVIRONMENT,&
+   call PARALLEL_live_message("CON bands",ENVIRONMENT=ENVIRONMENT,&
 &                             LOADED=PAR_IND_CON_BANDS_X(X_type)%n_of_elements(PAR_COM_CON_INDEX_X(X_type)%CPU_id+1),&
-&                             TOTAL=PAR_n_c_bands(2)-PAR_n_v_bands(1)+1,&
+&                             TOTAL=bands_loc(2)-bands_loc(1)+1,&
 &                             NCPU=PAR_COM_CON_INDEX_X(X_type)%n_CPU)
-   else
-       call PARALLEL_live_message("CON bands",ENVIRONMENT=ENVIRONMENT,&
-&                             LOADED=PAR_IND_CON_BANDS_X(X_type)%n_of_elements(PAR_COM_CON_INDEX_X(X_type)%CPU_id+1),&
-&                             TOTAL=PAR_n_c_bands(2)-PAR_n_c_bands(1)+1,&
-&                             NCPU=PAR_COM_CON_INDEX_X(X_type)%n_CPU)
-   endif
    !
    ! Response functions valence bands
    !
-   call PARALLEL_index(PAR_IND_VAL_BANDS_X(X_type),(/PAR_n_v_bands(2)/),low_range=(/PAR_n_v_bands(1)/),&
+   bands_loc=PAR_n_v_bands
+   if (l_X_terminator.or.X_all_bands_) bands_loc=PAR_X_ib
+   !
+   call PARALLEL_index(PAR_IND_VAL_BANDS_X(X_type),(/bands_loc(2)/),low_range=(/bands_loc(1)/),&
 &                      COMM=PAR_COM_VAL_INDEX_X(X_type),CONSECUTIVE=.TRUE.,NO_EMPTIES=.TRUE.)
+   !
    PAR_IND_VAL_BANDS_X_ID(X_type)=PAR_COM_VAL_INDEX_X(X_type)%CPU_id
    !
    call PARALLEL_live_message("VAL bands",ENVIRONMENT=ENVIRONMENT,&
 &                             LOADED=PAR_IND_VAL_BANDS_X(X_type)%n_of_elements(PAR_COM_VAL_INDEX_X(X_type)%CPU_id+1),&
-&                             TOTAL=PAR_n_v_bands(2)-PAR_n_v_bands(1)+1,&
+&                             TOTAL=bands_loc(2)-bands_loc(1)+1,&
 &                             NCPU=PAR_COM_VAL_INDEX_X(X_type)%n_CPU)
    !
  endif

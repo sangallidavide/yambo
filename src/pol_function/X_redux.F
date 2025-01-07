@@ -35,7 +35,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  use interfaces,    ONLY:LINEAR_ALGEBRA_driver,MATRIX_transfer
  use stderr,        ONLY:intc
  use X_m,           ONLY:X_t,X_use_lin_sys,X_use_gpu,X_par_lower_triangle,X_redux_build_kernel,&
-&                        i_G_shift,l_X_magn
+&                        i_G_shift,l_X_magn,X_ALLOC_parallel
  use TDDFT,         ONLY:FXC_n_g_corr,F_xc_gspace,FXC_LRC_alpha,FXC_LRC_beta,FXC_SVD_digits,&
 &                        l_Fxc_in_Xo
  use timing_m,      ONLY:timing
@@ -218,6 +218,8 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
    ! ==================
    !
    iw = PAR_FREQS_index(iw_par)
+   KERNEL%blc = cZERO
+   !
    BUFFER_p => DEV_VAR(BUFFER%blc)
    !
    if (.not.(l_alda_fxc.and.l_Fxc_in_Xo)) then
@@ -454,7 +456,7 @@ end subroutine
      !
      ! The old X_par structure need to be cleaned and replaced by a non symmetric structure
      !
-     if (X_par%INTER_comm%n_CPU>1) call X_ALLOC_parallel(X_par,X_low,X%ng,Xw%n_freqs,"X,CPU_ONLY")
+     if (X_par%INTER_comm%n_CPU>1) call X_ALLOC_parallel(X%ng,Xw%n_freqs,"X,CPU_ONLY",X_par,X_low)
      !
      ! Now the interfaces. 
      !
