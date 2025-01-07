@@ -47,7 +47,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
    !
    ! 2024/02/28 DS
    ! In the magnons case I loop on both the resonant and the anti-resonant transitions.
-   ! In the tag phys-magn-v0 I had coded an implementation where
+   ! In the branch phys-magn-bands I had coded an implementation where
    ! the valence and conduction limits are selected as usually, doing a loop only on the resonant part.
    ! In such implementation, the anti-resonant term is included via the opposite spin transitions.
    ! Such implementation is significantly more complex, but also more efficient in distributing
