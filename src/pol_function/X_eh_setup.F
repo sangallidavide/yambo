@@ -50,15 +50,7 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
    !
    if (l_ares_T.or.l_ares_R) n_res_ares=2
    !
-   do i_sp=1,n_sp_pol
-     if(i_sp==i_spin_majority) cycle
-     c_sp_pol=i_sp
-     v_sp_pol=mod(c_sp_pol,n_sp_pol)+1
-     VB_lims(:,i_sp)=(/X%ib(1),Xen%nbm(v_sp_pol)/)
-     CB_lims(:,i_sp)=(/Xen%nbf(c_sp_pol)+1,X%ib(2)/)
-   enddo
-   !
- else
+ endif
    !
    do i_sp=1,n_sp_pol
      VB_lims(:,i_sp)=(/X%ib(1),Xen%nbm(i_sp)/)
@@ -67,8 +59,6 @@ integer function X_eh_setup(iq,X,Xen,Xk,minmax_ehe)
    if (l_X_terminator) then
      CB_lims(1,:)=X%ib(1)
    endif
-   !
- endif
  !
  N_tot=0
  do i_sp=1,n_sp_pol
