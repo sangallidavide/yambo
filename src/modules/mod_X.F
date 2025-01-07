@@ -201,11 +201,6 @@ module X_m
      real(SP),            optional :: nTrans_percent,Radius
    end subroutine
    !
-   subroutine X_ALLOC_elemental(WHAT,DIM)
-     character(*)      :: WHAT
-     integer, optional :: DIM(:)
-   end subroutine
-   !
    subroutine X_ALLOC_parallel(NG,NW,mode,X_par,X_low)
     !
     use pars,          ONLY:IPL
