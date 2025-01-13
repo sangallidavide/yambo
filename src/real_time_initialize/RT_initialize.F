@@ -486,7 +486,7 @@ subroutine RT_initialize(E,k,q)
      !
      U_pond=Efield(i1)%amplitude**2/4._SP/Efield(i1)%frequency(1)**2
      call msg('r', trim(MSG_ch)//' ponderomotive energy        ',U_pond*HA2EV,'[eV/mu]')
-     call msg('r', trim(MSG_ch)//' Keldish parameter           ',U_pond/Efield(i1)%frequency(1),'[1/mu]')
+     call msg('r', trim(MSG_ch)//' Keldysh parameter           ',U_pond/Efield(i1)%frequency(1),'[1/mu]')
      !
      if( (field_defs(1)=='QSSIN') .or. (field_defs(1)=='GAUSS') .or. (field_defs(1)=='DELTA') ) then
        call msg('r', trim(MSG_ch)//' max fluence                 ',Efield(i1)%fluence*AU2KWCMm2,'[nJ/cm^2]')
