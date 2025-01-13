@@ -59,7 +59,7 @@ subroutine RT_initialize(E,k,q)
  !
  integer                  :: i1,i_defs,N_T_samplings,ik,NK_cpu(PAR_COM_Xk_ibz_INDEX%n_CPU)
  character(schlen)        :: MSG_ch,field_defs(n_fields_defs_max)
- real(SP)                 :: T_memory,sigma_eff
+ real(SP)                 :: T_memory,sigma_eff,U_pond
  logical                  :: l_Full_RT_T_evolution,l_skip_it,l_velocity_gauge_tmp
  real(SP), parameter      :: thresh=1.E-5_SP
 #if defined _RT_SCATT
@@ -483,6 +483,10 @@ subroutine RT_initialize(E,k,q)
      call msg('r', trim(MSG_ch)//' energy steps                ',Efield(i1)%n_frequencies)
      call msg('r', trim(MSG_ch)//' electric field              ',Efield(i1)%amplitude*AU2VMm1,'[V/m]')
      call msg('r', trim(MSG_ch)//' max intensity               ',Efield(i1)%intensity*AU2KWCMm2,'[kW/cm^2]')
+     !
+     U_pond=Efield(i1)%amplitude**2/4._SP/Efield(i1)%frequency(1)**2
+     call msg('r', trim(MSG_ch)//' ponderomotive energy        ',U_pond*HA2EV,'[eV/mu]')
+     call msg('r', trim(MSG_ch)//' Keldish parameter           ',U_pond/Efield(i1)%frequency(1),'[1/mu]')
      !
      if( (field_defs(1)=='QSSIN') .or. (field_defs(1)=='GAUSS') .or. (field_defs(1)=='DELTA') ) then
        call msg('r', trim(MSG_ch)//' max fluence                 ',Efield(i1)%fluence*AU2KWCMm2,'[nJ/cm^2]')
