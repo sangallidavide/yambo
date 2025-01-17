@@ -534,7 +534,7 @@ subroutine INIT_activate()
    call INIT_RT_ctl_switch('G')
    !
    call initactivate(1,'RTskipImposeN RTeeImposeE InducedField')
-   call initactivate(1,'Gauge VelGaugeCorr VelGaugeDiam PfromJ RTUpdateSOC RTUpdateE SaveGhistory')
+   call initactivate(1,'Gauge VelGaugeCorr VelGaugeNoDiam PfromJ RTUpdateSOC RTUpdateE SaveGhistory')
    call initactivate(1,'RTEqScatt RTImpForMet RTzeroTempRef RTskipPHabs RTEvalEnergy RTEvalEntropy')
    call initactivate(1,'dTupdateTime dTupdateTimeSet dTupdateJump dTupdateTresh dT_MAX dT_SET')
    if (l_elel_scatt .or. l_elph_scatt .or. l_elphoton_scatt) then
@@ -562,7 +562,7 @@ subroutine INIT_activate()
 #if defined _NL
  if (l_nl_optics) then
    call initactivate(1,'FFTGvecs NLBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
-   call initactivate(1,'TestOSCLL')
+   call initactivate(1,'TestOSCLL VelGaugeNoDiam')
    if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps NLrotaxis NLAngSteps')
    if(     l_nl_p_and_p) call initactivate(1,'IOtime IOCachetime SaveVbhistory')
    call initactivate(1,'NLDamping RADLifeTime UseDipoles FrSndOrd NoComprCOLL EvalCurrent InducedField FrPolPerdic') 
