@@ -19,6 +19,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  use wave_func,         ONLY:WF
  use vec_operate,       ONLY:k_periodic_idx
  use DIPOLES,           ONLY:DIPOLE_t,DIP_S
+ use ALLOC,             ONLY:DIPOLE_ALLOC_elemental
  use electrons,         ONLY:n_spinor,n_sp_pol
  use wrapper,           ONLY:Vstar_dot_V_gpu
  use wave_func,         ONLY:wf_ng_1st_BZ,wf_ng_overlaps,wf_ng
@@ -43,7 +44,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  real(SP)          :: g0_length(3)
  !
  complex(SP), allocatable DEV_ATTR :: WF_symm(:,:,:)
- complex(SP), allocatable DEV_ATTR :: WF_ik(:,:,:)
+ complex(SP), allocatable, target DEV_ATTR :: WF_ik(:,:,:)
  complex(SP), allocatable DEV_ATTR :: WF_ikp(:,:,:)
  complex(SP), pointer DEV_ATTR :: WF_tmp(:,:,:)
  !
@@ -56,7 +57,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  !
  ! Notice that DIP_S is defined in the BZ
  !
- call DIP_alloc('DIP_S',(/Dip%ib(2),Dip%ib(2),6,PAR_DIPk_nbz/))
+ call DIPOLE_ALLOC_elemental('DIP_S',(/Dip%ib(2),Dip%ib(2),6,Xk%nbz/))
  DIP_S=cZERO
  !
  !
@@ -93,7 +94,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  DIP_S=cZERO
 !$OMP END WORKSHARE
  !
- call live_timing("Overlaps:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
+ call live_timing("Overlaps",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
  !
  do i_sp_pol=1,n_sp_pol
    !
@@ -141,7 +142,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
          idx_kp=k_periodic_idx(idx_kp,k_map)  ! Bring it back by periodicity
          ikbzp=k_map%k_map_dir(idx_kp(1),idx_kp(2),idx_kp(3))  ! Find the corresponding index in the BZ
          !
-         ! ! Find the index in the IBZ and the symmetry
+         ! Find the index in the IBZ and the symmetry
          ikp = Xk%sstar(ikbzp,1)
          isp = Xk%sstar(ikbzp,2)
          !

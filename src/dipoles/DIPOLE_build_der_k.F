@@ -21,17 +21,18 @@
 ! Software Foundation, Inc., 59 Temple Place - Suite 330,Boston, 
 ! MA 02111-1307, USA or visit http://www.gnu.org/copyleft/gpl.txt.
 !
-subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
+subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  !
  ! Build the dipole as k-derivative using
- ! the overlaps  to contruct local rotation matrices 
+ ! the overlaps to construct local rotation matrices 
  ! see Phys. Rev. B 76, 035213 (2007) and  Phys. Rev. Research 2, 013357 (2020)
  !
  use pars,           ONLY:SP,cI,cZERO,pi,cONE
  use units,          ONLY:HA2EV
  use LIVE_t,         ONLY:live_timing
  use electrons,      ONLY:levels,n_sp_pol
- use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,DIP_alloc,l_force_SndOrd
+ use DIPOLES,        ONLY:DIPOLE_t,DIP_S,DIP_iR,DIP_v,l_force_SndOrd,&
+                          der_k_obs,x_space_obs
  use R_lattice,      ONLY:bz_samp,k_map
  use vec_operate,    ONLY:k_periodic_idx,degeneration_finder
  use matrix_operate, ONLY:hermitian
@@ -43,16 +44,17 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  use D_lattice,      ONLY:a
  use parser_m,       ONLY:parser
  use timing_m,       ONLY:timing
+ use stderr,         ONLY:STRING_match
  !
 #include <y_memory.h>
 
  type(levels),           intent(in)     :: Xen
  type(bz_samp),          intent(inout)  :: Xk
  type(DIPOLE_t),         intent(inout)  :: Dip
+ logical,                intent(out)    :: direction_is_todo(3)
  !
  ! Work Space
  !
- logical     :: idir_not_done(3)
  integer     :: ik,i_sp_pol,id_red,idx(3),idir,ic,ik_mem,ikbz,iv
  integer     :: istep,max_step,ikm1,ikp1
  complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:),delta(:,:)
@@ -60,14 +62,15 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
  integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
  real(SP)    :: Ev_m_Ec_KS,deg_thresh
+ character(1)::str(3)=(/'x','y','z'/)
  !
  call timing("DIPOLE_buil_derk",OPR="start")
  !
  if(.not.Dip%force_v_g_space) Dip%Vnl_included=.true.
  !
- idir_not_done(:)= (k_map%max_kdir(:)==1)
+ direction_is_todo(:)= (k_map%max_kdir(:)==1)
  !
- if(any(idir_not_done)) call warning(' Der-k Dipoles not in 3d. Assuming non periodic system.')
+ if(any(direction_is_todo)) call warning(' Der-k Dipoles not in 3d. Assuming non periodic system.')
  !
  if(any(k_map%max_kdir(:)>=6.and..not.l_force_SndOrd)) &
  &   call msg('rs','Using forth order approximation for der-k dipoles')
@@ -236,7 +239,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
      !=====
      ! <v>
      !=====
-     if(.not.Dip%force_v_g_space) then
+     if(STRING_match(der_k_obs,"V")) then
        do iv=Dip%ib(1),Dip%ib_lim(1) 
          if(.not.PAR_IND_VAL_BANDS_DIP%element_1D(iv)) cycle
          do ic=max(iv,Dip%ib_lim(2)),Dip%ib(2)
@@ -268,7 +271,15 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip)
  !
  ! Build non-periodic directions if necessary
  ! 
- if(any(idir_not_done)) call DIPOLE_x_real_space(Xen,Xk,Dip,idir_not_done)
+ if (any(direction_is_todo)) then
+   do ic=1,3
+     if (direction_is_todo(ic)) then
+       x_space_obs=trim(x_space_obs)//" R_"//str(ic)
+       if (STRING_match(der_k_obs,"V")) x_space_obs=trim(x_space_obs)//" V_"//str(ic)
+     endif
+   enddo 
+   Dip%computed=trim(Dip%computed)//trim(x_space_obs)//" [X-space]"
+ endif
  !
  call timing("DIPOLE_buil_derk",OPR="stop")
  return

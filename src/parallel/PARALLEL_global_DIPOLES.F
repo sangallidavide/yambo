@@ -30,7 +30,7 @@ subroutine PARALLEL_global_DIPOLES(E,Xk,q,ENVIRONMENT)
  use parallel_m,    ONLY:PAR_IND_DIPk_bz_ID,PAR_IND_DIPk_ibz_ID,PAR_IND_OVLPk_ibz_ID,&
 &                        PAR_IND_CON_BANDS_DIP_ID,PAR_IND_VAL_BANDS_DIP_ID,&
 &                        PAR_IND_CON_BANDS_OVLP_ID,PAR_IND_VAL_BANDS_OVLP_ID
- use DIPOLES,       ONLY:compute_overlaps
+ use DIPOLES,       ONLY:eval_OVERLAPS
  use parallel_m,    ONLY:PAR_Q_bz_range,PAR_IND_Q_bz
  !
  implicit none
@@ -96,7 +96,7 @@ subroutine PARALLEL_global_DIPOLES(E,Xk,q,ENVIRONMENT)
 &                           TOTAL=PAR_n_v_bands(2)-PAR_n_v_bands(1)+1,&
 &                           NCPU=PAR_COM_VAL_INDEX_DIP%n_CPU)
  !
- if (compute_overlaps) then
+ if (eval_OVERLAPS) then
    !
    ! Add the neighboars k-points
    !
