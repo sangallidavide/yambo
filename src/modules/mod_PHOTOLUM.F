@@ -9,7 +9,7 @@ module PHOTOLUM
  !
  use BS,         ONLY:l_BS_photolum,l_BS_trace
  use pars,       ONLY:SP
-#include<memory.h>
+#include<y_memory.h>
  !
  real(SP)                 :: PL_prefactor
  !

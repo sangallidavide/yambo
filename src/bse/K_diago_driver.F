@@ -51,7 +51,7 @@ subroutine K_diago_driver(iq,W,X_static)
 #endif
  use BS,             ONLY:l_BS_kerr,l_BS_magnons,l_BS_photolum,l_BS_ares_from_res
  !
-#include<memory.h>
+#include<y_memory.h>
  ! 
  type(w_samp)  :: W
  integer       :: iq
