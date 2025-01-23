@@ -68,6 +68,9 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  !
  if(.not.Dip%force_v_g_space) Dip%Vnl_included=.true.
  !
+ if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
+ if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
+ !
  direction_is_todo(:)= (k_map%max_kdir(:)==1)
  !
  if(any(direction_is_todo)) call warning(' Der-k Dipoles not in 3d. Assuming non periodic system.')
@@ -76,7 +79,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  &   call msg('rs','Using forth order approximation for der-k dipoles')
  !
  ! Notice that DIP_iR/DIP_v are defined only in the IBZ
- ! while the overlaps are in the BZ 
+ ! while the overlaps are in the BZ
  !
  call live_timing("Build Rotation Matrices:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
  !

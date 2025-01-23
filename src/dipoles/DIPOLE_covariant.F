@@ -47,6 +47,9 @@ subroutine DIPOLE_covariant(Xen,Xk,Dip,direction_is_todo)
  !
  if(.not.Dip%force_v_g_space) Dip%Vnl_included=.true.
  !
+ if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
+ if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
+ !
  if (any(Xen%nbf/=Xen%nbm)) call error(' Covariant dipoles not implemented for metals')
  !
  call parser('EvPolarization'  ,l_eval_polarization)

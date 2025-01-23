@@ -55,7 +55,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  !
  ! Work Space
  !
- integer           :: ik,io_err
+ integer           :: ik,io_err,io_err_Overlaps
  character(schlen) :: msg
  logical           :: l_warning,direction_is_todo(3)
  !
@@ -81,6 +81,12 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
  io_err=-1
  call DIPOLE_IO(Xk,Xen,Dip,'check',io_err,'DIP')
  !
+ io_err_Overlaps=-1
+ if (eval_OVERLAPS) then
+   call OVERLAPS_IO(Xk,Xen,Dip,'check',io_err_Overlaps,'DIP')
+   if (io_err_Overlaps==0)  call OVERLAPS_IO(Xk,Xen,Dip,'read',io_err_Overlaps,'DIP')
+ endif
+ !
  ! In case dipoles were not found/ok then I need to compute them
  !==============================================================
  if (io_err/=0) then
@@ -105,7 +111,8 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
    !
    ! <R>, <V>, <P>, <P_spinor>, <P^2> S_overlap
    !
-   if (eval_OVERLAPS)                              call DIPOLE_overlaps(Xk,Dip)
+   !
+   if (eval_Overlaps.and.io_err_Overlaps/=0)       call DIPOLE_overlaps(Xk,Dip)
    !
    if (len_trim(shifted_grids_obs)>0)              call DIPOLE_shifted_grids(Xen,Xk,Dip)
    !
