@@ -7,7 +7,8 @@
 !
 subroutine RT_apply_field(ik,i_sp_pol,H_nl_sc,A_input)
  !
- ! This subroutine add the vector potential to the Hamiltonian
+ ! This subroutine adds the external field to the Hamiltonian,
+ ! either as A*j (velocity gauge) or as E*r (length gauge)
  !
  use pars,           ONLY:SP,cI
  use drivers,        ONLY:l_nl_optics
