@@ -16,7 +16,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  use pars,              ONLY:SP,cZERO,pi
  use LIVE_t,            ONLY:live_timing
  use R_lattice,         ONLY:k_map,bz_samp,WF_shifts,G_m_G
- use wave_func,         ONLY:WF
+ use wave_func,         ONLY:WF,WF_load_mode
  use vec_operate,       ONLY:k_periodic_idx
  use DIPOLES,           ONLY:DIPOLE_t,DIP_S
  use ALLOC,             ONLY:DIPOLE_ALLOC_elemental
@@ -86,6 +86,9 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  !
  call PARALLEL_WF_index( )
  !
+ if (trim(WF_load_mode)=="all") call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/1,Xk%nibz/),space='G',title='-Overlaps')
+
+ !
  YAMBO_ALLOC_GPU(WF_symm,   (wf_ng_1st_BZ,n_spinor,1))
  YAMBO_ALLOC_GPU(WF_ikp,    (wf_ng_overlaps,n_spinor,1))
  YAMBO_ALLOC_GPU(WF_ik,     (wf_ng_overlaps,n_spinor,Dip%ib(2)))
@@ -107,8 +110,10 @@ subroutine DIPOLE_overlaps(Xk,Dip)
      ik = Xk%sstar(ikbz,1)
      is = Xk%sstar(ikbz,2)
      !
-     call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
-     &            space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
+     if (trim(WF_load_mode)=="on-the-fly") then
+       call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ik,ik/),(/i_sp_pol,i_sp_pol/),&
+       &            space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
+     endif
      !
      do ib=1,Dip%ib(2)
        !
@@ -122,7 +127,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
        !
      enddo
      !
-     call WF_free(WF)
+     if (trim(WF_load_mode)=="on-the-fly") call WF_free(WF)
      !
      do id=1,3  ! Loop on the three crystal directions in the BZ
        !
@@ -146,8 +151,10 @@ subroutine DIPOLE_overlaps(Xk,Dip)
          ikp = Xk%sstar(ikbzp,1)
          isp = Xk%sstar(ikbzp,2)
          !
-         call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ikp,ikp/),(/i_sp_pol,i_sp_pol/),&
-         &              space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
+         if (trim(WF_load_mode)=="on-the-fly") then
+           call WF_load(WF,0,1,(/1,Dip%ib(2)/),(/ikp,ikp/),(/i_sp_pol,i_sp_pol/),&
+           &              space='G',title='-Oscill/G space/Overlaps',quiet=.true.)
+         endif
          !
          ! Shift the wave-function by a G-vector if the neighbor is out of the BZ (USE_shifed_wf=.true.)
          shift=WF_shifts(ikbzp,:)
@@ -170,7 +177,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            enddo ! ibp
          enddo ! ib
          !
-         call WF_free(WF)
+         if (trim(WF_load_mode)=="on-the-fly") call WF_free(WF)
          !
        enddo ! istep
      enddo ! idir
@@ -204,7 +211,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  YAMBO_FREE(WF_ik)
  YAMBO_FREE(WF_ikp)
  !
- call WF_free(WF)
+ if (trim(WF_load_mode)=="all") call WF_free(WF)
  !
  call timing("DIPOLE_overlaps",OPR="stop")
  !
