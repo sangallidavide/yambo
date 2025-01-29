@@ -140,7 +140,7 @@ subroutine DIPOLE_driver(Xen,Xk,Xq,Dip)
    !
    call DIPOLE_IO(Xk,Xen,Dip,'write',io_err,'DIP')
    !
-   if (io_err_Overlaps/=0)  call OVERLAPS_IO(Xk,Xen,Dip,'write',io_err_Overlaps,'DIP')
+   if (eval_Overlaps.and.io_err_Overlaps/=0)        call OVERLAPS_IO(Xk,Xen,Dip,'write',io_err_Overlaps,'DIP')
    !
    ! I/O privilegies: RESTORE to previous values
    !
