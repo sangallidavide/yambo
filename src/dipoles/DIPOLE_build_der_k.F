@@ -234,7 +234,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
        do ic=max(iv,Dip%ib_lim(2)),Dip%ib(2)
          if(.not.PAR_IND_CON_BANDS_DIP%element_1D(ic)) cycle
          do idir=1,3
-           DIP_iR(idir,ic,iv,ik_mem,i_sp_pol)=(Der_k_cart(ic,iv,idir)+conjg(Der_k_cart(iv,ic,idir)))/cI
+           DIP_iR(idir,ic,iv,ik_mem,i_sp_pol)=(Der_k_cart(ic,iv,idir)+conjg(Der_k_cart(iv,ic,idir)))*cI
          enddo
        enddo
      enddo
