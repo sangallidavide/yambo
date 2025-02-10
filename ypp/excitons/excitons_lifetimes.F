@@ -33,7 +33,7 @@ subroutine excitons_lifetimes(Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
  use R_lattice,     ONLY:q0_def_norm,nkbz,bz_samp,q_norm
  use D_lattice,     ONLY:DL_vol,non_periodic_directions,l_1D,l_2D,l_0D,l_3D
  use X_m,           ONLY:eps_2_alpha
- use DIPOLES,       ONLY:DIP_rotated,DIP_iR
+ use DIPOLES,       ONLY:DIP_iR
  use YPPm,          ONLY:EXC_temp,EXC_mass,EXC_Phi_Grid,EXC_shift,epsi0,&
 &                        DIPs,EXCITONS_user_indexes,EXCITONS_n_user_states
  use vec_operate,   ONLY:v_norm
@@ -158,7 +158,7 @@ subroutine excitons_lifetimes(Xen,Xk,Xq,BS_R,BS_E,BS_E_degs)
        !
        f_cv    = (Xen%f(i_v,i_kibz,i_spin)- Xen%f(i_c,i_kibz,i_spin))/spin_occ
        !
-       rotated_iR=DIP_rotated(i_c,i_v,i_kbz,i_spin,"DIP_iR",Xk)
+       call DIPOLE_rotate(i_c,i_v,i_kbz,i_spin,"DIP_iR",Xk,rotated_iR)
        !
        iR_EXC(:)=iR_EXC(:) - rotated_iR(:)*BS_mat(neh,i_l)*sqrt(f_cv)
        !
