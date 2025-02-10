@@ -39,15 +39,6 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
  use D_lattice,      ONLY:nsym
  use parser_m,       ONLY:parser
  use X_m,            ONLY:X_t
-<<<<<<< HEAD
- use BS_solvers,     ONLY:BS_mat,BSS_eh_table,BSS_eh_table_m1,BS_H_dim,BSS_n_eig,BSS_alloc,BSS_free
- use BS,             ONLY:BS_H_dim,BS_bands,BSqpts
- use ELPH,           ONLY:elph_branches,Q_io_map,l_GKKP_expanded_DB_exists
- use IO_m,           ONLY:NONE,OP_APP_CL,OP_RD_CL,DUMP,OP_RD,RD_CL_IF_END,OP_WR_CL,deliver_IO_error_message, &
-&                         REP,VERIFY,WR_CL,OP_WR,WR_CL_IF_END,manage_action
- use IO_int,         ONLY:io_control
- use EXCPH,          ONLY:BS_mat_in,BSS_eh_table_in,EXCPH_gkkp,EXCPH_gkkp_sq,BS_E_in,BS_E,BSS_eh_table_m1_in,&
-=======
  use BS_solvers,     ONLY:BS_mat,BSS_eh_table,BSS_eh_table_m1,BSS_alloc,BSS_free!,BS_H_dim,BSS_n_eig
  !use BS,             ONLY:BSqpts,BS_H_dim,BS_bands
  use ELPH,           ONLY:elph_branches,l_GKKP_expanded_DB_exists!,Q_io_map
@@ -55,7 +46,6 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
 &                         REP,VERIFY,WR_CL,OP_WR,WR_CL_IF_END,manage_action
  use IO_int,         ONLY:io_control
  use EXCPH,          ONLY:BS_mat_in,BS_mat_out,BSS_eh_table_in,EXCPH_gkkp,EXCPH_gkkp_sq,BS_E_in,BS_E,BSS_eh_table_m1_in,&
->>>>>>> phys-exc-ph
 &                         EXCPH_states,EXCPH_sum,k_plus_q_table,build_Q_map,EXCPH_q, &
 &                         EXCPH_gkkp_alloc,EXCPH_gkkp_free,l_const_elph,l_abs_elph,l_abs_exc,l_elec_only,l_hole_only, &
 &                         n_exc_in,BSE_alloc,BSE_free,BSE_in_alloc,BSE_out_alloc,BSE_in_free
@@ -335,51 +325,4 @@ subroutine EXCPH_gkkp_driver(E,k,q,X)
      !
    end subroutine build_k_plus_q_table
    !
-<<<<<<< HEAD
-   !
-   subroutine compare_qindxC_table()
-     !
-     ! [FP] DEBUG FUNCTION (to be removed?)
-     !
-     use R_lattice, ONLY:qindx_C
-     !
-     integer :: ik_plus_iq_C, ik_plus_iq_tbl, ik_bz
-     integer :: iq,i_star,iq_s,iq_bz
-     !
-     !call build_k_plus_q_table()
-     call k_ibz2bz(q,"i",.false.)
-     call k_ibz2bz(k,"i",.false.)
-     !
-     do ik_bz=1, k%nbz
-       write(*,*) ik_bz,k%ptbz(ik_bz,:)
-     enddo
-     !
-     do iq=1,q%nibz
-       !
-       do i_star=1,q%nstar(iq)
-         !
-         iq_s=q%star(iq,i_star)
-         iq_bz = q%k_table(iq, iq_s)
-         !
-         do ik_bz=1, k%nbz
-           !
-           ik_plus_iq_C   = qindx_C(ik_bz,iq_bz,1)
-           ik_plus_iq_tbl = k_plus_q_table(ik_bz,iq_bz)
-           write(*,*) k%ptbz(ik_bz,:),q%ptbz(iq_bz,:)
-           write(*,*) k%ptbz(ik_plus_iq_C,:),ik_plus_iq_C
-           write(*,*) k%ptbz(ik_plus_iq_tbl,:),ik_plus_iq_tbl
-           !
-         enddo
-         !
-       enddo
-     enddo
-     !
-     call k_ibz2bz(q,"d",.false.)
-     call k_ibz2bz(k,"d",.false.)
-     !
-   end subroutine compare_qindxC_table
-   !
-    !
-=======
->>>>>>> phys-exc-ph
 end subroutine
