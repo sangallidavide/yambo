@@ -13,28 +13,29 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  !
  !  i q.<nk|r|mk> =  \sum_i=1,3 q(i) <u_n(k+q0(i))|u_mk>/q0(i)
  !
- use units,               ONLY: HA2EV
- use pars,                ONLY: SP,cZERO,schlen
- use drivers,             ONLY: l_sc_run
- use com,                 ONLY: msg,grid_paths
- use stderr,              ONLY: intc,STRING_split
- use LIVE_t,              ONLY: live_timing
- use electrons,           ONLY: levels,n_spinor,n_sp_pol
- use parallel_m,          ONLY: PAR_IND_DIPk_ibz,PAR_DIPk_ibz_index,PAR_IND_DIPk_ibz_ID,&
-&                               PAR_IND_VAL_BANDS_DIP,PAR_IND_VAL_BANDS_DIP_ID,&
-&                               PAR_IND_CON_BANDS_DIP,PAR_IND_CON_BANDS_DIP_ID
- use interfaces,          ONLY: WF_load,WF_free,io_DB1_selective_scan
- use R_lattice,           ONLY: bz_samp,nkibz,q0_shift_norm
- use X_m,                 ONLY: l_X_terminator
- use DIPOLES,             ONLY: DIPOLE_t,DIP_iR,DIP_v,num_shifted_grids
- use vec_operate,         ONLY: degeneration_finder
- use wrapper,             ONLY: Vstar_dot_V_gpu
- use wave_func,           ONLY: wf_ng,wf_igk,WF,wf_ncx,WAVEs,WF_path
+ use units,               ONLY:HA2EV
+ use pars,                ONLY:SP,cZERO,lchlen,schlen
+ use drivers,             ONLY:l_sc_run
+ use com,                 ONLY:msg,grid_paths
+ use stderr,              ONLY:intc,STRING_split
+ use LIVE_t,              ONLY:live_timing
+ use electrons,           ONLY:levels,n_spinor,n_sp_pol
+ use parallel_m,          ONLY:PAR_IND_DIPk_ibz,PAR_DIPk_ibz_index,PAR_IND_DIPk_ibz_ID,&
+&                              PAR_IND_VAL_BANDS_DIP,PAR_IND_VAL_BANDS_DIP_ID,&
+&                              PAR_IND_CON_BANDS_DIP,PAR_IND_CON_BANDS_DIP_ID
+ use interfaces,          ONLY:WF_load,WF_free,io_DB1_selective_scan
+ use R_lattice,           ONLY:bz_samp,nkibz,q0_shift_norm
+ use X_m,                 ONLY:l_X_terminator
+ use DIPOLES,             ONLY:DIPOLE_t,DIP_iR,DIP_v,num_shifted_grids,shifted_grids_obs
+ use vec_operate,         ONLY:degeneration_finder
+ use timing_m,            ONLY:timing
+ use wrapper,             ONLY:Vstar_dot_V_gpu
+ use wave_func,           ONLY:wf_ng,wf_igk,WF,wf_ncx,WAVEs,WF_path
 #if defined _SC           
- use SC,                  ONLY: SC_bands
+ use SC,                  ONLY:SC_bands
 #endif
 #if defined _RT
- use real_time,           ONLY: RT_bands
+ use real_time,           ONLY:RT_bands
 #endif
  !
  implicit none
@@ -75,6 +76,8 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  !I/O and external functions
  !
  integer                      :: io_err(3)
+ !
+ call timing("DIPOLE_shifted_grids",OPR="start")
  !
  call set_parms(grid='  local', command=' define')
  !
@@ -125,13 +128,13 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  !
  call msg('r','Shifted grids found '//trim(intc(num_shifted_grids)))
  !
- if(num_shifted_grids<3) call warning(' Shifted grids are '//trim(intc(num_shifted_grids))//'. Assuming non periodic system.')
+ if (num_shifted_grids<3) call warning(' Shifted grids are '//trim(intc(num_shifted_grids))//'. Assuming non periodic system.')
  !
  n_LT_steps=n_sp_pol*PAR_IND_DIPk_ibz%n_of_elements(PAR_IND_DIPk_ibz_ID+1)*&
 &                    PAR_IND_VAL_BANDS_DIP%n_of_elements(PAR_IND_VAL_BANDS_DIP_ID+1)*&
 &                    PAR_IND_CON_BANDS_DIP%n_of_elements(PAR_IND_CON_BANDS_DIP_ID+1)*num_shifted_grids
  !
- call live_timing('Dipoles shifted grids   ',n_LT_steps)
+ call live_timing(trim(shifted_grids_obs)//" [shifted grids]",n_LT_steps)
  !
  do i_sp_pol = 1,n_sp_pol
    !
@@ -289,7 +292,9 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
  !
  call DB1_reset()
  !
- if(any(idir_not_done)) call DIPOLE_x_real_space(Xen,Xk,Dip,idir_not_done)
+ if (any(idir_not_done)) call DIPOLE_x_real_space(Xen,Xk,Dip,idir_not_done)
+ !
+ call timing("DIPOLE_shifted_grids",OPR="stop")
  !
  contains
    !
