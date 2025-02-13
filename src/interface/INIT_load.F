@@ -713,7 +713,8 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'COLLBands',   '[COLL] Bands for the collisions',COLL_bands)
  !
  call it(defs,'HXC_Potential',  '[SC] SC HXC Potential',H_potential,protect=.FALSE.,case="A")
- call it(defs,'COLLCut',        '[SC,RT] Cutoff on the collisions, 0=full 1=none (default =0.0005)',COLLISIONS_cutoff,verb_level=V_sc)
+ call it(defs,'COLLCut',        '[SC,RT] Cutoff on the collisions, 0=full 1=none (default =0.0005)',&
+ &                                                                   COLLISIONS_cutoff,verb_level=V_sc)
  call it('f',defs,'COLLBseMem', '[SC,RT] Minimize memory use in bse kernel conversion',verb_level=V_sc)
  !
 #endif
