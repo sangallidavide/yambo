@@ -9,7 +9,7 @@ subroutine DIPOLE_setup(Dip)
  !
  use drivers,        ONLY:l_real_time,l_sc_run,l_nl_optics
  use DIPOLES,        ONLY:DIPOLE_t,x_space_obs,g_space_obs,covariant_obs,shifted_grids_obs,&
-&                         specific_obs,eval_OVERLAPS
+&                         der_k_obs,specific_obs,eval_OVERLAPS
  use IO_m,           ONLY:io_DIP
  use BS,             ONLY:BSE_prop,l_BS_magnons,l_BS_dichroism,l_BS_photolum
  use electrons,      ONLY:n_spin,n_spinor
@@ -97,6 +97,10 @@ subroutine DIPOLE_setup(Dip)
    covariant_obs="S R V"
    if (Dip%force_v_g_space) covariant_obs="S R"
    eval_OVERLAPS=.true.
+ else if (STRING_same(Dip%approach,"derk")) then
+   der_k_obs="S R V"
+   if (Dip%force_v_g_space) der_k_obs="S R"
+   eval_OVERLAPS=.true.
  else if (STRING_same(Dip%approach,"shifted grids")) then
    shifted_grids_obs="R V"
    if (Dip%force_v_g_space) shifted_grids_obs="R"
@@ -128,13 +132,14 @@ subroutine DIPOLE_setup(Dip)
 #endif
  endif
  ! ...M_spin, M_orb, M_iti, M_orb_CD
+ specific_obs=""
  if (n_spin>1) then
-#if defined _RT
-   if (l_real_time) specific_obs=" M_spin M_orb M_it"
-#else
-   if (STRING_match(Dip%computed,"orb")) specific_obs=trim(specific_obs)//" M_orb M_it"
-#endif
    if (STRING_match(Dip%computed,"spin").or.l_BS_magnons) specific_obs=" M_spin"
+   if (STRING_match(Dip%computed,"orb")) specific_obs=trim(specific_obs)//" M_orb M_it"
+#if defined _RT
+   ! Always force all dipoles in real-time case
+   if (l_real_time) specific_obs=" M_spin M_orb M_it"
+#endif
  endif
  if (l_BS_dichroism) specific_obs=trim(specific_obs)//" M_CD_orb"
  ! 
@@ -143,6 +148,7 @@ subroutine DIPOLE_setup(Dip)
  Dip%computed=" "
  if (len_trim(x_space_obs  )    >0) Dip%computed=trim(x_space_obs)//" [X-space]"
  if (len_trim(covariant_obs)    >0) Dip%computed=trim(covariant_obs)//" [covarian]"
+ if (len_trim(der_k_obs)        >0) Dip%computed=trim(der_k_obs)//" [covarian]"
  if (len_trim(shifted_grids_obs)>0) Dip%computed=trim(shifted_grids_obs)//" [shift-grids]"
  if (len_trim(Dip%computed)==0) then
    Dip%computed=trim(g_space_obs)//" [G-space]"

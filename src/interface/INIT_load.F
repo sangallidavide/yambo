@@ -27,7 +27,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 &                        QP_G_er,QP_G_ir,QP_G_dr,QP_Sc_steps,QP_G_solver,&
 &                        QP_dSc_delta,QP_G_Zoom_treshold,GF_energy_range_mode
  use LIVE_t,        ONLY:nhash
- use wave_func,     ONLY:wf_ng
+ use wave_func,     ONLY:wf_ng,WF_load_mode
  use D_lattice,     ONLY:Tel,non_periodic_directions,molecule_position,Bose_Temp
  use R_lattice,     ONLY:ng_closed,QP_states_k,nXkibz,k_GRIDS_string,RIM_W_ng,rimw_type,&
 &                        bz_samp,RIM_ng,RIM_epsm1,RIM_id_epsm1_reference,&
@@ -231,6 +231,8 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'DBsFRAGpm', &
 &             '[IO] Space-separated list of +DB to FRAG and -DB to NOT FRAG. DB=(DIP,X,W,HF,COLLS,K,BS,QINDX,RT,ELPH,SC,ALL)',&
 &             DBs_FRAG_control_string,verb_level=V_io)
+ call it(defs,"WF_load_mode",'[WF-IO] Default distribution mode ("all"/"on-the-fly")',&
+&            WF_load_mode,verb_level=V_io)
  !
  ! S_xc
  !
@@ -645,9 +647,9 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  !
  call it(defs,'DipBands',       '[DIP] Bands range for dipoles',Dip%ib,verb_level=V_resp)
  call it(defs,'DipQpts',        '[DIP] Qpts range for dipoles',Dip%iq,verb_level=V_resp)
- call it(defs,'DipoleEtresh',   '[DIP] Treshold in the definition of R=P/deltaE',Dip%Energy_treshold,&
+ call it(defs,'DipoleEtresh',   '[DIP] Treshold in the definition of R=P/deltaE',Dip%Energy_threshold,&
 &                                                                               verb_level=V_resp,unit=E_unit)
- call it(defs,'DipApproach',    '[DIP] [G-space v/R-space x/Covariant/Shifted grids]',Dip%approach,verb_level=V_resp)
+ call it(defs,'DipApproach',    '[DIP] [G-space v/R-space x/Covariant/Shifted grids/derk]',Dip%approach,verb_level=V_resp)
  call it(defs,'DipComputed',    '[DIP] [default R P V; extra P2 Spin Orb]',Dip%computed,verb_level=V_resp)
  call it(defs,'ShiftedPaths',   '[DIP] Shifted grids paths (separated by a space)',grid_paths,verb_level=V_resp)
  call it('f',defs,'DipPDirect', '[DIP] Directly compute <v> also when using other approaches for dipoles',verb_level=V_resp)
@@ -711,7 +713,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it(defs,'COLLBands',   '[COLL] Bands for the collisions',COLL_bands)
  !
  call it(defs,'HXC_Potential',  '[SC] SC HXC Potential',H_potential,protect=.FALSE.,case="A")
- call it(defs,'COLLCut',        '[SC,RT] Cutoff on the collisions, 0=full 1=none',COLLISIONS_cutoff,verb_level=V_sc)
+ call it(defs,'COLLCut',        '[SC,RT] Cutoff on the collisions, 0=full 1=none (default =0.0005)',COLLISIONS_cutoff,verb_level=V_sc)
  call it('f',defs,'COLLBseMem', '[SC,RT] Minimize memory use in bse kernel conversion',verb_level=V_sc)
  !
 #endif
