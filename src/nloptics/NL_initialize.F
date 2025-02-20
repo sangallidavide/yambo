@@ -21,13 +21,14 @@ subroutine NL_initialize(E,k)
  use QP_m,           ONLY:QP_ng_Sc,QP_ng_Sx,QP_ng_Sh
  use collision_ext,  ONLY:ng_oscll,COLLISIONS_cutoff
  use R_lattice,      ONLY:bz_samp,k_map
+ use IO_m,           ONLY:io_GF
  use X_m,            ONLY:global_gauge
  use fields,         ONLY:Efield,Efield_strength,n_ext_fields,n_ext_fields_max,EtoT
  use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field,l_NE_with_fields, &
 &                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime,&
 &                         l_velocity_gauge_corr,l_velocity_gauge_diam
  use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free,l_NE_with_fields,&
-&                         SAVE_Vb_history
+&                         SAVE_Vb_history,SAVE_G_history
  use nl_optics,      ONLY:l_use_DIPOLES,EULER,EULEREXP,RK2,RK4,RK2EXP,RK4EXP,HEUN,INVINT,Integrator,CRANK_NICOLSON, &
 &                         NL_damping,NL_correlation,Correlation,NL_er,NL_estep,n_frequencies,IPA,TDDFT,HARTREE,LRC,JGM,  &
 &                         LRCW,SEX,HF,eval_dG,eval_COLLISIONS,NL_bands,NL_verb_name,VERB_HIGH,VERB_LOW,NL_verbosity,LSEX,&
@@ -63,9 +64,12 @@ subroutine NL_initialize(E,k)
  call parser('VelGaugeNoDiam',       l_velocity_gauge_tmp)
  call parser('NoComprCOLL',          l_no_compress_COLL)
  call parser('UseDipoles',           l_use_DIPOLES)
+ call parser('SaveGhistory',         SAVE_G_history)
  !
  l_velocity_gauge_corr=.false.
  l_velocity_gauge_diam=.not.l_velocity_gauge_tmp
+ !
+ io_GF=SAVE_G_history
  !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')
