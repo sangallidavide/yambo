@@ -55,11 +55,7 @@ subroutine DIPOLE_overlaps(Xk,Dip)
  if(.not.allocated(k_map%k_map_dir)) call k_map_nearest_by_dir(Xk,k_map)
  if(.not.allocated(Xk%k_table))      call k_build_up_BZ_tables(Xk)
  !
- ! Notice that DIP_S is defined in the BZ
- !
- call DIPOLE_ALLOC_elemental('DIP_S',(/Dip%ib(2),Dip%ib(2),6,Xk%nbz/))
  DIP_S=cZERO
- !
  !
  call k_find_smallest_g0(g0_idx,g0_length)
  iG0=max(maxval(g0_idx(:,1)),maxval(g0_idx(:,2)))
