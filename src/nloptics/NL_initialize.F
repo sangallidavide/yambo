@@ -26,7 +26,7 @@ subroutine NL_initialize(E,k)
  use fields,         ONLY:Efield,Efield_strength,n_ext_fields,n_ext_fields_max,EtoT
  use real_time,      ONLY:RT_step,NE_steps,NE_tot_time,eval_HARTREE,eval_DFT,l_RT_induced_field,l_NE_with_fields, &
 &                         Phase_LifeTime,Integrator_name,RT_dyn_step,NE_i_time,RT_potential,RAD_LifeTime,&
-&                         l_velocity_gauge_corr,l_velocity_gauge_diam
+&                         l_velocity_gauge_corr,l_velocity_gauge_diam,G_MEM_steps,RT_nk,i_MEM_now
  use RT_control,     ONLY:SETUP_RT_IO_type,OBS_RT_IO_t,NE_i_start_time,RT_control_alloc,RT_control_free,l_NE_with_fields,&
 &                         SAVE_Vb_history,SAVE_G_history
  use nl_optics,      ONLY:l_use_DIPOLES,EULER,EULEREXP,RK2,RK4,RK2EXP,RK4EXP,HEUN,INVINT,Integrator,CRANK_NICOLSON, &
@@ -69,7 +69,12 @@ subroutine NL_initialize(E,k)
  l_velocity_gauge_corr=.false.
  l_velocity_gauge_diam=.not.l_velocity_gauge_tmp
  !
- io_GF=SAVE_G_history
+ if (SAVE_G_history) then
+   io_GF=.true.
+   RT_nk=k%nibz
+   G_MEM_steps=1
+   i_MEM_now=1
+ endif
  !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')

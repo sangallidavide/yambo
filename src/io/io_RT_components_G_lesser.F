@@ -8,7 +8,7 @@
 subroutine io_RT_components_G_lesser(ID,T_size)
  !
  use pars,           ONLY:SP,schlen
- use drivers,        ONLY:l_real_time
+ use drivers,        ONLY:l_real_time,l_nl_optics
  use R_lattice,      ONLY:nkibz
  use stderr,         ONLY:intc
  use IO_int,         ONLY:def_variable_bulk,io_variable_bulk
@@ -65,7 +65,7 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  k_range      =PAR_G_k_range
  G_IO_steps   =Gless_RT_IO_t%INTERVAL_steps/nint(RT_dyn_step/RT_step)
 #endif
- ! 
+ !
  ! Variables...
  !--------------
  G_var_name="dG_lesser"
@@ -93,7 +93,7 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  ! Variable Definitions...
  !-------------------------
 #if defined _PAR_IO 
- if( NE_i_time==NE_i_start_time.or..not.l_real_time) then
+ if( NE_i_time==NE_i_start_time.or..not.(l_real_time.or.l_nl_optics)) then
 #endif
    call def_variable_bulk(ID,trim(G_var_name),4,VAR_SZ,SP,dim_names=dim_names,par_io_kind='collective',silent=.true.)
    if (l_H_sig) then
@@ -114,7 +114,7 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  !
  ! Variable I/O...
  !-----------------
- if (l_real_time) then
+ if (l_real_time.or.l_nl_optics) then
    do i_mem_sorted=G_MEM_steps-T_size+1,G_MEM_steps
      if (RT_do_IO("G_lesser_K_section"))         IPOS(5)=Gless_RT_IO_t%N+(i_mem_sorted-G_MEM_steps)
      if (RT_do_IO("G_lesser_RESTART_K_section")) IPOS(5)=         T_size+(i_mem_sorted-G_MEM_steps)
