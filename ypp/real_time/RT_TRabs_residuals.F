@@ -350,13 +350,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            DIP_rotated=conjg(-cI*DIP_f*DIP)
            !
            do i_dir=1,N_dirs
-<<<<<<< HEAD
-             TRabs_RES_right(N_trans,i_dir,1)= conjg(dot_product(DIP_dir(i_dir,:),DIP_rot))*sqrt(f_eh(2))
-             TRabs_RES_left(N_trans,i_dir,1) =       dot_product(DIP_dir(i_dir,:),DIP_rot) *sqrt(f_eh(2))
-=======
              TRabs_RES_right(N_trans,i_dir,1)= conjg(dot_product(DIP_dir(i_dir,:),DIP_rotated))*sqrt(f_eh(2))
              TRabs_RES_left(N_trans,i_dir,1) =       dot_product(DIP_dir(i_dir,:),DIP_rotated) *sqrt(f_eh(2))
->>>>>>> phys-exc-ph
            enddo
            !
          enddo
