@@ -30,7 +30,7 @@ subroutine RT_initialize(E,k,q)
 &                         Life_MEM_steps,l_RT_lifetimes_Tfit,l_RT_skip_ph_abs_lifetimes,l_RT_iterative_ELPH_lifetimes
  use real_time,      ONLY:RT_potential,RT_step,l_NE_with_fields,RT_bands,RT_dyn_step,RT_nk,   &
 &                         NE_steps,NE_tot_time,l_RT_induced_field,Gr_kind,       &
-&                         RAD_LifeTime,Phase_LifeTime,         &
+&                         RAD_LifeTime,Phase_LifeTime,l_length_grad_k,         &
 &                         NE_MEM_treshold,G_MEM_steps,l_RT_uses_E_FineGd,DbGd_EE_Nk_table,    &
 &                         l_RT_impose_N_dN,Integrator_name,l_RT_impose_E,DbGd_EE_percent,     &
 &                         l_RT_update_Energies,eval_HARTREE,eval_DFT,l_NE_dynamics,           &
@@ -98,6 +98,7 @@ subroutine RT_initialize(E,k,q)
  call parser('RTzeroTempRef',        l_RT_eq_is_zero_temp)
  call parser('RTEqScatt',            l_RT_include_eq_scatt)
  call parser('RTskipPHabs',          l_RT_skip_ph_abs_lifetimes)
+ call parser('RTgradk',              l_length_grad_k)
  !
  if (.not.l_RT_skip_ph_abs_lifetimes) l_RT_skip_ph_abs_lifetimes=.not.(Bose_Temp>0..or.l_phel_scatt)
  !

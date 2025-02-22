@@ -200,6 +200,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
          Der_k_red(:,:,istep)=+matmul(U_r(:,:,1),hermitian(U_r(:,:,2)) )  &
 &                             -matmul(U_l(:,:,1),hermitian(U_l(:,:,2)) )
          !
+	 ! This contains the i/2q factor 
+	 ! 1/q=k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
          Der_k_red(:,:,istep)=Der_k_red(:,:,istep)*cI*k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
          !
        enddo
