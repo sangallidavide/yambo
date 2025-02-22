@@ -42,7 +42,7 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
  character(schlen) :: fileroot,filename(3,3),headers(7)
  logical           :: l_gold_modes,l_skip_intra
  real(SP)          :: E_eh,values(7),fac
- complex(SP)       :: DIP_f,DIP_rotated(3),f_eh(2),DIP_dot,DIP_NN(3),dip_tmp(5,3)
+ complex(SP)       :: DIP_f,DIP_rot(3),DIP_bare(3),f_eh(2),DIP_dot,DIP_NN(3),dip_tmp(5,3)
  !
  if(trim(global_gauge)=="length") then
    !
@@ -87,12 +87,12 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
        !
        f_eh=gimme_f_and_delta_f(i_v,i_c,i_kibz,i_spin)
        !
-       call DIPOLE_rotate(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk,DIP)
-       DIP_rotated=conjg(-cI*DIP)
+       call DIPOLE_rotate(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk,DIP_bare)
+       DIP_rot=conjg(-cI*DIP_bare)
        !
        do i_dir=1,N_dirs
          !
-         DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rotated)
+         DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
          !
          TRabs_RES_right(i_l,i_dir,1)= TRabs_RES_right(i_l,i_dir,1)+&
 &                                      conjg(DIP_dot)*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
@@ -171,7 +171,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            if (.not. PAR_IND_DIPk_ibz%element_1D(i_kibz)) cycle
            do i_v=BS_bands(1),Xen%nbf(i_spin)
              if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_v)) cycle
-             DIP_nn=DIP_nn+conjg(DIP_f*DIP_rotated(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk))
+             call DIPOLE_rotate(i_v,i_v,i_kbz,i_spin,DIP_kind,Xk,DIP_bare)
+             DIP_nn=DIP_nn+conjg(DIP_f*DIP_bare)
            enddo
          enddo
        enddo
@@ -222,7 +223,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (abs(E_eh) <  TRabs_Eeh_treshold ) i_dip=3
          if (abs(E_eh) >= TRabs_Eeh_treshold ) i_dip=1
          !
-         DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_c_p,i_kbz,i_spin,DIP_kind,Xk))
+         call DIPOLE_rotate(i_c,i_c_p,i_kbz,i_spin,DIP_kind,Xk,DIP_bare)
+         DIP_rot=conjg(DIP_f*DIP_bare)
          !
          do i_dir=1,N_dirs
            DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
@@ -249,7 +251,8 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
          if (abs(E_eh) <  TRabs_Eeh_treshold ) i_dip=3
          if (abs(E_eh) >= TRabs_Eeh_treshold ) i_dip=2
          !
-         DIP_rot=conjg(DIP_f*DIP_rotated(i_v_p,i_v,i_kbz,i_spin,DIP_kind,Xk))
+         call DIPOLE_rotate(i_v_p,i_v,i_kbz,i_spin,DIP_kind,Xk,DIP_bare)
+         DIP_rot=conjg(DIP_f*DIP_bare)
          !
          do i_dir=1,N_dirs
            DIP_dot=dot_product(DIP_dir(i_dir,:),DIP_rot)
@@ -346,12 +349,12 @@ subroutine RT_TRabs_residuals(what,N_trans,N_dirs,DIP_dir,Xen,Xk,nb,l_EQ)
            if (.not. PAR_IND_VAL_BANDS_DIP%element_1D(i_n)) cycle
            !
            TRabs_E(N_trans)=E_eh
-           call DIPOLE_rotate(i_np,i_n,i_kbz,i_spin,"DIP_iR",Xk,DIP)
-           DIP_rotated=conjg(-cI*DIP_f*DIP)
+           call DIPOLE_rotate(i_np,i_n,i_kbz,i_spin,"DIP_iR",Xk,DIP_bare)
+           DIP_rot=conjg(-cI*DIP_f*DIP_bare)
            !
            do i_dir=1,N_dirs
-             TRabs_RES_right(N_trans,i_dir,1)= conjg(dot_product(DIP_dir(i_dir,:),DIP_rotated))*sqrt(f_eh(2))
-             TRabs_RES_left(N_trans,i_dir,1) =       dot_product(DIP_dir(i_dir,:),DIP_rotated) *sqrt(f_eh(2))
+             TRabs_RES_right(N_trans,i_dir,1)= conjg(dot_product(DIP_dir(i_dir,:),DIP_rot))*sqrt(f_eh(2))
+             TRabs_RES_left(N_trans,i_dir,1) =       dot_product(DIP_dir(i_dir,:),DIP_rot) *sqrt(f_eh(2))
            enddo
            !
          enddo

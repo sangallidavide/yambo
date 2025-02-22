@@ -36,7 +36,6 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
  use stderr,          ONLY:intc
  use electrons,       ONLY:levels,spin,spin_occ
  use X_m,             ONLY:global_gauge
- use DIPOLES,         ONLY:DIP_rotated
  use YPP_real_time,   ONLY:TRabs_Eeh_treshold,TRabs_Exc_Pol
  use BS,              ONLY:BS_K_dim,BS_bands
  use BS_solvers,      ONLY:BSS_eh_table,BS_mat,BSS_n_eig
@@ -46,7 +45,7 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
  use parallel_m,      ONLY:PAR_IND_DIPk_ibz,PAR_IND_VAL_BANDS_DIP,PAR_IND_CON_BANDS_DIP
  use parallel_int,    ONLY:PP_redux_wait
  !
-#include<memory.h>
+#include<y_memory.h>
  !
  type(levels),  intent(in) :: Xen
  type(bz_samp), intent(in) :: Xk
@@ -95,9 +94,9 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
      !
      f_eh=(Xen%f(i_v,i_kibz,i_spin)-Xen%f(i_c,i_kibz,i_spin))/spin_occ
      !
-     DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
+     call DIPOLE_rotate(i_c,i_v,i_kbz,i_spin,trim(DIP_kind),Xk,DIP_rot)
      !
-     DIP_tmp= DIP_tmp+conjg(DIP_rot(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
+     DIP_tmp= DIP_tmp+DIP_f*DIP_rot(:)*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
      !
    enddo
    !
@@ -284,9 +283,9 @@ subroutine RT_TRabs_rotate_exciton(DIP_kind,DIP_dir,DIP_f,Xen,Xk)
      !
      f_eh=(Xen%f(i_v,i_kibz,i_spin)-Xen%f(i_c,i_kibz,i_spin))/spin_occ
      !
-     DIP_rot=conjg(DIP_f*DIP_rotated(i_c,i_v,i_kbz,i_spin,DIP_kind,Xk))
+     call DIPOLE_rotate(i_c,i_v,i_kbz,i_spin,trim(DIP_kind),Xk,DIP_rot)
      !
-     DIP_exc(:,i_exc)= DIP_exc(:,i_exc)+conjg(DIP_rot(:))*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
+     DIP_exc(:,i_exc)= DIP_exc(:,i_exc)+DIP_f*DIP_rot(:)*BS_mat(i_cv,i_l)*sqrt(f_eh(1))
      !
    enddo
    !
