@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details):
 !
-subroutine RT_initialize(E,k,q)
+subroutine RT_initialize(E,k,q,Dip)
  !
  use drivers,        ONLY:l_use_collisions,l_elph_scatt,l_elel_scatt,l_sc_hartree,l_use_Hxc_collisions,&
 &                         l_sc_is_libDFT,l_sc_sex,l_sc_fock,l_elphoton_scatt,l_rt_carriers_in_use,l_phel_scatt
@@ -20,6 +20,7 @@ subroutine RT_initialize(E,k,q)
  use QP_CTL_m,       ONLY:QP_ctl_user
  use vec_operate,    ONLY:normalize_v
  use plasma,         ONLY:EH_gas
+ use DIPOLES,        ONLY:DIPOLE_t
  use X_m,            ONLY:global_gauge
  use electrons,      ONLY:levels
  use collision_ext,  ONLY:COLLISIONS_have_HARTREE
@@ -53,7 +54,8 @@ subroutine RT_initialize(E,k,q)
 #include<y_memory.h>
  !
  type(levels), intent(inout) :: E
- type(bz_samp),intent(in)    :: q,k
+ type(bz_samp),   intent(in) :: q,k
+ type(DIPOLE_t),  intent(in) :: Dip
  !
  ! Work space
  !
@@ -127,6 +129,8 @@ subroutine RT_initialize(E,k,q)
    PAR_G_k_range(1)=RTibz%k_range(PAR_G_k_range(1),1)
    PAR_G_k_range(2)=RTibz%k_range(PAR_G_k_range(2),2)
  endif
+ !
+ if (l_length_grad_k .and. .not.allocated(k%k_table))  call k_build_up_BZ_tables(k)
  !
  ! Integrator FLAGS
  !==================

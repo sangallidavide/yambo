@@ -33,8 +33,10 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  !
  ! Workspace
  !
- integer     :: ikbz,id_red,max_step,istep,idx(3),idir,ikm1,ikp1,ib1,ib2,jb1,jb2
+ integer     :: id_red,max_step,istep,idx(3),idir,ib1,ib2,jb1,jb2,&
+                ikm1,ikp1,ikbz,ikm1_ibz,ikm1_is,ikp1_ibz,ikp1_is
  real(SP)    :: q_fac,E_field(3)
+ complex(SP) :: Dip_kp_c(3),Dip_km_c(3)
  !
  complex(SP) :: Mp_kmq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
  &              Mm_kpq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
@@ -48,6 +50,12 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  ! Warning: kpts parallelization to be fixed, since rho is distributed
  !
  if (.not.l_length_grad_k) return
+ !
+ ! Length gauge
+ !===============
+ E_field=-A_input%vecpot_vel/SPEED_OF_LIGHT ! Gaussian units
+ !
+ if (all(E_field==0._SP)) return
  !
  ikbz=Xk%k_table(ik,1)
  !
@@ -73,10 +81,16 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
      idx=k_periodic_idx(idx,k_map)
      ikm1=k_map%k_map_dir(idx(1),idx(2),idx(3))
      !
+     ikm1_ibz=Xk%sstar(ikm1,1)
+     ikm1_is =Xk%sstar(ikm1,2)
+     !
      idx=k_map%k_map_inv(ikbz,:)
      idx(id_red)=idx(id_red)+istep
      idx=k_periodic_idx(idx,k_map)
      ikp1=k_map%k_map_dir(idx(1),idx(2),idx(3))
+     !
+     ikp1_ibz=Xk%sstar(ikp1,1)
+     ikp1_is =Xk%sstar(ikp1,2)
      !
      !S_tmp(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)    ! g+(k)
      !S_tmp(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))   ! g-(k)=g+(k-q)
@@ -100,20 +114,34 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
        enddo
      enddo
      !
-     ! I need to project the dipoles along the id_red direction
+     ! I need to rotate the dipoles in k-space,
+     ! and then project them along the id_red direction
+     ! Note: this term is quitre slow.
+     ! Pre-expanding the dipoles with the old
+     ! DIPOLE expand wuold speed-up this part
      !
      DIP_km=cZERO
      DIP_kp=cZERO
-     do idir=1,3
-       DIP_km=DIP_km+cI*DIP_iR(idir,:,:,ikm1,i_sp_pol)*a(id_red,idir)
-       DIP_kp=DIP_kp+cI*DIP_iR(idir,:,:,ikp1,i_sp_pol)*a(id_red,idir)
+     do ib1=RT_bands(1),RT_bands(2)
+       do jb1=RT_bands(1),RT_bands(2)
+         call DIPOLE_rotate(ib1,jb1,ikm1,i_sp_pol,"DIP_iR",Xk,DIP_km_c)
+         call DIPOLE_rotate(ib1,jb1,ikp1,i_sp_pol,"DIP_iR",Xk,DIP_kp_c)
+	 ! DEBUG lines to verify the time gain when non-expanding on the fly
+         !DIP_km_c=DIP_iR(:,ib1,jb1,ikm1_ibz,i_sp_pol)
+         !DIP_kp_c=DIP_iR(:,ib1,jb1,ikp1_ibz,i_sp_pol)
+         do idir=1,3
+           DIP_km(ib1,jb1)=DIP_km(ib1,jb1)+cI*DIP_km_c(idir)*a(id_red,idir)
+           DIP_kp(ib1,jb1)=DIP_kp(ib1,jb1)+cI*DIP_kp_c(idir)*a(id_red,idir)
+         enddo
+       enddo
      enddo
      !
-     A1p_kmq=matmul(-cI*dG_in(:,:,ikm1),hermitian(DIP_km))
-     A1m_kpq=matmul(-cI*dG_in(:,:,ikp1),hermitian(DIP_kp))
      !
-     A2p_kmq=matmul(-cI*dG_in(:,:,ikm1),          DIP_km )
-     A2m_kpq=matmul(-cI*dG_in(:,:,ikp1),          DIP_kp )
+     A1p_kmq=matmul(-cI*dG_in(:,:,ikm1_ibz),hermitian(DIP_km))
+     A1m_kpq=matmul(-cI*dG_in(:,:,ikp1_ibz),hermitian(DIP_kp))
+     !
+     A2p_kmq=matmul(-cI*dG_in(:,:,ikm1_ibz),          DIP_km )
+     A2m_kpq=matmul(-cI*dG_in(:,:,ikp1_ibz),          DIP_kp )
      !
      ! 1/q factor = k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
      q_fac=k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
@@ -123,8 +151,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
          do ib2=RT_bands(1),RT_bands(2)
            do jb2=RT_bands(1),RT_bands(2)
              gradk_rho_red(ib1,jb1,istep)=gradk_rho_red(ib1,jb1,istep)+ &
-             &  -cI*Mp_kmq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikp1)  &
-             &  +cI*Mm_kpq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikm1)  &
+             &  -cI*Mp_kmq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikp1_ibz)  &
+             &  +cI*Mm_kpq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikm1_ibz)  &
              &  -cI/q_fac*Mp_kmq(ib2,ib1,jb2,jb1)*(A1p_kmq(ib2,ib1)-A2p_kmq(ib2,ib1)) &
              &  +cI/q_fac*Mm_kpq(ib2,ib1,jb2,jb1)*(A1m_kpq(ib2,ib1)-A2m_kpq(ib2,ib1))
            enddo
@@ -157,10 +185,6 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
    endif
    !
  enddo   ! id_red
- !
- ! Length gauge
- !===============
- E_field=-A_input%vecpot_vel/SPEED_OF_LIGHT ! Gaussian units
  !
  do idir=1,3
    H_nl_sc(:,:)=H_nl_sc(:,:)-gradk_rho(:,:,idir)*E_field(idir)

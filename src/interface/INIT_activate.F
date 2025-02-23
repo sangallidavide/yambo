@@ -534,7 +534,7 @@ subroutine INIT_activate()
    call INIT_RT_ctl_switch('G')
    !
    call initactivate(1,'RTskipImposeN RTeeImposeE InducedField')
-   call initactivate(1,'Gauge VelGaugeCorr VelGaugeNoDiam PfromJ RTUpdateSOC RTUpdateE SaveGhistory')
+   call initactivate(1,'Gauge VelGaugeCorr VelGaugeNoDiam PfromJ RTgradk RTUpdateSOC RTUpdateE SaveGhistory')
    call initactivate(1,'RTEqScatt RTImpForMet RTzeroTempRef RTskipPHabs RTEvalEnergy RTEvalEntropy')
    call initactivate(1,'dTupdateTime dTupdateTimeSet dTupdateJump dTupdateTresh dT_MAX dT_SET')
    if (l_elel_scatt .or. l_elph_scatt .or. l_elphoton_scatt) then

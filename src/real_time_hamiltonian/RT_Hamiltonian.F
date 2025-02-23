@@ -196,7 +196,7 @@ subroutine RT_Hamiltonian(dG_in,A_input,E,k)
      if (.not.PAR_IND_Xk_ibz%element_1D(ik)) cycle
      H_nl_sc=cZERO
      call RT_apply_field(ik,1,H_nl_sc,A_input)
-     !call RT_gradk_rho_times_E(ik,1,H_nl_sc,dG_in,A_input,k)
+     call RT_gradk_rho_times_E(ik,1,H_nl_sc,dG_in,A_input,k)
      do ik_RT =RTibz%k_range(ik,1),RTibz%k_range(ik,2)
        H_field(:,:,ik_RT,1)=H_nl_sc
        call M_plus_alpha_M_omp(RT_nbands,cONE,H_nl_sc,Ho_plus_sigma(:,:,ik_RT,1))
