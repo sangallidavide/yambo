@@ -33,6 +33,7 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  !
  ! Workspace
  !
+ logical     :: l_dips_term
  integer     :: id_red,max_step,istep,idx(3),idir,ib1,ib2,jb1,jb2,nb(2),&
                 ikm1,ikp1,ikbz,ikm1_ibz,ikm1_is,ikp1_ibz,ikp1_is
  real(SP)    :: q_fac,E_field(3)
@@ -63,6 +64,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  E_field=-A_input%vecpot_vel/SPEED_OF_LIGHT ! Gaussian units
  !
  if (NE_i_time>NE_i_last_field) return
+ !
+ l_dips_term=.false.
  !
  nb=RT_bands
  !
@@ -133,11 +136,13 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
      ! Option 3: Use the dagger without SVD.
      do ib1=RT_bands(1),RT_bands(2)
        do ib2=RT_bands(1),RT_bands(2)
-         Mp_kmq(ib1,ib2,:,:)=conjg(Sp_kmq(ib2,ib1))*Sp_kmq(:,:)
-         Mm_kpq(ib1,ib2,:,:)=conjg(Sm_kpq(ib2,ib1))*Sm_kpq(:,:)
+         Mp_kmq(ib1,ib2,:,:)=conjg(Sp_kmq(ib1,ib2))*Sp_kmq(:,:)
+         Mm_kpq(ib1,ib2,:,:)=conjg(Sm_kpq(ib1,ib2))*Sm_kpq(:,:)
        enddo
      enddo
      !
+     if (l_dips_term) then
+       !
      ! I need to rotate the dipoles in k-space,
      ! and then project them along the id_red direction
      ! Note: this term is quitre slow.
@@ -148,37 +153,53 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
      DIP_kp=cZERO
      do ib1=RT_bands(1),RT_bands(2)
        do jb1=RT_bands(1),RT_bands(2)
-         call DIPOLE_rotate(ib1,jb1,ikm1,i_sp_pol,"DIP_iR",Xk,DIP_km_c)
-         call DIPOLE_rotate(ib1,jb1,ikp1,i_sp_pol,"DIP_iR",Xk,DIP_kp_c)
-	 ! DEBUG lines to verify the time gain when non-expanding on the fly
+         call DIPOLE_rotate(jb1,ib1,ikm1,i_sp_pol,"DIP_iR",Xk,DIP_km_c)
+         call DIPOLE_rotate(jb1,ib1,ikp1,i_sp_pol,"DIP_iR",Xk,DIP_kp_c)
+         ! DEBUG lines to verify the time gain when non-expanding on the fly
          !DIP_km_c=DIP_iR(:,ib1,jb1,ikm1_ibz,i_sp_pol)
          !DIP_kp_c=DIP_iR(:,ib1,jb1,ikp1_ibz,i_sp_pol)
+	 ! As always in yambo, band indexes are inverted in the dipoles
          do idir=1,3
-           DIP_km(ib1,jb1)=DIP_km(ib1,jb1)+cI*DIP_km_c(idir)*a(id_red,idir)
-           DIP_kp(ib1,jb1)=DIP_kp(ib1,jb1)+cI*DIP_kp_c(idir)*a(id_red,idir)
+           DIP_km(ib1,jb1)=DIP_km(ib1,jb1)-cI*DIP_km_c(idir)*a(id_red,idir)
+           DIP_kp(ib1,jb1)=DIP_kp(ib1,jb1)-cI*DIP_kp_c(idir)*a(id_red,idir)
          enddo
        enddo
      enddo
      !
      !
-     A1p_kmq=matmul(-cI*dG_in(:,:,ikm1_ibz),hermitian(DIP_km))
-     A1m_kpq=matmul(-cI*dG_in(:,:,ikp1_ibz),hermitian(DIP_kp))
-     !
-     A2p_kmq=matmul(-cI*dG_in(:,:,ikm1_ibz),          DIP_km )
-     A2m_kpq=matmul(-cI*dG_in(:,:,ikp1_ibz),          DIP_kp )
+     do ib1=RT_bands(1),RT_bands(2)
+       do jb1=RT_bands(1),RT_bands(2)
+         do ib2=RT_bands(1),RT_bands(2)
+           !A1_ll' ib1=l jb1=l' ib2=s
+           A1p_kmq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikm1_ibz)*conjg(DIP_km(ib2,ib1))
+           A1m_kpq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikp1_ibz)*conjg(DIP_kp(ib2,ib1))
+           !A2_ll' ib1=l jb1=l' ib2=s
+           A2p_kmq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikm1_ibz)*      DIP_km(ib2,jb1)
+           A2m_kpq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikp1_ibz)*      DIP_kp(ib2,jb1)
+         enddo
+       enddo
+     enddo
+       !
+     else
+       !
+       A1p_kmq=cZERO
+       A1m_kpq=cZERO
+       A2p_kmq=cZERO
+       A2m_kpq=cZERO
+       !
+     endif
      !
      ! 1/q factor = k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
-     q_fac=k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))/2._SP
+     q_fac=k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
      !
      do ib1=RT_bands(1),RT_bands(2)
        do jb1=RT_bands(1),RT_bands(2)
          do ib2=RT_bands(1),RT_bands(2)
            do jb2=RT_bands(1),RT_bands(2)
+             ! ib1=n, jb1=m, ib2=l, jb2=l'
              gradk_rho_red(ib1,jb1,istep)=gradk_rho_red(ib1,jb1,istep)+ &
-             &  -cI*Mp_kmq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikp1_ibz)  &
-             &  +cI*Mm_kpq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikm1_ibz)  &
-             &  -cI/q_fac*Mp_kmq(ib2,ib1,jb2,jb1)*(A1p_kmq(ib2,ib1)-A2p_kmq(ib2,ib1)) &
-             &  +cI/q_fac*Mm_kpq(ib2,ib1,jb2,jb1)*(A1m_kpq(ib2,ib1)-A2m_kpq(ib2,ib1))
+             &  -cI*Mm_kpq(ib2,ib1,jb2,jb1)*(dG_in(ib2,jb2,ikm1_ibz)-dG_in(ib2,jb2,ikp1_ibz)  &
+             &  +1._SP/q_fac*(A1m_kpq(ib2,jb2)-A2m_kpq(ib2,jb2)+A1p_kmq(ib2,jb2)-A2p_kmq(ib2,jb2)) )
            enddo
          enddo
        enddo
