@@ -31,7 +31,7 @@ subroutine RT_initialize(E,k,q,Dip)
 &                         Life_MEM_steps,l_RT_lifetimes_Tfit,l_RT_skip_ph_abs_lifetimes,l_RT_iterative_ELPH_lifetimes
  use real_time,      ONLY:RT_potential,RT_step,l_NE_with_fields,RT_bands,RT_dyn_step,RT_nk,   &
 &                         NE_steps,NE_tot_time,l_RT_induced_field,Gr_kind,       &
-&                         RAD_LifeTime,Phase_LifeTime,l_length_grad_k,         &
+&                         RAD_LifeTime,Phase_LifeTime,l_length_grad_k,NE_i_last_field,        &
 &                         NE_MEM_treshold,G_MEM_steps,l_RT_uses_E_FineGd,DbGd_EE_Nk_table,    &
 &                         l_RT_impose_N_dN,Integrator_name,l_RT_impose_E,DbGd_EE_percent,     &
 &                         l_RT_update_Energies,eval_HARTREE,eval_DFT,l_NE_dynamics,           &
@@ -233,6 +233,8 @@ subroutine RT_initialize(E,k,q,Dip)
    call RT_load_field_from_file_init(field_defs(2))
  enddo
  !
+ NE_i_last_field=0
+ !
  do i1=1,n_ext_fields
    !
    Efield(i1)%ef_name=trim(Efield(i1)%ef_name)
@@ -241,7 +243,7 @@ subroutine RT_initialize(E,k,q,Dip)
    !
    call STRING_split(Efield(i1)%ef_name,field_defs)
    !
-   if(trim(field_defs(1))/='none') then
+   if(trim(field_defs(1))=='none') cycle
      !
      if (.not.field_is_ok( Efield(i1) ) ) call error(trim(MSG_ch)//' not supported or polarization is wrong')
      !
@@ -295,7 +297,7 @@ subroutine RT_initialize(E,k,q,Dip)
      enddo
      ! DEBUG >
      !
-   endif
+   NE_i_last_field=max(NE_i_last_field,Efield(i1)%t_final_indx)
    !
  enddo
  !

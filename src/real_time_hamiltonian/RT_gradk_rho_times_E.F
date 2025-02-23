@@ -15,7 +15,7 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  use units,          ONLY:SPEED_OF_LIGHT
  use real_time,      ONLY:l_length_grad_k,RT_bands
  use fields,         ONLY:gauge_field
- use real_time,      ONLY:RT_bands
+ use real_time,      ONLY:RT_bands,NE_i_time,NE_i_last_field
  use vec_operate,    ONLY:k_periodic_idx!,degeneration_finder
  use matrix_operate, ONLY:hermitian
  use DIPOLES,        ONLY:DIP_S,DIP_iR,l_force_SndOrd
@@ -33,19 +33,26 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  !
  ! Workspace
  !
- integer     :: id_red,max_step,istep,idx(3),idir,ib1,ib2,jb1,jb2,&
+ integer     :: id_red,max_step,istep,idx(3),idir,ib1,ib2,jb1,jb2,nb(2),&
                 ikm1,ikp1,ikbz,ikm1_ibz,ikm1_is,ikp1_ibz,ikp1_is
  real(SP)    :: q_fac,E_field(3)
  complex(SP) :: Dip_kp_c(3),Dip_km_c(3)
  !
- complex(SP) :: Mp_kmq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
- &              Mm_kpq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
- &              Sp_kmq(RT_bands(2),RT_bands(2)),Sm_kpq(RT_bands(2),RT_bands(2)),&
- &              A1p_kmq(RT_bands(2),RT_bands(2)),A1m_kpq(RT_bands(2),RT_bands(2)),&
- &              A2p_kmq(RT_bands(2),RT_bands(2)),A2m_kpq(RT_bands(2),RT_bands(2)),&
- &              DIP_kp(RT_bands(2),RT_bands(2)),DIP_km(RT_bands(2),RT_bands(2))
+ !complex(SP) :: Mp_kmq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
+ !&              Mm_kpq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
+ !&              Sp_kmq(RT_bands(2),RT_bands(2)),Sm_kpq(RT_bands(2),RT_bands(2)),&
+ !&              A1p_kmq(RT_bands(2),RT_bands(2)),A1m_kpq(RT_bands(2),RT_bands(2)),&
+ !&              A2p_kmq(RT_bands(2),RT_bands(2)),A2m_kpq(RT_bands(2),RT_bands(2)),&
+ !&              DIP_kp(RT_bands(2),RT_bands(2)),DIP_km(RT_bands(2),RT_bands(2))
  !
- complex(SP) :: gradk_rho(RT_bands(2),RT_bands(2),3),gradk_rho_red(RT_bands(2),RT_bands(2),2)
+ complex(SP), allocatable :: Mp_kmq(:,:,:,:),Mm_kpq(:,:,:,:),&
+ &              Sp_kmq(:,:),Sm_kpq(:,:),&
+ &              A1p_kmq(:,:),A1m_kpq(:,:),&
+ &              A2p_kmq(:,:),A2m_kpq(:,:),&
+ &              DIP_kp(:,:),DIP_km(:,:)
+ !
+ complex(SP) :: gradk_rho(RT_Bands(1):RT_bands(2),RT_bands(1):RT_bands(2),3),&
+ &          gradk_rho_red(RT_Bands(1):RT_bands(2),RT_Bands(1):RT_bands(2),2)
  !
  ! Warning: kpts parallelization to be fixed, since rho is distributed
  !
@@ -55,11 +62,28 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  !===============
  E_field=-A_input%vecpot_vel/SPEED_OF_LIGHT ! Gaussian units
  !
- if (all(E_field==0._SP)) return
+ if (NE_i_time>NE_i_last_field) return
+ !
+ nb=RT_bands
+ !
+ allocate(Mp_kmq(nb(1):nb(2),nb(1):nb(2),nb(1):nb(2),nb(1):nb(2)))
+ allocate(Mm_kpq(nb(1):nb(2),nb(1):nb(2),nb(1):nb(2),nb(1):nb(2)))
+ !
+ allocate(Sp_kmq(nb(1):nb(2),nb(1):nb(2)))
+ allocate(Sm_kpq(nb(1):nb(2),nb(1):nb(2)))
+ !
+ allocate(A1p_kmq(nb(1):nb(2),nb(1):nb(2)))
+ allocate(A1m_kpq(nb(1):nb(2),nb(1):nb(2)))
+ !
+ allocate(A2p_kmq(nb(1):nb(2),nb(1):nb(2)))
+ allocate(A2m_kpq(nb(1):nb(2),nb(1):nb(2)))
+
+ allocate(DIP_kp(nb(1):nb(2),nb(1):nb(2)))
+ allocate(DIP_km(nb(1):nb(2),nb(1):nb(2)))
  !
  ikbz=Xk%k_table(ik,1)
  !
- gradk_rho    =cZERO
+ gradk_rho=cZERO
  !
  do id_red=1,3  ! loop on reciprocal lattice
    !
@@ -96,9 +120,9 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
      !S_tmp(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))   ! g-(k)=g+(k-q)
      !
      !S_kpq(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikp1,i_sp_pol)    ! g+(k+q)
-     Sm_kpq(:,:)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol))   ! g-(k+q)=g+(k)
+     Sm_kpq(:,:)=hermitian(DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikbz,i_sp_pol))   ! g-(k+q)=g+(k)
      !
-     Sp_kmq(:,:)=          DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol)    ! g+(k-q)
+     Sp_kmq(:,:)=          DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikm1,i_sp_pol)    ! g+(k-q)
      !S_kmq(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm2,i_sp_pol))   ! g-(k-q)=g+(k-2*q)
      !
      ! Option 1: Do SVD and later dagger.
@@ -107,8 +131,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
      ! Option 2: Directly do matrix inversion in place of dagger.
      !
      ! Option 3: Use the dagger without SVD.
-     do ib1=1,RT_bands(2)
-       do ib2=1,RT_bands(2)
+     do ib1=RT_bands(1),RT_bands(2)
+       do ib2=RT_bands(1),RT_bands(2)
          Mp_kmq(ib1,ib2,:,:)=conjg(Sp_kmq(ib2,ib1))*Sp_kmq(:,:)
          Mm_kpq(ib1,ib2,:,:)=conjg(Sm_kpq(ib2,ib1))*Sm_kpq(:,:)
        enddo
