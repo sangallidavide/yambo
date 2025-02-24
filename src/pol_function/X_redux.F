@@ -25,7 +25,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
  use drivers,       ONLY:l_bs_fxc,l_alda_fxc,l_lrc_fxc
  use LIVE_t,        ONLY:live_timing
  use parallel_int,  ONLY:PP_wait,PP_redux_wait
- use parallel_m,    ONLY:PP_indexes,PP_indexes_reset,PAR_COM_X_WORLD_RL_resolved,PAR_COM_HOST,&
+ use parallel_m,    ONLY:PP_indexes,PP_indexes_reset,PAR_COM_X_WORLD_RL_resolved,&
 &                        PAR_COM_X_WORLD,PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
  use R_lattice,     ONLY:bare_qpg, bare_qpg_d
  use frequency,     ONLY:w_samp
@@ -211,6 +211,7 @@ subroutine X_redux(iq,what,X_par,X_low,X_alda_up,X_alda_dn,Xw,X,call_kind)
      endif
      !
    enddo
+   !
    !
    if (iw_par>PAR_n_freqs) cycle
    !
@@ -434,7 +435,7 @@ end subroutine
      use timing_m,      ONLY:timing
      use parallel_int,  ONLY:PP_redux_wait,PP_bcast
      use interfaces,    ONLY:MATRIX_transfer
-     use parallel_m,    ONLY:PAR_COM_X_WORLD_RL_resolved,PAR_COM_X_WORLD,&
+     use parallel_m,    ONLY:PAR_COM_X_WORLD_RL_resolved,PAR_COM_X_WORLD,PAR_COM_RL_INDEX,&
 &                            PAR_COM_SLK_INDEX_local,PAR_COM_SLK,PAR_n_freqs,PAR_FREQS_index
      !
      implicit none
@@ -490,7 +491,7 @@ end subroutine
      !
      ! complete the transfer with a collective communication
      !
-     call PP_bcast(X_par%blc,node=0,COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
+     if(PAR_COM_RL_INDEX%n_CPU>1) call PP_bcast(X_par%blc,node=0,COMM=PAR_COM_X_WORLD_RL_resolved%COMM)
      !
      call timing(what//' (REDUX)',OPR='stop')
      !
