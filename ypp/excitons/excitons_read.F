@@ -97,8 +97,9 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    !
    do i_sec=1,2
      call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/i_sec/),ID=io_ID)
-     io_err=io_BSS_diago(iq,1,io_ID,Xbsk,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,&
-     &      BS_R_left_magn,BS_R_right_magn,BS_R_left_kerr,BS_R_right_kerr,BS_R_right_dich,BS_R_PL)
+     io_err=io_BSS_diago(iq,1,io_ID,Xbsk,bsE=BS_E,bsRl=BS_R_left,bsRr=BS_R_right,BsE_corr=BS_E_SOC_corr,&
+     &       bsL_kerr=BS_R_left_kerr,bsR_kerr=BS_R_right_kerr,bsR_dich=BS_R_right_dich,   &
+             bsL_magn=BS_R_left_magn,bsR_magn=BS_R_right_magn,bsR_pl=BS_R_PL)
      if (io_err/=0) then
        if(i_sec==1) then
          call warning('Error reading SEC1 in ndb.BSS_diago, this can be due to the missing ndb.dipoles or ndb.ems1')
@@ -126,8 +127,7 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    YAMBO_ALLOC(BS_mat,(BS_H_dim,BSS_n_eig))
    !
    call io_control(ACTION=OP_RD_CL,COM=REP,MODE=VERIFY,SEC=(/3/),ID=io_ID)
-   io_err=io_BSS_diago(iq,1,io_ID,Xbsk,BS_E,BS_R_left,BS_R_right,BS_E_SOC_corr,&
-   &      BS_R_left_magn,BS_R_right_magn,BS_R_left_kerr,BS_R_right_kerr,BS_R_right_dich,BS_R_PL)
+   io_err=io_BSS_diago(iq,1,io_ID,Xbsk,BS_mat=BS_mat)
    if (io_err/=0) call error(' ndb.BSS_diago, SEC 3, not compatible with ypp input')
    !
    ! Create the anti-resonant part of the eh_table
