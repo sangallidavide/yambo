@@ -59,7 +59,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  integer     :: istep,max_step,ikm1,ikp1
  complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:),delta(:,:)
  !
- logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
+ logical     :: deg_table_k(Dip%ib(2),Dip%ib(2))
  integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
  real(SP)    :: Ev_m_Ec_KS,deg_thresh
  character(1)::str(3)=(/'x','y','z'/)
@@ -140,63 +140,21 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
          idx=k_periodic_idx(idx,k_map)
          ikp1=k_map%k_map_dir(idx(1),idx(2),idx(3))
          !
-         call degeneration_finder(Xen%E(1:Dip%ib(2),Xk%sstar(ikp1,1),i_sp_pol),Dip%ib(2),&
-         &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
-         !
-         deg_table_kp=.false.
-         do i_grp=1,n_deg_grp_k
-           do ib=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
-             do ibp=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
-               deg_table_kp(ib,ibp)=.true.
-               deg_table_kp(ibp,ib)=.true.
-             enddo
-           enddo
-         enddo
-         ! 
          idx=k_map%k_map_inv(ikbz,:)
          idx(id_red)=idx(id_red)-istep
          idx=k_periodic_idx(idx,k_map)
          ikm1=k_map%k_map_dir(idx(1),idx(2),idx(3))
          !
-         call degeneration_finder(Xen%E(1:Dip%ib(2),Xk%sstar(ikm1,1),i_sp_pol),Dip%ib(2),&
-         &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
-         !
-         deg_table_km=.false.
-         do i_grp=1,n_deg_grp_k
-           do ib=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
-             do ibp=first_el_k(i_grp),first_el_k(i_grp)+n_of_el_k(i_grp)-1
-               deg_table_km(ib,ibp)=.true.
-               deg_table_km(ibp,ib)=.true.
-             enddo
-           enddo
-         enddo
-         !
          U_r(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
+         call get_unitary_g_from_SVD(Xen,Xk,(/1,Dip%ib(2)/),ikp1,i_sp_pol,&
+         &                         deg_table_k,deg_thresh,U_r(:,:,1),U_r(:,:,2))
+         !U_r(:,:,1)=U_r(:,:,2)
+	 !
          U_l(:,:,1)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
-         !
-         U_r(:,:,2)=U_r(:,:,1)
-         U_l(:,:,2)=U_l(:,:,1)
-         !
-         do ib=1,Dip%ib(2)
-           do ibp=1,Dip%ib(2)
-             if(deg_table_k(ibp,ib).or.deg_table_kp(ibp,ib)) cycle
-             U_r(ib,ibp,2)=cZERO
-           enddo
-         enddo
-         !
-         do ib=1,Dip%ib(2)
-           do ibp=1,Dip%ib(2)
-             if(deg_table_k(ibp,ib).or.deg_table_km(ibp,ib)) cycle
-             U_l(ib,ibp,2)=cZERO
-           enddo
-         enddo
-         !
-         !U_r(:,:,1)=U_r(:,:,2) !-U_r(:,:,2)
-         !U_l(:,:,1)=U_l(:,:,2) !-U_l(:,:,2)
+         call get_unitary_g_from_SVD(Xen,Xk,(/1,Dip%ib(2)/),ikm1,i_sp_pol,&
+         &                         deg_table_k,deg_thresh,U_l(:,:,1),U_l(:,:,2))
+         !U_l(:,:,1)=U_l(:,:,2)
          ! 
-         call SERIAL_SVD(Dip%ib(2),U_r(:,:,2),'uni',0)
-         call SERIAL_SVD(Dip%ib(2),U_l(:,:,2),'uni',0)
-         !
          Der_k_red(:,:,istep)=+matmul(U_r(:,:,1),hermitian(U_r(:,:,2)) )  &
 &                             -matmul(U_l(:,:,1),hermitian(U_l(:,:,2)) )
          !
@@ -290,3 +248,54 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  return
  !
 end subroutine DIPOLE_build_der_k
+!
+!
+subroutine get_unitary_g_from_SVD(Xen,Xk,nb,ikpbz,i_sp_pol,deg_table_k,deg_thresh,U_in,U_out)
+ !
+ use pars,           ONLY:SP,cZERO
+ use R_lattice,      ONLY:bz_samp
+ use electrons,      ONLY:levels
+ use vec_operate,    ONLY:degeneration_finder
+ !
+ implicit none
+ !
+ type(levels),   intent(in) :: Xen
+ type(bz_samp),  intent(in) :: Xk
+ !
+ integer, intent(in) :: nb(2),ikpbz,i_sp_pol
+ logical, intent(in) :: deg_table_k(nb(1):nb(2),nb(1):nb(2))
+ real(SP),intent(in) :: deg_thresh
+ !
+ complex(SP), intent(in)  :: U_in(nb(1):nb(2),nb(1):nb(2))
+ complex(SP), intent(out) :: U_out(nb(1):nb(2),nb(1):nb(2))
+ !
+ ! Workspace
+ !
+ integer     :: ib,ibp,i_grp,first_el_k(nb(2)-nb(1)+1),n_of_el_k(nb(2)-nb(1)+1),n_deg_grp_k
+ logical     :: deg_table_kp(nb(1):nb(2),nb(1):nb(2))
+ !
+ call degeneration_finder(Xen%E(nb(1):nb(2),Xk%sstar(ikpbz,1),i_sp_pol),nb(2)-nb(1)+1,&
+ &                        first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
+ !
+ deg_table_kp=.false.
+ do i_grp=1,n_deg_grp_k
+   do ib=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+     do ibp=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+       deg_table_kp(ib,ibp)=.true.
+       deg_table_kp(ibp,ib)=.true.
+     enddo
+   enddo
+ enddo
+ !
+ U_out=U_in
+ !
+ do ib=nb(1),nb(2)
+   do ibp=nb(1),nb(2)
+     if(deg_table_k(ibp,ib).or.deg_table_kp(ibp,ib)) cycle
+     U_out(ib,ibp)=cZERO
+   enddo
+ enddo
+ !
+ call SERIAL_SVD(nb(2)-nb(1)+1,U_out,'uni',0)
+ !
+end subroutine

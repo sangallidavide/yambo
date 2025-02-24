@@ -5,20 +5,21 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
+subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  ! This subroutine computes the k-gradient of the density matrix,
  ! and multiplies it by the electric field.
  ! See Phys. Rev. B 76, 035213 (2007)
  !
  use pars,           ONLY:SP,cI,cZERO,pi
- use units,          ONLY:SPEED_OF_LIGHT
+ use units,          ONLY:SPEED_OF_LIGHT,HA2EV
  use real_time,      ONLY:l_length_grad_k,RT_bands
  use fields,         ONLY:gauge_field
  use real_time,      ONLY:RT_bands,NE_i_time,NE_i_last_field
- use vec_operate,    ONLY:k_periodic_idx!,degeneration_finder
+ use vec_operate,    ONLY:k_periodic_idx,degeneration_finder
  use matrix_operate, ONLY:hermitian
  use DIPOLES,        ONLY:DIP_S,DIP_iR,l_force_SndOrd
+ use electrons,      ONLY:levels
  use R_lattice,      ONLY:bz_samp,k_map
  use D_lattice,      ONLY:a
  use parallel_m,     ONLY:PAR_G_k_range
@@ -30,14 +31,18 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  complex(SP),       intent(in) :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2))
  type(gauge_field), intent(in) :: A_input
  type(bz_samp),     intent(in) :: Xk
+ type(levels),      intent(in) :: Xen
  !
  ! Workspace
  !
- logical     :: l_dips_term
+ logical     :: l_dips_term,l_svd
  integer     :: id_red,max_step,istep,idx(3),idir,ib1,ib2,jb1,jb2,nb(2),&
                 ikm1,ikp1,ikbz,ikm1_ibz,ikm1_is,ikp1_ibz,ikp1_is
  real(SP)    :: q_fac,E_field(3)
- complex(SP) :: Dip_kp_c(3),Dip_km_c(3)
+ complex(SP) :: DIP_kp_c(3),DIP_km_c(3)
+ integer     :: ib,ibp,i_grp,first_el_k(RT_bands(2)-RT_bands(1)+1),n_of_el_k(RT_bands(2)-RT_bands(1)+1),n_deg_grp_k
+ logical     :: deg_table_k(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
+ real(SP)    :: deg_thresh
  !
  !complex(SP) :: Mp_kmq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
  !&              Mm_kpq(RT_bands(2),RT_bands(2),RT_bands(2),RT_bands(2)),&
@@ -47,9 +52,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  !&              DIP_kp(RT_bands(2),RT_bands(2)),DIP_km(RT_bands(2),RT_bands(2))
  !
  complex(SP), allocatable :: Mp_kmq(:,:,:,:),Mm_kpq(:,:,:,:),&
- &              Sp_kmq(:,:),Sm_kpq(:,:),&
- &              A1p_kmq(:,:),A1m_kpq(:,:),&
- &              A2p_kmq(:,:),A2m_kpq(:,:),&
+ &              Sp_kmq(:,:),Sm_kpq(:,:),gp_kmq(:,:),gm_kpq(:,:),&
+ &              A1p_kmq(:,:),A1m_kpq(:,:),A2p_kmq(:,:),A2m_kpq(:,:),&
  &              DIP_kp(:,:),DIP_km(:,:)
  !
  complex(SP) :: gradk_rho(RT_Bands(1):RT_bands(2),RT_bands(1):RT_bands(2),3),&
@@ -66,6 +70,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  if (NE_i_time>NE_i_last_field) return
  !
  l_dips_term=.false.
+ l_svd=.false.
+ deg_thresh=1.E-5/HA2EV
  !
  nb=RT_bands
  !
@@ -74,6 +80,9 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  !
  allocate(Sp_kmq(nb(1):nb(2),nb(1):nb(2)))
  allocate(Sm_kpq(nb(1):nb(2),nb(1):nb(2)))
+ !
+ allocate(gp_kmq(nb(1):nb(2),nb(1):nb(2)))
+ allocate(gm_kpq(nb(1):nb(2),nb(1):nb(2)))
  !
  allocate(A1p_kmq(nb(1):nb(2),nb(1):nb(2)))
  allocate(A1m_kpq(nb(1):nb(2),nb(1):nb(2)))
@@ -85,6 +94,23 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
  allocate(DIP_km(nb(1):nb(2),nb(1):nb(2)))
  !
  ikbz=Xk%k_table(ik,1)
+ !
+ if (l_svd) then
+   !
+   call degeneration_finder(Xen%E(nb(1):nb(2),ik,i_sp_pol),nb(2)-nb(1)+1,&
+   &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
+   !
+   deg_table_k=.false.
+   do i_grp=1,n_deg_grp_k
+     do ib=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+       do ibp=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+         deg_table_k(ib,ibp)=.true.
+         deg_table_k(ibp,ib)=.true.
+       enddo
+     enddo
+   enddo
+   !
+ endif
  !
  gradk_rho=cZERO
  !
@@ -123,21 +149,25 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk)
      !S_tmp(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))   ! g-(k)=g+(k-q)
      !
      !S_kpq(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikp1,i_sp_pol)    ! g+(k+q)
-     Sm_kpq(:,:)=hermitian(DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikbz,i_sp_pol))   ! g-(k+q)=g+(k)
+     Sm_kpq(:,:)=hermitian(DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikbz,i_sp_pol))   ! (g-(k+q)=) g+(k)\dag
      !
-     Sp_kmq(:,:)=          DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikm1,i_sp_pol)    ! g+(k-q)
+     Sp_kmq(:,:)=          DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikm1,i_sp_pol)    ! g+(k-q) (=g-(k)\dag)
      !S_kmq(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm2,i_sp_pol))   ! g-(k-q)=g+(k-2*q)
      !
-     ! Option 1: Do SVD and later dagger.
-     ! Coding to be imported from DIPOLE_build_derk subroutine in branch phys-dipoles-k-derivative
+     if (l_svd) then
+       call get_unitary_g_from_SVD(Xen,Xk,RT_bands,ikp1,i_sp_pol,&
+       &                         deg_table_k,deg_thresh,Sm_kpq,gm_kpq)
+       call get_unitary_g_from_SVD(Xen,Xk,RT_Bands,ikm1,i_sp_pol,&
+       &                         deg_table_k,deg_thresh,Sp_kmq,gp_kmq)
+     else
+       gm_kpq=Sm_kpq
+       gp_kmq=Sp_kmq
+     endif
      !
-     ! Option 2: Directly do matrix inversion in place of dagger.
-     !
-     ! Option 3: Use the dagger without SVD.
      do ib1=RT_bands(1),RT_bands(2)
        do ib2=RT_bands(1),RT_bands(2)
-         Mp_kmq(ib1,ib2,:,:)=conjg(Sp_kmq(ib1,ib2))*Sp_kmq(:,:)
-         Mm_kpq(ib1,ib2,:,:)=conjg(Sm_kpq(ib1,ib2))*Sm_kpq(:,:)
+         Mp_kmq(ib1,ib2,:,:)=conjg(gp_kmq(ib1,ib2))*gp_kmq(:,:)
+         Mm_kpq(ib1,ib2,:,:)=conjg(gm_kpq(ib1,ib2))*gm_kpq(:,:)
        enddo
      enddo
      !
