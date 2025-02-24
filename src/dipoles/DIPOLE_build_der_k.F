@@ -59,7 +59,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  integer     :: istep,max_step,ikm1,ikp1
  complex(SP), allocatable :: U_l(:,:,:),U_r(:,:,:),Der_k_red(:,:,:),Der_k_cart(:,:,:),delta(:,:)
  !
- logical     :: deg_table_k(Dip%ib(2),Dip%ib(2))
+ logical     :: deg_table_k(Dip%ib(2),Dip%ib(2)),deg_table_kp(Dip%ib(2),Dip%ib(2)),deg_table_km(Dip%ib(2),Dip%ib(2))
  integer     :: ib,ibp,i_grp,first_el_k(Dip%ib(2)),n_of_el_k(Dip%ib(2)),n_deg_grp_k
  real(SP)    :: Ev_m_Ec_KS,deg_thresh
  character(1)::str(3)=(/'x','y','z'/)
@@ -148,13 +148,11 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
          U_r(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
          call get_unitary_g_from_SVD(Xen,Xk,(/1,Dip%ib(2)/),ikp1,i_sp_pol,&
          &                         deg_table_k,deg_thresh,U_r(:,:,1),U_r(:,:,2))
-         !U_r(:,:,1)=U_r(:,:,2)
-	 !
+         !
          U_l(:,:,1)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
          call get_unitary_g_from_SVD(Xen,Xk,(/1,Dip%ib(2)/),ikm1,i_sp_pol,&
          &                         deg_table_k,deg_thresh,U_l(:,:,1),U_l(:,:,2))
-         !U_l(:,:,1)=U_l(:,:,2)
-         ! 
+         !
          Der_k_red(:,:,istep)=+matmul(U_r(:,:,1),hermitian(U_r(:,:,2)) )  &
 &                             -matmul(U_l(:,:,1),hermitian(U_l(:,:,2)) )
          !
@@ -279,8 +277,8 @@ subroutine get_unitary_g_from_SVD(Xen,Xk,nb,ikpbz,i_sp_pol,deg_table_k,deg_thres
  !
  deg_table_kp=.false.
  do i_grp=1,n_deg_grp_k
-   do ib=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
-     do ibp=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+   do ib=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+     do ibp=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
        deg_table_kp(ib,ibp)=.true.
        deg_table_kp(ibp,ib)=.true.
      enddo

@@ -102,8 +102,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
    !
    deg_table_k=.false.
    do i_grp=1,n_deg_grp_k
-     do ib=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
-       do ibp=nb(1)+first_el_k(i_grp),nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+     do ib=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+       do ibp=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
          deg_table_k(ib,ibp)=.true.
          deg_table_k(ibp,ib)=.true.
        enddo
