@@ -23,6 +23,7 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  use R_lattice,      ONLY:bz_samp,k_map
  use D_lattice,      ONLY:a
  use parallel_m,     ONLY:PAR_G_k_range
+ use parser_m,       ONLY:parser
  !
  implicit none
  !
@@ -69,8 +70,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  if (NE_i_time>NE_i_last_field) return
  !
- l_dips_term=.false.
- l_svd=.false.
+ call parser("RTgradkDips",l_dips_term)
+ l_svd=.true.
  deg_thresh=1.E-5/HA2EV
  !
  nb=RT_bands
@@ -155,10 +156,12 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
      !S_kmq(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm2,i_sp_pol))   ! g-(k-q)=g+(k-2*q)
      !
      if (l_svd) then
-       call get_unitary_g_from_SVD(Xen,Xk,RT_bands,ikp1,i_sp_pol,&
+       call zeroing_disconnected_blocks(Xen,Xk,RT_bands,ikp1,i_sp_pol,&
        &                         deg_table_k,deg_thresh,Sm_kpq,gm_kpq)
-       call get_unitary_g_from_SVD(Xen,Xk,RT_Bands,ikm1,i_sp_pol,&
+       call SERIAL_SVD(nb(2)-nb(1)+1,Sm_kpq,'uni',0)
+       call zeroing_disconnected_blocks(Xen,Xk,RT_Bands,ikm1,i_sp_pol,&
        &                         deg_table_k,deg_thresh,Sp_kmq,gp_kmq)
+       call SERIAL_SVD(nb(2)-nb(1)+1,Sp_kmq,'uni',0)
      else
        gm_kpq=Sm_kpq
        gp_kmq=Sp_kmq
@@ -228,8 +231,10 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
            do jb2=RT_bands(1),RT_bands(2)
              ! ib1=n, jb1=m, ib2=l, jb2=l'
              gradk_rho_red(ib1,jb1,istep)=gradk_rho_red(ib1,jb1,istep)+ &
-             &  -cI*Mm_kpq(ib2,ib1,jb2,jb1)*(dG_in(ib2,jb2,ikm1_ibz)-dG_in(ib2,jb2,ikp1_ibz)  &
-             &  +1._SP/q_fac*(A1m_kpq(ib2,jb2)-A2m_kpq(ib2,jb2)+A1p_kmq(ib2,jb2)-A2p_kmq(ib2,jb2)) )
+             &  -cI*Mm_kpq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikp1_ibz)+    &
+             &  +cI*Mp_kmq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikm1_ibz)+    &
+             &  -cI/q_fac*Mm_kpq(ib2,ib1,jb2,jb1)*(A1m_kpq(ib2,jb2)-A2m_kpq(ib2,jb2))+ &
+             &  -cI/q_fac*Mp_kmq(ib2,ib1,jb2,jb1)*(A1p_kmq(ib2,jb2)-A2p_kmq(ib2,jb2))
            enddo
          enddo
        enddo

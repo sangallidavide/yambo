@@ -83,8 +83,8 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
  !
  call live_timing("Build Rotation Matrices:",PAR_IND_DIPk_bz%n_of_elements(PAR_IND_DIPk_bz_ID+1)*n_sp_pol)
  !
- YAMBO_ALLOC(U_l,(Dip%ib(2),Dip%ib(2),2))
- YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),2))
+ YAMBO_ALLOC(U_l,(Dip%ib(2),Dip%ib(2),3))
+ YAMBO_ALLOC(U_r,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_cart,(Dip%ib(2),Dip%ib(2),3))
  YAMBO_ALLOC(Der_k_red,(Dip%ib(2),Dip%ib(2),2))
  YAMBO_ALLOC(delta,(Dip%ib(2),Dip%ib(2)))
@@ -146,15 +146,23 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
          ikm1=k_map%k_map_dir(idx(1),idx(2),idx(3))
          !
          U_r(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)
-         call get_unitary_g_from_SVD(Xen,Xk,(/1,Dip%ib(2)/),ikp1,i_sp_pol,&
+         call zeroing_disconnected_blocks(Xen,Xk,(/1,Dip%ib(2)/),ikp1,i_sp_pol,&
          &                         deg_table_k,deg_thresh,U_r(:,:,1),U_r(:,:,2))
+         U_r(:,:,3)=U_r(:,:,2)
+         call SERIAL_SVD(Dip%ib(2),U_r(:,:,3),'uni',0)
          !
          U_l(:,:,1)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))
-         call get_unitary_g_from_SVD(Xen,Xk,(/1,Dip%ib(2)/),ikm1,i_sp_pol,&
+         call zeroing_disconnected_blocks(Xen,Xk,(/1,Dip%ib(2)/),ikm1,i_sp_pol,&
          &                         deg_table_k,deg_thresh,U_l(:,:,1),U_l(:,:,2))
+         U_l(:,:,3)=U_l(:,:,2)
+         call SERIAL_SVD(Dip%ib(2),U_l(:,:,3),'uni',0)
          !
-         Der_k_red(:,:,istep)=+matmul(U_r(:,:,1),hermitian(U_r(:,:,2)) )  &
-&                             -matmul(U_l(:,:,1),hermitian(U_l(:,:,2)) )
+	 ! Yambo version
+         Der_k_red(:,:,istep)=+matmul(U_r(:,:,1),hermitian(U_r(:,:,3)) )  &
+         &                    -matmul(U_l(:,:,1),hermitian(U_l(:,:,3)) )
+	 ! Virk-Sipe version
+         !Der_k_red(:,:,istep)=+matmul((U_r(:,:,1)-U_r(:,:,2)),hermitian(U_r(:,:,3)) )  &
+         !&                    -matmul((U_l(:,:,1)-U_l(:,:,2)),hermitian(U_l(:,:,3)) )
          !
 	 ! This contains the i/2q factor 
 	 ! 1/q=k_map%max_kdir(id_red)/(4._SP*pi*real(istep,SP))
@@ -248,7 +256,7 @@ subroutine DIPOLE_build_der_k(Xen,Xk,Dip,direction_is_todo)
 end subroutine DIPOLE_build_der_k
 !
 !
-subroutine get_unitary_g_from_SVD(Xen,Xk,nb,ikpbz,i_sp_pol,deg_table_k,deg_thresh,U_in,U_out)
+subroutine zeroing_disconnected_blocks(Xen,Xk,nb,ikpbz,i_sp_pol,deg_table_k,deg_thresh,U_in,U_out)
  !
  use pars,           ONLY:SP,cZERO
  use R_lattice,      ONLY:bz_samp
@@ -293,7 +301,5 @@ subroutine get_unitary_g_from_SVD(Xen,Xk,nb,ikpbz,i_sp_pol,deg_table_k,deg_thres
      U_out(ib,ibp)=cZERO
    enddo
  enddo
- !
- call SERIAL_SVD(nb(2)-nb(1)+1,U_out,'uni',0)
  !
 end subroutine
