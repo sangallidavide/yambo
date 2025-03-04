@@ -174,8 +174,11 @@ subroutine DIPOLE_overlaps(Xk,Dip)
            ! 
            ! see also comments in src/bz_ops/k_map_nearest_by_dir.F 
            ! 
+           ! WF_shifts==1 --> kpt(id) < 0
            if(WF_shifts(ikbzp,id)==1) shift(id)=1
+           ! WF_shifts==0 --> 0 < kpt(id) < 1
            if(WF_shifts(ikbzp,id)==0) shift(id)=1
+           ! WF_shifts==2 --> kpt(id) > 1
            if(WF_shifts(ikbzp,id)==2) shift(id)=0
            !
          endif
