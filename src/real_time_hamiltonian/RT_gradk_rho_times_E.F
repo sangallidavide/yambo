@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): DS
 !
-subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
+subroutine RT_gradk_rho_times_E_wrong(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  ! This subroutine computes the k-gradient of the density matrix,
  ! and multiplies it by the electric field.
@@ -186,10 +186,10 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  enddo
  !
  !
-end subroutine RT_gradk_rho_times_E
+end subroutine RT_gradk_rho_times_E_wrong
 !
 !
-subroutine RT_gradk_rho_times_E_wrong(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
+subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  ! This subroutine computes the k-gradient of the density matrix,
  ! and multiplies it by the electric field.
@@ -454,4 +454,4 @@ subroutine RT_gradk_rho_times_E_wrong(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
    H_nl_sc(:,:)=H_nl_sc(:,:)-gradk_rho(:,:,idir)*E_field(idir)
  enddo
  !
-end subroutine RT_gradk_rho_times_E_wrong
+end subroutine RT_gradk_rho_times_E
