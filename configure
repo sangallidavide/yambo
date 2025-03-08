@@ -704,6 +704,7 @@ enable_magma
 def_magma
 MAGMA_INCS
 MAGMA_LIBS
+NVIDIA_ARCH
 with_devxlib_branch
 DEVXLIB_info
 internal_devxlib
@@ -15947,8 +15948,19 @@ $as_echo "already compiled" >&6; } ;
   else
     compile_magma="yes" ;
     compile_magma_fmodules="no" ;
+    #
+    NVIDIA_ARCH=
+    if test "x$with_cuda_cc" != "x" ; then
+       if test "$with_cuda_cc" -ge 60 &&  ! test "$with_cuda_cc" -ge 70 ; then NVIDIA_ARCH=Pascal ; fi
+       if test "$with_cuda_cc" -ge 70 &&  ! test "$with_cuda_cc" -ge 80 ; then NVIDIA_ARCH=Volta ; fi
+       if test "$with_cuda_cc" -ge 80 &&  ! test "$with_cuda_cc" -ge 90 ; then NVIDIA_ARCH=Hopper ; fi
+    fi
+    #
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: Compatible external Magma not found/specified. To be compiled." >&5
 $as_echo "Compatible external Magma not found/specified. To be compiled." >&6; } ;
+
+    ac_config_files="$ac_config_files lib/magma/make_magma.inc:lib/magma/make_magma.inc.in"
+
   fi
   #
 fi
@@ -17402,6 +17414,7 @@ do
     "lib/fftqe/c_defs.h") CONFIG_HEADERS="$CONFIG_HEADERS lib/fftqe/c_defs.h:lib/fftqe/c_defs.h.in" ;;
     "lib/fftqe/fftqe_defs.h") CONFIG_FILES="$CONFIG_FILES lib/fftqe/fftqe_defs.h:lib/fftqe/fftqe_defs.h.in" ;;
     "lib/iotk/make_iotk.inc") CONFIG_FILES="$CONFIG_FILES lib/iotk/make_iotk.inc:lib/iotk/make_iotk.inc.in" ;;
+    "lib/magma/make_magma.inc") CONFIG_FILES="$CONFIG_FILES lib/magma/make_magma.inc:lib/magma/make_magma.inc.in" ;;
     "include/headers/common/have_malloc.h") CONFIG_HEADERS="$CONFIG_HEADERS include/headers/common/have_malloc.h:include/headers/common/have_malloc.h.in" ;;
     "config/setup") CONFIG_FILES="$CONFIG_FILES config/setup" ;;
     "config/mk/global/defs.mk") CONFIG_FILES="$CONFIG_FILES config/mk/global/defs.mk" ;;

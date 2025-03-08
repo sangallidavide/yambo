@@ -25,10 +25,11 @@ configure: uncompress
 	@if test -d $(PACKAGE) && ! test -f configured.stamp ; then \
          echo "\t[$(PACKAGE)] configuration"; \
 	 cd $(PACKAGE);  \
-	 cat $(compdir)/config/setup $(srcdir)/lib/magma/MGmake.inc_lib > make.inc ; \
-	 cp  $(srcdir)/lib/magma/Makefile.lib  Makefile ;  \
+	 cat $(compdir)/config/setup $(srcdir)/lib/magma/make_magma.inc > make.inc ; \
          touch ../configured.stamp;\
 	fi
+
+#	 cp  $(srcdir)/lib/magma/Makefile.lib  Makefile ;  \
 
 compile: uncompress configure
 	@$(call compile)

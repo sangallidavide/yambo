@@ -16,8 +16,8 @@
 BACKEND     ?= cuda
 
 # set these to their real paths
-CUDADIR     ?= $(NVHPC_ROOT)/cuda
-ROCM_PATH   ?= /opt/rocm
+CUDADIR     ?= @LIBCUDA_PATH@
+ROCM_PATH   ?= @LIBROCM_PATH@
 
 USE_FORTRAN ?=yes
 
@@ -32,7 +32,7 @@ endif
 # set compilers
 CC          ?= gcc
 CXX         ?= g++
-FORT        ?= gfortran
+FORT        ?= @FC@
 HIPCC       ?= hipcc
 NVCC        ?= nvcc
 DEVCC       ?= NONE
@@ -55,7 +55,7 @@ RANLIB    = ranlib
 
 # set our GPU targets
 ifeq ($(BACKEND),cuda)
-    GPU_TARGET = Volta Turing Ampere
+    GPU_TARGET = @NVIDIA_ARCH@
 else ifeq ($(BACKEND),hip)
     GPU_TARGET = gfx900 gfx906 gfx908
 endif
@@ -67,8 +67,8 @@ FPIC      = -fPIC
 # now, generate our flags
 CFLAGS      = -O3 $(FPIC) -DNDEBUG -DADD_ -Wall -fopenmp -std=c99
 CXXFLAGS    = -O3 $(FPIC) -DNDEBUG -DADD_ -Wall -fopenmp -std=c++11
-FFLAGS      = -O3 $(FPIC) -DNDEBUG -DADD_ -Wall -Wno-unused-dummy-argument
-F90FLAGS    = -O3 $(FPIC) -DNDEBUG -DADD_ -Wall -Wno-unused-dummy-argument -x f95-cpp-input
+FFLAGS      = -O3 $(FPIC) -DNDEBUG -DADD_ 
+F90FLAGS    = -O3 $(FPIC) -DNDEBUG -DADD_ 
 LDFLAGS     =     $(FPIC)                       -fopenmp
 
 DEVCCFLAGS  = -O3         -DNDEBUG -DADD_

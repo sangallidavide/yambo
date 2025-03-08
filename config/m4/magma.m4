@@ -171,7 +171,17 @@ if test "x$enable_magma" = "xyes" && test "x$magma" = "xno" ; then
   else
     compile_magma="yes" ;
     compile_magma_fmodules="no" ;
+    #
+    NVIDIA_ARCH=
+    if test "x$with_cuda_cc" != "x" ; then
+       if test "$with_cuda_cc" -ge 60 &&  ! test "$with_cuda_cc" -ge 70 ; then NVIDIA_ARCH=Pascal ; fi
+       if test "$with_cuda_cc" -ge 70 &&  ! test "$with_cuda_cc" -ge 80 ; then NVIDIA_ARCH=Volta ; fi
+       if test "$with_cuda_cc" -ge 80 &&  ! test "$with_cuda_cc" -ge 90 ; then NVIDIA_ARCH=Hopper ; fi
+    fi
+    #
     AC_MSG_RESULT([Compatible external Magma not found/specified. To be compiled.]) ;
+    AC_SUBST(NVIDIA_ARCH)
+    AC_CONFIG_FILES([lib/magma/make_magma.inc:lib/magma/make_magma.inc.in])
   fi
   #
 fi
