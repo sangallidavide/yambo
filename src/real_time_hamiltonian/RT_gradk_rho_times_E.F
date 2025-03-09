@@ -280,22 +280,20 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  ikbz=Xk%k_table(ik,1)
  !
- if (l_svd) then
-   !
-   call degeneration_finder(Xen%E(nb(1):nb(2),ik,i_sp_pol),nb(2)-nb(1)+1,&
-   &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
-   !
-   deg_table_k=.false.
-   do i_grp=1,n_deg_grp_k
-     do ib=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
-       do ibp=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
-         deg_table_k(ib,ibp)=.true.
-         deg_table_k(ibp,ib)=.true.
-       enddo
+ ! define degeneration table at ik
+ !
+ call degeneration_finder(Xen%E(nb(1):nb(2),ik,i_sp_pol),nb(2)-nb(1)+1,&
+ &                           first_el_k,n_of_el_k,n_deg_grp_k,deg_thresh,Include_single_values=.true.)
+ !
+ deg_table_k=.false.
+ do i_grp=1,n_deg_grp_k
+   do ib=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+     do ibp=nb(1)+first_el_k(i_grp)-1,nb(1)+first_el_k(i_grp)+n_of_el_k(i_grp)-2
+       deg_table_k(ib,ibp)=.true.
+       deg_table_k(ibp,ib)=.true.
      enddo
    enddo
-   !
- endif
+ enddo
  !
  gradk_rho=cZERO
  !
@@ -330,27 +328,24 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
      ikp1_ibz=Xk%sstar(ikp1,1)
      ikp1_is =Xk%sstar(ikp1,2)
      !
-     !S_tmp(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikbz,i_sp_pol)    ! g+(k)
-     !S_tmp(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm1,i_sp_pol))   ! g-(k)=g+(k-q)
+     Sm_kpq(:,:)=hermitian(DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikbz,i_sp_pol))   ! (g-(k+q))= g+(k)\dag
+     Sp_kmq(:,:)=          DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikm1,i_sp_pol)    !  g+(k-q) =(g-(k)\dag)
      !
-     !S_kpq(:,:,1)=          DIP_S(:,:,id_red+(istep-1)*3,ikp1,i_sp_pol)    ! g+(k+q)
-     Sm_kpq(:,:)=hermitian(DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikbz,i_sp_pol))   ! (g-(k+q)=) g+(k)\dag
+     ! k+q part
+     ! Disconnect non connected blocks
+     call zeroing_disconnected_blocks(Xen,Xk,RT_bands,ikp1,i_sp_pol,&
+     &                         deg_table_k,deg_thresh,Sm_kpq,gm_kpq)
+     ! Perform SVD
+     call SERIAL_SVD(nb(2)-nb(1)+1,Sm_kpq,'uni',0)
      !
-     Sp_kmq(:,:)=          DIP_S(nb(1):,nb(1):,id_red+(istep-1)*3,ikm1,i_sp_pol)    ! g+(k-q) (=g-(k)\dag)
-     !S_kmq(:,:,2)=hermitian(DIP_S(:,:,id_red+(istep-1)*3,ikm2,i_sp_pol))   ! g-(k-q)=g+(k-2*q)
+     ! k-q part
+     ! Disconnect non connected blocks
+     call zeroing_disconnected_blocks(Xen,Xk,RT_Bands,ikm1,i_sp_pol,&
+     &                         deg_table_k,deg_thresh,Sp_kmq,gp_kmq)
+     ! Perform SVD
+     call SERIAL_SVD(nb(2)-nb(1)+1,Sp_kmq,'uni',0)
      !
-     if (l_svd) then
-       call zeroing_disconnected_blocks(Xen,Xk,RT_bands,ikp1,i_sp_pol,&
-       &                         deg_table_k,deg_thresh,Sm_kpq,gm_kpq)
-       call SERIAL_SVD(nb(2)-nb(1)+1,Sm_kpq,'uni',0)
-       call zeroing_disconnected_blocks(Xen,Xk,RT_Bands,ikm1,i_sp_pol,&
-       &                         deg_table_k,deg_thresh,Sp_kmq,gp_kmq)
-       call SERIAL_SVD(nb(2)-nb(1)+1,Sp_kmq,'uni',0)
-     else
-       gm_kpq=Sm_kpq
-       gp_kmq=Sp_kmq
-     endif
-     !
+     ! define M matrix
      do ib1=RT_bands(1),RT_bands(2)
        do ib2=RT_bands(1),RT_bands(2)
          Mp_kmq(ib1,ib2,:,:)=conjg(gp_kmq(ib1,ib2))*gp_kmq(:,:)
@@ -360,42 +355,42 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
      !
      if (l_dips_term) then
        !
-     ! I need to rotate the dipoles in k-space,
-     ! and then project them along the id_red direction
-     ! Note: this term is quitre slow.
-     ! Pre-expanding the dipoles with the old
-     ! DIPOLE expand wuold speed-up this part
-     !
-     DIP_km=cZERO
-     DIP_kp=cZERO
-     do ib1=RT_bands(1),RT_bands(2)
-       do jb1=RT_bands(1),RT_bands(2)
-         call DIPOLE_rotate(jb1,ib1,ikm1,i_sp_pol,"DIP_iR",Xk,DIP_km_c)
-         call DIPOLE_rotate(jb1,ib1,ikp1,i_sp_pol,"DIP_iR",Xk,DIP_kp_c)
-         ! DEBUG lines to verify the time gain when non-expanding on the fly
-         !DIP_km_c=DIP_iR(:,ib1,jb1,ikm1_ibz,i_sp_pol)
-         !DIP_kp_c=DIP_iR(:,ib1,jb1,ikp1_ibz,i_sp_pol)
-         ! As always in yambo, band indexes are inverted in the dipoles
-         do idir=1,3
-           DIP_km(ib1,jb1)=DIP_km(ib1,jb1)-cI*DIP_km_c(idir)*a(id_red,idir)
-           DIP_kp(ib1,jb1)=DIP_kp(ib1,jb1)-cI*DIP_kp_c(idir)*a(id_red,idir)
+       ! I need to rotate the dipoles in k-space,
+       ! and then project them along the id_red direction
+       ! Note: this term is quitre slow.
+       ! Pre-expanding the dipoles with the old
+       ! DIPOLE expand wuold speed-up this part
+       !
+       DIP_km=cZERO
+       DIP_kp=cZERO
+       do ib1=RT_bands(1),RT_bands(2)
+         do jb1=RT_bands(1),RT_bands(2)
+           call DIPOLE_rotate(jb1,ib1,ikm1,i_sp_pol,"DIP_iR",Xk,DIP_km_c)
+           call DIPOLE_rotate(jb1,ib1,ikp1,i_sp_pol,"DIP_iR",Xk,DIP_kp_c)
+           ! DEBUG lines to verify the time gain when non-expanding on the fly
+           !DIP_km_c=DIP_iR(:,ib1,jb1,ikm1_ibz,i_sp_pol)
+           !DIP_kp_c=DIP_iR(:,ib1,jb1,ikp1_ibz,i_sp_pol)
+           ! As always in yambo, band indexes are inverted in the dipoles
+           do idir=1,3
+             DIP_km(ib1,jb1)=DIP_km(ib1,jb1)-cI*DIP_km_c(idir)*a(id_red,idir)
+             DIP_kp(ib1,jb1)=DIP_kp(ib1,jb1)-cI*DIP_kp_c(idir)*a(id_red,idir)
+           enddo
          enddo
        enddo
-     enddo
-     !
-     !
-     do ib1=RT_bands(1),RT_bands(2)
-       do jb1=RT_bands(1),RT_bands(2)
-         do ib2=RT_bands(1),RT_bands(2)
-           !A1_ll' ib1=l jb1=l' ib2=s
-           A1p_kmq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikm1_ibz)*conjg(DIP_km(ib2,ib1))
-           A1m_kpq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikp1_ibz)*conjg(DIP_kp(ib2,ib1))
-           !A2_ll' ib1=l jb1=l' ib2=s
-           A2p_kmq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikm1_ibz)*      DIP_km(ib2,jb1)
-           A2m_kpq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikp1_ibz)*      DIP_kp(ib2,jb1)
+       !
+       !
+       do ib1=RT_bands(1),RT_bands(2)
+         do jb1=RT_bands(1),RT_bands(2)
+           do ib2=RT_bands(1),RT_bands(2)
+             !A1_ll' ib1=l jb1=l' ib2=s
+             A1p_kmq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikm1_ibz)*conjg(DIP_km(ib2,ib1))
+             A1m_kpq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikp1_ibz)*conjg(DIP_kp(ib2,ib1))
+             !A2_ll' ib1=l jb1=l' ib2=s
+             A2p_kmq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikm1_ibz)*      DIP_km(ib2,jb1)
+             A2m_kpq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikp1_ibz)*      DIP_kp(ib2,jb1)
+           enddo
          enddo
        enddo
-     enddo
        !
      else
        !
