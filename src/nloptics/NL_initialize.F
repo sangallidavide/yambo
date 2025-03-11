@@ -55,7 +55,7 @@ subroutine NL_initialize(E,k)
  call parser('FrPolPerdic' ,         l_P_periodic)
  call parser('TestOSCLL',            l_test_OSCLL)
  call parser('NoComprCOLL',          l_no_compress_COLL)
- call parser('UseResSymm',           l_res_symms)
+ call parser('UseSymm',              l_res_symms)
  !
  if(l_use_DIPOLES) call warning(' Fixed dipoles: only linear response properties are correct!')
  if(l_P_periodic)  call msg('sr','[NL] Enforce periodicity of the polarization repect to Efield')

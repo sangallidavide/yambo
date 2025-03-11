@@ -535,7 +535,8 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  call it('f',defs,'FrSndOrd','[NL] Force second order in Covariant Dipoles',verb_level=V_nl_optics)
  call it('f',defs,'NoComprCOLL','[NL] Load collisions in double-precision and do not remove small elements (default false)',&
 &  verb_level=V_nl_optics)
- call it('f',defs,'UseResSymm','[NL] Use residual symmetries for polar/current (default false)',verb_level=V_nl_optics)
+ call it('f',defs,'UseSymm','[NL] Use full-symms for dipoles and residual-symms for polar/current (def false)', &
+&  verb_level=V_nl_optics)
  call it('f',defs,'EvalCurrent','[NL] Evaluate the current')
  !
 #endif

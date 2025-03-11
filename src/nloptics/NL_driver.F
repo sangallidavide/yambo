@@ -37,6 +37,7 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
  use parallel_m,     ONLY:PAR_IND_freqs,PAR_IND_freqs_ID,PAR_IND_Xk_ibz,PAR_Xk_ibz_index
  use collision_ext,  ONLY:COLLISIONS_have_HARTREE
  use collision_ext,  ONLY:ng_oscll,OSCLL,W
+ use electric,       ONLY:l_res_symms
  !
 #include<y_memory.h>
  !
@@ -101,7 +102,7 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
  !
  ! Symmetrize dipoles if old-symmetries are present
  ! =================================================
- call DIPOLE_symmetrize(k)
+ if(l_res_symms) call DIPOLE_symmetrize(k)
  !
  ! Generate bare_qpg if required
  !=============================
