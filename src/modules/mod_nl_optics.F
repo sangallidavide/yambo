@@ -118,6 +118,7 @@ module nl_optics
  integer  :: NL_bands(2)
  integer  :: NL_nbands
  integer  :: n_angles
+ real(SP) :: max_angle
  real(SP) :: NL_rot_axis(3)
  real(SP) :: NL_initial_versor(3)
  integer  :: n_frequencies
