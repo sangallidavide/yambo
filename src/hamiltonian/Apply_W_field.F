@@ -15,7 +15,7 @@ subroutine Apply_W_field(A_input,Wk,H_nl_sc)
  implicit none
  !
  type(gauge_field), intent(in) :: A_input
- complex(SP),  intent(inout)   :: Wk(3,H_ref_bands(1):H_ref_bands(2),H_ref_bands(1):H_ref_bands(2))
+ complex(SP),  intent(in)      :: Wk(3,H_ref_bands(1):H_ref_bands(2),H_ref_bands(1):H_ref_bands(2))
  complex(SP),  intent(inout)   :: H_nl_sc(H_ref_bands(1):H_ref_bands(2),H_ref_bands(1):H_ref_bands(2))
  !
  ! Work Space
