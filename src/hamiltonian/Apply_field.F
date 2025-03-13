@@ -1,9 +1,21 @@
 !
 ! License-Identifier: GPL
 !
-! Copyright (C) 2010 The Yambo Team
+! Copyright (C) 2025 The Yambo Team
 !
 ! Authors (see AUTHORS file for details): AM CA DS
+!
+!> @brief Apply external field in the real-time dynamics and self-consistent calculation (yambo_sc)
+!!
+!! @param[in]       ik 	                        k-point corresponding to H_k where file is applied
+!! @param[in]       i_sp_pol			spin-polarization 
+!! @param[in]       A_input			vector potential and its derivatives
+!!
+!! @param[in]	    l_update_SOC		update SOC interaction see Eq.(1) JCTC 11, 4870 (2015)
+!! @param[in]       l_velocity_gauge_corr	apply correction due to pseudo in velociy gauge (Num. Details in PRB 62, 7998) 
+!! @param[in]       global_gauge		gauge of the field (lenght | velocity)
+!!
+!! @param[out]      H_nl_sc	                write-matrix elements of the external field in this array corresponding to H_k
 !
 subroutine Apply_field(ik,i_sp_pol,H_nl_sc,A_input)
  !
