@@ -238,7 +238,7 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
  endif
  !
  ! Store Equilibrium Wk
- if(.not.l_use_DIPOLES.and..not.trim(global_gauge)=='velocity') then
+ if(.not.l_use_DIPOLES.and..not.trim(global_gauge)=='velocity'.and.l_res_symms) then
    do ik=1,QP_nk
      if (.not.PAR_IND_Xk_ibz%element_1D(ik)) cycle
      ik_mem=PAR_Xk_ibz_index(ik)
@@ -247,6 +247,8 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
 &                            Wk_EQ(:,:,:,i_sp_pol,ik_mem))
      enddo
    enddo
+ else
+   YAMBO_FREE(Wk_EQ)
  endif
  !
  !
