@@ -210,7 +210,7 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
    !
    if(l_use_DIPOLES.or.trim(global_gauge)=='velocity') then
      !    
-     call Apply_field(ik,i_sp_pol,H_nl_sc,A_tot)
+     call RT_Apply_field(ik,i_sp_pol,H_nl_sc,A_tot)
      !
    else
      !
