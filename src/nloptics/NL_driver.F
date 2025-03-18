@@ -71,7 +71,7 @@ subroutine NL_driver(E,X,Xw,k,q,Dip)
  !
  ! QP-corrections 
  !================
- call QP_apply(NL_bands,E,k,"K",msg_fmt='s')
+ call QP_apply(NL_bands,E,k,"G",msg_fmt='s')
  !
  ! Initialize
  !=========

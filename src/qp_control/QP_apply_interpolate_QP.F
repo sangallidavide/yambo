@@ -150,9 +150,11 @@ subroutine QP_apply_interpolate_QP(i_ACTION,bands,en,k,qp)
  ! Output
  !--------
  !
+#if !defined _NL 
  QP_interpolated_name='QP_interpolated'
  call io_control(ACTION=OP_WR_CL,COM=LOG,SEC=(/1,2,3/),ID=ID_IO)
  i_err=io_QP_and_GF(trim(QP_interpolated_name),qp_interpolated,ID_IO)
+#endif
  call QP_reset(qp_interpolated)
  !
  ! Clean
