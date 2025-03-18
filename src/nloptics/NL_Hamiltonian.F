@@ -210,7 +210,7 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
    !
    if(l_use_DIPOLES.or.trim(global_gauge)=='velocity') then
      !    
-     call RT_Apply_field(ik,i_sp_pol,H_nl_sc,A_tot)
+     call RT_apply_field(ik,i_sp_pol,H_nl_sc,A_tot)
      !
    else
      !
@@ -223,7 +223,7 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
      if(allocated(Wk_EQ)) then
        !  This part of the operator is symmetriezed before the dynamics
        call Apply_W_field(A_tot,Wk-Wk_EQ(:,:,:,i_sp_pol,ik_mem),H_nl_sc)
-       call Apply_field(ik,i_sp_pol,H_nl_sc,A_tot)
+       call RT_Apply_field(ik,i_sp_pol,H_nl_sc,A_tot)
      else
        call Apply_W_field(A_tot,Wk,H_nl_sc)
      endif

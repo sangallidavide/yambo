@@ -212,13 +212,13 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! Parallel Setup
  !
 #if defined _OPENMP
- call it(defs,'K_Threads',       '[OPENMP/BSK] Number of threads for response functions',n_threads_K)
- call it(defs,'X_Threads',       '[OPENMP/X] Number of threads for response functions',n_threads_X)
- call it(defs,'DIP_Threads',     '[OPENMP/X] Number of threads for dipoles',n_threads_DIP)
- call it(defs,'OSCLL_Threads',    '[OPENMP/X] Number of threads for Oscillators',n_threads_OSCLL)
- call it(defs,'SE_Threads',      '[OPENMP/GW] Number of threads for self-energy',n_threads_SE)
- call it(defs,'RT_Threads',      '[OPENMP/RT] Number of threads for real-time',n_threads_RT)
- call it(defs,'NL_Threads',      '[OPENMP/NL] Number of threads for nl-optics',n_threads_NL)
+ call it(defs,'K_Threads',       '[OPENMP/BSK] Number of threads for response functions',n_threads_K,verb_level=V_parallel)
+ call it(defs,'X_Threads',       '[OPENMP/X] Number of threads for response functions',n_threads_X,verb_level=V_parallel)
+ call it(defs,'DIP_Threads',     '[OPENMP/X] Number of threads for dipoles',n_threads_DIP,verb_level=V_parallel)
+ call it(defs,'OSCLL_Threads',    '[OPENMP/X] Number of threads for Oscillators',n_threads_OSCLL,verb_level=V_parallel)
+ call it(defs,'SE_Threads',      '[OPENMP/GW] Number of threads for self-energy',n_threads_SE,verb_level=V_parallel)
+ call it(defs,'RT_Threads',      '[OPENMP/RT] Number of threads for real-time',n_threads_RT,verb_level=V_parallel)
+ call it(defs,'NL_Threads',      '[OPENMP/NL] Number of threads for nl-optics',n_threads_NL,verb_level=V_parallel)
 #endif
 #if defined _MPI 
  call it(defs,'NLogCPUs',     '[PARALLEL] Live-timing CPU`s (0 for all)',n_log_CPUs,verb_level=V_parallel)
