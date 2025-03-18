@@ -219,6 +219,7 @@ integer function io_header(ID,QPTS,R_LATT,WF,IMPOSE_SN,TEMP,KPTS,D_LATT,XC_KIND,
        if (.not.v_is_zero(q_pt(i1,:)-l_pt(i1,:),zero_=local_zero)) io_header=-1
      enddo
      if (io_header/=0) then
+       write(*,*) 'l_impose ',l_IMPOSE
        if (WARN    ) call warning('Wrong Q-points coordinates/order')
        if (l_IMPOSE) call   error('Wrong Q-points coordinates/order')
        goto 1
