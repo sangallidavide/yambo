@@ -36,7 +36,7 @@ subroutine Build_tilde_vbands(en,Xk,ikbz,i_sp,istep,id_red,V_bands,V_tilde)
  !
  integer :: i2,iv1,im,idx(3),id,ikp,ikm
  integer :: ikm_ibz,ikp_ibz,n_bf
- complex(SP) :: tmp_Vp(H_ref_bands(2),en%nbf(i_sp)),tmp_Vm(H_ref_bands(2),en%nbf(i_sp))
+ complex(SP) :: tmp_Vp(H_ref_nbands,en%nbf(i_sp)),tmp_Vm(H_ref_nbands,en%nbf(i_sp))
  !
  V_tilde=cZERO
  n_bf=en%nbf(i_sp)
@@ -74,11 +74,11 @@ subroutine Build_tilde_vbands(en,Xk,ikbz,i_sp,istep,id_red,V_bands,V_tilde)
  !
  call M_by_M_omp('N','N',H_ref_nbands,n_bf,H_ref_bands(2),cONE,  &
 &  DIP_S(H_ref_bands(1):,:,id_red+(istep-1)*3,ikbz,i_sp),H_ref_nbands, &
-&  V_bands(:,:n_bf,ikp_ibz),H_ref_bands(2),cZERO,tmp_Vp(H_ref_bands(1):,:n_bf),H_ref_nbands)
+&  V_bands(:,:n_bf,ikp_ibz),H_ref_bands(2),cZERO,tmp_Vp,H_ref_nbands)
  !
  call M_by_M_omp('C','N',H_ref_nbands,n_bf,H_ref_bands(2),cONE,  &
 &  DIP_S(:,H_ref_bands(1):,id_red+(istep-1)*3,ikm ,i_sp),H_ref_bands(2), &
-&  V_bands(:,:n_bf,ikm_ibz),H_ref_bands(2),cZERO,tmp_Vm(H_ref_bands(1):,:n_bf),H_ref_nbands)
+&  V_bands(:,:n_bf,ikm_ibz),H_ref_bands(2),cZERO,tmp_Vm,H_ref_nbands)
  !
  ! Eq. (53) in PRB 69, 085106 (2004), derived in appendix (C), see eq. C(11)
  !
@@ -89,16 +89,14 @@ subroutine Build_tilde_vbands(en,Xk,ikbz,i_sp,istep,id_red,V_bands,V_tilde)
  !        
  call mm_cgemm('T', 'T', n_bf, H_ref_nbands, n_bf, cONE, &
            Sm1_plus(:n_bf, 1, id_red+(istep-1)*3, ikbz, i_sp), n_bf, &
-           tmp_Vp(H_ref_bands(1):, :n_bf), H_ref_nbands, &
-           cZERO, V_tilde(:, H_ref_bands(1):, 1), n_bf)
+           tmp_Vp, H_ref_nbands,cZERO, V_tilde(:, :, 1), n_bf)
 
  !  
  ! Build V_tilde(:,:,2) = Sm1_minus^T * tmp_Vm^T
  !  
  call mm_cgemm('T', 'T', n_bf, H_ref_nbands, n_bf, cONE, &
            Sm1_minus(:n_bf, 1, id_red+(istep-1)*3, ikbz, i_sp), n_bf, &
-           tmp_Vm(H_ref_bands(1):, :n_bf), H_ref_nbands, &
-           cZERO, V_tilde(:, H_ref_bands(1):, 2), n_bf)
+           tmp_Vm, H_ref_nbands, cZERO, V_tilde(:, :, 2), n_bf)
  !
  ! with (see Build_overlaps_det_NEQ)
  !
