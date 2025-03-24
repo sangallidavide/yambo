@@ -49,6 +49,7 @@ module real_time
  logical          :: l_P_integrating_J
  logical          :: l_velocity_gauge_corr
  logical          :: l_velocity_gauge_diam
+ logical          :: l_length_grad_k
  !
  ! Specific flag for when Yambo libraries are called to perform TRabs via YPP
  !
@@ -75,6 +76,7 @@ module real_time
  !
  integer  :: NE_i_time=1 ! = NE_time/RT_step+1
  integer  :: NE_steps    ! Still relative to RT_step
+ integer  :: NE_i_last_field
  !
  ! Lifetimes Extrapolation Time status
  !

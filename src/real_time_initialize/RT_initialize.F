@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details):
 !
-subroutine RT_initialize(E,k,q)
+subroutine RT_initialize(E,k,q,Dip)
  !
  use drivers,        ONLY:l_use_collisions,l_elph_scatt,l_elel_scatt,l_sc_hartree,l_use_Hxc_collisions,&
 &                         l_sc_is_libDFT,l_sc_sex,l_sc_fock,l_elphoton_scatt,l_rt_carriers_in_use,l_phel_scatt
@@ -20,6 +20,7 @@ subroutine RT_initialize(E,k,q)
  use QP_CTL_m,       ONLY:QP_ctl_user
  use vec_operate,    ONLY:normalize_v
  use plasma,         ONLY:EH_gas
+ use DIPOLES,        ONLY:DIPOLE_t
  use X_m,            ONLY:global_gauge
  use electrons,      ONLY:levels
  use collision_ext,  ONLY:COLLISIONS_have_HARTREE
@@ -30,7 +31,7 @@ subroutine RT_initialize(E,k,q)
 &                         Life_MEM_steps,l_RT_lifetimes_Tfit,l_RT_skip_ph_abs_lifetimes,l_RT_iterative_ELPH_lifetimes
  use real_time,      ONLY:RT_potential,RT_step,l_NE_with_fields,RT_bands,RT_dyn_step,RT_nk,   &
 &                         NE_steps,NE_tot_time,l_RT_induced_field,Gr_kind,       &
-&                         RAD_LifeTime,Phase_LifeTime,         &
+&                         RAD_LifeTime,Phase_LifeTime,l_length_grad_k,NE_i_last_field,        &
 &                         NE_MEM_treshold,G_MEM_steps,l_RT_uses_E_FineGd,DbGd_EE_Nk_table,    &
 &                         l_RT_impose_N_dN,Integrator_name,l_RT_impose_E,DbGd_EE_percent,     &
 &                         l_RT_update_Energies,eval_HARTREE,eval_DFT,l_NE_dynamics,           &
@@ -53,7 +54,8 @@ subroutine RT_initialize(E,k,q)
 #include<y_memory.h>
  !
  type(levels), intent(inout) :: E
- type(bz_samp),intent(in)    :: q,k
+ type(bz_samp),   intent(in) :: q,k
+ type(DIPOLE_t),  intent(in) :: Dip
  !
  ! Work space
  !
@@ -98,6 +100,7 @@ subroutine RT_initialize(E,k,q)
  call parser('RTzeroTempRef',        l_RT_eq_is_zero_temp)
  call parser('RTEqScatt',            l_RT_include_eq_scatt)
  call parser('RTskipPHabs',          l_RT_skip_ph_abs_lifetimes)
+ call parser('RTgradk',              l_length_grad_k)
  !
  if (.not.l_RT_skip_ph_abs_lifetimes) l_RT_skip_ph_abs_lifetimes=.not.(Bose_Temp>0..or.l_phel_scatt)
  !
@@ -126,6 +129,8 @@ subroutine RT_initialize(E,k,q)
    PAR_G_k_range(1)=RTibz%k_range(PAR_G_k_range(1),1)
    PAR_G_k_range(2)=RTibz%k_range(PAR_G_k_range(2),2)
  endif
+ !
+ if (l_length_grad_k .and. .not.allocated(k%k_table))  call k_build_up_BZ_tables(k)
  !
  ! Integrator FLAGS
  !==================
@@ -228,6 +233,8 @@ subroutine RT_initialize(E,k,q)
    call RT_load_field_from_file_init(field_defs(2))
  enddo
  !
+ NE_i_last_field=0
+ !
  do i1=1,n_ext_fields
    !
    Efield(i1)%ef_name=trim(Efield(i1)%ef_name)
@@ -236,7 +243,7 @@ subroutine RT_initialize(E,k,q)
    !
    call STRING_split(Efield(i1)%ef_name,field_defs)
    !
-   if(trim(field_defs(1))/='none') then
+   if(trim(field_defs(1))=='none') cycle
      !
      if (.not.field_is_ok( Efield(i1) ) ) call error(trim(MSG_ch)//' not supported or polarization is wrong')
      !
@@ -290,7 +297,7 @@ subroutine RT_initialize(E,k,q)
      enddo
      ! DEBUG >
      !
-   endif
+   NE_i_last_field=max(NE_i_last_field,Efield(i1)%t_final_indx)
    !
  enddo
  !
