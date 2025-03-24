@@ -4,4 +4,5 @@
  el_density_matrix.o
  el_magnetization.o
  el_magnetization_matrix.o
+ objects.o
 

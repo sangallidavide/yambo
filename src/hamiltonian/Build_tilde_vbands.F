@@ -19,7 +19,6 @@ subroutine Build_tilde_vbands(en,Xk,ikbz,i_sp,istep,id_red,V_bands,V_tilde)
  use vec_operate,    ONLY:k_periodic_idx
  use DIPOLES,        ONLY:DIP_S
  use wrapper_omp,    ONLY:M_by_M_omp
- use wrapper,        ONLY:mm_cgemm
  !
  implicit none
  !
@@ -34,13 +33,11 @@ subroutine Build_tilde_vbands(en,Xk,ikbz,i_sp,istep,id_red,V_bands,V_tilde)
  !
  ! Work Space
  !
- integer :: i2,iv1,im,idx(3),id,ikp,ikm
- integer :: ikm_ibz,ikp_ibz
- complex(SP) :: tmp_Vp(H_ref_nbands,en%nbf(i_sp)),tmp_Vm(H_ref_nbands,en%nbf(i_sp))
- integer :: n,m,k,lda,ldb,ldc
- complex(SP) :: alpha,beta
+ integer :: i2,iv1,im,idx(3),id,ikp,ikm,ikm_ibz,ikp_ibz,nbf
+ complex(SP) :: tmp_Vp(H_ref_bands(1):H_ref_bands(2),en%nbf(i_sp)),tmp_Vm(H_ref_bands(1):H_ref_bands(2),en%nbf(i_sp))
  !
  V_tilde=cZERO
+ nbf=en%nbf(i_sp)
  !
  if(k_map%max_kdir(id_red)==1) return
  !
@@ -73,38 +70,27 @@ subroutine Build_tilde_vbands(en,Xk,ikbz,i_sp,istep,id_red,V_bands,V_tilde)
  !
  ! i,j indexes on all bands CMR basis
  !
- call M_by_M_omp('N','N',H_ref_nbands,en%nbf(i_sp),H_ref_bands(2),cONE,  &
+ call M_by_M_omp('N','N',H_ref_nbands,nbf,H_ref_bands(2),cONE,  &
 &  DIP_S(H_ref_bands(1):,:,id_red+(istep-1)*3,ikbz,i_sp),H_ref_nbands, &
-&  V_bands(:,:en%nbf(i_sp),ikp_ibz),H_ref_bands(2),cZERO,tmp_Vp,H_ref_nbands)
+&  V_bands(:,:nbf,ikp_ibz),H_ref_bands(2),cZERO,tmp_Vp(H_ref_bands(1):,:en%nbf(i_sp)),H_ref_nbands)
  !
- call M_by_M_omp('C','N',H_ref_nbands,en%nbf(i_sp),H_ref_bands(2),cONE,  &
+ call M_by_M_omp('C','N',H_ref_nbands,nbf,H_ref_bands(2),cONE,  &
 &  DIP_S(:,H_ref_bands(1):,id_red+(istep-1)*3,ikm ,i_sp),H_ref_bands(2), &
-&  V_bands(:,:en%nbf(i_sp),ikm_ibz),H_ref_bands(2),cZERO,tmp_Vm,H_ref_nbands)
+&  V_bands(:,:nbf,ikm_ibz),H_ref_bands(2),cZERO,tmp_Vm(H_ref_bands(1):,:en%nbf(i_sp)),H_ref_nbands)
  !
  ! Eq. (53) in PRB 69, 085106 (2004), derived in appendix (C), see eq. C(11)
  !
  ! \tilde V(k+dk)_{n,i} = \sum_m S^-1(k,k+dk)_{m,n} * V'(k+dk)_(i,m)
  ! \tilde V(k-dk)_{n,i} = \sum_m S^-1(k,k-dk)_{m,n} * V'(k-dk)_(i,m)
  ! 
- ! Dimensions
- m = en%nbf(i_sp)          ! Number of rows in Sm1_plus and V_tilde
- k = en%nbf(i_sp)          ! Number of columns in Sm1_plus, also rows in tmp_Vp
- n = H_ref_nbands          ! Number of columns in tmp_Vp and V_tilde
- !
- ! Set BLAS parameters
- !
- alpha = cONE        ! Scaling factor
- beta  = cZERO       ! No initial values in V_tilde
- lda = m             ! Leading dimension of Sm1
- ldb = k             ! Leading dimension of tmp_Vp
- ldc = m             ! Leading dimension of V_tilde
- !
- ! Compute V_tilde(:,:,1) = Sm1_plus * tmp_Vp using CGEMM
- call mm_cgemm('T', 'T', m, n, k, alpha, Sm1_plus(1,1,id_red+(istep-1)*3,ikbz,i_sp), lda,  &
-&            tmp_Vp, ldb, beta, V_tilde(1,H_ref_bands(1),1), ldc)
- ! Compute V_tilde(:,:,2) = Sm1_minus * tmp_Vm using CGEMM
- call mm_cgemm('T', 'T', m, n, k, alpha, Sm1_minus(1,1,id_red+(istep-1)*3,ikbz,i_sp), lda, &
-&            tmp_Vm, ldb, beta, V_tilde(1,H_ref_bands(1),2), ldc)
+!$omp parallel do default(shared), private(i2,iv1), collapse(2)
+ do i2=H_ref_bands(1),H_ref_bands(2)
+   do iv1=1,nbf
+     V_tilde(iv1,i2,1)=sum( Sm1_plus(:nbf,iv1,id_red+(istep-1)*3,ikbz,i_sp)*tmp_Vp(i2,:nbf))
+     V_tilde(iv1,i2,2)=sum(Sm1_minus(:nbf,iv1,id_red+(istep-1)*3,ikbz,i_sp)*tmp_Vm(i2,:nbf))
+   enddo
+ enddo
+!$omp end parallel do
  !
  ! with (see Build_overlaps_det_NEQ)
  !

@@ -13,4 +13,5 @@
  el_magnetization.o
  el_magnetization_matrix.o
  xc_rpa_kp.o
+ objects.o
 
