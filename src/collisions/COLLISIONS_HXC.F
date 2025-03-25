@@ -211,6 +211,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
  PAR_COLL_min=0
  !
  first_coll=-1
+ last_coll =0
  !
  do i_loop=1,2
    if (allocated(HXC_collisions%PAR_IND%element_1D)) then
@@ -347,9 +348,6 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw)
    YAMBO_FREE(magn)
  endif
  !
- if (COLLISIONS_parallel_SC_structure) then
-   call PP_wait()
- endif
  call timing(trim(H_potential)//' Collisions',OPR='stop')
  !
  contains
