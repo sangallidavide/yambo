@@ -147,8 +147,8 @@ subroutine DIPOLE_setup(Dip)
  !---------------------
  Dip%computed=" "
  if (len_trim(x_space_obs  )    >0) Dip%computed=trim(x_space_obs)//" [X-space]"
- if (len_trim(covariant_obs)    >0) Dip%computed=trim(covariant_obs)//" [covarian]"
- if (len_trim(der_k_obs)        >0) Dip%computed=trim(der_k_obs)//" [covarian]"
+ if (len_trim(covariant_obs)    >0) Dip%computed=trim(covariant_obs)//" [covariant]"
+ if (len_trim(der_k_obs)        >0) Dip%computed=trim(der_k_obs)//" [derk]"
  if (len_trim(shifted_grids_obs)>0) Dip%computed=trim(shifted_grids_obs)//" [shift-grids]"
  if (len_trim(Dip%computed)==0) then
    Dip%computed=trim(g_space_obs)//" [G-space]"
