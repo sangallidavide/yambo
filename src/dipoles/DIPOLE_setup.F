@@ -118,9 +118,11 @@ subroutine DIPOLE_setup(Dip)
 #if defined _RT
  if (l_real_time) then
    g_space_obs=trim(g_space_obs)//" P2"
+ else
+#endif
+   if (STRING_match(Dip%computed,"p2")) g_space_obs=trim(g_space_obs)//" P2"
+#if defined _RT
  endif
-#else
- if (STRING_match(Dip%computed,"p2")) g_space_obs=trim(g_space_obs)//" P2"
 #endif
  !
  ! ... P_spinor
