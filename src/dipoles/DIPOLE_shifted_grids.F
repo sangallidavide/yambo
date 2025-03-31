@@ -267,14 +267,15 @@ subroutine DIPOLE_shifted_grids_old(Xen,Xk,Dip)
              else
                ! This part needs to be fixed
                do in_d=first_el(i_grp)+Dip%ib(1)-1,first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1)-1
-                 DIP_D(1)=DIP_S(ic,in_d)-DIP_O(ic,in_d)
-                 DIP_D(2)=DIP_S(iv,in_d)-DIP_O(iv,in_d)
-                 DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(ir,ic,iv,ik_mem,i_sp_pol) &
-                 &      +(DIP_D(1)*DIP_O(in_d,iv)-conjg(DIP_O(in_d,ic)*DIP_D(2)))/2._SP/q0_shift_norm
-	               ! This is the equation according to the notes.
-		             ! However it looks like here DIP_O = O^\dag
-		             ! In case the above equation is the correct one
-                 !& +(DIP_D(1)*conjg(DIP_O(iv,in_d))-DIP_O(ic,in_d)*conjg(DIP_D(2)))/2._SP/q0_shift_norm
+                 DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=cZERO
+                 !DIP_D(1)=DIP_S(ic,in_d)-DIP_O(ic,in_d)
+                 !DIP_D(2)=DIP_S(iv,in_d)-DIP_O(iv,in_d)
+                 !DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=DIP_iR(ir,ic,iv,ik_mem,i_sp_pol) &
+                 !&      +(DIP_D(1)*DIP_O(in_d,iv)-conjg(DIP_O(in_d,ic)*DIP_D(2)))/2._SP/q0_shift_norm
+	               !! This is the equation according to the notes.
+		             !! However it looks like here DIP_O = O^\dag
+		             !! In case the above equation is the correct one
+                 !!& +(DIP_D(1)*conjg(DIP_O(iv,in_d))-DIP_O(ic,in_d)*conjg(DIP_D(2)))/2._SP/q0_shift_norm
                enddo
              endif
              !
@@ -380,7 +381,7 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
   !  i q.<nk|r|mk> =  \sum_i=1,3 q(i) <u_n(k+q0(i))|u_mk>/q0(i)
   !
   use units,               ONLY:HA2EV
-  use pars,                ONLY:SP,cZERO,cONE,lchlen,schlen
+  use pars,                ONLY:SP,cZERO,cONE,cI,lchlen,schlen
   use drivers,             ONLY:l_sc_run
   use com,                 ONLY:msg,core_io_path,grid_paths
   use stderr,              ONLY:intc,STRING_split
@@ -584,12 +585,12 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
               !
               if (ic_wf==0) call error(" Error in parallel wf distribution (Dipole ic)")
               !
-              ! rho = < c,k | v,k+q >
+              ! S_{cv}(k,k+q) = < c k | v k+q >
               !
               do i_spinor=1,n_spinor
                 !
                 rho = rho + Vstar_dot_V_gpu(wf_ng_eff,DEV_VAR(WF%c)(1:wf_ng_eff,i_spinor,ic_wf), &
-   &                                        DEV_VAR(WF_shifted%c)(1:wf_ng_eff,i_spinor,iv_wf_sh))
+                &                            DEV_VAR(WF_shifted%c)(1:wf_ng_eff,i_spinor,iv_wf_sh))
                 !
               enddo
               !
@@ -612,9 +613,9 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
         call SERIAL_SVD(Dip%ib(2)-Dip%ib_lim(2),DIP_Q,'uni',0)
         !
         ! Yambo version
-        Der_k=(matmul(DIP_S,hermitian(DIP_Q) )-Identity)/q0_shift_norm
+        Der_k=-cI*(matmul(DIP_S,hermitian(DIP_Q) )-Identity)/q0_shift_norm
         ! Virk-Sipe version
-        !Der_k=(matmul((DIP_S-DIP_O),hermitian(DIP_Q) )-Identity)/q0_shift_norm
+        !Der_k=-cI*(matmul((DIP_S-DIP_O),hermitian(DIP_Q) )-Identity)/q0_shift_norm
         !
         do i_grp=1,n_deg_grp
           do iv=first_el(i_grp)+Dip%ib(1)-1,first_el(i_grp)+n_of_el(i_grp)-1+Dip%ib(1)-1
@@ -624,7 +625,9 @@ subroutine DIPOLE_shifted_grids(Xen,Xk,Dip)
             !
             do ic=ic_min,Dip%ib(2)
               !
-              DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=Der_k(ic,iv)
+              ! In yambo there is a band inversion in the definition of the dipoels
+              ! which results in a conjg factor
+              DIP_iR(ir,ic,iv,ik_mem,i_sp_pol)=conjg(cI*Der_k(ic,iv))
               !
               !=====
               ! <v>
