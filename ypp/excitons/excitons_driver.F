@@ -71,7 +71,7 @@ subroutine excitons_driver(k,Xk,en,Xen,q)
  endif
  !
  YAMBO_ALLOC(Res,(BSS_n_eig))
- if (l_magnons)       Res(:)=real(BS_R_left_magn(1,:)*BS_R_right_magn(1,:),SP)
+ if (l_magnons)       Res(:)=real(BS_R_left_magn(:,1)*BS_R_right_magn(:,1),SP)
  if (.not.l_magnons)  Res(:)=real(BS_R_left(:)*BS_R_right(:),SP)
  !
  ! Sort energies and write to output

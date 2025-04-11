@@ -88,8 +88,8 @@ subroutine excitons_read(k,Xk,en,Xen,iq,what,io_err)
    YAMBO_ALLOC_P(BS_R_left,(BSS_n_eig))
    YAMBO_ALLOC(BS_E,(BSS_n_eig))
    if (l_magnons) then
-     YAMBO_ALLOC_P(BS_R_right_magn,(2,BSS_n_eig))
-     YAMBO_ALLOC_P(BS_R_left_magn,(2,BSS_n_eig))
+     YAMBO_ALLOC_P(BS_R_right_magn,(BSS_n_eig,2))
+     YAMBO_ALLOC_P(BS_R_left_magn,(BSS_n_eig,2))
    endif
    if(en%nb_SOC/=0) then
      YAMBO_ALLOC_P(BS_E_SOC_corr,(2/n_sp_pol,BSS_n_eig))

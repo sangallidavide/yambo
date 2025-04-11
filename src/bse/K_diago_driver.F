@@ -126,17 +126,17 @@ subroutine K_diago_driver(iq,W,X_static)
  l_kerr_lft=l_BS_kerr_asymm.or.l_BS_dichroism
  l_kerr_rgt=l_BS_kerr      .or.l_BS_dichroism
  !
- l_diago     = index(BSS_mode,'o')/=0 ! old diago
+ l_diago     = index(BSS_mode,'o')/=0 .or. (index(BSS_mode,'d')/=0.and.l_BS_magnons)
+ l_ydiago    = index(BSS_mode,'d')/=0 .and. .not. l_BS_magnons
 #if defined _SLEPC && !defined _NL
  l_slepc     = index(BSS_mode,'s')/=0
 #endif
- l_ydiago    = index(BSS_mode,'d')/=0 
  !
  if(l_diago) Solver="Diago"
+ if(l_ydiago) Solver="Ydiago" 
 #if defined _SLEPC && !defined _NL
  if(l_slepc) Solver="Slepc"
 #endif
- if(l_ydiago) Solver="Ydiago" 
  !
  call timing(trim(Solver)//' Solver',OPR='start')
  !
