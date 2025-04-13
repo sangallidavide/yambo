@@ -10,7 +10,7 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
  use pars,           ONLY:cZERO,rZERO,DP,SP
  use plasma,         ONLY:N_plasma_poles_global
  use R_lattice,      ONLY:nqbz,nkibz
- use electrons,      ONLY:n_met_bands,n_full_bands
+ use electrons,      ONLY:n_met_bands,n_full_bands,n_sp_pol
  use parallel_m,     ONLY:PAR_nPlasma,PAR_nQ_bz
  use collision_ext,  ONLY:COLLISIONS_element,COH_COLL_element,HXC_COLL_element,GW_NEQ_COLL_element,&
 &                         COLL_bands,COLLISIONS_load_SP,COLLISIONS_CV_only,&
@@ -169,12 +169,12 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
        !
        if (l_alloc.and.(l_v3.or.l_all)) then
          if(l_real) then
-           YAMBO_ALLOC(COLL_element(J)%v3_r,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
+           YAMBO_ALLOC(COLL_element(J)%v3_r,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2),n_sp_pol))
            COLL_element(J)%v3_r=rZERO
            mem_size(1)=mem_size(1)+size(COLL_element(J)%v3_r)
          endif
          if(l_complex) then
-           YAMBO_ALLOC(COLL_element(J)%v3_c,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
+           YAMBO_ALLOC(COLL_element(J)%v3_c,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2),n_sp_pol))
            COLL_element(J)%v3_c=cZERO
            mem_size(2)=mem_size(2)+size(COLL_element(J)%v3_c)
          endif
@@ -214,7 +214,7 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
        endif
        if (l_alloc.and.(l_table.or.l_all)) then
          !AMBO_ALLOC(COLL_element(J)%table,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
-         allocate(COLL_element(J)%table(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
+         allocate(COLL_element(J)%table(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2),n_sp_pol))
          COLL_element(J)%table='f'
          COLL_grp%D=D
          mem_size(5)=mem_size(5)+size(COLL_element(J)%table)

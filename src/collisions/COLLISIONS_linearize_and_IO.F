@@ -10,7 +10,7 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  use pars,            ONLY:SP,cZERO
  use parallel_m,      ONLY:master_cpu,yMPI_comm
  use parallel_int,    ONLY:PP_wait
- use electrons,       ONLY:n_met_bands,n_full_bands
+ use electrons,       ONLY:n_met_bands,n_full_bands,n_sp_pol
  use collision_ext,   ONLY:COLLISIONS_element,COLLISIONS_cutoff,COLLISIONS_group,COLLISIONS_CV_only
  use IO_int,          ONLY:io_control
  use IO_m,            ONLY:REP,OP_APP_CL,OP_WR_CL,OP_APP,WR,WR_CL,io_COLLs
@@ -30,7 +30,7 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  !
  ! Work Space
  !
- integer   :: ic,i1,i2,i3,i_cycle,io_err,i_ref
+ integer   :: ic,i1,i2,i3,i4,i_cycle,io_err,i_ref
  logical   :: store_it,l_HXC,l_GW_NEQ,l_QED_P,l_COH
  real(SP)  :: COLLISIONS_max
  ! DEBUG <
@@ -76,15 +76,16 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  ! Reference value for the reduction of the tiny elements of COHSEX/HF collision
  ! integrals.
  !
- if ( l_HXC .or. l_COH ) COLLISIONS_max=maxval(abs(COLL_element(1)%v3_c(:,:,:)))        
+ if ( l_HXC .or. l_COH ) COLLISIONS_max=maxval(abs(COLL_element(1)%v3_c(:,:,:,:)))        
  !
- COLL_element(i_ref)%table(:,:,:)='f'
+ COLL_element(i_ref)%table(:,:,:,:)='f'
  store_it=.true.
  !
  do i_cycle=1,2
    !
    ic=0
    !
+   do i4=1,n_sp_pol
    do i3=COLL_grp%D(3,1),COLL_grp%D(3,2)       ! ik
      do i2=COLL_grp%D(2,1),COLL_grp%D(2,2)     ! ib1
        do i1=COLL_grp%D(1,1),COLL_grp%D(1,2)   ! ib2
@@ -95,26 +96,24 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
          ! In the COHSEX/HF case a cutoff can be applied
          !
          if (l_HXC.or.l_COH) then
-           store_it=abs(COLL_element(1)%v3_c(i1,i2,i3))>=COLLISIONS_max*COLLISIONS_cutoff .or. COLLISIONS_cutoff<0.0
+           store_it=abs(COLL_element(1)%v3_c(i1,i2,i3,i4))>=COLLISIONS_max*COLLISIONS_cutoff .or. COLLISIONS_cutoff<0.0
          endif
-#if defined _PAR_IO
          if ((.not.store_it).and.io_COLLs) then
-           COLL_element(1)%v3_c(i1,i2,i3)=cZERO
+           COLL_element(1)%v3_c(i1,i2,i3,i4)=cZERO
            store_it=.true.
          endif
-#endif
          !
          if (.not.store_it) cycle
          ic=ic+1
          !
          if (i_cycle==2) then
            !
-           COLL_element(i_ref)%table(i1,i2,i3)='t'
-           if (l_HXC   .or.l_COH   ) COLL_element(i_ref)%v_c(ic) = COLL_element(1)%v3_c(i1,i2,i3)
-           if (l_GW_NEQ.or.l_QED_P ) COLL_element(i_ref)%v_r(ic) = COLL_element(1)%v3_r(i1,i2,i3)
+           COLL_element(i_ref)%table(i1,i2,i3,i4)='t'
+           if (l_HXC   .or.l_COH   ) COLL_element(i_ref)%v_c(ic) = COLL_element(1)%v3_c(i1,i2,i3,i4)
+           if (l_GW_NEQ.or.l_QED_P ) COLL_element(i_ref)%v_r(ic) = COLL_element(1)%v3_r(i1,i2,i3,i4)
            !
            ! DEBUG <
-           !Mij=COLL_element(1)%v3_c(i1,i2,i3)
+           !Mij=COLL_element(1)%v3_c(i1,i2,i3,i4)
            !if (abs( real(Mij))<1.e-10) Mij=cmplx(0._SP,aimag(Mij),kind=SP)
            !if (abs(aimag(Mij))<1.e-10) Mij=cmplx(real(Mij),0._SP,kind=SP)
            !str="N"
@@ -123,17 +122,18 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
            !if (COLL_grp%state(i_coll,1)<COLL_grp%state(i_coll,2) .and. i1>i2 ) str="C"
            !if (COLL_grp%state(i_coll,1)>COLL_grp%state(i_coll,2) .and. i1>i2 ) str="A"
            !!
-           !              write(100,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,str,real(Mij),aimag(Mij)
-           !if (str=="R") write(101,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,str,real(Mij),aimag(Mij)
-           !if (str=="C") write(102,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,str,real(Mij),aimag(Mij)
-           !if (str=="Q") write(103,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,str,real(Mij),aimag(Mij)
-           !if (str=="A") write(104,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,str,real(Mij),aimag(Mij)
+           !              write(100,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,i4,str,real(Mij),aimag(Mij)
+           !if (str=="R") write(101,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,i4,str,real(Mij),aimag(Mij)
+           !if (str=="C") write(102,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,i4,str,real(Mij),aimag(Mij)
+           !if (str=="Q") write(103,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,i4,str,real(Mij),aimag(Mij)
+           !if (str=="A") write(104,*) COLL_grp%state(i_coll,1:3),i1,i2,i3,i4,str,real(Mij),aimag(Mij)
            ! DEBUG >
            !
          endif
          !
        enddo
      enddo
+   enddo
    enddo
    !
    COLL_element(i_ref)%N=ic
@@ -144,22 +144,16 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  !
  if (IO_colls) then
    !
-#if defined _PAR_IO
    call io_control(ACTION=WR,SEC=(/3,4/),ID=COLL_ID)
-#else
-   call io_control(ACTION=OP_APP_CL,SEC=(/2,3/),ID=COLL_ID)
-#endif
    io_err=io_COLLISIONS(COLL_ID,COLL_grp,COLL_element=COLL_element(1),i_coll=i_coll)
    !
    call COLLISIONS_alloc_and_free(what,"v1","clean",1)
    !
-#if defined _PAR_IO
    if(i_coll==last_coll) then
      call PP_wait()
      call io_control(ACTION=WR_CL,SEC=(/5/),ID=COLL_ID)
      io_err=io_COLLISIONS(COLL_ID,COLL_grp,COLL_element=COLL_element(1),i_coll=i_coll)
    endif
-#endif
    !
  endif
  !

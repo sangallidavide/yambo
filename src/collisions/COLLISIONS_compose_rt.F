@@ -26,7 +26,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
  !
  ! Work Space
  !
- integer           :: i_coll,i_comp,i_coll_mem,i_spin,i_n,i_m,i_kmq,ib,ibp,i_k
+ integer           :: i_coll,i_comp,i_coll_mem,i_sp,ip_sp,i_n,i_m,i_kmq,ib,ibp,i_k
  logical           :: do_collisions(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),2)
  !
  if(.not.l_sc_fock.and..not.l_sc_coh.and..not.l_sc_sex.and..not.l_sc_exx.and..not.l_sc_hartree) return
@@ -54,7 +54,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
    i_k       =HXC_collisions%state(i_coll,3)
    i_n       =HXC_collisions%state(i_coll,1)
    i_m       =HXC_collisions%state(i_coll,2)
-   i_spin    =HXC_collisions%state(i_coll,4)
+   i_sp      =HXC_collisions%state(i_coll,4)
    i_coll_mem=HXC_collisions%PAR_map(i_coll)
    !
    ! If the COLLISIONS are read from a DB with more bands than RT_bands:
@@ -64,6 +64,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
    !
    i_comp=0
    !
+   do ip_sp=1,n_sp_pol
    do i_kmq=1,nXkibz
      !
      do ibp=COLL_bands(1),COLL_bands(2)
@@ -71,18 +72,19 @@ subroutine COLLISIONS_compose_rt(dG_avg)
          !
          if (.not.do_collisions(ib,ibp,1)) cycle
          !
-         if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='f') cycle
+         if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq,ip_sp)=='f') cycle
          !
          i_comp=i_comp+1
          !
          if (.not.do_collisions(ib,ibp,2)) cycle
          !
-         RT_Vnl_xc(i_n,i_m,i_k,i_spin)=RT_Vnl_xc(i_n,i_m,i_k,i_spin) &
-&                                      -cI*HXC_COLL_element(i_coll_mem)%v_c(i_comp)*dG_avg(ib,ibp,i_kmq,i_spin)
+         RT_Vnl_xc(i_n,i_m,i_k,i_sp)=RT_Vnl_xc(i_n,i_m,i_k,i_sp) &
+&                                      -cI*HXC_COLL_element(i_coll_mem)%v_c(i_comp)*dG_avg(ib,ibp,i_kmq,ip_sp)
          !
        enddo
      enddo
      !
+   enddo
    enddo
    !
  enddo
@@ -97,14 +99,16 @@ subroutine COLLISIONS_compose_rt(dG_avg)
  !
  ! Symmetrization
  !================
+ do i_sp=1,n_sp_pol
  do i_k=1,nXkibz
    if (.not.PAR_IND_Xk_ibz%element_1D(i_k) ) cycle
    do i_n=COLL_bands(1),COLL_bands(2)
-     RT_Vnl_xc(i_n,i_n,i_k,:)= real(RT_Vnl_xc(i_n,i_n,i_k,:))
+     RT_Vnl_xc(i_n,i_n,i_k,i_sp)= real(RT_Vnl_xc(i_n,i_n,i_k,i_sp))
      do i_m=i_n+1,COLL_bands(2)
-       RT_Vnl_xc(i_m,i_n,i_k,:)=conjg(RT_Vnl_xc(i_n,i_m,i_k,:))
+       RT_Vnl_xc(i_m,i_n,i_k,i_sp)=conjg(RT_Vnl_xc(i_n,i_m,i_k,i_sp))
      enddo
    enddo
+ enddo
  enddo
  !
  ! Redux over kpts (is this needed?)
