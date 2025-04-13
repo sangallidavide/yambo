@@ -191,7 +191,7 @@ module nl_optics
      endif          
      !
      if(eval_dG.or.l_pump_and_probe) then
-       YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,1))
+       YAMBO_ALLOC(dG_lesser,(NL_bands(1):NL_bands(2),NL_bands(1):NL_bands(2),QP_nk,n_sp_pol,1))
      endif
      !
      ! Reference energies

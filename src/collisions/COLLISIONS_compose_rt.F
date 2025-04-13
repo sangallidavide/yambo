@@ -12,7 +12,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
  use pars,             ONLY:SP,cZERO,cI
  use drivers,          ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_exx,l_sc_hartree
  use collision_ext,    ONLY:HXC_COLL_element,COLL_bands,HXC_collisions,COLLISIONS_CV_only
- use electrons,        ONLY:spin,n_met_bands,n_full_bands
+ use electrons,        ONLY:spin,n_met_bands,n_full_bands,n_sp_pol
  use R_lattice,        ONLY:nXkibz
  use parallel_int,     ONLY:PP_redux_wait
  use parallel_m,       ONLY:PAR_COM_Xk_ibz_A2A,PAR_IND_Xk_ibz,PAR_IND_Bp_mat
@@ -22,7 +22,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
  !
  implicit none
  !
- complex(SP), intent(in)   :: dG_avg(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz)
+ complex(SP), intent(in)   :: dG_avg(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol)
  !
  ! Work Space
  !
@@ -78,7 +78,7 @@ subroutine COLLISIONS_compose_rt(dG_avg)
          if (.not.do_collisions(ib,ibp,2)) cycle
          !
          RT_Vnl_xc(i_n,i_m,i_k,i_spin)=RT_Vnl_xc(i_n,i_m,i_k,i_spin) &
-&                                      -cI*HXC_COLL_element(i_coll_mem)%v_c(i_comp)*dG_avg(ib,ibp,i_kmq)
+&                                      -cI*HXC_COLL_element(i_coll_mem)%v_c(i_comp)*dG_avg(ib,ibp,i_kmq,i_spin)
          !
        enddo
      enddo
@@ -120,6 +120,7 @@ subroutine Build_dG_avg(dG_in,dG_avg)
  !
  use pars,             ONLY:SP,cZERO
  use drivers,          ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_exx,l_sc_hartree
+ use electrons,        ONLY:n_sp_pol
  use R_lattice,        ONLY:nXkibz
  use parallel_int,     ONLY:PP_redux_wait
  use parallel_m,       ONLY:PAR_COM_Q_INDEX,PAR_COM_Xk_ibz_INDEX,PAR_IND_Xk_ibz,PAR_G_k_range
@@ -128,12 +129,12 @@ subroutine Build_dG_avg(dG_in,dG_avg)
  !
  implicit none
  !
- complex(SP), intent(in)   :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2))
- complex(SP), intent(out)  :: dG_avg(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz)
+ complex(SP), intent(in)   :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2),n_sp_pol)
+ complex(SP), intent(out)  :: dG_avg(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol)
  !
  ! Work Space
  !
- integer           :: i_k,i_k_RT
+ integer           :: i_k,i_k_RT,i_sp
  !
  if(.not.l_sc_fock.and..not.l_sc_coh.and..not.l_sc_sex.and..not.l_sc_exx.and..not.l_sc_hartree) return
  !
@@ -141,19 +142,21 @@ subroutine Build_dG_avg(dG_in,dG_avg)
  !
  dG_avg=cZERO
  !
+ do i_sp=1,n_sp_pol
  do i_k=1,nXkibz
    !
    if (.not.PAR_IND_Xk_ibz%element_1D(i_k) ) cycle
    !
    do i_k_RT=RTibz%k_range(i_k,1),RTibz%k_range(i_k,2)
-     dG_avg(:,:,i_k)=dG_avg(:,:,i_k)+dG_in(:,:,i_k_RT)
+     dG_avg(:,:,i_k,i_sp)=dG_avg(:,:,i_k,i_sp)+dG_in(:,:,i_k_RT,i_sp)
    enddo
    !
    ! The 1/real(RT_k_FT%N_mapped(i_k),SP) factor is needed here because I'm integrating
    ! over kmq. With the DbGd the size of the integrating factor has to be reduced
    ! 
-   dG_avg(:,:,i_k)=dG_avg(:,:,i_k)/real(RTibz%N_mapped(i_k),SP)/real(PAR_COM_Q_INDEX%n_CPU)
+   dG_avg(:,:,i_k,i_sp)=dG_avg(:,:,i_k,i_sp)/real(RTibz%N_mapped(i_k),SP)/real(PAR_COM_Q_INDEX%n_CPU)
    !
+ enddo
  enddo
  !
  call PP_redux_wait(dG_avg,COMM=PAR_COM_Xk_ibz_INDEX%COMM)

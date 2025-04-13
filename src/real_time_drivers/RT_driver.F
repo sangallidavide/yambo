@@ -275,7 +275,7 @@ if (l_phel_scatt)                   sec_title=trim(sec_title)//'+ph-el'
    !
    ! Calculate the RT Hamiltonian Ho_plus_Sigma
    !============================================
-   call RT_Hamiltonian(dG_lesser(:,:,:,i_MEM_now),A_tot,E,k)
+   call RT_Hamiltonian(dG_lesser(:,:,:,:,i_MEM_now),A_tot,E,k)
    !
    ! Rotation in the Coherent Hamiltonian basis
    !============================================
@@ -283,7 +283,7 @@ if (l_phel_scatt)                   sec_title=trim(sec_title)//'+ph-el'
    !
    ! Energy, number of carriers, fit of electronic temperatures
    !=============================================================
-   call RT_Observables(E,k,dG_lesser(:,:,:,i_MEM_now),OBSERVABLES)
+   call RT_Observables(E,k,dG_lesser(:,:,:,:,i_MEM_now),OBSERVABLES)
    !
    ! Calculate all relaxation and dissipation terms
    !===============================================
@@ -313,7 +313,7 @@ if (l_phel_scatt)                   sec_title=trim(sec_title)//'+ph-el'
    !
    ! Integration
    !=============
-   call RT_Integrator(G_lesser(:,:,:,i_MEM_now),dG_lesser(:,:,:,i_MEM_now),dG_lesser(:,:,:,i_MEM_prev),A_tot,A_tot,E,k,q)
+   call RT_Integrator(G_lesser(:,:,:,:,i_MEM_now),dG_lesser(:,:,:,:,i_MEM_now),dG_lesser(:,:,:,:,i_MEM_prev),A_tot,A_tot,E,k,q)
    !
  enddo
  !

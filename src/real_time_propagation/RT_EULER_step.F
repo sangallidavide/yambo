@@ -5,7 +5,7 @@
 !
 ! Authors (see AUTHORS file for details): CA DS
 !
-subroutine RT_EULER_step(dG_in,dG_out,ik,nbf,dT)
+subroutine RT_EULER_step(dG_in,dG_out,ik,i_sp_pol,nbf,dT)
  !
  use pars,           ONLY:SP,cZERO,cI
  use real_time,      ONLY:l_RT_PERT,l_RT_FRES,l_RT_RWA,&
@@ -14,7 +14,7 @@ subroutine RT_EULER_step(dG_in,dG_out,ik,nbf,dT)
  !
  implicit none
  !
- integer,     intent(in)  :: ik,nbf
+ integer,     intent(in)  :: ik,i_sp_pol,nbf
  real(SP),    intent(in)  :: dT
  complex(SP), intent(in)  :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
  complex(SP), intent(out) :: dG_out(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
@@ -29,8 +29,8 @@ subroutine RT_EULER_step(dG_in,dG_out,ik,nbf,dT)
  !
  if (.not. l_RT_pert) then
    !
-   G_k=dG_in+G_lesser_reference(:,:,ik)
-   H_k=Ho_plus_Sigma(:,:,ik,1)
+   G_k=dG_in+G_lesser_reference(:,:,ik,i_sp_pol)
+   H_k=Ho_plus_Sigma(:,:,ik,i_sp_pol)
    call RT_EULER_step_apply(G_k,H_k,dG_out,nbf,dT,"def")
    !
    return
@@ -39,13 +39,13 @@ subroutine RT_EULER_step(dG_in,dG_out,ik,nbf,dT)
  !
  ! Part of the hamiltonina multiplied by rho0+rho1
  !
- H_k=Ho_plus_Sigma(:,:,ik,1)
- if(.not.l_RT_RWA) H_k=H_k-H_EQ(:,:,ik,1)
- if(  l_RT_FRES  ) H_k=H_k-H_field(:,:,ik,1)
+ H_k=Ho_plus_Sigma(:,:,ik,i_sp_pol)
+ if(.not.l_RT_RWA) H_k=H_k-H_EQ(:,:,ik,i_sp_pol)
+ if(  l_RT_FRES  ) H_k=H_k-H_field(:,:,ik,i_sp_pol)
  !
  ! First the rho0 term. This gives rho1.
  !
- G_k=G_lesser_reference(:,:,ik)
+ G_k=G_lesser_reference(:,:,ik,i_sp_pol)
  !
  call RT_EULER_step_apply(G_k,H_k,dG_out,nbf,dT,"def")
  !
@@ -76,9 +76,9 @@ subroutine RT_EULER_step(dG_in,dG_out,ik,nbf,dT)
  ! Part of the hamiltonian multiplied by the full rho
  !
  H_k=cZERO
- if(.not.l_RT_RWA) H_k=H_EQ(:,:,ik,1)
- if(  l_RT_FRES  ) H_k=H_k+H_field(:,:,ik,1)
- G_k=dG_in+G_lesser_reference(:,:,ik)
+ if(.not.l_RT_RWA) H_k=H_EQ(:,:,ik,i_sp_pol)
+ if(  l_RT_FRES  ) H_k=H_k+H_field(:,:,ik,i_sp_pol)
+ G_k=dG_in+G_lesser_reference(:,:,ik,i_sp_pol)
  !
  call RT_EULER_step_apply(G_k,H_k,dG_out,nbf,dT,"add")
  !

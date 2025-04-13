@@ -24,7 +24,7 @@ subroutine RT_gradk_rho_times_E_wrong(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  use vec_operate,    ONLY:k_periodic_idx,degeneration_finder
  use matrix_operate, ONLY:hermitian
  use DIPOLES,        ONLY:DIP_S,DIP_iR,l_force_SndOrd
- use electrons,      ONLY:levels
+ use electrons,      ONLY:levels,n_sp_pol
  use R_lattice,      ONLY:bz_samp,k_map
  use D_lattice,      ONLY:a
  use parallel_m,     ONLY:PAR_G_k_range
@@ -34,7 +34,7 @@ subroutine RT_gradk_rho_times_E_wrong(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  integer,           intent(in) :: ik,i_sp_pol
  complex(SP),    intent(inout) :: H_nl_sc(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
- complex(SP),       intent(in) :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2))
+ complex(SP),       intent(in) :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2),n_sp_pol)
  type(gauge_field), intent(in) :: A_input
  type(bz_samp),     intent(in) :: Xk
  type(levels),      intent(in) :: Xen
@@ -134,8 +134,8 @@ subroutine RT_gradk_rho_times_E_wrong(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
      do ib1=RT_bands(1),RT_bands(2)
        do jb1=RT_bands(1),RT_bands(2)
          gradk_rho_red(ib1,jb1,istep)=gradk_rho_red(ib1,jb1,istep)+  &
-             &  -cI*(dG_in(ib1,jb1,ikp1_ibz)*conjg(DIP_km(ib1,jb1))+ &
-             &      -dG_in(ib1,jb1,ikm1_ibz)*conjg(DIP_kp(ib1,jb1))  )
+             &  -cI*(dG_in(ib1,jb1,ikp1_ibz,i_sp_pol)*conjg(DIP_km(ib1,jb1))+ &
+             &      -dG_in(ib1,jb1,ikm1_ibz,i_sp_pol)*conjg(DIP_kp(ib1,jb1))  )
        enddo
      enddo
      !
@@ -203,7 +203,7 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  use vec_operate,    ONLY:k_periodic_idx,degeneration_finder
  use matrix_operate, ONLY:hermitian
  use DIPOLES,        ONLY:DIP_S,DIP_iR,l_force_SndOrd
- use electrons,      ONLY:levels
+ use electrons,      ONLY:levels,n_sp_pol
  use R_lattice,      ONLY:bz_samp,k_map
  use D_lattice,      ONLY:a
  use parallel_m,     ONLY:PAR_G_k_range
@@ -213,7 +213,7 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
  !
  integer,           intent(in) :: ik,i_sp_pol
  complex(SP),    intent(inout) :: H_nl_sc(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
- complex(SP),       intent(in) :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2))
+ complex(SP),       intent(in) :: dG_in(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2),n_sp_pol)
  type(gauge_field), intent(in) :: A_input
  type(bz_samp),     intent(in) :: Xk
  type(levels),      intent(in) :: Xen
@@ -383,11 +383,11 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
          do jb1=RT_bands(1),RT_bands(2)
            do ib2=RT_bands(1),RT_bands(2)
              !A1_ll' ib1=l jb1=l' ib2=s
-             A1p_kmq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikm1_ibz)*conjg(DIP_km(ib2,ib1))
-             A1m_kpq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikp1_ibz)*conjg(DIP_kp(ib2,ib1))
+             A1p_kmq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikm1_ibz,i_sp_pol)*conjg(DIP_km(ib2,ib1))
+             A1m_kpq(ib1,jb1)=-cI*dG_in(ib2,jb1,ikp1_ibz,i_sp_pol)*conjg(DIP_kp(ib2,ib1))
              !A2_ll' ib1=l jb1=l' ib2=s
-             A2p_kmq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikm1_ibz)*      DIP_km(ib2,jb1)
-             A2m_kpq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikp1_ibz)*      DIP_kp(ib2,jb1)
+             A2p_kmq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikm1_ibz,i_sp_pol)*      DIP_km(ib2,jb1)
+             A2m_kpq(ib1,jb1)=-cI*dG_in(ib1,ib2,ikp1_ibz,i_sp_pol)*      DIP_kp(ib2,jb1)
            enddo
          enddo
        enddo
@@ -410,8 +410,8 @@ subroutine RT_gradk_rho_times_E(ik,i_sp_pol,H_nl_sc,dG_in,A_input,Xk,Xen)
            do jb2=RT_bands(1),RT_bands(2)
              ! ib1=n, jb1=m, ib2=l, jb2=l'
              gradk_rho_red(ib1,jb1,istep)=gradk_rho_red(ib1,jb1,istep)+ &
-             &  -cI*Mm_kpq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikp1_ibz)+    &
-             &  +cI*Mp_kmq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikm1_ibz)+    &
+             &  -cI*Mm_kpq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikp1_ibz,i_sp_pol)+    &
+             &  +cI*Mp_kmq(ib2,ib1,jb2,jb1)*dG_in(ib2,jb2,ikm1_ibz,i_sp_pol)+    &
              &  -cI/q_fac*Mm_kpq(ib2,ib1,jb2,jb1)*(A1m_kpq(ib2,jb2)-A2m_kpq(ib2,jb2))+ &
              &  -cI/q_fac*Mp_kmq(ib2,ib1,jb2,jb1)*(A1p_kmq(ib2,jb2)-A2p_kmq(ib2,jb2))
            enddo
