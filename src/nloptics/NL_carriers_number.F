@@ -25,7 +25,7 @@ subroutine NL_carriers_number(en,k,Ncarr)
  !
  use pars,           ONLY:SP
  use R_lattice,      ONLY:bz_samp
- use electrons,      ONLY:levels
+ use electrons,      ONLY:levels,n_sp_pol
  use nl_optics,      ONLY:NL_bands
  use real_time,      ONLY:dG_lesser
  !
@@ -37,17 +37,19 @@ subroutine NL_carriers_number(en,k,Ncarr)
  !
  ! Workspace
  !
- integer     :: ib,ik
+ integer     :: ib,ik,i_sp_pol
  !
  ! Electrons and holes number
  !
  Ncarr = 0._SP
  !
+ do i_sp_pol=1,n_sp_pol
  do ik=1,en%nk
    do ib=NL_bands(1),NL_bands(2)
-     if ( en%E(ib,ik,1)<=0._SP ) Ncarr(2)=Ncarr(2)-aimag(dG_lesser(ib,ib,ik,1))*k%weights(ik)
-     if ( en%E(ib,ik,1)> 0._SP ) Ncarr(3)=Ncarr(3)+aimag(dG_lesser(ib,ib,ik,1))*k%weights(ik)
+     if ( en%E(ib,ik,i_sp_pol)<=0._SP ) Ncarr(2)=Ncarr(2)-aimag(dG_lesser(ib,ib,ik,i_sp_pol,1))*k%weights(ik)
+     if ( en%E(ib,ik,i_sp_pol)> 0._SP ) Ncarr(3)=Ncarr(3)+aimag(dG_lesser(ib,ib,ik,i_sp_pol,1))*k%weights(ik)
    enddo
+ enddo
  enddo
  !
  Ncarr(1)=Ncarr(2)-Ncarr(3)
