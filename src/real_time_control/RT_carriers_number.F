@@ -34,7 +34,7 @@ subroutine RT_carriers_number(en,k,Ncarr)
    do ib=RT_bands(1),RT_bands(2)
      VALUE_tmp=0._SP
      do ik_RT=RTibz%k_range(ik,1),RTibz%k_range(ik,2)
-       if ( RT_levels%E(ib,ik_RT,1)<=0._SP ) then
+       if ( RT_levels%E(ib,ik_RT,i_sp)<=0._SP ) then
          if (NE_i_time==NE_i_start_time) VALUE_tmp(1)=VALUE_tmp(1)+RT_ho_occ%N(ib,ik_RT,i_sp)*RTibz%weights(ik_RT)
          if (NE_i_time/=NE_i_start_time) VALUE_tmp(1)=VALUE_tmp(1)-RT_el_occ%dN(ib,ik_RT,i_sp)*RTibz%weights(ik_RT)
        else

@@ -265,14 +265,14 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  enddo
  !
  n_steps=0
- if (COLLISIONS_HXC_local)                      n_steps=n_steps+PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements
- if (COLLISIONS_HXC_MB.or.l_use_COH_collisions) n_steps=n_steps+PAR_NC_local*PAR_nQ_bz*PAR_n_Bp_mat_elements
+ if (COLLISIONS_HXC_local)                      n_steps=n_steps+PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements*n_sp_pol
+ if (COLLISIONS_HXC_MB.or.l_use_COH_collisions) n_steps=n_steps+PAR_NC_local*PAR_nQ_bz*PAR_n_Bp_mat_elements*n_sp_pol
  !
  if (IO_BS_err==0) then
    i_steps=2
    if (COLLISIONS_CV_only) then
      i_steps=1
-     n_steps=PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements
+     n_steps=PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements*n_sp_pol
    endif
  endif
  !
