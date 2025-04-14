@@ -52,9 +52,9 @@ subroutine RT_entropy(en,k,dG_lesser,Entr,TEntr,EnEntr,E_IP)
  do ik_RT=PAR_G_k_range(1),PAR_G_k_range(2)
    do ib1=RT_bands(1),RT_bands(2)
      do ib2=RT_bands(1),RT_bands(2)
-       if ( RT_levels%E(ib1,ik_RT,1)<=0._SP .and. RT_levels%E(ib2,ik_RT,1)<=0._SP ) then
+       if ( RT_levels%E(ib1,ik_RT,i_sp)<=0._SP .and. RT_levels%E(ib2,ik_RT,i_sp)<=0._SP ) then
          dG_lesser_h(ib1,ib2,ik_RT,i_sp)=dG_lesser(ib1,ib2,ik_RT,i_sp)
-       else if ( RT_levels%E(ib1,ik_RT,1)> 0._SP .and. RT_levels%E(ib2,ik_RT,1)> 0._SP ) then
+       else if ( RT_levels%E(ib1,ik_RT,i_sp)> 0._SP .and. RT_levels%E(ib2,ik_RT,i_sp)> 0._SP ) then
          dG_lesser_e(ib1,ib2,ik_RT,i_sp)=dG_lesser(ib1,ib2,ik_RT,i_sp)
        endif
      enddo
@@ -80,11 +80,11 @@ subroutine RT_entropy(en,k,dG_lesser,Entr,TEntr,EnEntr,E_IP)
      do ik_RT=RTibz%k_range(ik,1),RTibz%k_range(ik,2)
        S_h=0._SP
        S_e=0._SP
-       if(RT_ho_occ%N(ib1,ik_RT)>0._SP) S_h=-RT_ho_occ%N(ib1,ik_RT)*log(RT_ho_occ%N(ib1,ik_RT)/spin_occ)
-       if(RT_el_occ%N(ib1,ik_RT)>0._SP) S_e=-RT_el_occ%N(ib1,ik_RT)*log(RT_el_occ%N(ib1,ik_RT)/spin_occ)
+       if(RT_ho_occ%N(ib1,ik_RT,i_sp)>0._SP) S_h=-RT_ho_occ%N(ib1,ik_RT,i_sp)*log(RT_ho_occ%N(ib1,ik_RT,i_sp)/spin_occ)
+       if(RT_el_occ%N(ib1,ik_RT,i_sp)>0._SP) S_e=-RT_el_occ%N(ib1,ik_RT,i_sp)*log(RT_el_occ%N(ib1,ik_RT,i_sp)/spin_occ)
        VALUE_tmp(1)=VALUE_tmp(1)+S_e+S_h
-       if ( RT_levels%E(ib1,ik_RT,1)<=0._SP ) VALUE_tmp(2)=VALUE_tmp(2)+S_h
-       if ( RT_levels%E(ib1,ik_RT,1)> 0._SP ) VALUE_tmp(3)=VALUE_tmp(3)+S_e
+       if ( RT_levels%E(ib1,ik_RT,i_sp)<=0._SP ) VALUE_tmp(2)=VALUE_tmp(2)+S_h
+       if ( RT_levels%E(ib1,ik_RT,i_sp)> 0._SP ) VALUE_tmp(3)=VALUE_tmp(3)+S_e
        VALUE_tmp=VALUE_tmp*RTibz%weights(ik_RT)
      enddo
      Entr=Entr+VALUE_tmp

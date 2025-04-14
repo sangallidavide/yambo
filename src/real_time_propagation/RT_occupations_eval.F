@@ -27,9 +27,6 @@ subroutine RT_occupations_eval(dG)
 &                           G_ref(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2))
  logical, external       :: RT_do_it
  !
- i_sp=1
- if (n_sp_pol==2) call error("Occupations eval not coded for n_sp_pol=2")
- !
  ! Update the occupations:
  !  RT_delta_occupations are always sensitive to small changes 
  !  for Gref~spin_occ RT_H_occ is also sensitive
@@ -39,6 +36,7 @@ subroutine RT_occupations_eval(dG)
  RT_ho_occ%N=0._SP
  RT_el_occ%dN=0._SP
  !
+ do i_sp=1,n_sp_pol
  do ik=1,RT_nk
    !
    if (.not.PAR_IND_Xk_ibz%element_1D(RTibz%k_map(ik)) ) cycle
@@ -52,28 +50,29 @@ subroutine RT_occupations_eval(dG)
    !
    if (l_RT_rotate_DM.and.(RT_do_it('OUT').or.RT_do_it('CARR'))) then
      do ib=RT_bands(1),RT_bands(2)
-       RT_el_occ%N(ib,ik)= aimag(G_rot(ib,ib))
-       RT_ho_occ%N(ib,ik)=-aimag(G_rot(ib,ib))+spin_occ
+       RT_el_occ%N(ib,ik,i_sp)= aimag(G_rot(ib,ib))
+       RT_ho_occ%N(ib,ik,i_sp)=-aimag(G_rot(ib,ib))+spin_occ
        ! This would be the correct definition
        ! RT_el_occ%dN(ib,ik)=aimag(G_rot(ib,ib)-G_ref(ib,ib))
        ! but I use this definition to consistently reconstruct f from df in ypp
-       RT_el_occ%dN(ib,ik)=aimag(G_rot(ib,ib)-G_lesser_reference(ib,ib,ik,i_sp))
+       RT_el_occ%dN(ib,ik,i_sp)=aimag(G_rot(ib,ib)-G_lesser_reference(ib,ib,ik,i_sp))
      enddo
    else
      do ib=RT_bands(1),RT_bands(2)
        !
-       RT_el_occ%N(ib,ik)= aimag(dG(ib,ib,ik,i_sp))+aimag(G_lesser_reference(ib,ib,ik,i_sp))
+       RT_el_occ%N(ib,ik,i_sp)= aimag(dG(ib,ib,ik,i_sp))+aimag(G_lesser_reference(ib,ib,ik,i_sp))
        !
        ! AM, July 2015. Intel compilers nest in ordered way the mathematical parenthesis. By using 
        ! df_H this problem is solved.
        !
        df_H                   =spin_occ-aimag(G_lesser_reference(ib,ib,ik,i_sp))
-       RT_ho_occ%N(ib,ik)=-aimag(dG(ib,ib,ik,i_sp))+ df_H
+       RT_ho_occ%N(ib,ik,i_sp)=-aimag(dG(ib,ib,ik,i_sp))+ df_H
        !
-       RT_el_occ%dN(ib,ik)=aimag(dG(ib,ib,ik,i_sp))
+       RT_el_occ%dN(ib,ik,i_sp)=aimag(dG(ib,ib,ik,i_sp))
      enddo
    endif
    ! 
+ enddo
  enddo
  !
  call PP_redux_wait(RT_el_occ%N,COMM=PAR_COM_Xk_ibz_INDEX%COMM)

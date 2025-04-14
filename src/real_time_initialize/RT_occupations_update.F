@@ -20,8 +20,6 @@ subroutine RT_occupations_update( )
  !
  integer :: ib,ik,ik_RT,i_sp
  !
- if (n_sp_pol==2) call error("subroutine RT_occupations_update not coded with n_sp_pol=2")
- !
  ! El/Ho Occupations are defined from G_lesser and G_lesser_reference
  !===================
  call RT_occupation_clean(RT_el_occ)
@@ -33,19 +31,19 @@ subroutine RT_occupations_update( )
    do ik=1,nkibz
      do ik_RT=RTibz%k_range(ik,1),RTibz%k_range(ik,2)
        !
-       RT_el_occ%N_ref(ib,ik_RT) =          aimag(G_lesser_reference(ib,ib,ik_RT,i_sp))
-       RT_ho_occ%N_ref(ib,ik_RT) = spin_occ-aimag(G_lesser_reference(ib,ib,ik_RT,i_sp))
+       RT_el_occ%N_ref(ib,ik_RT,i_sp) =          aimag(G_lesser_reference(ib,ib,ik_RT,i_sp))
+       RT_ho_occ%N_ref(ib,ik_RT,i_sp) = spin_occ-aimag(G_lesser_reference(ib,ib,ik_RT,i_sp))
        !
        if (.not.PAR_IND_Xk_ibz%element_1D(ik) ) cycle
        !
-       RT_el_occ%dN(ib,ik_RT)= aimag(dG_lesser(ib,ib,ik_RT,i_sp,1))
+       RT_el_occ%dN(ib,ik_RT,i_sp)= aimag(dG_lesser(ib,ib,ik_RT,i_sp,1))
        !
-       RT_el_occ%N(ib,ik_RT) = RT_el_occ%N_ref(ib,ik_RT)+RT_el_occ%dN(ib,ik_RT)
-       RT_ho_occ%N(ib,ik_RT) = RT_ho_occ%N_ref(ib,ik_RT)-RT_el_occ%dN(ib,ik_RT)
+       RT_el_occ%N(ib,ik_RT,i_sp) = RT_el_occ%N_ref(ib,ik_RT,i_sp)+RT_el_occ%dN(ib,ik_RT,i_sp)
+       RT_ho_occ%N(ib,ik_RT,i_sp) = RT_ho_occ%N_ref(ib,ik_RT,i_sp)-RT_el_occ%dN(ib,ik_RT,i_sp)
        !
        if (.not.RT_is_dynamically_dephased) cycle
        !
-       RT_life_occ%dN(ib,ik_RT) = RT_el_occ%dN(ib,ik_RT)
+       RT_life_occ%dN(ib,ik_RT,i_sp) = RT_el_occ%dN(ib,ik_RT,i_sp)
        !
      enddo
    enddo

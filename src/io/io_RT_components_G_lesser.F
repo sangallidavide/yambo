@@ -39,18 +39,12 @@ subroutine io_RT_components_G_lesser(ID,T_size)
  !
  ! Variables SIZE and strings...
  !-------------------------------
- VAR_SZ(1:5)=(/2,RT_nbands,RT_nbands,1,1/)
- dim_names(1:5)  =[character(schlen) :: 'complex', 'RT_nbands','RT_nbands','k_fragment','n_sp_pol']
- dim_name_ibz ='k_fragment'
- IPOS(1:5)=1
+ VAR_SZ    =(/2,RT_nbands,RT_nbands,RT_nk,n_sp_pol,G_MEM_steps/)
+ dim_names =[character(schlen) :: 'complex', 'RT_nbands','RT_nbands','RT_nk','n_sp_pol','G_MEM_steps']
+ IPOS      =(/1,1,1,PAR_G_k_range(1),1,1/)
  !
- VAR_SZ(4)    = RT_nk
- dim_names(4) ='RT_nk'
- IPOS(4)      =PAR_G_k_range(1)
  dim_name_ibz ='nkibz'
  !
- VAR_SZ(6)    = G_MEM_steps
- dim_names(6) ='G_MEM_steps'
  if (RT_do_IO("G_lesser_K_section")) then
    VAR_SZ(6)    = NF90_UNLIMITED
    dim_names(6) ='G_IO_time_step'
