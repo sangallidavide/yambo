@@ -374,9 +374,14 @@ subroutine K_IP(iq,Ken,Xk,Dip,W_bss)
    !  beta_ij=-((i*hbar*me)/(omega*qe^2))*G_ij;
    !  DeltaN=((8*pi*N*omega/(3*c))*Tr(beta_ij);
    !  N = molecular density = ??
-   !  SPEED_OF_LIGHT =  c in a.u.
    !
-   X_dichroism(:,3)=X_dichroism(:,3)*(cI/SPEED_OF_LIGHT)*Co_factor/(4._SP*pi)   !  this is (omega/c)*beta, with beta=-((i*hbar*me)/(omega*qe^2))*G_ij
+   !  Yambo atomic units
+   !  SPEED_OF_LIGHT =  c in a.u.
+   !  hbar=1 ; me=1 ; qe=1 => beta=-i/omega*G_{ij}
+   !
+   !  this is (omega/c)*beta=-i/c*G_{ij}
+   !
+   X_dichroism(:,3)=X_dichroism(:,3)*(cI/SPEED_OF_LIGHT)*Co_factor/(4._SP*pi)
    !
  endif
  !
