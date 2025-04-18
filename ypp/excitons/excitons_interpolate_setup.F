@@ -54,7 +54,7 @@ subroutine excitons_interpolate_setup(k,Xk,en,Xen,q,BS_all_E,ID_INTERP_EXC,repor
    call excitons_read(k,Xk,en,Xen,iq,"check",io_err)
    call excitons_read(k,Xk,en,Xen,iq,"eigenvalues",io_err)
    n_eig=min(n_eig,BSS_n_eig)
-   if (     l_magnons)  Res(:n_eig)=real(BS_R_left_magn(1,:n_eig)*BS_R_right_magn(1,:n_eig),SP)
+   if (     l_magnons)  Res(:n_eig)=real(BS_R_left_magn(:n_eig,1)*BS_R_right_magn(:n_eig,1),SP)
    if (.not.l_magnons)  Res(:n_eig)=real(BS_R_left(:n_eig)*BS_R_right(:n_eig),SP)
    call excitons_get_user_states(BS_E_degs(:n_eig),Res(:n_eig),n_eig,.true.)
    do i_c=1,EXC_n_states_ref

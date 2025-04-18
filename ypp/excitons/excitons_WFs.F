@@ -15,7 +15,7 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
  use FFT_m,         ONLY:fft_dim
  use com,           ONLY:msg,of_open_close
  use electrons,     ONLY:spin,n_spinor
- use YPPm,          ONLY:v2plot,ncell,r_hole,l_free_hole,AVE_exc,&
+ use YPPm,          ONLY:v2plot,ncell,r_fixed,l_free_hole,AVE_exc,center_kind,&
 &                        nr,nr_tot,output_fname,l_average_eh,&
 &                        use_xcrysden,use_gnuplot,use_cube,plot_dim,&
 &                        EXCITONS_user_indexes,EXCITONS_n_user_states
@@ -38,10 +38,11 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
  ! Workspace
  !
  type(PP_indexes)  :: px
- integer           :: iv,ic,ikbz,ikibz,is,neh,i1,i2,i_l,i_lambda,j_lambda,ir,ir_hole,j1,&
-&                     n_lambda_deg,neh1,iv1,ic1,ikbz1,ikibz1,is1
+ logical           :: fixed_elec_plot,fixed_hole_plot
+ integer           :: iv,ic,ikbz,ikibz,is,neh,i1,i2,i_l,i_lambda,j_lambda,ir,ir_fixed,j1,&
+ &                    n_lambda_deg,neh1,iv1,ic1,ikbz1,ikibz1,is1
  integer           :: ikpbz,ikp,isp
- real(SP)          :: r_hole_rlu(3),kp_dot_r_h,k_dot_r_e
+ real(SP)          :: r_fixed_rlu(3),kp_dot_r_h,k_dot_r_e
  complex(SP)       :: wf_,wf_vc(BS_H_dim),WF1_ir(n_spinor),WF2_ir(n_spinor),phase,B_coeff
  !
  integer,  allocatable :: rindex(:)
@@ -59,6 +60,11 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
  !
  if (l_free_hole.or.l_average_eh) ncell=1
  !
+ fixed_hole_plot=trim(center_kind)=="Hole"
+ fixed_elec_plot=trim(center_kind)=="Electron"
+ !
+ if (.not.(fixed_hole_plot.or.fixed_elec_plot)) call error("Wrong CenterKind in input")
+ !
  call WF_load(WF,wf_ng,1,BS_bands,(/1,Xk%nibz/),space='R',title='-EXCWF')
  !
  call expand_grid()
@@ -72,39 +78,37 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
    ! 
    ! [1] Bare position pushed in the smallest cell 
    ! 
-   call c2a(b_in=a,v_in=r_hole,v_out=r_hole_rlu,mode='kc2a')
+   call c2a(b_in=a,v_in=r_fixed,v_out=r_fixed_rlu,mode='kc2a')
    do j1=1,3
-     r_hole_rlu(j1)=r_hole_rlu(j1)-int(r_hole_rlu(j1))
+     r_fixed_rlu(j1)=r_fixed_rlu(j1)-int(r_fixed_rlu(j1))
    enddo
-   call c2a(b_in=a,v_in=r_hole_rlu,v_out=r_hole,mode='ka2c')
-   call msg('s',' Hole position in the DL cell      ',r_hole,"[c.c.]")
+   call c2a(b_in=a,v_in=r_fixed_rlu,v_out=r_fixed,mode='ka2c')
+   call msg('s',' '//center_kind(1:4)//' position in the DL cell      ',r_fixed,"[c.c.]")
    !
    ! [2] Bare position in the FFT grid
    !
-   call c2a(b_in=a,v_in=r_hole,v_out=r_hole_rlu,mode='kc2a')
-   r_hole_rlu(:)=nint(r_hole_rlu(:)*fft_dim(:))
-   ir_hole=1+r_hole_rlu(1)+ r_hole_rlu(2)*nr(1)+ r_hole_rlu(3)*nr(1)*nr(2)
-   if (ir_hole.lt.0) call error(' Hole coordinates in input must be positive') 
-   call msg('s','      position in the FFT grid     ',r_cell_cc(:,ir_hole),"[c.c.]")
+   call c2a(b_in=a,v_in=r_fixed,v_out=r_fixed_rlu,mode='kc2a')
+   r_fixed_rlu(:)=nint(r_fixed_rlu(:)*fft_dim(:))
+   ir_fixed=1+r_fixed_rlu(1)+ r_fixed_rlu(2)*nr(1)+ r_fixed_rlu(3)*nr(1)*nr(2)
+   if (ir_fixed.lt.0) call error(' Fixed '//trim(center_kind)//' coordinates in input must be positive') 
+   call msg('s','      position in the FFT grid     ',r_cell_cc(:,ir_fixed),"[c.c.]")
    !
    ! [3] Translation in the center of the Big grid
    !
    do j1=1,3
      if (ncell(j1)==1) cycle
      !
-     ! (***) Daniele 15/7/07 rev Andrea 12/07:
-     ! 
      ! The number of cells is always odd so that the hole can
      ! be placed in the middle.
      !
-     r_hole_rlu(j1)=r_hole_rlu(j1)+ncell(j1)/2*fft_dim(j1)
+     r_fixed_rlu(j1)=r_fixed_rlu(j1)+ncell(j1)/2*fft_dim(j1)
      !
    enddo
-   ir_hole=1+r_hole_rlu(1)+ r_hole_rlu(2)*nr(1)+ r_hole_rlu(3)*nr(1)*nr(2)
-   r_hole=r_cell_cc(:,ir_hole)
+   ir_fixed=1+r_fixed_rlu(1)+ r_fixed_rlu(2)*nr(1)+ r_fixed_rlu(3)*nr(1)*nr(2)
+   r_fixed=r_cell_cc(:,ir_fixed)
    !
-   call msg('s','      translated position          ',r_hole,"[c.c.]")
-   call msg('s','                                   ',r_hole*BO2ANG,"[A]")
+   call msg('s','      translated position          ',r_fixed,"[c.c.]")
+   call msg('s','                                   ',r_fixed*BO2ANG,"[A]")
    !
  endif
  !
@@ -207,7 +211,7 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
      !
    else
      !   
-     !$omp parallel default(shared), firstprivate(ir_hole,r_hole), &
+     !$omp parallel default(shared), firstprivate(ir_fixed,r_fixed), &
      !$omp private(wf_vc, ir,neh, ikbz,iv,ic,i_sp_v,i_sp_c,ikibz,is, ikpbz,ikp,isp, &
      !$omp &       k_dot_r_e,kp_dot_r_h, WF1_ir,WF2_ir,phase, i_l,wf_ )
      !
@@ -220,8 +224,8 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
        wf_vc   =cZERO
        !
        if (l_free_hole) then
-         ir_hole=ir
-         r_hole=r_cell_cc(:,ir)
+         ir_fixed=ir
+         r_fixed=r_cell_cc(:,ir)
        endif
        !
        do neh = 1,BS_H_dim
@@ -239,11 +243,23 @@ subroutine exciton_WFs(Xk,BS_E_degs,iq)
          ikp   = Xk%sstar(ikpbz,1)
          isp   = Xk%sstar(ikpbz,2)
          !
-         k_dot_r_e  = dot_product(r_cell_cc(:,ir),Xk%ptbz(ikbz,:)/alat(:))*2._SP*pi
-         kp_dot_r_h = dot_product(r_hole,Xk%ptbz(ikpbz,:)/alat(:))*2._SP*pi
-         !
-         WF1_ir=WF_symm(rindex(ir_hole),(/iv,ikp,isp,i_sp_v/))
-         WF2_ir=WF_symm(rindex(ir     ),(/ic,ikibz,is,i_sp_c/))
+         if (fixed_hole_plot) then
+           !
+           kp_dot_r_h = dot_product(r_fixed,Xk%ptbz(ikpbz,:)/alat(:))*2._SP*pi
+           k_dot_r_e  = dot_product(r_cell_cc(:,ir),Xk%ptbz(ikbz,:)/alat(:))*2._SP*pi
+           !
+           WF1_ir=WF_symm(rindex(ir_fixed),(/iv,ikp,isp,i_sp_v/))
+           WF2_ir=WF_symm(rindex(ir     ),(/ic,ikibz,is,i_sp_c/))
+           !
+         else if (fixed_elec_plot) then
+           !
+           kp_dot_r_h = dot_product(r_cell_cc(:,ir),Xk%ptbz(ikpbz,:)/alat(:))*2._SP*pi
+           k_dot_r_e  = dot_product(r_fixed,Xk%ptbz(ikbz,:)/alat(:))*2._SP*pi
+           !
+           WF1_ir=WF_symm(rindex(ir),(/iv,ikp,isp,i_sp_v/))
+           WF2_ir=WF_symm(rindex(ir_fixed),(/ic,ikibz,is,i_sp_c/))
+           !
+         endif
          !
          wf_vc(neh) = conjg(WF1_ir(1))*WF2_ir(1)
          if(n_spinor==2) wf_vc(neh) = wf_vc(neh) + conjg(WF1_ir(2))*WF2_ir(2)

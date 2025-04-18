@@ -165,7 +165,7 @@ module YPPm
  integer      ::ncell(3) 
  integer      ::BSiq    
  logical      ::BSiq_via_command_line=.FALSE.
- real(SP)     ::r_hole(3)    
+ real(SP)     ::r_fixed(3)
  real(SP)     ::deg_energy   
  real(SP)     ::EXCITON_E_treshold
  real(SP)     ::EXCITON_Res_treshold
@@ -173,6 +173,7 @@ module YPPm
  real(SP)     ::EXCITON_weight_treshold   
  real(SP)     ::WF_multiplier   
  character(7)         :: exc_kind
+ character(schlen)    :: center_kind
  character(schlen)    :: AVE_exc
  character(schlen)    :: state_ctl 
  integer              :: EXCITONS_n_user_states=0

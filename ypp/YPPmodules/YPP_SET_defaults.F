@@ -7,8 +7,8 @@
 !
 subroutine YPP_SET_defaults()
  !
- use YPPm,           ONLY:DOS_broadening,DOS_E_range,r_hole,deg_energy ,EXCITON_weight_treshold,&
-                          WF_multiplier,SOC_split,BANDS_bands,BANDS_steps,&
+ use YPPm,           ONLY:DOS_broadening,DOS_E_range,r_fixed,deg_energy ,EXCITON_weight_treshold,&
+                          center_kind,WF_multiplier,SOC_split,BANDS_bands,BANDS_steps,&
 &                         coo_in,coo_out,DOS_E_steps,INTERP_grid ,l_amplitude,l_bands,l_current,l_density  ,&
 &                         l_dos,l_exc_wf   ,l_mag,l_norm_to_one,l_sort,l_sp_wf,l_spin,l_wannier,mag_dir    ,&
 &                         N_path_pts,ncell ,output_fname,p_dir,p_format   ,perturbative_SOC_path,&
@@ -150,7 +150,8 @@ subroutine YPP_SET_defaults()
  l_amplitude=.false.
  l_interp=.false.
  ncell = (/1, 1, 1/) 
- r_hole= (/0._SP,0._SP,0._SP/)
+ r_fixed= (/0._SP,0._SP,0._SP/)
+ center_kind = "Hole"
  state_ctl = '0 - 0'
  deg_energy =0.01_SP/HA2EV
  EXCITON_Res_treshold =0.0_SP
