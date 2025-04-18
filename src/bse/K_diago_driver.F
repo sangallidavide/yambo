@@ -128,9 +128,7 @@ subroutine K_diago_driver(iq,W,X_static)
  !
  l_diago     = index(BSS_mode,'o')/=0 .or. (index(BSS_mode,'d')/=0.and.l_BS_magnons)
  l_ydiago    = index(BSS_mode,'d')/=0 .and. .not. l_BS_magnons
-#if defined _SLEPC && !defined _NL
  l_slepc     = index(BSS_mode,'s')/=0
-#endif
  !
  if(l_diago) Solver="Diago"
  if(l_ydiago) Solver="Ydiago" 
