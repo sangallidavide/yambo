@@ -37,7 +37,7 @@ subroutine COLLISIONS_compress(COLL)
  !
  ! Search for non-zero collisions
  !
- YAMBO_ALLOC(COLL%v3_c,(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),1:nXkibz))
+ YAMBO_ALLOC(COLL%v3_c,(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),1:nXkibz,n_sp_pol))
  !
  ic=0
  !
@@ -62,17 +62,17 @@ subroutine COLLISIONS_compress(COLL)
        !    
        ic=ic+1
        !
-       if(     l_coll_SP) COLL%v3_c(ib,ibp,i_kmq)=cmplx(COLL%v_c_SP(ic),kind=SP)
-       if(.not.l_coll_SP) COLL%v3_c(ib,ibp,i_kmq)=      COLL%v_c(ic)
+       if(     l_coll_SP) COLL%v3_c(ib,ibp,i_kmq,i_sp)=cmplx(COLL%v_c_SP(ic),kind=SP)
+       if(.not.l_coll_SP) COLL%v3_c(ib,ibp,i_kmq,i_sp)=      COLL%v_c(ic)
        !
-       if(abs(COLL%v3_c(ib,ibp,i_kmq))>=COLLISIONS_max*COLLISIONS_cutoff) COLL%table(ib,ibp,i_kmq)='t'
+       if(abs(COLL%v3_c(ib,ibp,i_kmq,i_sp))>=COLLISIONS_max*COLLISIONS_cutoff) COLL%table(ib,ibp,i_kmq,i_sp)='t'
        !
      enddo
    enddo
  enddo
  enddo
  !
- COLL%N=count(COLL%table(:,:,:)=='t')
+ COLL%N=count(COLL%table(:,:,:,:)=='t')
  !      
  if(l_coll_SP) then
    YAMBO_FREE(COLL%v_c_SP)
@@ -85,18 +85,20 @@ subroutine COLLISIONS_compress(COLL)
  ! Fill collisions again
  !
  ic=0
+ do i_sp=1,n_sp_pol
  do i_kmq=1,nXkibz
    do ibp=COLL_bands(1),COLL_bands(2)
      do ib=COLL_bands(1),COLL_bands(2)
        !
-       if(.not.COLL%table(ib,ibp,i_kmq)=='t') cycle
+       if(.not.COLL%table(ib,ibp,i_kmq,i_sp)=='t') cycle
        !
        ic=ic+1
-       if(l_coll_SP)      COLL%v_c_SP(ic)=cmplx(COLL%v3_c(ib,ibp,i_kmq),kind=SP6)
-       if(.not.l_coll_SP) COLL%v_c(ic)   =COLL%v3_c(ib,ibp,i_kmq)
+       if(l_coll_SP)      COLL%v_c_SP(ic)=cmplx(COLL%v3_c(ib,ibp,i_kmq,i_sp),kind=SP6)
+       if(.not.l_coll_SP) COLL%v_c(ic)   =COLL%v3_c(ib,ibp,i_kmq,i_sp)
        !
      enddo
    enddo
+ enddo
  enddo
  !
  YAMBO_FREE(COLL%v3_c)

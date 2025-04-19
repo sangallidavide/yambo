@@ -19,12 +19,12 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
  use timing_m,         ONLY:timing
  implicit none
  !
- complex(SP), intent(in)   :: G_sex(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),QP_nk)
- complex(SP), intent(in)   :: G_coh(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),QP_nk)
+ complex(SP), intent(in)   :: G_sex(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),QP_nk,n_sp_pol)
+ complex(SP), intent(in)   :: G_coh(COLL_bands(1):COLL_bands(2),COLL_bands(1):COLL_bands(2),QP_nk,n_sp_pol)
  !
  ! Work Space
  !
- integer           :: i_qp,ib,ibp,i_kmq,ic1,ic2,i_coll_mem
+ integer           :: i_qp,ib,ibp,i_kmq,ic1,ic2,i_coll_mem,i_sp
  logical           :: l_sex
  !
  if(.not.l_sc_fock.and..not.l_sc_coh.and..not.l_sc_sex.and..not.l_sc_exx.and.&
@@ -57,14 +57,15 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
    ic1=1
    ic2=1
    !
+   do i_sp=1,n_sp_pol
    do i_kmq=1,QP_nk
      !
      if (.not.PAR_IND_G_k%element_1D(i_kmq)) then 
        if (l_sc_coh) then
-         ic1=ic1+count(COH_COLL_element(i_coll_mem)%table(COLL_bands(1):QP_nb,COLL_bands(1):QP_nb,i_kmq)=='t')
+         ic1=ic1+count(COH_COLL_element(i_coll_mem)%table(COLL_bands(1):QP_nb,COLL_bands(1):QP_nb,i_kmq,i_sp)=='t')
        endif
        if (l_sex) then
-         ic2=ic2+count(HXC_COLL_element(i_coll_mem)%table(COLL_bands(1):QP_nb,COLL_bands(1):QP_nb,i_kmq)=='t')
+         ic2=ic2+count(HXC_COLL_element(i_coll_mem)%table(COLL_bands(1):QP_nb,COLL_bands(1):QP_nb,i_kmq,i_sp)=='t')
        endif
        cycle
      endif
@@ -76,7 +77,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
          !
          if (l_sc_coh) then
            if (COH_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='t') then
-             QP_Vnl_xc(i_qp)=QP_Vnl_xc(i_qp)-cI*COH_COLL_element(i_coll_mem)%v_c(ic1)*G_coh(ib,ibp,i_kmq)
+             QP_Vnl_xc(i_qp)=QP_Vnl_xc(i_qp)-cI*COH_COLL_element(i_coll_mem)%v_c(ic1)*G_coh(ib,ibp,i_kmq,i_sp)
              ic1=ic1+1
            endif
          endif
@@ -85,7 +86,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
          !
          if (l_sex) then
            if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='t') then
-             QP_Vnl_xc(i_qp)=QP_Vnl_xc(i_qp)-cI*HXC_COLL_element(i_coll_mem)%v_c(ic2)*G_sex(ib,ibp,i_kmq)
+             QP_Vnl_xc(i_qp)=QP_Vnl_xc(i_qp)-cI*HXC_COLL_element(i_coll_mem)%v_c(ic2)*G_sex(ib,ibp,i_kmq,i_sp)
              ic2=ic2+1
            endif
          endif
@@ -93,6 +94,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
        enddo
      enddo
      !
+   enddo
    enddo
  enddo
  !

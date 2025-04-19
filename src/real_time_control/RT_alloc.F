@@ -81,7 +81,7 @@ subroutine RT_alloc(en,what)
    if(l_use_Hxc_collisions) then
      YAMBO_ALLOC(RT_Vnl_xc,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol))
      RT_Vnl_xc=cZERO
-     YAMBO_ALLOC(dG_avg,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz))
+     YAMBO_ALLOC(dG_avg,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nXkibz,n_sp_pol))
      dG_avg=cZERO
    endif
    !
@@ -92,9 +92,9 @@ subroutine RT_alloc(en,what)
    XC0=cZERO
    !
    ! G's ...
-   YAMBO_ALLOC(G_lesser_reference,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),RT_nk))
-   YAMBO_ALLOC(dG_lesser,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nk(1):nk(2),G_MEM_steps))
-   YAMBO_ALLOC(G_lesser,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nk(1):nk(2),G_MEM_steps))
+   YAMBO_ALLOC(G_lesser_reference,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),RT_nk,n_sp_pol))
+   YAMBO_ALLOC(dG_lesser,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nk(1):nk(2),n_sp_pol,G_MEM_steps))
+   YAMBO_ALLOC(G_lesser,(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),nk(1):nk(2),n_sp_pol,G_MEM_steps))
    G_lesser_reference=cZERO
    dG_lesser         =cZERO
    G_lesser          =cZERO

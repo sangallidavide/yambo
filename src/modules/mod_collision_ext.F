@@ -55,12 +55,12 @@ module collision_ext
  type COLLISIONS_element
    integer               :: I=0         ! State Index 
    integer               :: N=0         ! Linear Dimension
-   character,      allocatable  :: table(:,:,:)
+   character,      allocatable  :: table(:,:,:,:)
    complex(SP),  allocatable  :: v_c(:)      
    complex(SP6), allocatable  :: v_c_SP(:)    ! SEX and HF only in single precision
-   complex(SP), allocatable  :: v3_c(:,:,:)
+   complex(SP), allocatable  :: v3_c(:,:,:,:)
    real(SP)   , allocatable  :: v_r(:)       ! GW NEQ collisions
-   real(SP)   , allocatable  :: v3_r(:,:,:)
+   real(SP)   , allocatable  :: v3_r(:,:,:,:)
  end type
  !
  type COLLISIONS_group
@@ -100,8 +100,8 @@ module collision_ext
  ! ====================================
  integer :: ng_oscll                  ! number of G-vectors in the Oscillators
  complex(SP), allocatable :: W(:,:,:) ! screened interaction
- complex(SP), allocatable :: OSCLL(:,:,:,:,:) ! Oscillators
- complex(SP), allocatable :: OSCLL_k(:,:,:,:) ! Oscillators in k, just for the evaluation
+ complex(SP), allocatable :: OSCLL(:,:,:,:,:,:) ! Oscillators
+ complex(SP), allocatable :: OSCLL_k(:,:,:,:)   ! Oscillators in (i_sp_pol,ik), just for the evaluation
  !
  contains
    !

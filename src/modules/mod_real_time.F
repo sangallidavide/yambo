@@ -186,10 +186,10 @@ module real_time
  !
  ! GFs
  !-----
- complex(SP), allocatable :: G_lesser(:,:,:,:)          ! Band, Band, K, Time
- complex(SP), allocatable :: dG_lesser(:,:,:,:)
- complex(SP), allocatable :: dG_avg(:,:,:)
- complex(SP), allocatable :: G_lesser_reference(:,:,:)  ! Band, Band, K
+ complex(SP), allocatable :: G_lesser(:,:,:,:,:)          ! Band, Band, K, Spin, Time
+ complex(SP), allocatable :: dG_lesser(:,:,:,:,:)
+ complex(SP), allocatable :: dG_avg(:,:,:,:)
+ complex(SP), allocatable :: G_lesser_reference(:,:,:,:)  ! Band, Band, K, Spin
  complex(SP), allocatable :: I1_matrix(:,:)
  !
  ! RT_Hamiltonian

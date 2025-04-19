@@ -10,11 +10,12 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
  use pars,           ONLY:cZERO,rZERO,DP,SP
  use plasma,         ONLY:N_plasma_poles_global
  use R_lattice,      ONLY:nqbz,nkibz
- use electrons,      ONLY:n_met_bands,n_full_bands
+ use electrons,      ONLY:n_met_bands,n_full_bands,n_sp_pol
  use parallel_m,     ONLY:PAR_nPlasma,PAR_nQ_bz
  use collision_ext,  ONLY:COLLISIONS_element,COH_COLL_element,HXC_COLL_element,GW_NEQ_COLL_element,&
 &                         COLL_bands,COLLISIONS_load_SP,COLLISIONS_CV_only,COLLISIONS_FEW_only,&
-&                         GW_NEQ_collisions,COH_collisions,HXC_collisions,P_collisions,COLLISIONS_group
+&                         GW_NEQ_collisions,COH_collisions,HXC_collisions,P_collisions,COLLISIONS_group,&
+&                         COLL_hole_bands,COLL_elec_bands
 #if defined _QED
  use QP_m,           ONLY:QP_QED_ng
  use collision_ext,  ONLY:P_COLL_element
@@ -89,20 +90,35 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
  endif
  !
  if (l_HXC) then
+   ! These numbers are used in:
+   ! (i) src/io_parallel/io_COLLISIONS.F (all components of D in case CV_only)
+   !     * COLLISIONS_CV_only case
+   !       ! This one only defines the I/O dimension. The factor 2 on the kpts
+   !       ! exist because, for each k, there is the cv and the vc block
+   !       N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
+   !       N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,3)        ! Nc
+   !       N(3)=COLL_grp%D(1,4)-COLL_grp%D(1,1)+1      ! Nv
+   !     * General case
+   !       N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
+   !       N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,1)        ! Nc
+   !       N(3)=COLL_grp%D(1,2)-COLL_grp%D(1,1)+1      ! Nv
+   ! (ii) src/collisions/COLLISIONS_linearize_and_IO.F (only components D(1:3,:))
+   !     do i3=COLL_grp%D(3,1),COLL_grp%D(3,2)       ! ik
+   !       do i2=COLL_grp%D(2,1),COLL_grp%D(2,2)     ! ib1
+   !         do i1=COLL_grp%D(1,1),COLL_grp%D(1,2)   ! ib2
    D(1,1:2)=COLL_bands
    D(2,1:2)=COLL_bands
    D(3,1:2)=(/1,nkibz/)
+   D(:,3:4)=-1 ! unused
    if (COLLISIONS_CV_only) then
-     D(1:2,3)=minval(n_full_bands)
-     D(1:2,4)=maxval(n_met_bands)
+     D(1,3)=-1 ! unused
+     D(2,3)=minval(n_full_bands) ! lower bound for conduction
+     D(1,4)=maxval(n_met_bands)  ! upper bound for valence
+     D(2,4)=-1 ! unused
    endif
    if (COLLISIONS_FEW_only) then
-     ! This is how these numbers are used in src/io_parallel/io_COLLISIONS.F
-     !N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
-     !N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,3)        ! Nv
-     !N(3)=COLL_grp%D(2,4)-COLL_grp%D(2,1)+1      ! Nc
-     D(1:2,3)=minval(n_full_bands)
-     D(1:2,4)=maxval(n_met_bands)+4   ! Remove the first 4 CV bands, e.g. 6-7-8-9 from the count of Nc
+     D(1,3:4)=COLL_hole_bands  ! update upper (and lower) bound for valence
+     D(2,3:4)=COLL_elec_bands  ! update lower (and upper) bound for conduction
    endif
    if (l_collision.and.l_alloc) then
      allocate(HXC_COLL_element(size_))
@@ -177,12 +193,12 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
        !
        if (l_alloc.and.(l_v3.or.l_all)) then
          if(l_real) then
-           YAMBO_ALLOC(COLL_element(J)%v3_r,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
+           YAMBO_ALLOC(COLL_element(J)%v3_r,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2),n_sp_pol))
            COLL_element(J)%v3_r=rZERO
            mem_size(1)=mem_size(1)+size(COLL_element(J)%v3_r)
          endif
          if(l_complex) then
-           YAMBO_ALLOC(COLL_element(J)%v3_c,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
+           YAMBO_ALLOC(COLL_element(J)%v3_c,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2),n_sp_pol))
            COLL_element(J)%v3_c=cZERO
            mem_size(2)=mem_size(2)+size(COLL_element(J)%v3_c)
          endif
@@ -222,7 +238,7 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
        endif
        if (l_alloc.and.(l_table.or.l_all)) then
          !AMBO_ALLOC(COLL_element(J)%table,(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
-         allocate(COLL_element(J)%table(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2)))
+         allocate(COLL_element(J)%table(D(1,1):D(1,2),D(2,1):D(2,2),D(3,1):D(3,2),n_sp_pol))
          COLL_element(J)%table='f'
          COLL_grp%D=D
          mem_size(5)=mem_size(5)+size(COLL_element(J)%table)

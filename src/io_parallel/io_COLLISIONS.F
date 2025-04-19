@@ -20,6 +20,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  use plasma,        ONLY:N_plasma_poles_global,PLASMA_redux_percent
  use QP_m,          ONLY:QP_ng_Sx,QP_ng_SH,SC_band_mixing,QP_QED_ng
  use X_m,           ONLY:X_desc
+ use electrons,     ONLY:n_sp_pol
  use drivers,       ONLY:l_elel_scatt,l_elphoton_scatt
  use timing_m,      ONLY:timing
  !
@@ -63,15 +64,15 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
    call def_variable_bulk(ID,'N_COLLISIONS_STATES',1,(/1/),IP_YIO,par_io_kind='independent')
    if (write_is_on(ID)) then
      if (COLLISIONS_CV_only.or.COLLISIONS_FEW_only) then
-       N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
+       N(3)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
        N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,3)        ! Nc
-       N(3)=COLL_grp%D(2,4)-COLL_grp%D(2,1)+1      ! Nv
+       N(1)=COLL_grp%D(1,4)-COLL_grp%D(1,1)+1      ! Nv
      else
-       N(1)=COLL_grp%D(3,2)-COLL_grp%D(3,1)+1
+       N(3)=COLL_grp%D(3,2)-COLL_grp%D(3,1)+1
        N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,1)+1
-       N(3)=COLL_grp%D(1,2)-COLL_grp%D(1,1)+1
+       N(1)=COLL_grp%D(1,2)-COLL_grp%D(1,1)+1
      endif
-     COLL_element%N=N(1)*N(2)*N(3)
+     COLL_element%N=N(1)*N(2)*N(3)*n_sp_pol
    endif
  endif
  !

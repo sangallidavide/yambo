@@ -14,7 +14,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  use parser_m,      ONLY:parser
  use com,           ONLY:msg
  use frequency,     ONLY:w_samp
- use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor,n_full_bands,n_met_bands
+ use electrons,     ONLY:levels,spin_occ,spin,n_spin,n_spinor,n_full_bands,n_met_bands,n_sp_pol
  use LIVE_t,        ONLY:live_timing
  use hamiltonian,   ONLY:H_potential
  use BS,            ONLY:BS_blk,n_BS_blks
@@ -55,7 +55,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  ! Work Space
  !
  integer                 :: i_coll,first_coll,last_coll,ig1,ig2,iqbz,iqibz,alloc_err,iqs,iGo_max,NG_max,NG_XC,LOCAL_COMM(2),&
-&                           i_n,i_k,i_k_s,i_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,iB,&
+&                           i_n,i_k,i_k_s,i_sp,ip_sp,i_m,i_mp,N_g_vecs_H,N_g_vecs_X,N_g_vecs_C,i_star,i_p,i_p_s,i_loop,iB,&
 &                           i_np,i_kmq,i_kmq_bz,i_kmq_s,i_kmq_G0,PAR_NC_local,n_steps,i_steps,bands_to_load(2),n_colls,n_GmG,&
 &                           n_skip_colls,n_incl_colls
  logical                 :: l_HXC_collisions,eval_coll,l_compute_screening
@@ -265,14 +265,14 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
  enddo
  !
  n_steps=0
- if (COLLISIONS_HXC_local)                      n_steps=n_steps+PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements
- if (COLLISIONS_HXC_MB.or.l_use_COH_collisions) n_steps=n_steps+PAR_NC_local*PAR_nQ_bz*PAR_n_Bp_mat_elements
+ if (COLLISIONS_HXC_local)                      n_steps=n_steps+PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements*n_sp_pol
+ if (COLLISIONS_HXC_MB.or.l_use_COH_collisions) n_steps=n_steps+PAR_NC_local*PAR_nQ_bz*PAR_n_Bp_mat_elements*n_sp_pol
  !
  if (IO_BS_err==0) then
    i_steps=2
    if (COLLISIONS_CV_only) then
      i_steps=1
-     n_steps=PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements
+     n_steps=PAR_NC_local*K%nibz*PAR_n_Bp_mat_elements*n_sp_pol
    endif
  endif
  !
@@ -454,6 +454,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        !DEBUG>
      endif
      !
+     do ip_sp=1,n_sp_pol
      do i_q_fake=1,q%nbz
        !
        if (.not.PAR_IND_Q_bz%element_1D(i_q_fake)) cycle
@@ -465,8 +466,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=COLL_bands(1),COLL_bands(2)
            !
-           if ( (i_np> n_met_bands(i_sp)  .and. i_mp> n_met_bands(i_sp) ) ) cycle
-           if ( (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp)) ) cycle
+           if ( (i_np> n_met_bands(ip_sp)  .and. i_mp> n_met_bands(ip_sp) ) ) cycle
+           if ( (i_np<=n_full_bands(ip_sp) .and. i_mp<=n_full_bands(ip_sp)) ) cycle
            !
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
@@ -475,16 +476,16 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            i_p_bz_bse=BS_K_io_map(i_p_bz)
            !
            i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
-           j_BSE=BSS_eh_table_m1(i_p_bz_bse,i_mp,i_np,i_sp,i_sp)
+           j_BSE=BSS_eh_table_m1(i_p_bz_bse,i_mp,i_np,ip_sp,ip_sp)
            !
            if (i_BSE==0.or.j_BSE==0) then
              n_skip_colls=n_skip_colls+1
              !DEBUG<
-	     !if(j_BSE==0) write(*,*) "Transition ignored ",i_p_bz_bse,i_mp,i_np,i_sp,i_sp
+	           !if(j_BSE==0) write(*,*) "Transition ignored ",i_p_bz_bse,i_mp,i_np,i_sp
              !DEBUG>
              cycle
-	   else
-	     n_incl_colls=n_incl_colls+1
+	         else
+	           n_incl_colls=n_incl_colls+1
            endif
            !
            if (i_BSE<=BS_K_dim(1) .and. j_BSE<=BS_K_dim(1)) then
@@ -569,12 +570,13 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            ! - The occupation factor here is already contained in the density matrix
            ! - Compared to the BSE case, the collisions are summed over the points in the star of i_p
            !
-           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)-M_ij/spin_occ
+           HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p,ip_sp)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p,ip_sp)-M_ij/spin_occ
            !
            call live_timing(steps=i_steps)
            !
          enddo
        enddo
+     enddo
      enddo
      !
      i_BSE=BSS_eh_table_m1(i_k_bz_bse,i_m,i_n,i_sp,i_sp)
@@ -594,12 +596,12 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      ! Scattering geometry
      !=====================           _ \ _
      !                               /  /  \
-     !                   G_p{np,mp} |      | (i_p,i_p_s)
+     !             G_p{np,mp,ip_sp} |      | (i_p,i_p_s)
      !                              \_ _ _/
      !                                 | 
      !                                 | W(q=0)
      !                                 |
-     !     (i_n,i_k,1)------>----------.---------->----(i_m,i_k,1)
+     !  (i_n,i_k,i_sp)------>----------.---------->----(i_m,i_k,i_sp)
      !                          
      !
      logical, intent(in)  :: cc_vv_only
@@ -617,6 +619,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      !
      call scatter_Bamp(isc_H)
      !
+     do ip_sp=1,n_sp_pol
      do i_q_fake=1,q%nbz
        !
        if (.not.PAR_IND_Q_bz%element_1D(i_q_fake)) cycle
@@ -629,8 +632,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
        do i_mp=COLL_bands(1),COLL_bands(2)
          do i_np=i_mp,COLL_bands(2)
            !
-           cc_vv_colls=(i_np> n_met_bands(i_sp)  .and. i_mp>n_met_bands(i_sp) ) .or. &
-           &           (i_np<=n_full_bands(i_sp) .and. i_mp<=n_full_bands(i_sp))
+           cc_vv_colls=(i_np> n_met_bands(ip_sp)  .and. i_mp>n_met_bands(ip_sp) ) .or. &
+           &           (i_np<=n_full_bands(ip_sp) .and. i_mp<=n_full_bands(ip_sp))
            !
            if ( COLLISIONS_CV_only .and.       cc_vv_colls  ) cycle
            if (         cc_vv_only .and. (.not.cc_vv_colls) ) cycle
@@ -638,8 +641,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            if ( .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_np,i_mp,COLL_bands) ) .and. &
 &               .not. PAR_IND_Bp_mat%element_1D( B_mat_index(i_mp,i_np,COLL_bands) )         ) cycle
            !
-           iscp_H%is =(/i_np,i_p,1,i_sp/)
-           iscp_H%os =(/i_mp,i_p,1,i_sp/)
+           iscp_H%is =(/i_np,i_p,1,ip_sp/)
+           iscp_H%os =(/i_mp,i_p,1,ip_sp/)
            !
            eval_coll=.not.all((/i_n==i_np,i_m==i_mp,i_k==i_p/))
            if (     eval_coll) call scatter_Bamp(iscp_H)
@@ -680,9 +683,11 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
                enddo
              endif
              !
-             HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*pre_factor1+Co*pre_factor2
+             HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p,ip_sp)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p,ip_sp) &
+             &                                                        +4._SP*pi*pre_factor1+Co*pre_factor2
              ! DS: 2023/10/25 Merge Check
-             !HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p)+4._SP*pi*conjg(pre_factor1)+Co*pre_factor2
+             !HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p,ip_sp)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_p,ip_sp) &
+             !&                                                 +4._SP*pi*conjg(pre_factor1)+Co*pre_factor2
              !
              call live_timing(steps=1)
              !
@@ -711,7 +716,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
                enddo
              endif
              !
-             HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p)=HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p)+4._SP*pi*pre_factor1+Co*pre_factor2
+             HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p,ip_sp)=HXC_COLL_element(1)%v3_c(i_mp,i_np,i_p,ip_sp) &
+             &                                                        +4._SP*pi*pre_factor1+Co*pre_factor2
              !
              call live_timing(steps=1)
              !
@@ -721,6 +727,7 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
          !
        enddo
        !
+     enddo
      enddo
      !
    end subroutine compute_Hartree_collisions
@@ -736,8 +743,8 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
      !                        _ _ _ _ \ _ _ _ _
      !                       /        /        \
      !                      /                   \
-     !                     /     G_{np,mp}       \
-     !     (i_n,i_k,1)-->--.----------->---------.---->----(i_m,i_k,1)
+     !                     /   G_{np,mp,i_sp}    \
+     !  (i_n,i_k,i_sp)-->--.----------->---------.---->----(i_m,i_k,i_sp)
      !                          (i_kmq,i_kmq_s)
      !
      logical, intent(in)  :: cc_vv_only
@@ -884,10 +891,10 @@ subroutine COLLISIONS_HXC(X,Xk,E,k,q,Xw,IO_BS_err,ID_BS)
            endif
            !
            if(index(H_potential,"SEX")>0 .or. index(H_potential,"FOCK")>0) &
-&            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq) &
+&            HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq,i_sp)=HXC_COLL_element(1)%v3_c(i_np,i_mp,i_kmq,i_sp) &
 &                                                      -4._SP/spin_occ*pi*(pre_factor1+pre_factor2)
            if(index(H_potential,"COH")>0 ) &
-&            COH_COLL_element(1)%v3_c(i_np,i_mp,i_kmq)=COH_COLL_element(1)%v3_c(i_np,i_mp,i_kmq) &
+&            COH_COLL_element(1)%v3_c(i_np,i_mp,i_kmq,i_sp)=COH_COLL_element(1)%v3_c(i_np,i_mp,i_kmq,i_sp) &
 &                                                      +2._SP         *pi*             pre_factor2
            !
            call live_timing(steps=1)

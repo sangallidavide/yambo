@@ -25,7 +25,7 @@ subroutine RT_propagate_fields(E,k,A_old,A_new,G_inp,T,T_step)
  ! 
  use pars,           ONLY:SP,pi
  use units,          ONLY:SPEED_OF_LIGHT
- use electrons,      ONLY:levels,nel
+ use electrons,      ONLY:levels,nel,n_sp_pol
  use R_lattice,      ONLY:bz_samp
  use X_m,            ONLY:global_gauge
  use parallel_m,     ONLY:PAR_G_k_range
@@ -41,7 +41,7 @@ subroutine RT_propagate_fields(E,k,A_old,A_new,G_inp,T,T_step)
  real(SP),             intent(in) :: T,T_step
  type(gauge_field),    intent(in) :: A_old
  type(gauge_field),   intent(out) :: A_new
- complex(SP),          intent(in) :: G_inp(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2))
+ complex(SP),  intent(in) :: G_inp(RT_bands(1):RT_bands(2),RT_bands(1):RT_bands(2),PAR_G_k_range(1):PAR_G_k_range(2),n_sp_pol)
  !
  ! Work space
  !

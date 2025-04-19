@@ -90,8 +90,8 @@ subroutine RT_start_and_restart(E,k,q)
  !
  if(.not.l_RT_is_WFfree) then
    !
-   call              el_density_matrix(G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2)),E,k,rho_reference,1)
-   if(n_spin>1) call el_magnetization_matrix(G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2)),E,k,magn_reference,1)
+   call              el_density_matrix(G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2),:),E,k,rho_reference,1)
+   if(n_spin>1) call el_magnetization_matrix(G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2),:),E,k,magn_reference,1)
    !
    call Bare_Hamiltonian(E,k,k)
    !
@@ -171,7 +171,7 @@ subroutine RT_start_and_restart(E,k,q)
    !
    !AMBO_FREE(RT_TIME_status)
    !
-   ! I use G_lesser(:,:,:) to reconstruct everything
+   ! I use G_lesser to reconstruct everything
    ! Note that the databases must be loaded at the RESTART time (NE_time)
    !
    i_db=RT_return_db_ID("G_lesser_RESTART_K_section")
@@ -190,7 +190,7 @@ subroutine RT_start_and_restart(E,k,q)
    ! The G_lesser must be now rebuild from the reference (T=0) and latest dG components
    !
    do i_mem=1,G_MEM_steps
-     G_lesser(:,:,:,i_mem)=G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2))+dG_lesser(:,:,:,i_mem)
+     G_lesser(:,:,:,:,i_mem)=G_lesser_reference(:,:,PAR_G_k_range(1):PAR_G_k_range(2),:)+dG_lesser(:,:,:,:,i_mem)
    enddo
    !
 #if defined _ELPH_ITERATIVE
@@ -250,7 +250,7 @@ subroutine RT_start_and_restart(E,k,q)
  ! Initialize the Vector Potential
  !=================================
  !
- if (l_NE_with_fields) call RT_propagate_fields(E,k,A_tot,A_tot,dG_lesser(:,:,:,1),NE_time-RT_step,RT_step)
+ if (l_NE_with_fields) call RT_propagate_fields(E,k,A_tot,A_tot,dG_lesser(:,:,:,:,1),NE_time-RT_step,RT_step)
  !
  ! Pseudo potential terms needed for velocity gauge
  !==================================================

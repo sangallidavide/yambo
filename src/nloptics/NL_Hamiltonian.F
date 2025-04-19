@@ -88,7 +88,7 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
  !
  ! Evaluate the G_lesser for current/polarization and collisions
  ! ======================================================
- if(eval_dG.or.l_pump_and_probe) call NL_build_dG_lesser(E,V_bands,dG_lesser(:,:,:,1))
+ if(eval_dG.or.l_pump_and_probe) call NL_build_dG_lesser(E,V_bands,dG_lesser(:,:,:,:,1))
  !
  ! Evaluate the Polarization 
  ! ===================================================================
@@ -166,7 +166,7 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
  !
  ! Calculate collisions if doing TD-SEX or TD-HF
  ! =============================================
- if(l_use_Hxc_collisions) call COLLISIONS_compose_nl(dG_lesser(:,:,:,1))
+ if(l_use_Hxc_collisions) call COLLISIONS_compose_nl(dG_lesser(:,:,:,:,1))
  !
  ! Build the Hamiltonian
  ! =====================
@@ -221,7 +221,7 @@ subroutine NL_Hamiltonian(E,k,q,X,Time,i_time,V_bands)
      !
    endif                                                         
    !
-!   if(Correlation==LSEX.or.Correlation==LHF) call OSCLL_compose_nl(dG_lesser(:,:,:,1),H_nl_sc,k,q,E,ik,i_sp_pol)
+!   if(Correlation==LSEX.or.Correlation==LHF) call OSCLL_compose_nl(dG_lesser(:,:,:,:,1),H_nl_sc,k,q,E,ik,i_sp_pol)
    if(Correlation==LSEX.or.Correlation==LHF) call OSCLL_compose_vbands(V_bands,H_nl_sc,k,q,E,ik,i_sp_pol)
    !
    if(l_use_Hxc_collisions) then
