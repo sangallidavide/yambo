@@ -74,18 +74,20 @@ subroutine RT_start_and_restart(E,k,q)
  ! The Equilibrium Hamiltonian
  !=========================
  H_EQ=cZERO
+ do i_sp_pol=1,n_sp_pol
  do ik=1,nXkibz
    if (.not.PAR_IND_Xk_ibz%element_1D(ik)) cycle
    do ik_RT=RTibz%k_range(ik,1),RTibz%k_range(ik,2)
      do ib=RT_bands(1),RT_bands(2)
        if (ik_RT/=RTibz%k_range(ik,1)) then
          iE_fg=RTibz%E_map(ik_RT)
-         H_EQ(ib,ib,ik_RT,1)=E_reference%FG%E(ib,iE_fg,1)
+         H_EQ(ib,ib,ik_RT,i_sp_pol)=E_reference%FG%E(ib,iE_fg,i_sp_pol)
        else
-         H_EQ(ib,ib,ik_RT,1)=E_reference%E(ib,ik,1)
+         H_EQ(ib,ib,ik_RT,i_sp_pol)=E_reference%E(ib,ik,i_sp_pol)
        endif
      enddo
    enddo
+ enddo
  enddo
  !
  if(.not.l_RT_is_WFfree) then
