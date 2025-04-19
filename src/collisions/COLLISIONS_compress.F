@@ -11,10 +11,10 @@
 subroutine COLLISIONS_compress(COLL)
  !
  use pars,            ONLY:SP,DP,SP6,cZERO
- use collision_ext,   ONLY:COLLISIONS_element,COLL_bands,COLLISIONS_cutoff,&
- &                         COLLISIONS_CV_only
+ use collision_ext,   ONLY:COLLISIONS_element,COLL_bands,COLLISIONS_cutoff,COLLISIONS_CV_only,&
+ &                         COLLISIONS_FEW_only,COLL_elec_bands,COLL_hole_bands
  use R_lattice,       ONLY:nXkibz
- use electrons,       ONLY:n_met_bands,n_full_bands
+ use electrons,       ONLY:n_met_bands,n_full_bands,n_sp_pol
  !
 #include<y_memory.h>
  !
@@ -23,7 +23,7 @@ subroutine COLLISIONS_compress(COLL)
  ! Work Space
  !
  real(SP)  :: COLLISIONS_max
- integer   :: ib,ibp,i_kmq,ic
+ integer   :: ib,ibp,i_kmq,ic,i_sp
  logical   :: l_coll_SP
  !
  if(allocated(COLL%v_c_SP)) then
@@ -43,12 +43,22 @@ subroutine COLLISIONS_compress(COLL)
  !
  COLL%table='f'
  !
+ do i_sp=1,n_sp_pol
  do i_kmq=1,nXkibz
    do ibp=COLL_bands(1),COLL_bands(2)
+     !
+     if ( COLLISIONS_FEW_only .and. ibp<COLL_hole_bands(1) ) cycle
+     if ( COLLISIONS_FEW_only .and. ibp>COLL_hole_bands(2) .and. ibp<COLL_elec_bands(1) ) cycle
+     if ( COLLISIONS_FEW_only .and. ibp>COLL_elec_bands(2) ) cycle
+     !
      do ib=COLL_bands(1),COLL_bands(2)
        !
-       if ( COLLISIONS_CV_only .and. (ib> maxval(n_met_bands)  .and. ibp> maxval(n_met_bands) ) ) cycle
-       if ( COLLISIONS_CV_only .and. (ib<=minval(n_full_bands) .and. ibp<=minval(n_full_bands)) ) cycle
+       if ( COLLISIONS_CV_only .and. (ib> n_met_bands(i_sp)  .and. ibp> n_met_bands(i_sp) ) ) cycle
+       if ( COLLISIONS_CV_only .and. (ib<=n_full_bands(i_sp) .and. ibp<=n_full_bands(i_sp)) ) cycle
+       !
+       if ( COLLISIONS_FEW_only .and. ib<COLL_hole_bands(1) ) cycle
+       if ( COLLISIONS_FEW_only .and. ib>COLL_hole_bands(2) .and. ib<COLL_elec_bands(1) ) cycle
+       if ( COLLISIONS_FEW_only .and. ib>COLL_elec_bands(2) ) cycle
        !    
        ic=ic+1
        !
@@ -59,6 +69,7 @@ subroutine COLLISIONS_compress(COLL)
        !
      enddo
    enddo
+ enddo
  enddo
  !
  COLL%N=count(COLL%table(:,:,:)=='t')

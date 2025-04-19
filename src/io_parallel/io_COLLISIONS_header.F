@@ -9,7 +9,8 @@ integer function io_COLLISIONS_header(ID,COLL)
  !
  use pars,          ONLY:schlen,IP,IP_YIO
  use R_lattice,     ONLY:RIM_ng,RIM_n_rand_pts
- use collision_ext, ONLY:COLLISIONS_cutoff,COLL_bands,COLLISIONS_group,COLLISIONS_CV_only
+ use collision_ext, ONLY:COLLISIONS_cutoff,COLL_bands,COLLISIONS_group,&
+&                        COLLISIONS_CV_only,COLLISIONS_FEW_only
  use IO_m,          ONLY:io_status,IO_OUTDATED_DB,read_is_on
  use IO_int,        ONLY:io_connect,io_header,io_elemental,ver_is_gt_or_eq, &
 &                        io_variable_bulk,def_variable_bulk,io_disconnect
@@ -54,7 +55,7 @@ integer function io_COLLISIONS_header(ID,COLL)
  if (COLL%kind==QP_SE_GW_NEQ) SIZE_=SIZE_+3
  if (COLL%kind==QP_SE_GW_QED) SIZE_=SIZE_+2
  if (ver_is_gt_or_eq(ID,revision=21128)) then
-   SIZE_ = SIZE_+1
+   SIZE_ = SIZE_+2
  endif
  call io_elemental(ID,VAR="PARAMETERS",VAR_SZ=SIZE_,MENU=0)
  !
@@ -89,6 +90,7 @@ integer function io_COLLISIONS_header(ID,COLL)
  call io_elemental(ID,I0=COLL%kind,DB_I0=V_kind_disk,CHECK=.true.,OP=(/"=="/))
  if (ver_is_gt_or_eq(ID,revision=21128)) then
    call io_elemental(ID,L0=COLLISIONS_CV_only,VAR='CV only scattering    ',WARN=.true.,OP=(/"=="/))
+   call io_elemental(ID,L0=COLLISIONS_FEW_only,VAR='FEW only scattering    ',WARN=.true.,OP=(/"=="/))
  endif
  call io_elemental(ID,VAR="",VAR_SZ=0,MENU=0)
  !

@@ -52,7 +52,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #endif
 #if defined _SC || defined _RT || defined _QED
  use hamiltonian,   ONLY:H_potential
- use collision_ext, ONLY:COLLISIONS_cutoff,COLL_bands
+ use collision_ext, ONLY:COLLISIONS_cutoff,COLL_bands,COLL_hole_bands,COLL_elec_bands
 #endif
  use QP_m,          ONLY:SC_E_threshold
 #if defined _SC
@@ -68,7 +68,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  use RT_occupations,ONLY:RT_RTA_temp,RT_RTA_chem
  use RT_lifetimes,  ONLY:RT_life_extrap_times_INPUT
  use real_time,     ONLY:RT_step, Integrator_name, RAD_LifeTime, Phase_LifeTime, &
-&                        NE_tot_time,RT_bands,RT_deph_range,                     &
+&                        NE_tot_time,RT_bands,RT_hole_bands,RT_elec_bands,RT_deph_range,    &
 &                        RT_ave_dephasing,RT_eh_en,RT_scatt_tresh,Gr_kind,       &
 &                        NE_MEM_treshold,NE_time_step_update_jump_INPUT,         &
 &                        two_alpha,DbGd_EE_percent,NE_time_step_update_jump,     &
@@ -80,7 +80,7 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
 #endif
 #if defined _NL
  use nl_optics,     ONLY:NL_bands,NL_damping,NL_correlation,NL_er,n_frequencies,NL_LRC_alpha, &
-&                        NL_verb_name,n_angles,NL_rot_axis 
+&                        NL_verb_name,n_angles,NL_rot_axis,NL_hole_bands,NL_elec_bands
 #endif 
 #if defined _NL | defined _SC
  use fields,        ONLY:Efield
@@ -420,6 +420,8 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! Real Time dynamics
  !
  call it(defs,'RTBands',    '[RT] Bands',RT_bands)
+ call it(defs,'RTHoleBands','[RT] Active Bands range in valence',RT_hole_bands,Verb_level=V_real_time)
+ call it(defs,'RTElecBands','[RT] Active Bands range in conduct',RT_elec_bands,Verb_level=V_real_time)
  !
  ! This call is a temporary fix due to the multiple definition of energy ranges.
  ! The call is needed to align the different values based on the USER definition.
@@ -529,6 +531,8 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! Non-linear Optics
  !
  call it(defs,'NLBands',      '[NL] Bands range',NL_bands)
+ call it(defs,'NLHoleBands',  '[NL] Active Bands range in valence',NL_hole_bands,Verb_level=V_nl_optics)
+ call it(defs,'NLElecBands',  '[NL] Active Bands range in conduct',NL_elec_bands,Verb_level=V_nl_optics)
  call it(defs,'NLverbosity',  '[NL] Verbosity level (low | high)',NL_verb_name) 
  call it(defs,'NLstep',       '[NL] Time step length',RT_step,unit=Time_unit(1),Verb_level=V_nl_optics)
  call it(defs,'NLtime',       '[NL] Simulation Time',NE_tot_time,unit=Time_unit(1))
@@ -715,6 +719,8 @@ subroutine INIT_load(defs,en,q,k,X,Xw,Dip)
  ! SC and RT common
  !
  call it(defs,'COLLBands',   '[COLL] Bands for the collisions',COLL_bands)
+ call it(defs,'COLLHoleBands','[COLL] Active Bands range in valence',COLL_hole_bands,Verb_level=V_sc)
+ call it(defs,'COLLElecBands','[COLL] Active Bands range in conduct',COLL_elec_bands,Verb_level=V_sc)
  !
  call it(defs,'HXC_Potential',  '[SC] SC HXC Potential',H_potential,protect=.FALSE.,case="A")
  call it(defs,'COLLCut',        '[SC,RT] Cutoff on the collisions, 0=full 1=none (default =0.0005)',&

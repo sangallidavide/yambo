@@ -13,7 +13,7 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
  use electrons,      ONLY:n_met_bands,n_full_bands
  use parallel_m,     ONLY:PAR_nPlasma,PAR_nQ_bz
  use collision_ext,  ONLY:COLLISIONS_element,COH_COLL_element,HXC_COLL_element,GW_NEQ_COLL_element,&
-&                         COLL_bands,COLLISIONS_load_SP,COLLISIONS_CV_only,&
+&                         COLL_bands,COLLISIONS_load_SP,COLLISIONS_CV_only,COLLISIONS_FEW_only,&
 &                         GW_NEQ_collisions,COH_collisions,HXC_collisions,P_collisions,COLLISIONS_group
 #if defined _QED
  use QP_m,           ONLY:QP_QED_ng
@@ -95,6 +95,14 @@ subroutine COLLISIONS_alloc_and_free(what,elements,actions,I)
    if (COLLISIONS_CV_only) then
      D(1:2,3)=minval(n_full_bands)
      D(1:2,4)=maxval(n_met_bands)
+   endif
+   if (COLLISIONS_FEW_only) then
+     ! This is how these numbers are used in src/io_parallel/io_COLLISIONS.F
+     !N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
+     !N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,3)        ! Nv
+     !N(3)=COLL_grp%D(2,4)-COLL_grp%D(2,1)+1      ! Nc
+     D(1:2,3)=minval(n_full_bands)
+     D(1:2,4)=maxval(n_met_bands)+4   ! Remove the first 4 CV bands, e.g. 6-7-8-9 from the count of Nc
    endif
    if (l_collision.and.l_alloc) then
      allocate(HXC_COLL_element(size_))

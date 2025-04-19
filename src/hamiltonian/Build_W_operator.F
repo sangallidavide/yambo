@@ -15,7 +15,7 @@ subroutine Build_W_operator(en,Xk,A_input,ik,i_sp,V_bands,H_nl_sc)
  use electrons,      ONLY:levels
  use electric,       ONLY:l_force_SndOrd
  use QP_m,           ONLY:QP_nk
- use hamiltonian,    ONLY:H_ref_bands
+ use hamiltonian,    ONLY:H_ref_bands,H_ref_hole_bands,H_ref_elec_bands
  use R_lattice,      ONLY:bz_samp,k_map
  use D_lattice,      ONLY:a
  use matrix_operate, ONLY:hermitian
@@ -33,12 +33,15 @@ subroutine Build_W_operator(en,Xk,A_input,ik,i_sp,V_bands,H_nl_sc)
  !
  ! Work Space
  !
+ logical :: l_selective_coupling
  integer :: i1,i2,im,id,id_red
  integer :: ikbz,istep,max_step
  complex(SP) :: Wk(3,H_ref_bands(2),H_ref_bands(2))
  complex(SP) :: Wop(H_ref_bands(2),H_ref_bands(2),2)
  complex(SP) :: V_tilde(en%nbf(i_sp),H_ref_bands(2),2)
  complex(SP) :: E_vec_pot(3)
+ !
+ l_selective_coupling=all((/H_ref_hole_bands/=-1,H_ref_elec_bands/=-1/))
  !
  E_vec_pot=-A_input%vecpot_vel/SPEED_OF_LIGHT
  !
@@ -133,11 +136,18 @@ subroutine Build_W_operator(en,Xk,A_input,ik,i_sp,V_bands,H_nl_sc)
  enddo
  !$omp end parallel do
  !
- !$omp parallel do default(shared), private(i1,id)
+ !$omp parallel do default(shared), private(i1,i2,id)
  do i1=H_ref_bands(1),H_ref_bands(2)
-   do id=1,3
-     H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))=H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))+         &
-     &                                               E_vec_pot(id)*Wk(id,i1,H_ref_bands(1):H_ref_bands(2))
+   if ( l_selective_coupling .and. i1<H_ref_hole_bands(1) ) cycle
+   if ( l_selective_coupling .and. i1>H_ref_hole_bands(2) .and. i1<H_ref_elec_bands(1) ) cycle
+   if ( l_selective_coupling .and. i1>H_ref_elec_bands(2) ) cycle
+   do i2=H_ref_bands(1),H_ref_bands(2)
+     if ( l_selective_coupling .and. i2<H_ref_hole_bands(1) ) cycle
+     if ( l_selective_coupling .and. i2>H_ref_hole_bands(2) .and. i2<H_ref_elec_bands(1) ) cycle
+     if ( l_selective_coupling .and. i2>H_ref_elec_bands(2) ) cycle
+     do id=1,3
+       H_nl_sc(i1,i2)=H_nl_sc(i1,i2)+E_vec_pot(id)*Wk(id,i1,i2)
+     enddo
    enddo
  enddo
  !$omp end parallel do

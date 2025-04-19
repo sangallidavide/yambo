@@ -13,6 +13,8 @@ module hamiltonian
 #include<y_memory.h>
  !
  integer           :: H_ref_bands(2)
+ integer           :: H_ref_hole_bands(2)
+ integer           :: H_ref_elec_bands(2)
  integer           :: H_ref_nbands
  !
  character(schlen) :: H_potential

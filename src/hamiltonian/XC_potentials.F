@@ -164,9 +164,9 @@ subroutine XC_potentials(POTENTIALS_string)
      call warning("NULL SC potential! ")
    else if (STRING_same(trim(potentials(i_c)),'CVONLY')) then
      call warning("Only CV components included ")
-    else if (STRING_same(trim(potentials(i_c)),'KBSE')) then
-      call warning("Loading BSE kernel instead of computing collisions ")
-    else
+   else if (STRING_same(trim(potentials(i_c)),'KBSE')) then
+     call warning("Loading BSE kernel instead of computing collisions ")
+   else
      call error("Unknown SC potential! ")
    endif
    !

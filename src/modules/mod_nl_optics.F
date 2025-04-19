@@ -112,6 +112,8 @@ module nl_optics
  real(SP) :: NL_estep
  real(SP) :: NL_ang_step
  integer  :: NL_bands(2)
+ integer  :: NL_elec_bands(2)
+ integer  :: NL_hole_bands(2)
  integer  :: NL_nbands
  integer  :: n_angles
  real(SP) :: NL_rot_axis(3)

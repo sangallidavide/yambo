@@ -11,7 +11,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  use parallel_m,    ONLY:master_cpu
  use iso_c_binding, ONLY:C_LOC,C_F_POINTER
  use collision_ext, ONLY:COLLISIONS_element,COLLISIONS_group,LAST_COLL_sync,PAR_COLL_min,&
-&                        COLLISIONS_CV_only,COLLISIONS_load_SP
+&                        COLLISIONS_CV_only,COLLISIONS_FEW_only,COLLISIONS_load_SP
  use IO_m,          ONLY:io_sec,io_status,IO_OUTDATED_DB,read_is_on,IO_mode,io_unit,&
 &                        VERIFY,io_extension,write_is_on,nf90_sync,netcdf_call,YAMBO_DEF_CHUNK
  use IO_int,        ONLY:io_connect,io_header,io_elemental,ver_is_gt_or_eq,io_fragment, &
@@ -62,7 +62,7 @@ integer function io_COLLISIONS(ID,COLL_grp,COLL_element,i_coll_)
  if (def1) then
    call def_variable_bulk(ID,'N_COLLISIONS_STATES',1,(/1/),IP_YIO,par_io_kind='independent')
    if (write_is_on(ID)) then
-     if (COLLISIONS_CV_only) then
+     if (COLLISIONS_CV_only.or.COLLISIONS_FEW_only) then
        N(1)=(COLL_grp%D(3,2)-COLL_grp%D(3,1)+1)*2  ! 2*Nk
        N(2)=COLL_grp%D(2,2)-COLL_grp%D(2,3)        ! Nc
        N(3)=COLL_grp%D(2,4)-COLL_grp%D(2,1)+1      ! Nv

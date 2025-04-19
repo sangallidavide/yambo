@@ -10,7 +10,7 @@ subroutine NL_initialize(E,k)
  use pars,           ONLY:SP,DP,pi
  use drivers,        ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_hartree
  use vec_operate,    ONLY:normalize_v,v_norm,cross_product
- use collision_ext,  ONLY:COLLISIONS_CV_only,COLLISIONS_load_SP,COLLISIONS_compr
+ use collision_ext,  ONLY:COLLISIONS_CV_only,COLLISIONS_FEW_only,COLLISIONS_load_SP,COLLISIONS_compr
  use hamiltonian,    ONLY:H_potential
  use units,          ONLY:AU2VMm1,AUT2FS,HA2EV
  use electrons,      ONLY:levels,n_sp_pol
@@ -419,6 +419,7 @@ subroutine NL_initialize(E,k)
  if(eval_COLLISIONS) then
    !      
    if(COLLISIONS_CV_only) call warning(' ONLY cv scattering in COLLISIONS! ')
+   if(COLLISIONS_FEW_only) call warning(' ONLY selected scattering in COLLISIONS! ')
    !
    if(l_no_compress_COLL) then
      call msg('sr','Full collisions in double-precision ')

@@ -135,6 +135,8 @@ module real_time
  !
  integer                 :: RT_nk
  integer                 :: RT_bands(2)
+ integer                 :: RT_elec_bands(2)
+ integer                 :: RT_hole_bands(2)
  integer                 :: RT_nbands
  !
  ! Equilibrium V_xc and V_hartree in real space

@@ -11,7 +11,9 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
  use parallel_m,      ONLY:master_cpu,yMPI_comm
  use parallel_int,    ONLY:PP_wait
  use electrons,       ONLY:n_met_bands,n_full_bands
- use collision_ext,   ONLY:COLLISIONS_element,COLLISIONS_cutoff,COLLISIONS_group,COLLISIONS_CV_only
+ use collision_ext,   ONLY:COLLISIONS_element,COLLISIONS_cutoff,COLLISIONS_group,&
+&                          COLLISIONS_CV_only,COLLISIONS_FEW_only,&
+&                          COLL_hole_bands,COLL_elec_bands
  use IO_int,          ONLY:io_control
  use IO_m,            ONLY:REP,OP_APP_CL,OP_WR_CL,OP_APP,WR,WR_CL,io_COLLs
  use COLL_interfaces, ONLY:io_COLLISIONS
@@ -87,10 +89,17 @@ subroutine COLLISIONS_linearize_and_IO(what,i_coll,last_coll,COLL_grp,COLL_eleme
    !
    do i3=COLL_grp%D(3,1),COLL_grp%D(3,2)       ! ik
      do i2=COLL_grp%D(2,1),COLL_grp%D(2,2)     ! ib1
+       if ( COLLISIONS_FEW_only .and. i2<COLL_hole_bands(1) ) cycle
+       if ( COLLISIONS_FEW_only .and. i2>COLL_hole_bands(2) .and. i2<COLL_elec_bands(1) ) cycle
+       if ( COLLISIONS_FEW_only .and. i2>COLL_elec_bands(2) ) cycle
        do i1=COLL_grp%D(1,1),COLL_grp%D(1,2)   ! ib2
          !
          if ( COLLISIONS_CV_only .and. (i1> maxval(n_met_bands)  .and. i2> maxval(n_met_bands) ) ) cycle
          if ( COLLISIONS_CV_only .and. (i1<=minval(n_full_bands) .and. i2<=minval(n_full_bands)) ) cycle
+         !
+         if ( COLLISIONS_FEW_only .and. i1<COLL_hole_bands(1) ) cycle
+         if ( COLLISIONS_FEW_only .and. i1>COLL_hole_bands(2) .and. i1<COLL_elec_bands(1) ) cycle
+         if ( COLLISIONS_FEW_only .and. i1>COLL_elec_bands(2) ) cycle
          !
          ! In the COHSEX/HF case a cutoff can be applied
          !

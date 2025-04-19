@@ -468,7 +468,7 @@ subroutine INIT_activate()
  !
  ! Collisions
  !
- if (l_eval_collisions) call initactivate( 0,'COLLBands COLLBseMem')
+ if (l_eval_collisions) call initactivate( 0,'COLLBands COLLHoleBands COLLElecBands COLLBseMem')
  !
  if ( (l_eval_collisions.or.l_real_time).and.l_elel_scatt ) call initactivate(1,'PlasmaPerc')
  !
@@ -544,7 +544,7 @@ subroutine INIT_activate()
    if (l_elph_scatt) call initactivate(1,'MemTresh RandQpts RT_T_evol ElPhModes UseDebyeE')
    if (l_elel_scatt) call initactivate( 1,'EERimPerc')
    !
-   call initactivate(1,'RTBands Integrator GrKind TwoAlph RTehEny ScattTresh')
+   call initactivate(1,'RTBands RTHoleBands RTElecBands Integrator GrKind TwoAlph RTehEny ScattTresh')
    call initactivate(1,'RADLifeTime RADmagnific PhLifeTime DephCVonly DephEThresh DephTRange')
    call initactivate(1,'RTstep NEsteps NETime DipoleEtresh SPINprojected')
    call initactivate(1,'IOtime IOCachetime')
@@ -562,7 +562,7 @@ subroutine INIT_activate()
  !
 #if defined _NL
  if (l_nl_optics) then
-   call initactivate(1,'FFTGvecs NLBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
+   call initactivate(1,'FFTGvecs NLBands NLHoleBands NLElecBands NLverbosity NLstep NLtime NLintegrator NLCorrelation NLLrcAlpha')
    call initactivate(1,'TestOSCLL VelGaugeNoDiam')
    if(.not.l_nl_p_and_p) call initactivate(1,'NLEnRange NLEnSteps NLrotaxis NLAngSteps')
    if(     l_nl_p_and_p) call initactivate(1,'IOtime IOCachetime SaveVbhistory')
