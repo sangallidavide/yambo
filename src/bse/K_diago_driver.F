@@ -130,6 +130,17 @@ subroutine K_diago_driver(iq,W,X_static)
  l_slepc     = index(BSS_mode,'s')/=0
  l_ydiago    = index(BSS_mode,'d')/=0 
  !
+#if defined _NL
+ if (l_ydiago) then
+   ! The issue is present if yambo was configured in single precision
+   ! If the coufingure was done in double precision, the issue is not present
+   ! However, at this stage, it is not possible to know how the user configured yambo
+   call warning("non-linear optics forces DP compilation and breaks Ydiago library interface in SP")
+   l_ydiago = .false.
+   l_diago  = .true.
+ endif
+#endif
+ !
  if(l_diago) Solver="Diago"
 #if defined _SLEPC
  if(l_slepc) Solver="Slepc"
