@@ -219,7 +219,7 @@ subroutine K_diago_driver(iq,W,X_static)
            ! 2.1. Nest matrix uses pseudo-hermitian structure of BSE, only for the coupling case
            call K_stored_in_a_nest_matrix(i_BS_mat,iq,slepc_mat)
          else
-           ! 2.2. Single PETSc matrix, for resonant case or coupling
+           ! 2.2. Single PETSc matrix, for resonant case or non-hermitian coupling
            call K_stored_in_a_slepc_matrix(i_BS_mat,iq,slepc_mat)
          endif
        endif        
