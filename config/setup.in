@@ -106,6 +106,8 @@ letsf       = @ETSF_LIBS@
 ietsf       = @ETSF_INCS@
 lydiago     = @YDIAGO_LIBS@
 iydiago     = @YDIAGO_INCS@
+lmagma      = @MAGMA_LIBS@
+imagma      = @MAGMA_INCS@
 mpipath     = @MPI_PATH@
 #
 # VPATH
