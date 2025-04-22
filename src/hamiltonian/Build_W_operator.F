@@ -120,7 +120,18 @@ subroutine Build_W_operator(en,Xk,ik,i_sp,V_bands,Wk)
  !
  !$omp parallel do default(shared), private(id)
  do id=1,3
-   Wk(id,:,:)=(Wk(id,:,:)+hermitian(Wk(id,:,:)))
+   Wk(id,H_ref_bands(1):H_ref_bands(2),H_ref_bands(1):H_ref_bands(2))=                     &
+   &     (Wk(id,H_ref_bands(1):H_ref_bands(2),H_ref_bands(1):H_ref_bands(2))               &
+   &      +hermitian(Wk(id,H_ref_bands(1):H_ref_bands(2),H_ref_bands(1):H_ref_bands(2))))
+ enddo
+ !$omp end parallel do
+ !
+ !$omp parallel do default(shared), private(i1,id)
+ do i1=H_ref_bands(1),H_ref_bands(2)
+   do id=1,3
+     H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))=H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))+         &
+     &                                               E_vec_pot(id)*Wk(id,i1,H_ref_bands(1):H_ref_bands(2))
+   enddo
  enddo
  !$omp end parallel do
  !
