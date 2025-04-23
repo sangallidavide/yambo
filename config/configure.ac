@@ -25,6 +25,7 @@ AC_CONFIG_SRCDIR([driver/yambo.F])
 #
 m4_include([config/m4/yambo_remote_compilation_setup.m4])
 m4_include([config/m4/yambo_specific.m4])
+m4_include([config/m4/yambo_diago.m4])
 # 
 #  General
 #
@@ -254,10 +255,14 @@ m4_include([config/m4/iotk.m4])
 m4_include([config/m4/etsf_io.m4])
 m4_include([config/m4/scalapack.m4])
 m4_include([config/m4/petsc_slepc.m4])
+m4_include([config/m4/magma.m4])
 m4_include([config/m4/libcuda.m4])
 m4_include([config/m4/device_xlib.m4])
 #
 AC_LANG_PUSH(Fortran)
+# ============================================================================
+# Yambo Libs
+AC_YDIAGO
 # ============================================================================
 # YDB/YAMBOpy
 ACX_SCRIPTS
@@ -304,6 +309,9 @@ AC_SET_GPU
 # ============================================================================
 # Device XLIB
 ACX_DEVXLIB
+# ============================================================================
+# MAGMA
+AC_MAGMA_SETUP
 # ============================================================================
 # Prepare the REPORT file variables
 ACX_REPORT()
