@@ -126,13 +126,4 @@ subroutine Build_W_operator(en,Xk,ik,i_sp,V_bands,Wk)
  enddo
  !$omp end parallel do
  !
- !$omp parallel do default(shared), private(i1,id)
- do i1=H_ref_bands(1),H_ref_bands(2)
-   do id=1,3
-     H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))=H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))+         &
-     &                                               E_vec_pot(id)*Wk(id,i1,H_ref_bands(1):H_ref_bands(2))
-   enddo
- enddo
- !$omp end parallel do
- !
 end subroutine Build_W_operator
