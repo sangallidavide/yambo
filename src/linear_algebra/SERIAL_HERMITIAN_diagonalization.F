@@ -54,9 +54,10 @@ subroutine SERIAL_HERMITIAN_diagonalization(n,M,E)
  liwork=-1
  allocate(WS%v_cmplx(1))
  allocate(WS%v_real(1))
- allocate(WS%v_int(1))
  !
 #if defined _MAGMA
+   !
+   allocate(WS%v_int(1))
    !
    if (.not.magma_init_done) then
      call msg('sr','Initializing magma library in geev')
@@ -74,19 +75,25 @@ subroutine SERIAL_HERMITIAN_diagonalization(n,M,E)
  !
  lwork=nint(real(WS%v_cmplx(1)))
  lrwork=nint(WS%v_real(1))
- liwork=WS%v_int(1)
  deallocate(WS%v_cmplx)
  deallocate(WS%v_real)
+#if defined _MAGMA
+ liwork=WS%v_int(1)
  deallocate(WS%v_int)
+#endif
  !
  if(.not.(l_nl_optics.or.l_real_time)) then
    YAMBO_ALLOC(WS%v_cmplx,(lwork))
    YAMBO_ALLOC(WS%v_real,(lrwork))
+#if defined _MAGMA
    YAMBO_ALLOC(WS%v_int,(liwork))
+#endif
  else
    allocate(WS%v_cmplx(lwork))
    allocate(WS%v_real(lrwork))
+#if defined _MAGMA
    allocate(WS%v_int(liwork))
+#endif
  endif
 
  !   
