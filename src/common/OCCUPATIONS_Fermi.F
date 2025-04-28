@@ -118,7 +118,9 @@ subroutine OCCUPATIONS_Fermi(E,K,OBJ,mode,n_bands,impose_balance)
  ! Start Loop
  ! 
  i_trials=1
- nel_diff_zero=1.E-4
+ ! Setting this to 1.E-4 is needed for CrI3,
+ ! however, it make Benzene tests fail
+ nel_diff_zero=1.E-5
  Fermi_is_converged=.false.
  !
  ! BUG-fix [Andrea 1/6/2012]: when the system is semiconductive it may happen the
