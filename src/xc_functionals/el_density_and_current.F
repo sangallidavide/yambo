@@ -204,7 +204,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
        !
        if (l_drho) then
          !
-         call eval_Gradient(cmplx(WF%r(:,:,i_wf),kind=SP),WF_der,n_spinor,"wave")
+         call eval_Gradient_wf(cmplx(WF%r(:,:,i_wf),kind=SP),WF_der)
          !
          do i_dir=1,3
            do i_spinor=1,n_spinor
@@ -226,7 +226,7 @@ subroutine el_density_and_current(E,k,rho,drho,J,bands,force_spatial_inversion,c
        !
        if (l_J) then
          !
-         call eval_Gradient(cmplx(WF%r(:,:,i_wf),kind=SP),WF_der,n_spinor,"wave")
+         call eval_Gradient_wf(cmplx(WF%r(:,:,i_wf),kind=SP),WF_der)
          !
          do i_dir=1,3
            do i_spinor=1,n_spinor

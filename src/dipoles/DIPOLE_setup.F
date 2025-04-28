@@ -52,7 +52,7 @@ subroutine DIPOLE_setup(Dip)
  !----------------
  if (l_BS_dichroism.or.l_BS_magnons.or.l_X_magn.or.l_BS_photolum) Dip%bands_ordered=.false.
 #if defined _SLEPC && !defined _NL
- if ( index(BSS_mode,'s')/=0 )  Dip%bands_ordered=.false.
+ !if ( index(BSS_mode,'s')/=0 )  Dip%bands_ordered=.false.
 #endif
  !
  ! Force covariant in NL
