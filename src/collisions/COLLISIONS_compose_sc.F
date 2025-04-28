@@ -10,6 +10,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
  ! HF(qp_state) = - (0.,1.) * \sum_{n,n',q} Collisions(n,n',q,qp_state) x G_sex/coh(n,n',k-q)
  ! 
  use pars,             ONLY:SP,cZERO,cI
+ use electrons,        ONLY:n_sp_pol
  use drivers,          ONLY:l_sc_fock,l_sc_coh,l_sc_sex,l_sc_exx,l_sc_hartree
  use QP_m,             ONLY:QP_nk,QP_nb,QP_n_states,QP_Sc,QP_Vnl_xc
  use collision_ext,    ONLY:COH_COLL_element,HXC_COLL_element,COLL_bands,HXC_collisions,&
@@ -76,7 +77,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
          ! COH part
          !
          if (l_sc_coh) then
-           if (COH_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='t') then
+           if (COH_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq,i_sp)=='t') then
              QP_Vnl_xc(i_qp)=QP_Vnl_xc(i_qp)-cI*COH_COLL_element(i_coll_mem)%v_c(ic1)*G_coh(ib,ibp,i_kmq,i_sp)
              ic1=ic1+1
            endif
@@ -85,7 +86,7 @@ subroutine COLLISIONS_compose_sc(G_sex,G_coh)
          ! SEX/HF/HARTREE parts
          !
          if (l_sex) then
-           if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq)=='t') then
+           if (HXC_COLL_element(i_coll_mem)%table(ib,ibp,i_kmq,i_sp)=='t') then
              QP_Vnl_xc(i_qp)=QP_Vnl_xc(i_qp)-cI*HXC_COLL_element(i_coll_mem)%v_c(ic2)*G_sex(ib,ibp,i_kmq,i_sp)
              ic2=ic2+1
            endif
