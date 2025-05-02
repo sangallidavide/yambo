@@ -28,7 +28,7 @@ subroutine Apply_W_field(A_input,Wk,H_nl_sc)
  !$omp parallel do default(shared), private(i1,id)
  do i1=H_ref_bands(1),H_ref_bands(2)
    do id=1,3
-     H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))=H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))+         &
+     H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))=H_nl_sc(i1,H_ref_bands(1):H_ref_bands(2))-         &
      &                                               E_vec_pot(id)*Wk(id,i1,H_ref_bands(1):H_ref_bands(2))
    enddo
  enddo
