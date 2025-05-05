@@ -707,6 +707,7 @@ SLEPC_info
 PETSC_info
 SLEPC_check
 PETSC_check
+YDIAGO_check
 ELPA_check
 SLK_check
 BLACS_check
@@ -744,6 +745,11 @@ internal_devxlib
 compile_devxlib
 DEVXLIB_INCS
 DEVXLIB_LIBS
+with_ydiago_branch
+ydiago_opt
+YDIAGO_GPU_SUPPORT
+YDIAGO_INCS
+YDIAGO_LIBS
 MKLGPU_LIBS
 LIBROCM_PATH
 LIBROCM_INCS
@@ -867,10 +873,6 @@ internal_blas
 FLIBS
 YDB_dir
 GIT
-with_ydiago_branch
-ydiago_check
-YDIAGO_INCS
-YDIAGO_LIBS
 MPI_LIB_DIR
 MPI_INC_DIR
 MPI_LIBS
@@ -1029,7 +1031,6 @@ with_mpi_libs
 with_mpi_path
 with_mpi_libdir
 with_mpi_includedir
-with_ydiago_branch
 enable_ydb
 with_blas_libs
 enable_int_linalg
@@ -1119,6 +1120,7 @@ with_rocm_libdir
 with_rocm_includedir
 with_rocm_path
 with_mklgpu_libs
+with_ydiago_branch
 with_devxlib_libs
 with_devxlib_path
 with_devxlib_libdir
@@ -1834,7 +1836,6 @@ Optional Packages:
   --with-mpi-path=<path>        Path to the MPI install directory
   --with-mpi-libdir=<path>      Path to the MPI lib directory
   --with-mpi-includedir=<path>  Path to the MPI include directory
-  --with-ydiago-branch=<branch> Use the <branch> of the ydiago repository.
   --with-blas-libs=<libs>       Use BLAS libraries <libs>
   --with-lapack-libs=<libs>     Use LAPACK libraries <libs>
   --with-fft-libs=<libs>        Link to FFT libraries
@@ -1917,6 +1918,7 @@ Optional Packages:
   --with-rocm-includedir=<path> Path to the rocm include directory
   --with-rocm-path=<path>       Path to rocm install directory
   --with-mklgpu-libs=<libs>     Use the MKLGPU library <libs>
+  --with-ydiago-branch=<branch> Use the <branch> of the ydiago repository.
   --with-devxlib-libs=<libs>    Use devxlib libraries <libs>
   --with-devxlib-path=<path>    Path to devxlib install directory
   --with-devxlib-libdir=<path>  Path to the devxlib lib directory
@@ -10692,40 +10694,6 @@ ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
 # ============================================================================
-# Yambo Libs
-
-
-#
-
-# Check whether --with-ydiago-branch was given.
-if test ${with_ydiago_branch+y}
-then :
-  withval=$with_ydiago_branch;
-else $as_nop
-  with_ydiago_branch=none
-fi
-
-#
-ac_config_files="$ac_config_files lib/ydiago/make_ydiago.inc:lib/ydiago/make_ydiago.inc.in"
-
-if test x"$with_ydiago_branch" = "xnone"; then
- ydiago_check="D";
-else
- ydiago_check="G";
-fi
-#YDIAGO_LIBS="${extlibs_path}/${FCKIND}/${FC}/lib/libydiago.a"
-#YDIAGO_INCS="$IFLAG${extlibs_path}/${FCKIND}/${FC}/include/"
-YDIAGO_LIBS="${compdir}/lib/libydiago.a"
-YDIAGO_INCS="$IFLAG${compdir}/include/"
-
-
-
-
-
-
-
-
-# ============================================================================
 # YDB/YAMBOpy
 
 #
@@ -16652,6 +16620,46 @@ fi
 #
 
 # ============================================================================
+# Diago library
+
+
+#
+
+# Check whether --with-ydiago-branch was given.
+if test ${with_ydiago_branch+y}
+then :
+  withval=$with_ydiago_branch;
+else $as_nop
+  with_ydiago_branch=none
+fi
+
+#
+ac_config_files="$ac_config_files lib/ydiago/make_ydiago.inc:lib/ydiago/make_ydiago.inc.in"
+
+
+# GPU flags are passed to ydiago compilation only if elpa library is available
+if test ! x"$def_gpu" = "x" && test "$def_elpa" = "-D_ELPA" ; then
+  ydiago_opt="$def_gpu $def_elpa"
+  YDIAGO_GPU_SUPPORT="$GPU_SUPPORT"
+else
+  ydiago_opt="$def_elpa"
+  YDIAGO_GPU_SUPPORT="no_gpu"
+fi
+
+YDIAGO_LIBS="${extlibs_path}/${FCKIND}/${FC}/${YDIAGO_GPU_SUPPORT}/lib/libydiago.a"
+YDIAGO_INCS="$IFLAG${extlibs_path}/${FCKIND}/${FC}/${YDIAGO_GPU_SUPPORT}/include/"
+#YDIAGO_LIBS="${compdir}/lib/libydiago.a"
+#YDIAGO_INCS="$IFLAG${compdir}/include/"
+
+
+
+
+
+
+
+
+
+# ============================================================================
 # Device XLIB
 
 
@@ -17239,6 +17247,12 @@ if test "$internal_blacs" = "yes" ; then
   if test "$compile_blacs" = "no" ; then BLACS_check="I"; fi
 fi
 #
+if test x"$with_ydiago_branch" = "xnone"; then
+ YDIAGO_check="I";
+else
+ YDIAGO_check="G";
+fi
+#
 PETSC_check="-"
 PETSC_info=""
 if test "$internal_petsc" = "yes" ; then
@@ -17359,6 +17373,7 @@ fi
 
 
 
+
 #
 
 
@@ -17374,23 +17389,25 @@ fi
 #
 
 TMP1=`echo $YDIAGO_LIBS | sed 's/\//+/g'`
-TMP2=`echo $compdir | sed 's/\//+/g'`
-TMP3=`echo $TMP1 | sed "s/$TMP2/\(CMP\)/g"`
+TMP2=`echo $extlibs_path/${FCKIND}/${FC} | sed 's/\//+/g'`
+TMP3=`echo $TMP1 | sed "s/$TMP2/\(LIB\)/g"`
 STRIPE=`echo $TMP3 | sed 's/+/\//g'`
 if [ -z "${1// }" ]; then
  STRIPE="$STRIPE ("LIB")"
 fi
 
+#ACX_STRIPE_SUBPATH2($YDIAGO_LIBS,"LIB")
 YDIAGO_LIBS_R=$STRIPE
 
 TMP1=`echo $YDIAGO_INCS | sed 's/\//+/g'`
-TMP2=`echo $compdir | sed 's/\//+/g'`
-TMP3=`echo $TMP1 | sed "s/$TMP2/\(CMP\)/g"`
+TMP2=`echo $extlibs_path/${FCKIND}/${FC} | sed 's/\//+/g'`
+TMP3=`echo $TMP1 | sed "s/$TMP2/\(LIB\)/g"`
 STRIPE=`echo $TMP3 | sed 's/+/\//g'`
 if [ -z "${1// }" ]; then
  STRIPE="$STRIPE ("INC")"
 fi
 
+#ACX_STRIPE_SUBPATH2($YDIAGO_INCS,"INC")
 YDIAGO_INCS_R=$STRIPE
 
 
@@ -18595,10 +18612,10 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "lib/ydiago/make_ydiago.inc") CONFIG_FILES="$CONFIG_FILES lib/ydiago/make_ydiago.inc:lib/ydiago/make_ydiago.inc.in" ;;
     "lib/fftqe/c_defs.h") CONFIG_HEADERS="$CONFIG_HEADERS lib/fftqe/c_defs.h:lib/fftqe/c_defs.h.in" ;;
     "lib/fftqe/fftqe_defs.h") CONFIG_FILES="$CONFIG_FILES lib/fftqe/fftqe_defs.h:lib/fftqe/fftqe_defs.h.in" ;;
     "lib/iotk/make_iotk.inc") CONFIG_FILES="$CONFIG_FILES lib/iotk/make_iotk.inc:lib/iotk/make_iotk.inc.in" ;;
+    "lib/ydiago/make_ydiago.inc") CONFIG_FILES="$CONFIG_FILES lib/ydiago/make_ydiago.inc:lib/ydiago/make_ydiago.inc.in" ;;
     "lib/magma/make_magma.inc") CONFIG_FILES="$CONFIG_FILES lib/magma/make_magma.inc:lib/magma/make_magma.inc.in" ;;
     "include/headers/common/have_malloc.h") CONFIG_HEADERS="$CONFIG_HEADERS include/headers/common/have_malloc.h:include/headers/common/have_malloc.h.in" ;;
     "config/setup") CONFIG_FILES="$CONFIG_FILES config/setup" ;;
